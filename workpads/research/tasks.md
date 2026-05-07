@@ -178,7 +178,7 @@ Acceptance criteria:
 - Create temporary Playwright state files with restrictive `0600` permissions on Unix-like systems.
 - Add tests for empty state, one-session state, dedupe, conflict, and cleanup.
 
-### 📋 Task I3: Add Crawl4AI extraction adapter
+### ✅ Task I3: Add Crawl4AI extraction adapter
 
 Acceptance criteria:
 
