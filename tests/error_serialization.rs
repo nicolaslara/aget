@@ -11,6 +11,7 @@ fn all_error_codes_serialize_to_stable_strings() {
         (ErrorCode::ExtractionFailed, "extraction_failed"),
         (ErrorCode::SessionConflict, "session_conflict"),
         (ErrorCode::PrivacyPolicyBlocked, "privacy_policy_blocked"),
+        (ErrorCode::IoError, "io_error"),
     ];
 
     for (code, expected) in cases {

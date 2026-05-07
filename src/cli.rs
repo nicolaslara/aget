@@ -67,6 +67,21 @@ pub struct SessionCommand {
 #[derive(Debug, Subcommand, PartialEq, Eq)]
 pub enum SessionSubcommand {
     List,
+    Inspect(InspectSessionCommand),
+    Delete(DeleteSessionCommand),
+}
+
+#[derive(Debug, Args, PartialEq, Eq)]
+pub struct InspectSessionCommand {
+    pub name: String,
+
+    #[arg(long)]
+    pub show_secrets: bool,
+}
+
+#[derive(Debug, Args, PartialEq, Eq)]
+pub struct DeleteSessionCommand {
+    pub name: String,
 }
 
 fn looks_like_url(value: &str) -> bool {
@@ -131,5 +146,20 @@ mod tests {
 
         assert!(cli.global.json);
         assert!(cli.global.quiet);
+    }
+
+    #[test]
+    fn parses_session_inspect() {
+        let cli = Cli::try_parse_from(["aget", "session", "inspect", "demo"]).unwrap();
+
+        assert_eq!(
+            cli.command,
+            Command::Session(SessionCommand {
+                command: SessionSubcommand::Inspect(InspectSessionCommand {
+                    name: "demo".to_string(),
+                    show_secrets: false
+                })
+            })
+        );
     }
 }

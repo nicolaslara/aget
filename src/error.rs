@@ -12,6 +12,7 @@ pub enum ErrorCode {
     ExtractionFailed,
     SessionConflict,
     PrivacyPolicyBlocked,
+    IoError,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]

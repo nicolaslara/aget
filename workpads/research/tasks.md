@@ -155,7 +155,7 @@ Acceptance criteria:
 - Define stable error categories.
 - Add unit tests for CLI parsing and error-category serialization.
 
-### 📋 Task I1: Implement session model and store
+### ✅ Task I1: Implement session model and store
 
 Acceptance criteria:
 
