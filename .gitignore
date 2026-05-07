@@ -1,0 +1,8 @@
+.DS_Store
+target/
+.env
+.env.*
+!.env.example
+references/repos/
+.aget/
+*.log

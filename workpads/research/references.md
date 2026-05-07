@@ -1,0 +1,105 @@
+# Research References
+
+Record primary sources, notes, and quality assessments here.
+
+## Source Projects
+
+| Topic | URL | Notes |
+| --- | --- | --- |
+| curl.md repo | https://github.com/wevm/curl.md | MIT. Research CLI, API server, OpenCode plugin, markdown pipeline. |
+| curl.md OpenCode docs | https://curl.md/docs/plugins/opencode | Plugin registers `curl_md`, optional `webfetch` override, auth/status commands. |
+| curl.md API docs | https://curl.md/docs/guide/api | Objective, keywords, mode, fresh, token/cost headers. |
+| Firecrawl repo | https://github.com/firecrawl/firecrawl | AGPL-3.0 core. Self-hostable service, scrape/crawl/search/interact. |
+| Firecrawl self-host docs | https://github.com/firecrawl/firecrawl/blob/main/SELF_HOST.md | Docker-based local service with API, worker, Redis, Playwright service. |
+| Firecrawl docs | https://docs.firecrawl.dev | Search, scrape, interact, crawl, map, parse, SDKs, MCP. |
+
+## Comparable Projects
+
+| Project | URL | Notes |
+| --- | --- | --- |
+| TabNab | https://github.com/clduab11/tabnab | Local MCP server for real Chromium browser sessions via Playwright/CDP. Tools cover tabs, DOM/markdown extraction, form input, clicking, waiting, screenshots, and action confirmation. License is PolyForm Shield for non-commercial use plus commercial license, so direct reuse is poor fit. |
+| Chrome DevTools MCP | https://github.com/ChromeDevTools/chrome-devtools-mcp | Official Google MCP server using Puppeteer/Chrome DevTools for browser debugging, screenshots, console/network inspection, and automation. Supports MCP clients and remote-debugging browser URL configuration. README warns that browser content is exposed to MCP clients and usage statistics are enabled by default unless disabled. |
+| Real Browser MCP | https://github.com/ofershap/real-browser-mcp | MIT. MCP server plus Chrome extension that controls the user's existing browser, preserving sessions/cookies and active tabs. Useful precedent for current-browser/current-tab mode when CDP debug-port setup is undesirable. |
+| Playwright MCP | https://github.com/microsoft/playwright-mcp | Apache-2.0. Local MCP browser automation server. Strong precedent for persistent profiles, storage state, CDP-style browser control, and agent integration, but extraction is snapshot/action oriented rather than low-token markdown oriented. |
+| BrowserMCP | https://github.com/BrowserMCP/mcp | Apache-2.0. MCP plus extension approach for controlling the user's real browser and logged-in sessions. Good current-tab/auth model reference; reported build caveats mean it should be treated as product/architecture inspiration first. |
+| Crawl4AI | https://github.com/unclecode/crawl4ai | Apache-2.0. Local/CLI/Docker crawler and markdown/structured extraction system with Playwright, sessions, cookies, headers, screenshots, crawling, BM25-style filtering, and MCP integration. Strong extraction benchmark, but Python and broader than `aget` MVP. |
+| browser-use | https://github.com/browser-use/browser-use | MIT. Agent-oriented browser automation project built around Playwright/browser control and custom tools. Useful for auth/browser task patterns, less aligned with deterministic URL-to-markdown output. |
+| SingleFile | https://github.com/gildas-lormeau/SingleFile | AGPL-3.0. Browser extension/CLI for saving current tabs as faithful single HTML documents. Strong current-tab and local capture precedent, but not markdown-first and AGPL makes code reuse unattractive. |
+| Browsertrix Crawler | https://github.com/webrecorder/browsertrix-crawler | AGPL-3.0. Browser-based crawler built around Puppeteer/Brave/CDP and web-archive output. Useful crawl/session architecture reference, but archive-oriented and license is poor fit for code reuse. |
+| Maxun | https://github.com/getmaxun/maxun | AGPL-3.0. Self-hostable no-code scraping/crawling/extraction platform with behind-login and MCP-related overlap. Product comparison only; too heavy and license-constrained for direct reuse. |
+| Trafilatura | https://github.com/adbar/trafilatura | Apache-2.0. Mature main-content extraction and text/markdown output library. No browser/session/current-tab story; useful as extraction-quality benchmark. |
+| Mozilla Readability | https://github.com/mozilla/readability | Apache-2.0. Canonical article extraction library used by Reader View. No auth/browser automation; useful baseline for readability extraction behavior. |
+| MarkItDown | https://github.com/microsoft/markitdown | MIT. Local document-to-markdown conversion for LLM pipelines, including URL/HTML-related workflows. Useful output-format reference, not auth-aware browser automation. |
+| Markdown Web Browser | https://github.com/Dicklesworthstone/markdown_web_browser | Local clone at `references/repos/markdown_web_browser`. Screenshot-first Playwright + OCR pipeline producing markdown with pixel provenance, CLI/API/UI, profiles/storage state, and artifacts. License is MIT with OpenAI/Anthropic rider, so not standard open-source for this project; README also emphasizes bot-detection bypass, conflicting with `aget` safety boundary. |
+| agent-fetch | https://github.com/teng-lin/agent-fetch | Local clone at `references/repos/agent-fetch`. MIT. Node/TypeScript local HTTP fetcher for agents using browser-like TLS fingerprinting, cookies/cookie files, crawl mode, and multi-strategy extraction: Readability, text-density, JSON-LD, Next.js, RSC, WordPress, selectors. Strongest extraction-strategy inspiration among cloned repos. |
+| agent-browser | https://github.com/vercel-labs/agent-browser | Local clone at `references/repos/agent-browser`. Apache-2.0. Rust native browser automation CLI for agents using Chrome/CDP, persistent/named sessions, cookies/storage state, screenshots, accessibility snapshots, and agent skills. Strong browser/session architecture reference; not a markdown extraction pipeline. |
+| Crawl4AI skill | `/Users/nicolas/Downloads/crawl4ai/SKILL.md` | Downloaded agent skill for Crawl4AI. Emphasizes SDK workflows for markdown, fit markdown, structured extraction, batch crawl, JS handling, and sessions. Auth example uses `CrawlerRunConfig(session_id=...)` plus injected JS credentials/selectors, which is useful for scripted logins but not ideal as a default for user SSO/2FA or consent-driven private browsing. |
+
+## Benchmark Runs
+
+| Run | Tool | URL | Output | Notes |
+| --- | --- | --- | --- | --- |
+| R0a easy static | curl.md CLI | https://example.com | `workpads/research/benchmarks/r0a/curlmd-example.md` | Clean markdown with frontmatter and `Powered by` footer. |
+| R0a easy static | Firecrawl CLI | https://example.com | `workpads/research/benchmarks/r0a/firecrawl-example.md` | Clean markdown. First scrape attempt hit transient `ECONNREFUSED`; retry succeeded. Hosted API was used. |
+| R0a easy static | Crawl4AI CLI | https://example.com | `workpads/research/benchmarks/r0a/crawl4ai-example.md` | Clean markdown after running `crawl4ai-setup` to install Playwright/Patchright browsers. |
+| R0a easy static | agent-browser | https://example.com | `workpads/research/benchmarks/r0a/agent-browser-example.txt`, `.html` | Headless Chrome extraction worked; output is text/HTML, not markdown. |
+| R0a JS rendered | curl.md CLI | https://quotes.toscrape.com/js/ | `workpads/research/benchmarks/r0a/curlmd-quotes-js.md` | Did not render JS quote content; only title/login shell appeared. |
+| R0a JS rendered | Firecrawl CLI | https://quotes.toscrape.com/js/ | `workpads/research/benchmarks/r0a/firecrawl-quotes-js.md` | Rendered JS content, but markdown joined tag words without spaces. Hosted API was used. |
+| R0a JS rendered | Crawl4AI CLI | https://quotes.toscrape.com/js/ | `workpads/research/benchmarks/r0a/crawl4ai-quotes-js.md` | Rendered JS content locally and preserved links, but quote/author spacing needed cleanup. |
+| R0a JS rendered | agent-browser | https://quotes.toscrape.com/js/ | `workpads/research/benchmarks/r0a/agent-browser-quotes-js.txt`, `.html` | Rendered JS content locally with readable text spacing; no markdown conversion. |
+| R0a auth baseline | curl.md CLI | https://www.hellointerview.com/learn/behavioral/course/adapting-to-big-tech-behaviorals | `workpads/research/benchmarks/r0a/curlmd-hellointerview-unauth.md` | Public/unauthenticated content only; includes paywall CTA. Hosted service received URL/page content. |
+| R0a auth baseline | Firecrawl CLI | https://www.hellointerview.com/learn/behavioral/course/adapting-to-big-tech-behaviorals | `workpads/research/benchmarks/r0a/firecrawl-hellointerview-unauth.md` | Public/unauthenticated rendered markdown; includes nav/sidebar noise and paywall CTA. Hosted API was used. |
+| R0a auth baseline | Crawl4AI CLI | https://www.hellointerview.com/learn/behavioral/course/adapting-to-big-tech-behaviorals | `workpads/research/benchmarks/r0a/crawl4ai-hellointerview-unauth.md` | Public/unauthenticated rendered markdown locally; includes nav/sidebar noise and paywall CTA. |
+| R0a auth baseline | agent-browser | https://www.hellointerview.com/learn/behavioral/course/adapting-to-big-tech-behaviorals | `workpads/research/benchmarks/r0a/agent-browser-hellointerview-unauth.txt`, `.html` | Public/unauthenticated local browser text/HTML; no markdown conversion. |
+| R0a auth profile snapshot | agent-browser | https://www.hellointerview.com/learn/behavioral/course/adapting-to-big-tech-behaviorals | `workpads/research/benchmarks/r0a/agent-browser-hellointerview-profile-default.txt` | `--profile Default` worked technically, but Chrome profile was not logged in to HelloInterview. |
+| R0a auth dedicated profile | agent-browser | HelloInterview login callback URL | Pending | Opened headed browser with dedicated profile at `/Users/nicolas/.agent-browser/profiles/aget-hellointerview`; waiting for user login before extraction. |
+| R0a auth existing Chrome login | agent-browser | https://www.hellointerview.com/learn/behavioral/course/adapting-to-big-tech-behaviorals | `workpads/research/benchmarks/r0a/agent-browser-hi-auth-after-manual-chrome-login.txt`, `.html` | Successful authenticated extraction. User logged in manually in regular Google Chrome, quit Chrome, then `agent-browser --profile Default` snapshotted the authenticated profile and extracted local text/HTML. Output included video content and full premium article text, with no sign-in/paywall CTA. |
+| R0a Crawl4AI skill static | Crawl4AI skill `basic_crawler.py` | https://example.com | `workpads/research/benchmarks/crawl4ai-skill-example/output.md` | Clean local markdown plus screenshot. |
+| R0a Crawl4AI skill JS | Crawl4AI skill `basic_crawler.py` | https://quotes.toscrape.com/js/ | `workpads/research/benchmarks/crawl4ai-skill-quotes-js/output.md` | Rendered JS locally and produced markdown. Quote/author spacing still needs cleanup. |
+| R0a Crawl4AI skill HelloInterview unauth | Crawl4AI skill `basic_crawler.py` | https://www.hellointerview.com/learn/behavioral/course/adapting-to-big-tech-behaviorals | `workpads/research/benchmarks/crawl4ai-skill-hellointerview-unauth/output.md`, `screenshot.png` | Failed in the skill script: output was blank and screenshot was blank. `crwl crawl` CLI had worked better on the same URL. |
+| R0a Chrome profile copy to Crawl4AI | custom script | Chrome `Default` profile to `~/.crawl4ai/profiles/chrome-default-hellointerview-r0a` | `workpads/research/benchmarks/import_chrome_profile_to_crawl4ai.py`, `workpads/research/benchmarks/r0a/crawl4ai-hellointerview-imported-chrome-profile.md` | Negative/inconclusive. Script copied `Local State` plus `Default` into Crawl4AI profile store, excluding caches/locks. `crwl crawl --profile` still returned unauthenticated paywall content. Chrome was still running during copy, so lock/incomplete-copy remains a confounder. |
+| R0a Crawl4AI CDP with copied Chrome profile | custom script | Copied Chrome profile launched in system Chrome, Crawl4AI connected over CDP | `workpads/research/benchmarks/crawl4ai_cdp_with_profile.py`, `workpads/research/benchmarks/r0a/crawl4ai-cdp-imported-chrome-profile.md` | Negative/inconclusive. Crawl4AI successfully extracted markdown via CDP, but output was still unauthenticated paywall content. Same running-Chrome copy caveat applies. |
+| R0a agent-browser temp profile copied to Crawl4AI | custom script + `crwl crawl --profile` | `agent-browser` temp user-data-dir copied into `~/.crawl4ai/profiles/agent-browser-temp-hellointerview-r0a` | `workpads/research/benchmarks/r0a/crawl4ai-imported-agent-browser-temp-profile.md` | Negative. Output markers matched unauthenticated Crawl4AI output: `Sign in / Sign up`, `Premium users can view this video once signed in`, and `Purchase Premium to Keep Reading`. Copying the already-working `agent-browser` temp profile did not preserve usable auth for Crawl4AI. |
+| R0a agent-browser storage state to Crawl4AI | `agent-browser state save` + custom Crawl4AI SDK script | `agent-browser` saved Playwright-style storage state, passed to `BrowserConfig(storage_state=...)` | `workpads/research/benchmarks/crawl4ai_with_storage_state.py`, `workpads/research/benchmarks/r0a/crawl4ai-agent-browser-storage-state.md` | Positive. Crawl4AI output contains logged-in marker `StrongMagentaJackal227` and `Posting as StrongMagentaJackal227`, with no `Sign in / Sign up` or `Purchase Premium to Keep Reading` matches. Raw state JSON was sensitive and should not be persisted in the repo. |
+| R0a cmux browser pane | `/Applications/cmux.app/Contents/Resources/bin/cmux` | disposable cmux browser surface `surface:8` on `example.com` and `quotes.toscrape.com/js/` | CLI output only; disposable browser pane closed | Positive for interaction and rendered extraction. `cmux browser get text body`, `get html body`, `snapshot`, `wait`, and `goto` worked. `cmux browser state save` also worked but exported broad browser cookies/storage and must be treated as credential-sensitive. No built-in markdown/readability extraction observed. |
+
+Reproducibility notes for the positive auth bridge:
+
+1. Known-good auth source session: `npx -y agent-browser --profile Default --session hi-auth-after-manual-chrome-login open "https://www.hellointerview.com/learn/behavioral/course/adapting-to-big-tech-behaviorals"`
+2. Confirmed auth with `agent-browser` text/HTML outputs under `workpads/research/benchmarks/r0a/agent-browser-hi-auth-after-manual-chrome-login.*`.
+3. Exported state with `npx -y agent-browser --session hi-auth-after-manual-chrome-login state save "workpads/research/benchmarks/r0a/agent-browser-hi-auth-state.json"`.
+4. Ran Crawl4AI with `uv run --with crawl4ai "workpads/research/benchmarks/crawl4ai_with_storage_state.py" --url "https://www.hellointerview.com/learn/behavioral/course/adapting-to-big-tech-behaviorals" --state "workpads/research/benchmarks/r0a/agent-browser-hi-auth-state.json" --output "workpads/research/benchmarks/r0a/crawl4ai-agent-browser-storage-state.md"`.
+5. Deleted the raw state JSON after the benchmark because it contains live cookies/storage. The authenticated markdown output is also sensitive local data.
+
+## Browser Automation
+
+| Topic | URL | Notes |
+| --- | --- | --- |
+| Playwright persistent context | https://playwright.dev/docs/api/class-browsertype#browser-type-launch-persistent-context | Evaluate dedicated profile login reuse. |
+| Chrome DevTools Protocol | https://chromedevtools.github.io/devtools-protocol/ | Evaluate current-browser/current-tab extraction. |
+| WebDriver BiDi | https://w3c.github.io/webdriver-bidi/ | Evaluate future browser automation standard. |
+
+## Rust Candidates
+
+| Need | Candidate | Notes |
+| --- | --- | --- |
+| HTTP | `reqwest` | Mature async HTTP client. |
+| CLI | `clap` | Standard Rust CLI framework. |
+| HTML parse | `scraper`, `html5ever`, `kuchiki` | Need quality comparison. |
+| Browser/CDP | `chromiumoxide`, `fantoccini` | Need maintenance/reliability research. |
+| Token estimate | `tiktoken-rs` | Need model compatibility check. |
+| Cache | SQLite/`rusqlite`, filesystem | Need schema design. |
+
+## Later Media Inputs
+
+| Topic | URL | Notes |
+| --- | --- | --- |
+| youtube-transcript-api | https://github.com/jdepoix/youtube-transcript-api | MIT. Candidate for fastest first-pass YouTube manual/auto caption retrieval without API key or browser. Need policy/reliability review. |
+| yt-dlp manual | https://man.archlinux.org/man/extra/yt-dlp/yt-dlp.1.en | Candidate CLI for listing/downloading subtitles and downloading audio for local ASR fallback. Need license and platform-policy review. |
+| faster-whisper | https://github.com/SYSTRAN/faster-whisper | MIT. Candidate Python local ASR backend using CTranslate2; good for product/backend iteration speed. |
+| whisper.cpp | https://github.com/ggml-org/whisper.cpp | MIT. Candidate portable embedded ASR backend with C/C++ API, quantized models, CPU/GPU/Apple Silicon options. Strong Rust integration candidate. |
+| WhisperX | https://github.com/m-bain/whisperX | Candidate add-on when word timestamps or diarization are needed. Need dependency/license review, especially diarization stack. |
+| mlx-whisper | https://pypi.org/project/mlx-whisper/ | Candidate Apple Silicon local ASR experiment. |
+| Vosk | https://alphacephei.com/vosk/ | Lightweight offline ASR option for embedded/streaming use; likely lower accuracy than Whisper-family models. |
+| OpenAI Whisper | https://github.com/openai/whisper | MIT. Reference implementation; PyTorch-heavy, less ideal as embedded production backend. |
+| OpenAI speech-to-text docs | https://developers.openai.com/api/docs/guides/speech-to-text | Optional explicit paid API fallback only, not local-first default. |
