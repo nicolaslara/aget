@@ -1,7 +1,10 @@
 use std::process::ExitCode;
 
 use aget::session::SessionStore;
-use aget::{Cli, Command, ErrorCode, ErrorResponse, Session, SessionCookie, SessionSubcommand};
+use aget::{
+    get_url, Cli, Command, ErrorCode, ErrorResponse, GetOptions, Session, SessionCookie,
+    SessionSubcommand,
+};
 
 fn main() -> ExitCode {
     let cli =
@@ -22,7 +25,17 @@ fn main() -> ExitCode {
 fn run(cli: Cli) -> Result<(), ErrorResponse> {
     match cli.command {
         Command::Get(get) => {
-            println!("aget get {}", get.url);
+            let success = get_url(GetOptions {
+                url: get.url,
+                out: get.out,
+                timeout: cli.global.timeout,
+            })
+            .map_err(error_response)?;
+            if cli.global.json {
+                println!("{}", serde_json::to_string(&success).map_err(io_error)?);
+            } else if !cli.global.quiet {
+                println!("{}", success.content);
+            }
             Ok(())
         }
         Command::Session(session) => run_session(session.command, cli.global.json),
@@ -139,4 +152,10 @@ fn cookie_view(cookie: &SessionCookie, show_secrets: bool) -> CookieView<'_> {
 
 fn io_error(error: impl std::fmt::Display) -> ErrorResponse {
     ErrorResponse::new(ErrorCode::IoError, error.to_string())
+}
+
+fn error_response(error: aget::AgetError) -> ErrorResponse {
+    match error {
+        aget::AgetError::Stable { code, message } => ErrorResponse::new(code, message),
+    }
 }

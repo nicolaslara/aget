@@ -1,4 +1,5 @@
 use std::ffi::OsString;
+use std::path::PathBuf;
 use std::time::Duration;
 
 use clap::{Args, Parser, Subcommand};
@@ -56,6 +57,9 @@ pub enum Command {
 #[derive(Debug, Args, PartialEq, Eq)]
 pub struct GetCommand {
     pub url: String,
+
+    #[arg(long)]
+    pub out: Option<PathBuf>,
 }
 
 #[derive(Debug, Args, PartialEq, Eq)]
@@ -106,7 +110,8 @@ mod tests {
         assert_eq!(
             cli.command,
             Command::Get(GetCommand {
-                url: "https://example.com".to_string()
+                url: "https://example.com".to_string(),
+                out: None,
             })
         );
     }
@@ -118,7 +123,8 @@ mod tests {
         assert_eq!(
             cli.command,
             Command::Get(GetCommand {
-                url: "https://example.com".to_string()
+                url: "https://example.com".to_string(),
+                out: None,
             })
         );
     }
@@ -146,6 +152,20 @@ mod tests {
 
         assert!(cli.global.json);
         assert!(cli.global.quiet);
+    }
+
+    #[test]
+    fn parses_get_out_path() {
+        let cli = Cli::try_parse_from(["aget", "get", "https://example.com", "--out", "page.md"])
+            .unwrap();
+
+        assert_eq!(
+            cli.command,
+            Command::Get(GetCommand {
+                url: "https://example.com".to_string(),
+                out: Some(PathBuf::from("page.md")),
+            })
+        );
     }
 
     #[test]
