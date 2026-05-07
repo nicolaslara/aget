@@ -1,0 +1,18 @@
+---
+description: aget project workflow
+alwaysApply: true
+---
+
+# aget Project Rules
+
+Read and follow `AGENTS.md`. It is the shared source of truth for this repository.
+
+Before task work, read:
+
+- `project.md`
+- `workpads/WORKPADS.md`
+- Active workpad `tasks.md`, `knowledge.md`, and `references.md`
+
+Do not start implementation until the research phase has produced an MVP architecture proposal and the user has reviewed it.
+
+Do not commit or push without explicit user confirmation.

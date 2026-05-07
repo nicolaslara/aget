@@ -1,0 +1,41 @@
+---
+description: Workpads workflow for persistent project context
+alwaysApply: true
+---
+
+# Workpads Workflow
+
+Progress persists in files and git, not conversation context.
+
+## At Session Start
+
+1. Read `workpads/WORKPADS.md`.
+2. Read active project files listed there.
+3. Read `project.md` for product intent.
+4. Select a pending `📋` task based on dependencies, risk, and testability.
+
+## During Work
+
+1. Mark selected task `🚧 in_progress`.
+2. Do the research or implementation.
+3. Record primary-source references in `references.md`.
+4. Record decisions, lessons, and risks in `knowledge.md`.
+5. Mark task `✅ completed` only after acceptance criteria are met.
+6. Add discovered follow-up tasks to `tasks.md`.
+
+## Task States
+
+```text
+📋 pending      - Not yet started
+🚧 in_progress  - Currently working on
+✅ completed    - Finished and verified
+🚫 blocked      - Cannot proceed
+```
+
+## Research Standards
+
+- Prefer primary sources.
+- Cite URLs or local reference paths.
+- Separate facts, decisions, and open questions.
+- Record license implications before recommending code reuse.
+- Treat authenticated content and cookies as private local data.
