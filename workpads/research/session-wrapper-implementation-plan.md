@@ -116,8 +116,11 @@ Deliverables:
 Acceptance criteria:
 
 - Session files are not stored in the project repo by default.
+- `~/.aget`, `sessions/`, `runs/`, `cache/`, and `tmp/` are created with `0700` permissions on Unix-like systems.
+- Session JSON files are created with `0600` permissions on Unix-like systems.
 - Values are redacted unless `--show-secrets` is passed.
 - Tests can isolate storage using `AGET_HOME`.
+- Tests verify restrictive permissions where the platform supports Unix modes.
 
 ## Milestone 2: Session Composition And Playwright State
 
@@ -128,6 +131,7 @@ Deliverables:
 - Duplicate identical cookies deduplicate.
 - Conflicting cookies fail.
 - Temporary state files are deleted on success and failure.
+- Temporary Playwright state files are created with `0600` permissions on Unix-like systems.
 
 Acceptance criteria:
 
@@ -274,10 +278,10 @@ Only after that add cmux import.
 
 This avoids entangling session storage, backend orchestration, and cmux quirks before the core replay path is tested.
 
-## Open Questions Before Coding
+## Decisions Before Coding
 
-- Should v1 persist plaintext sessions with restrictive permissions, or require encryption from day one?
-- Should `aget get` print markdown to stdout by default, write to a run directory by default, or support both with a clear default?
-- Should Crawl4AI be invoked through `uv run --with crawl4ai` for the PoC, or should setup require a project-managed virtual environment?
-- What should be the default timeout values for local dev versus agent invocation?
-- Should token estimation use a simple chars/4 heuristic initially, or bring in a tokenizer dependency?
+- V1 may persist plaintext sessions as a PoC compromise, but only outside the repo, with explicit credential-equivalent warnings, `0700` directories, `0600` session/temp-state files, and a tracked follow-up for encryption at rest.
+- `aget get` should write run artifacts under `~/.aget/runs/<run-id>/` by default and print a concise summary; `--json` returns the stable machine-readable shape; `--out` can write content to a caller-chosen path.
+- Crawl4AI should be invoked through `uv run --with crawl4ai` for the PoC to avoid committing to a managed Python environment before the wrapper direction is validated.
+- Default timeouts should start with command=60s, navigation=30s, extraction=45s, backend_startup=20s, all configurable through CLI/config.
+- Token estimation should start with a simple approximate heuristic recorded as approximate; a tokenizer dependency is deferred until output-shaping behavior is otherwise stable.

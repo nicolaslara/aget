@@ -71,6 +71,14 @@ Reproducibility notes for the positive auth bridge:
 4. Ran Crawl4AI with `uv run --with crawl4ai "workpads/research/benchmarks/crawl4ai_with_storage_state.py" --url "https://www.hellointerview.com/learn/behavioral/course/adapting-to-big-tech-behaviorals" --state "workpads/research/benchmarks/r0a/agent-browser-hi-auth-state.json" --output "workpads/research/benchmarks/r0a/crawl4ai-agent-browser-storage-state.md"`.
 5. Deleted the raw state JSON after the benchmark because it contains live cookies/storage. The authenticated markdown output is also sensitive local data.
 
+## Architecture Inputs
+
+| Topic | Path | Notes |
+| --- | --- | --- |
+| Session wrapper PoC spec | `workpads/research/session-wrapper-poc-spec.md` | Product and v1/v2 implementation spec for the thin-wrapper direction. |
+| Session wrapper implementation plan | `workpads/research/session-wrapper-implementation-plan.md` | Milestone plan and test strategy for building the v1 wrapper. |
+| MVP architecture proposal | `workpads/research/knowledge.md` §MVP Architecture Proposal (R12) | Consolidated architecture gate before implementation. |
+
 ## Browser Automation
 
 | Topic | URL | Notes |

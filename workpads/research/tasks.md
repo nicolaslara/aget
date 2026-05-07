@@ -132,7 +132,7 @@ Acceptance criteria:
 
 ## Phase 5: Architecture Proposal
 
-### 📋 Task R12: Produce MVP architecture proposal
+### ✅ Task R12: Produce MVP architecture proposal
 
 Acceptance criteria:
 
@@ -140,3 +140,119 @@ Acceptance criteria:
 - Include CLI commands, config layout, cache layout, output schema, privacy model, and plugin approach.
 - Include open risks and deferred features.
 - Do not implement yet; leave execution tasks for user review.
+
+## Phase 6: MVP Implementation Plan
+
+These tasks are ready only after the R12 architecture proposal has been reviewed and accepted.
+
+### 📋 Task I0: Create Rust CLI skeleton
+
+Acceptance criteria:
+
+- Add `Cargo.toml` and a Rust binary entry point.
+- Implement CLI parsing for `aget <url>` aliasing `aget get <url>`.
+- Add `aget get --help` and global flags: `--json`, `--timeout`, `--verbose`, `--quiet`.
+- Define stable error categories.
+- Add unit tests for CLI parsing and error-category serialization.
+
+### 📋 Task I1: Implement session model and store
+
+Acceptance criteria:
+
+- Add `AGET_HOME` test override and default local storage under `~/.aget`.
+- Create `~/.aget`, `sessions/`, `runs/`, `cache/`, and `tmp/` with restrictive `0700` permissions on Unix-like systems.
+- Implement session file model with cookies, origins, allowed domains/origins, provenance, and sensitivity metadata.
+- Create session JSON files with restrictive `0600` permissions on Unix-like systems.
+- Implement `aget session list`, `aget session inspect`, and `aget session delete`.
+- Redact secret values by default; support `--show-secrets` only for explicit inspection.
+- Add unit and integration tests using isolated `AGET_HOME`, including permissions checks where supported by the platform.
+
+### 📋 Task I2: Compose sessions into Playwright state
+
+Acceptance criteria:
+
+- Convert zero or one session into Playwright-compatible storage state.
+- Empty session produces no cookies or origins.
+- Deduplicate identical cookies and reject conflicting cookies.
+- Create temporary state files with guaranteed cleanup on success and failure.
+- Create temporary Playwright state files with restrictive `0600` permissions on Unix-like systems.
+- Add tests for empty state, one-session state, dedupe, conflict, and cleanup.
+
+### 📋 Task I3: Add Crawl4AI extraction adapter
+
+Acceptance criteria:
+
+- Add `scripts/crawl4ai_extract.py` based on the proven benchmark helper.
+- Shell out to Crawl4AI with timeout handling.
+- Implement `aget get <url>` with empty session.
+- Write run artifacts under `~/.aget/runs/<run-id>/` unless `--out` is provided.
+- Produce `metadata.json` and stable `--json` command output.
+- Add local-server integration tests for public fetch and timeout/error behavior.
+
+### 📋 Task I4: Verify local cookie replay path
+
+Acceptance criteria:
+
+- Add local test server that can set and echo cookies.
+- Create a hand-written session fixture.
+- Verify empty fetch does not send cookies.
+- Verify `aget get <url> --session <name>` sends the expected cookie through Crawl4AI.
+- Verify authenticated/sensitive metadata is set when a session is used.
+
+### 📋 Task I5: Add optional cmux session import
+
+Acceptance criteria:
+
+- Implement `aget session import cmux --surface <surface> --name <name> --domain <domain>...`.
+- Detect missing cmux and return a structured backend-unavailable error.
+- Use cmux per-domain cookie export and post-filter returned cookies by allowlist.
+- Do not use `cmux browser state save` by default.
+- Add optional/skipped e2e test that imports a cookie from a cmux browser pane and replays it.
+
+### 📋 Task I6: Add output shaping and limits
+
+Acceptance criteria:
+
+- Implement or pass through `--format`, `--selector`, `--exclude-selector`, `--only-main`, `--wait-for`, `--max-chars`, `--max-tokens`, and `--extractor-option` where feasible.
+- Implement deterministic `--max-chars` truncation.
+- Record output options and truncation metadata.
+- Add tests for output shape and truncation metadata.
+
+### 📋 Task I7: Add Chrome import through agent-browser
+
+Acceptance criteria:
+
+- Implement `aget session import chrome --profile <profile> --name <name> --domain <domain>...`.
+- Use a named temporary `agent-browser` session.
+- Export raw state to a temp file, filter by explicit allowlist, persist only scoped state, then delete raw state.
+- Close only the named temporary `agent-browser` session.
+- Return `requires_user_action` if Chrome must be quit or login is needed.
+- Add manual verification steps for an authenticated page.
+
+### 📋 Task I8: Add multi-session composition CLI
+
+Acceptance criteria:
+
+- Support repeated `--session` flags for per-request composition.
+- Implement `aget session compose <new-name> --session <name>...`.
+- Preserve provenance on composed cookies/origins.
+- Reject conflicts with redacted conflict reporting.
+- Add local app/provider-session tests.
+
+### 📋 Task I9: Add OpenCode CLI-backed integration
+
+Acceptance criteria:
+
+- Define OpenCode tool/command wrapper around the local `aget` CLI.
+- Expose at least fetch, session list, and session inspect schemas.
+- Use `aget --json` as the behavior source of truth.
+- Document install/setup and privacy warnings.
+
+### 📋 Task I10: Security/privacy hardening pass
+
+Acceptance criteria:
+
+- Review temp-file cleanup, session redaction, `.gitignore`, authenticated output retention, and provider-session warnings.
+- Add tests for secret redaction, restrictive file permissions, and no temp-state residue.
+- Document plaintext-session limitations and the encryption-at-rest follow-up.
+- Run a focused security/privacy review before marking MVP implementation complete.
