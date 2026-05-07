@@ -145,7 +145,7 @@ Acceptance criteria:
 
 These tasks are ready only after the R12 architecture proposal has been reviewed and accepted.
 
-### 📋 Task I0: Create Rust CLI skeleton
+### ✅ Task I0: Create Rust CLI skeleton
 
 Acceptance criteria:
 
