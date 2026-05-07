@@ -167,7 +167,7 @@ Acceptance criteria:
 - Redact secret values by default; support `--show-secrets` only for explicit inspection.
 - Add unit and integration tests using isolated `AGET_HOME`, including permissions checks where supported by the platform.
 
-### 📋 Task I2: Compose sessions into Playwright state
+### ✅ Task I2: Compose sessions into Playwright state
 
 Acceptance criteria:
 
