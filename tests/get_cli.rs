@@ -946,7 +946,7 @@ fn cookie_echo_server(path: &str) -> (String, JoinHandle<()>, Receiver<String>) 
                 }
                 Err(error) if error.kind() == std::io::ErrorKind::WouldBlock => {
                     if handled_request
-                        && idle_after_request.is_some_and(|end| Instant::now() >= end)
+                        && matches!(idle_after_request, Some(end) if Instant::now() >= end)
                     {
                         break;
                     }
