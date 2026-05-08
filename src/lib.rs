@@ -4,9 +4,9 @@ pub mod extraction;
 pub mod session;
 
 pub use cli::{
-    Cli, Command, DeleteSessionCommand, GetCommand, GlobalOptions, ImportCmuxSessionCommand,
-    ImportSessionCommand, ImportSessionSource, InspectSessionCommand, SessionCommand,
-    SessionSubcommand,
+    Cli, Command, DeleteSessionCommand, ExtractorOption, GetCommand, GlobalOptions,
+    ImportCmuxSessionCommand, ImportSessionCommand, ImportSessionSource, InspectSessionCommand,
+    OutputFormat, SessionCommand, SessionSubcommand,
 };
 pub use error::{AgetError, ErrorCode, ErrorResponse};
 pub use extraction::{get_url, GetOptions, GetSuccess};

@@ -9,6 +9,7 @@ use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 
 use serde::{Deserialize, Serialize};
 
+use crate::cli::{ExtractorOption, OutputFormat};
 use crate::error::{AgetError, ErrorCode};
 use crate::session::{compose_playwright_state, SessionStore, TempStateFile};
 
@@ -21,6 +22,14 @@ pub struct GetOptions {
     pub session: Option<String>,
     pub out: Option<PathBuf>,
     pub timeout: Option<Duration>,
+    pub format: OutputFormat,
+    pub selector: Option<String>,
+    pub exclude_selector: Option<String>,
+    pub only_main: bool,
+    pub wait_for: Option<String>,
+    pub max_chars: Option<usize>,
+    pub max_tokens: Option<usize>,
+    pub extractor_options: Vec<ExtractorOption>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -37,6 +46,7 @@ pub struct GetSuccess {
     pub warnings: Vec<String>,
     pub timing_ms: TimingMs,
     pub limits: Limits,
+    pub output_options: OutputOptions,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -55,6 +65,20 @@ pub struct Limits {
     pub max_chars: Option<usize>,
     pub max_tokens: Option<usize>,
     pub truncated: bool,
+    pub truncated_by: Option<String>,
+    pub content_chars_before_truncation: usize,
+    pub content_chars_after_truncation: usize,
+    pub max_tokens_enforced: bool,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct OutputOptions {
+    pub format: OutputFormat,
+    pub selector: Option<String>,
+    pub exclude_selector: Option<String>,
+    pub only_main: bool,
+    pub wait_for: Option<String>,
+    pub extractor_options: BTreeMap<String, String>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -79,6 +103,7 @@ pub fn get_url(options: GetOptions) -> Result<GetSuccess, AgetError> {
         .map(|session| session.name.clone())
         .collect::<Vec<_>>();
     let sensitive = !sessions.is_empty();
+    let output_options = output_options(&options);
     let state = compose_playwright_state(&sessions)?;
     let temp_state =
         TempStateFile::write(&store.home().join("tmp"), &state).map_err(io_aget_error)?;
@@ -99,6 +124,7 @@ pub fn get_url(options: GetOptions) -> Result<GetSuccess, AgetError> {
         temp_state.path(),
         &markdown_path,
         &metadata_path,
+        &options,
         options.timeout.unwrap_or(DEFAULT_TIMEOUT),
     ) {
         Ok(backend) => backend,
@@ -109,6 +135,8 @@ pub fn get_url(options: GetOptions) -> Result<GetSuccess, AgetError> {
                 &markdown_path,
                 &selected_session_names,
                 sensitive,
+                &output_options,
+                &options,
                 &error,
                 started,
             );
@@ -129,6 +157,8 @@ pub fn get_url(options: GetOptions) -> Result<GetSuccess, AgetError> {
             &markdown_path,
             &selected_session_names,
             sensitive,
+            &output_options,
+            &options,
             &error,
             started,
         );
@@ -144,13 +174,15 @@ pub fn get_url(options: GetOptions) -> Result<GetSuccess, AgetError> {
             ),
         })?,
     };
+    let limits = apply_limits(content, options.max_chars, options.max_tokens);
+    let content = limits.content;
     write_private_file(&markdown_path, content.as_bytes()).map_err(io_aget_error)?;
 
     let success = GetSuccess {
         ok: true,
         url: options.url.clone(),
         final_url: backend.final_url.unwrap_or_else(|| options.url.clone()),
-        format: "markdown".to_string(),
+        format: options.format.to_string(),
         extractor: EXTRACTOR.to_string(),
         content,
         artifacts: Artifacts {
@@ -163,11 +195,8 @@ pub fn get_url(options: GetOptions) -> Result<GetSuccess, AgetError> {
         timing_ms: TimingMs {
             total: started.elapsed().as_millis(),
         },
-        limits: Limits {
-            max_chars: None,
-            max_tokens: None,
-            truncated: false,
-        },
+        limits: limits.metadata,
+        output_options,
     };
 
     write_metadata(&metadata_path, &success)?;
@@ -187,14 +216,63 @@ fn load_selected_sessions(
     }
 }
 
+struct LimitApplication {
+    content: String,
+    metadata: Limits,
+}
+
+fn apply_limits(
+    content: String,
+    max_chars: Option<usize>,
+    max_tokens: Option<usize>,
+) -> LimitApplication {
+    let before = content.chars().count();
+    let (content, truncated) = match max_chars {
+        Some(max_chars) if before > max_chars => (content.chars().take(max_chars).collect(), true),
+        _ => (content, false),
+    };
+    let after = content.chars().count();
+
+    LimitApplication {
+        content,
+        metadata: Limits {
+            max_chars,
+            max_tokens,
+            truncated,
+            truncated_by: truncated.then(|| "max_chars".to_string()),
+            content_chars_before_truncation: before,
+            content_chars_after_truncation: after,
+            max_tokens_enforced: false,
+        },
+    }
+}
+
+fn output_options(options: &GetOptions) -> OutputOptions {
+    let extractor_options = options
+        .extractor_options
+        .iter()
+        .map(|option| (option.key.clone(), option.value.clone()))
+        .collect();
+
+    OutputOptions {
+        format: options.format,
+        selector: options.selector.clone(),
+        exclude_selector: options.exclude_selector.clone(),
+        only_main: options.only_main,
+        wait_for: options.wait_for.clone(),
+        extractor_options,
+    }
+}
+
 fn run_backend(
     url: &str,
     state_path: &Path,
     markdown_path: &Path,
     metadata_path: &Path,
+    options: &GetOptions,
     timeout: Duration,
 ) -> Result<BackendResult, AgetError> {
-    let args = vec![
+    let mut args = vec![
         "--url".to_string(),
         url.to_string(),
         "--state".to_string(),
@@ -203,7 +281,28 @@ fn run_backend(
         markdown_path.to_string_lossy().into_owned(),
         "--metadata".to_string(),
         metadata_path.to_string_lossy().into_owned(),
+        "--format".to_string(),
+        options.format.to_string(),
     ];
+    if let Some(selector) = &options.selector {
+        args.push("--selector".to_string());
+        args.push(selector.clone());
+    }
+    if let Some(exclude_selector) = &options.exclude_selector {
+        args.push("--exclude-selector".to_string());
+        args.push(exclude_selector.clone());
+    }
+    if let Some(wait_for) = &options.wait_for {
+        args.push("--wait-for".to_string());
+        args.push(wait_for.clone());
+    }
+    for extractor_option in &options.extractor_options {
+        args.push("--extractor-option".to_string());
+        args.push(format!(
+            "{}={}",
+            extractor_option.key, extractor_option.value
+        ));
+    }
 
     let command_string = env::var("AGET_CRAWL4AI_COMMAND").unwrap_or_else(|_| default_command());
     let backend_stdout_path = metadata_path.with_file_name("backend-stdout.json");
@@ -272,7 +371,11 @@ fn run_backend(
     }
 
     let stdout = read_output_file(&backend_stdout_path).map_err(io_aget_error)?;
-    parse_backend_stdout(&stdout)
+    let result = parse_backend_stdout(&stdout)?;
+    if result.ok {
+        write_private_file(&backend_stdout_path, b"").map_err(io_aget_error)?;
+    }
+    Ok(result)
 }
 
 fn parse_backend_stdout(stdout: &str) -> Result<BackendResult, AgetError> {
@@ -345,6 +448,8 @@ fn write_error_metadata(
     markdown_path: &Path,
     sessions: &[String],
     sensitive: bool,
+    output_options: &OutputOptions,
+    options: &GetOptions,
     error: &AgetError,
     started: Instant,
 ) -> Result<(), AgetError> {
@@ -354,7 +459,7 @@ fn write_error_metadata(
     let metadata = serde_json::json!({
         "ok": false,
         "url": url,
-        "format": "markdown",
+        "format": options.format.to_string(),
         "extractor": EXTRACTOR,
         "artifacts": {
             "markdown": markdown_path.to_string_lossy(),
@@ -364,7 +469,16 @@ fn write_error_metadata(
         "sensitive": sensitive,
         "warnings": [],
         "timing_ms": {"total": started.elapsed().as_millis()},
-        "limits": {"max_chars": null, "max_tokens": null, "truncated": false},
+        "limits": {
+            "max_chars": options.max_chars,
+            "max_tokens": options.max_tokens,
+            "truncated": false,
+            "truncated_by": null,
+            "content_chars_before_truncation": 0,
+            "content_chars_after_truncation": 0,
+            "max_tokens_enforced": false,
+        },
+        "output_options": output_options,
         "error": {"code": code, "message": message},
     });
     let bytes = serde_json::to_vec_pretty(&metadata).map_err(|error| AgetError::Stable {
@@ -387,6 +501,7 @@ fn write_metadata(path: &Path, success: &GetSuccess) -> Result<(), AgetError> {
     metadata.insert("warnings", serde_json::json!(success.warnings));
     metadata.insert("timing_ms", serde_json::json!(success.timing_ms));
     metadata.insert("limits", serde_json::json!(success.limits));
+    metadata.insert("output_options", serde_json::json!(success.output_options));
     let bytes = serde_json::to_vec_pretty(&metadata).map_err(|error| AgetError::Stable {
         code: ErrorCode::IoError,
         message: error.to_string(),

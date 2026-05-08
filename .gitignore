@@ -6,6 +6,7 @@ target/
 references/repos/
 .aget/
 *.log
+__pycache__/
 .firecrawl/
 workpads/research/benchmarks/r0a/
 workpads/research/benchmarks/crawl4ai-skill-*/

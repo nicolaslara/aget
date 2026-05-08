@@ -12,6 +12,7 @@ What works today:
 - `aget <url>` as a shortcut alias
 - `--json`
 - `--out <path>`
+- output shaping with `--format`, CSS selectors, wait conditions, and deterministic character limits
 - `--session <name>` for explicit named-session replay
 - empty-session default
 - local run artifacts
@@ -37,6 +38,7 @@ cargo run --quiet -- get https://example.com
 cargo run --quiet -- https://example.com
 cargo run --quiet -- get https://example.com --json
 cargo run --quiet -- get https://example.com --out /tmp/example.md
+cargo run --quiet -- get https://example.com --format text --selector main --max-chars 4000 --json
 cargo run --quiet -- get https://example.com/account --session my-session --json
 ```
 
@@ -65,7 +67,15 @@ Concise usage:
 
 ```text
 aget get <url> [--session <name>] [--json] [--out <path>] [--timeout <seconds>]
+              [--format <markdown|html|text|json>] [--selector <css>]
+              [--exclude-selector <css>] [--only-main] [--wait-for <text-or-selector>]
+              [--max-chars <n>] [--max-tokens <n>]
+              [--extractor-option <key=value>...]
 aget <url> [--session <name>] [--json] [--out <path>] [--timeout <seconds>]
+           [--format <markdown|html|text|json>] [--selector <css>]
+           [--exclude-selector <css>] [--only-main] [--wait-for <text-or-selector>]
+           [--max-chars <n>] [--max-tokens <n>]
+           [--extractor-option <key=value>...]
 aget session list
 aget session inspect <session-id>
 aget session delete <session-id>
@@ -78,6 +88,11 @@ Notes:
 - `aget <url>` is an alias for the same fetch path.
 - `--json` prints structured output.
 - `--out` writes the extracted markdown to a file.
+- `--format` requests `markdown`, `html`, `text`, or `json` content from the extractor; markdown remains the default. For `text`, the Crawl4AI helper prefers extracted content and otherwise derives plain text from cleaned/raw HTML before falling back to markdown as a last resort.
+- `--selector`, `--exclude-selector`, `--wait-for`, and repeated `--extractor-option key=value` are forwarded to the Crawl4AI helper when supported. `--wait-for` is CSS-only in v1 for authenticated-session safety: use `css:<selector>` or a plain CSS selector; JavaScript waits are rejected. Supported extractor option keys are `target_elements`, `excluded_tags`, `only_text`, `word_count_threshold`, `wait_until`, `page_timeout`, `wait_for_timeout`, `delay_before_return_html`, and `wait_for_images`; unsupported keys fail instead of being ignored. List values are comma-separated, booleans accept `true`/`false`, and numeric fields use integer or decimal values as appropriate.
+- `--only-main` is an accepted v1 tradeoff: it is recorded in metadata for API stability but is not enforced by the v1 Crawl4AI adapter because there is no equivalent backend option.
+- `--max-chars` truncates extracted content in Rust after backend extraction using Unicode scalar values; it never truncates the JSON response envelope.
+- `--max-tokens` is recorded as a requested limit but is not enforced in v1. JSON metadata reports `max_tokens_enforced: false`.
 - `--session` explicitly replays one named local session for the request.
 - `--timeout` sets the request timeout in seconds.
 - `aget session import cmux` imports cookies from a cmux browser surface for explicitly allowed domains only; imported cookies are stored locally as a sensitive named session.
@@ -108,7 +123,19 @@ Example:
   "limits": {
     "max_chars": null,
     "max_tokens": null,
-    "truncated": false
+    "truncated": false,
+    "truncated_by": null,
+    "content_chars_before_truncation": 13,
+    "content_chars_after_truncation": 13,
+    "max_tokens_enforced": false
+  },
+  "output_options": {
+    "format": "markdown",
+    "selector": null,
+    "exclude_selector": null,
+    "only_main": false,
+    "wait_for": null,
+    "extractor_options": {}
   }
 }
 ```

@@ -209,7 +209,7 @@ Acceptance criteria:
 - Do not use `cmux browser state save` by default.
 - Add optional/skipped e2e test that imports a cookie from a cmux browser pane and replays it.
 
-### 📋 Task I6: Add output shaping and limits
+### ✅ Task I6: Add output shaping and limits
 
 Acceptance criteria:
 

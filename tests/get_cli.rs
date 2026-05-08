@@ -24,7 +24,7 @@ parser.add_argument('--url', required=True)
 parser.add_argument('--state', required=True)
 parser.add_argument('--output', required=True)
 parser.add_argument('--metadata', required=True)
-args = parser.parse_args()
+args, _unknown = parser.parse_known_args()
 urllib.request.urlopen(args.url, timeout=2).read()
 state = json.loads(pathlib.Path(args.state).read_text(encoding='utf-8'))
 assert state == {'cookies': [], 'origins': []}
@@ -137,7 +137,7 @@ parser.add_argument('--url', required=True)
 parser.add_argument('--state', required=True)
 parser.add_argument('--output', required=True)
 parser.add_argument('--metadata', required=True)
-args = parser.parse_args()
+args, _unknown = parser.parse_known_args()
 state = json.loads(pathlib.Path(args.state).read_text(encoding='utf-8'))
 assert state['origins'] == []
 assert state['cookies'] == [{
@@ -218,6 +218,285 @@ fn get_session_marks_output_sensitive_even_if_session_metadata_is_false() {
     let json: serde_json::Value = serde_json::from_slice(&output).unwrap();
     assert_eq!(json["sessions"], serde_json::json!(["local"]));
     assert_eq!(json["sensitive"], true);
+}
+
+#[test]
+fn get_forwards_supported_output_options_and_records_limits() {
+    let temp = tempfile::tempdir().unwrap();
+    let aget_home = temp.path().join("aget-home");
+    let fake_backend = write_fake_backend(
+        temp.path(),
+        r#"#!/usr/bin/env python3
+import argparse, json, pathlib
+parser = argparse.ArgumentParser()
+parser.add_argument('--url', required=True)
+parser.add_argument('--state', required=True)
+parser.add_argument('--output', required=True)
+parser.add_argument('--metadata', required=True)
+parser.add_argument('--format', required=True)
+parser.add_argument('--selector')
+parser.add_argument('--exclude-selector')
+parser.add_argument('--wait-for')
+parser.add_argument('--extractor-option', action='append', default=[])
+args, _unknown = parser.parse_known_args()
+assert args.format == 'text'
+assert args.selector == 'main.article'
+assert args.exclude_selector == 'nav,.ad'
+assert args.wait_for == 'css:.ready'
+assert args.extractor_option == ['cache=bypass', 'magic=value']
+assert '--only-main' not in _unknown
+assert '--max-chars' not in _unknown
+assert '--max-tokens' not in _unknown
+content = 'aé💡bc'
+pathlib.Path(args.output).write_text(content, encoding='utf-8')
+print(json.dumps({'ok': True, 'final_url': args.url + '#done', 'content': content, 'warnings': []}))
+"#,
+    );
+
+    let mut cmd = Command::cargo_bin("aget").unwrap();
+    let output = cmd
+        .env("AGET_HOME", &aget_home)
+        .env("AGET_CRAWL4AI_COMMAND", python_command(&fake_backend))
+        .args([
+            "--json",
+            "get",
+            "https://example.com/options",
+            "--format",
+            "text",
+            "--selector",
+            "main.article",
+            "--exclude-selector",
+            "nav,.ad",
+            "--only-main",
+            "--wait-for",
+            "css:.ready",
+            "--max-chars",
+            "3",
+            "--max-tokens",
+            "17",
+            "--extractor-option",
+            "cache=bypass",
+            "--extractor-option",
+            "magic=value",
+        ])
+        .assert()
+        .success()
+        .get_output()
+        .stdout
+        .clone();
+
+    let json: serde_json::Value = serde_json::from_slice(&output).unwrap();
+    assert_eq!(json["ok"], true);
+    assert_eq!(json["format"], "text");
+    assert_eq!(json["content"], "aé💡");
+    assert_eq!(json["final_url"], "https://example.com/options#done");
+    assert_eq!(json["limits"]["max_chars"], 3);
+    assert_eq!(json["limits"]["max_tokens"], 17);
+    assert_eq!(json["limits"]["truncated"], true);
+    assert_eq!(json["limits"]["truncated_by"], "max_chars");
+    assert_eq!(json["limits"]["content_chars_before_truncation"], 5);
+    assert_eq!(json["limits"]["content_chars_after_truncation"], 3);
+    assert_eq!(json["limits"]["max_tokens_enforced"], false);
+    assert_eq!(json["output_options"]["format"], "text");
+    assert_eq!(json["output_options"]["selector"], "main.article");
+    assert_eq!(json["output_options"]["exclude_selector"], "nav,.ad");
+    assert_eq!(json["output_options"]["only_main"], true);
+    assert_eq!(json["output_options"]["wait_for"], "css:.ready");
+    assert_eq!(
+        json["output_options"]["extractor_options"],
+        serde_json::json!({"cache": "bypass", "magic": "value"})
+    );
+
+    let markdown_path = PathBuf::from(json["artifacts"]["markdown"].as_str().unwrap());
+    assert_eq!(fs::read_to_string(&markdown_path).unwrap(), "aé💡\n");
+    let metadata_path = PathBuf::from(json["artifacts"]["metadata"].as_str().unwrap());
+    let metadata: serde_json::Value =
+        serde_json::from_str(&fs::read_to_string(metadata_path).unwrap()).unwrap();
+    assert_eq!(metadata["content"], serde_json::Value::Null);
+    assert_eq!(metadata["output_options"], json["output_options"]);
+    assert_eq!(metadata["limits"], json["limits"]);
+}
+
+#[test]
+fn get_max_chars_success_sanitizes_backend_stdout_artifact() {
+    let temp = tempfile::tempdir().unwrap();
+    let aget_home = temp.path().join("aget-home");
+    let fake_backend = write_fake_backend(
+        temp.path(),
+        r#"#!/usr/bin/env python3
+import argparse, json, pathlib
+parser = argparse.ArgumentParser()
+parser.add_argument('--url', required=True)
+parser.add_argument('--state', required=True)
+parser.add_argument('--output', required=True)
+parser.add_argument('--metadata', required=True)
+args, _unknown = parser.parse_known_args()
+content = 'SECRET-UNTRUNCATED-CONTENT'
+pathlib.Path(args.output).write_text(content, encoding='utf-8')
+print(json.dumps({'ok': True, 'final_url': args.url, 'content': content, 'warnings': []}))
+"#,
+    );
+
+    let mut cmd = Command::cargo_bin("aget").unwrap();
+    let output = cmd
+        .env("AGET_HOME", &aget_home)
+        .env("AGET_CRAWL4AI_COMMAND", python_command(&fake_backend))
+        .args([
+            "--json",
+            "get",
+            "https://example.com/secret",
+            "--max-chars",
+            "6",
+        ])
+        .assert()
+        .success()
+        .get_output()
+        .stdout
+        .clone();
+
+    let json: serde_json::Value = serde_json::from_slice(&output).unwrap();
+    assert_eq!(json["content"], "SECRET");
+    assert_eq!(json["limits"]["truncated"], true);
+
+    let metadata_path = PathBuf::from(json["artifacts"]["metadata"].as_str().unwrap());
+    let backend_stdout_path = metadata_path.with_file_name("backend-stdout.json");
+    let backend_stdout = fs::read_to_string(backend_stdout_path).unwrap();
+    assert!(!backend_stdout.contains("SECRET-UNTRUNCATED-CONTENT"));
+}
+
+#[test]
+fn get_real_helper_rejects_unsupported_extractor_option_before_crawl4ai_import() {
+    let temp = tempfile::tempdir().unwrap();
+    let aget_home = temp.path().join("aget-home");
+    let helper = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("scripts/crawl4ai_extract.py");
+
+    let mut cmd = Command::cargo_bin("aget").unwrap();
+    let output = cmd
+        .env("AGET_HOME", &aget_home)
+        .env("AGET_CRAWL4AI_COMMAND", python_command(&helper))
+        .args([
+            "--json",
+            "get",
+            "https://example.com/unsupported-option",
+            "--extractor-option",
+            "js_code=alert(1)",
+        ])
+        .assert()
+        .failure()
+        .get_output()
+        .stderr
+        .clone();
+
+    let json: serde_json::Value = serde_json::from_slice(&output).unwrap();
+    assert_eq!(json["error"]["code"], "extraction_failed");
+    assert!(json["error"]["message"]
+        .as_str()
+        .unwrap()
+        .contains("unsupported extractor option 'js_code'"));
+
+    let metadata_files = metadata_files(&aget_home);
+    assert_eq!(metadata_files.len(), 1);
+    let metadata: serde_json::Value =
+        serde_json::from_str(&fs::read_to_string(&metadata_files[0]).unwrap()).unwrap();
+    assert_eq!(metadata["ok"], false);
+    assert!(metadata["error"]["message"]
+        .as_str()
+        .unwrap()
+        .contains("unsupported extractor option 'js_code'"));
+}
+
+#[test]
+fn get_real_helper_rejects_javascript_wait_before_crawl4ai_import() {
+    let temp = tempfile::tempdir().unwrap();
+    let aget_home = temp.path().join("aget-home");
+    let helper = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("scripts/crawl4ai_extract.py");
+
+    let mut cmd = Command::cargo_bin("aget").unwrap();
+    let output = cmd
+        .env("AGET_HOME", &aget_home)
+        .env("AGET_CRAWL4AI_COMMAND", python_command(&helper))
+        .args([
+            "--json",
+            "get",
+            "https://example.com/js-wait",
+            "--wait-for",
+            "js:() => true",
+        ])
+        .assert()
+        .failure()
+        .get_output()
+        .stderr
+        .clone();
+
+    let json: serde_json::Value = serde_json::from_slice(&output).unwrap();
+    assert_eq!(json["error"]["code"], "extraction_failed");
+    assert!(json["error"]["message"]
+        .as_str()
+        .unwrap()
+        .contains("--wait-for only supports CSS selectors in v1"));
+
+    let metadata_files = metadata_files(&aget_home);
+    assert_eq!(metadata_files.len(), 1);
+    let metadata: serde_json::Value =
+        serde_json::from_str(&fs::read_to_string(&metadata_files[0]).unwrap()).unwrap();
+    assert_eq!(metadata["ok"], false);
+    assert!(metadata["error"]["message"]
+        .as_str()
+        .unwrap()
+        .contains("JavaScript wait conditions are not allowed"));
+}
+
+#[test]
+fn get_json_format_truncates_only_content_not_response_envelope() {
+    let temp = tempfile::tempdir().unwrap();
+    let aget_home = temp.path().join("aget-home");
+    let fake_backend = write_fake_backend(
+        temp.path(),
+        r#"#!/usr/bin/env python3
+import argparse, json, pathlib
+parser = argparse.ArgumentParser()
+parser.add_argument('--url', required=True)
+parser.add_argument('--state', required=True)
+parser.add_argument('--output', required=True)
+parser.add_argument('--metadata', required=True)
+parser.add_argument('--format', required=True)
+args, _unknown = parser.parse_known_args()
+assert args.format == 'json'
+content = '{"title":"Example","body":"abcdef"}'
+pathlib.Path(args.output).write_text(content, encoding='utf-8')
+print(json.dumps({'ok': True, 'final_url': args.url, 'content': content, 'warnings': []}))
+"#,
+    );
+
+    let mut cmd = Command::cargo_bin("aget").unwrap();
+    let output = cmd
+        .env("AGET_HOME", &aget_home)
+        .env("AGET_CRAWL4AI_COMMAND", python_command(&fake_backend))
+        .args([
+            "--json",
+            "get",
+            "https://example.com/json",
+            "--format",
+            "json",
+            "--max-chars",
+            "12",
+        ])
+        .assert()
+        .success()
+        .get_output()
+        .stdout
+        .clone();
+
+    let json: serde_json::Value = serde_json::from_slice(&output).unwrap();
+    assert_eq!(json["ok"], true);
+    assert_eq!(json["format"], "json");
+    assert_eq!(json["content"], "{\"title\":\"Ex");
+    assert_eq!(json["limits"]["truncated"], true);
+    assert_eq!(
+        json["artifacts"]["metadata"].as_str().unwrap().is_empty(),
+        false
+    );
+    assert!(json["timing_ms"]["total"].as_u64().is_some());
 }
 
 #[test]
@@ -331,7 +610,7 @@ parser.add_argument('--url', required=True)
 parser.add_argument('--state', required=True)
 parser.add_argument('--output', required=True)
 parser.add_argument('--metadata', required=True)
-args = parser.parse_args()
+args, _unknown = parser.parse_known_args()
 sys.stderr.write('noise' * 20000)
 sys.stderr.flush()
 content = '# Noisy'
@@ -376,7 +655,7 @@ parser.add_argument('--url', required=True)
 parser.add_argument('--state', required=True)
 parser.add_argument('--output', required=True)
 parser.add_argument('--metadata', required=True)
-args = parser.parse_args()
+args, _unknown = parser.parse_known_args()
 content = '# Logged stdout'
 pathlib.Path(args.output).write_text(content, encoding='utf-8')
 print('[INIT] Starting browser')
@@ -600,7 +879,7 @@ parser.add_argument('--url', required=True)
 parser.add_argument('--state', required=True)
 parser.add_argument('--output', required=True)
 parser.add_argument('--metadata', required=True)
-args = parser.parse_args()
+args, _unknown = parser.parse_known_args()
 content = '# Fake'
 pathlib.Path(args.output).write_text(content, encoding='utf-8')
 print(json.dumps({'ok': True, 'final_url': args.url, 'content': content, 'warnings': []}))

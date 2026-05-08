@@ -30,6 +30,14 @@ fn run(cli: Cli) -> Result<(), ErrorResponse> {
                 session: get.session,
                 out: get.out,
                 timeout: cli.global.timeout,
+                format: get.format,
+                selector: get.selector,
+                exclude_selector: get.exclude_selector,
+                only_main: get.only_main,
+                wait_for: get.wait_for,
+                max_chars: get.max_chars,
+                max_tokens: get.max_tokens,
+                extractor_options: get.extractor_options,
             })
             .map_err(error_response)?;
             if cli.global.json {

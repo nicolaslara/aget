@@ -2,7 +2,7 @@ use std::ffi::OsString;
 use std::path::PathBuf;
 use std::time::Duration;
 
-use clap::{Args, Parser, Subcommand};
+use clap::{Args, Parser, Subcommand, ValueEnum};
 
 #[derive(Debug, Parser, PartialEq, Eq)]
 #[command(name = "aget", version, about = "Local-first agent web context tool")]
@@ -22,11 +22,8 @@ impl Cli {
     {
         let mut args: Vec<OsString> = args.into_iter().map(Into::into).collect();
 
-        if let Some(first_arg) = args.get(1) {
-            let first_arg = first_arg.to_string_lossy();
-            if looks_like_url(&first_arg) {
-                args.insert(1, OsString::from("get"));
-            }
+        if let Some(url_index) = alias_url_index(&args) {
+            args.insert(url_index, OsString::from("get"));
         }
 
         Self::try_parse_from(args)
@@ -63,6 +60,56 @@ pub struct GetCommand {
 
     #[arg(long)]
     pub out: Option<PathBuf>,
+
+    #[arg(long, value_enum, default_value_t = OutputFormat::Markdown)]
+    pub format: OutputFormat,
+
+    #[arg(long)]
+    pub selector: Option<String>,
+
+    #[arg(long)]
+    pub exclude_selector: Option<String>,
+
+    #[arg(long)]
+    pub only_main: bool,
+
+    #[arg(long)]
+    pub wait_for: Option<String>,
+
+    #[arg(long)]
+    pub max_chars: Option<usize>,
+
+    #[arg(long)]
+    pub max_tokens: Option<usize>,
+
+    #[arg(long = "extractor-option", value_parser = parse_extractor_option)]
+    pub extractor_options: Vec<ExtractorOption>,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, ValueEnum, serde::Serialize, serde::Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum OutputFormat {
+    Markdown,
+    Html,
+    Text,
+    Json,
+}
+
+impl std::fmt::Display for OutputFormat {
+    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        formatter.write_str(match self {
+            OutputFormat::Markdown => "markdown",
+            OutputFormat::Html => "html",
+            OutputFormat::Text => "text",
+            OutputFormat::Json => "json",
+        })
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ExtractorOption {
+    pub key: String,
+    pub value: String,
 }
 
 #[derive(Debug, Args, PartialEq, Eq)]
@@ -119,11 +166,41 @@ fn looks_like_url(value: &str) -> bool {
     value.starts_with("http://") || value.starts_with("https://")
 }
 
+fn alias_url_index(args: &[OsString]) -> Option<usize> {
+    let mut saw_command = false;
+    for (index, arg) in args.iter().enumerate().skip(1) {
+        let arg = arg.to_string_lossy();
+        if matches!(arg.as_ref(), "get" | "session") {
+            saw_command = true;
+        }
+        if saw_command {
+            return None;
+        }
+        if looks_like_url(&arg) {
+            return Some(index);
+        }
+    }
+    None
+}
+
 fn parse_duration_secs(value: &str) -> Result<Duration, String> {
     let secs = value
         .parse::<u64>()
         .map_err(|_| format!("expected timeout in seconds, got '{value}'"))?;
     Ok(Duration::from_secs(secs))
+}
+
+fn parse_extractor_option(value: &str) -> Result<ExtractorOption, String> {
+    let (key, option_value) = value
+        .split_once('=')
+        .ok_or_else(|| "expected extractor option in key=value form".to_string())?;
+    if key.is_empty() {
+        return Err("extractor option key must not be empty".to_string());
+    }
+    Ok(ExtractorOption {
+        key: key.to_string(),
+        value: option_value.to_string(),
+    })
 }
 
 #[cfg(test)]
@@ -140,6 +217,14 @@ mod tests {
                 url: "https://example.com".to_string(),
                 session: None,
                 out: None,
+                format: OutputFormat::Markdown,
+                selector: None,
+                exclude_selector: None,
+                only_main: false,
+                wait_for: None,
+                max_chars: None,
+                max_tokens: None,
+                extractor_options: Vec::new(),
             })
         );
     }
@@ -154,6 +239,14 @@ mod tests {
                 url: "https://example.com".to_string(),
                 session: None,
                 out: None,
+                format: OutputFormat::Markdown,
+                selector: None,
+                exclude_selector: None,
+                only_main: false,
+                wait_for: None,
+                max_chars: None,
+                max_tokens: None,
+                extractor_options: Vec::new(),
             })
         );
     }
@@ -194,6 +287,14 @@ mod tests {
                 url: "https://example.com".to_string(),
                 session: None,
                 out: Some(PathBuf::from("page.md")),
+                format: OutputFormat::Markdown,
+                selector: None,
+                exclude_selector: None,
+                only_main: false,
+                wait_for: None,
+                max_chars: None,
+                max_tokens: None,
+                extractor_options: Vec::new(),
             })
         );
     }
@@ -209,6 +310,59 @@ mod tests {
                 url: "https://example.com".to_string(),
                 session: Some("demo".to_string()),
                 out: None,
+                format: OutputFormat::Markdown,
+                selector: None,
+                exclude_selector: None,
+                only_main: false,
+                wait_for: None,
+                max_chars: None,
+                max_tokens: None,
+                extractor_options: Vec::new(),
+            })
+        );
+    }
+
+    #[test]
+    fn parses_get_output_shaping_options() {
+        let cli = Cli::try_parse_from([
+            "aget",
+            "get",
+            "https://example.com",
+            "--format",
+            "json",
+            "--selector",
+            "main",
+            "--exclude-selector",
+            "nav",
+            "--only-main",
+            "--wait-for",
+            "css:.ready",
+            "--max-chars",
+            "123",
+            "--max-tokens",
+            "456",
+            "--extractor-option",
+            "cache=bypass",
+        ])
+        .unwrap();
+
+        assert_eq!(
+            cli.command,
+            Command::Get(GetCommand {
+                url: "https://example.com".to_string(),
+                session: None,
+                out: None,
+                format: OutputFormat::Json,
+                selector: Some("main".to_string()),
+                exclude_selector: Some("nav".to_string()),
+                only_main: true,
+                wait_for: Some("css:.ready".to_string()),
+                max_chars: Some(123),
+                max_tokens: Some(456),
+                extractor_options: vec![ExtractorOption {
+                    key: "cache".to_string(),
+                    value: "bypass".to_string(),
+                }],
             })
         );
     }
