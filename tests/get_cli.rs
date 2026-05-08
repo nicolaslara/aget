@@ -496,6 +496,75 @@ print('not json')
 }
 
 #[test]
+fn get_nonzero_backend_preserves_structured_failure_but_not_structured_success() {
+    let temp = tempfile::tempdir().unwrap();
+    let structured_failure_home = temp.path().join("structured-failure-home");
+    let structured_failure_backend = write_fake_backend(
+        temp.path(),
+        r#"#!/usr/bin/env python3
+import json, sys
+print(json.dumps({'ok': False, 'error': 'structured backend failure'}))
+raise SystemExit(2)
+"#,
+    );
+
+    let mut structured_failure = Command::cargo_bin("aget").unwrap();
+    let structured_failure_output = structured_failure
+        .env("AGET_HOME", &structured_failure_home)
+        .env(
+            "AGET_CRAWL4AI_COMMAND",
+            python_command(&structured_failure_backend),
+        )
+        .args(["--json", "get", "https://example.com/structured-failure"])
+        .assert()
+        .failure()
+        .get_output()
+        .stderr
+        .clone();
+    let structured_failure_json: serde_json::Value =
+        serde_json::from_slice(&structured_failure_output).unwrap();
+    assert_eq!(
+        structured_failure_json["error"]["code"],
+        "extraction_failed"
+    );
+    assert_eq!(
+        structured_failure_json["error"]["message"],
+        "structured backend failure"
+    );
+
+    let structured_success_home = temp.path().join("structured-success-home");
+    let structured_success_backend = write_fake_backend(
+        temp.path(),
+        r#"#!/usr/bin/env python3
+import json
+print(json.dumps({'ok': True, 'final_url': 'https://example.com', 'content': '# Wrong', 'warnings': []}))
+raise SystemExit(2)
+"#,
+    );
+
+    let mut structured_success = Command::cargo_bin("aget").unwrap();
+    let structured_success_output = structured_success
+        .env("AGET_HOME", &structured_success_home)
+        .env(
+            "AGET_CRAWL4AI_COMMAND",
+            python_command(&structured_success_backend),
+        )
+        .args(["--json", "get", "https://example.com/structured-success"])
+        .assert()
+        .failure()
+        .get_output()
+        .stderr
+        .clone();
+    let structured_success_json: serde_json::Value =
+        serde_json::from_slice(&structured_success_output).unwrap();
+    assert_eq!(
+        structured_success_json["error"]["code"],
+        "extraction_failed"
+    );
+    assert_ne!(structured_success_json["content"], "# Wrong");
+}
+
+#[test]
 fn missing_backend_returns_backend_unavailable() {
     let temp = tempfile::tempdir().unwrap();
     let aget_home = temp.path().join("aget-home");

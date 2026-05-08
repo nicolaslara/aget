@@ -245,6 +245,14 @@ fn run_backend(
 
     let status = child.wait().map_err(io_aget_error)?;
     if !status.success() {
+        if let Ok(stdout) = read_output_file(&backend_stdout_path) {
+            if let Ok(result) = parse_backend_stdout(&stdout) {
+                if !result.ok {
+                    return Ok(result);
+                }
+            }
+        }
+
         let stderr = read_output_file(&backend_stderr_path)
             .map(|text| text.trim().to_string())
             .unwrap_or_default();

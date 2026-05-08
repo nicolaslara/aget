@@ -45,7 +45,7 @@ impl SessionStore {
     }
 
     pub fn save(&self, session: &Session) -> io::Result<()> {
-        let path = self.session_path(&session.name);
+        let path = self.session_path(&session.name)?;
         let mut file = create_private_file(&path)?;
         serde_json::to_writer_pretty(&mut file, session).map_err(io::Error::other)?;
         file.write_all(b"\n")?;
@@ -53,7 +53,7 @@ impl SessionStore {
     }
 
     pub fn load(&self, name: &str) -> io::Result<Session> {
-        let file = File::open(self.session_path(name))?;
+        let file = File::open(self.session_path(name)?)?;
         serde_json::from_reader(file).map_err(io::Error::other)
     }
 
@@ -73,7 +73,7 @@ impl SessionStore {
     }
 
     pub fn delete(&self, name: &str) -> io::Result<bool> {
-        let path = self.session_path(name);
+        let path = self.session_path(name)?;
         match fs::remove_file(path) {
             Ok(()) => Ok(true),
             Err(error) if error.kind() == io::ErrorKind::NotFound => Ok(false),
@@ -81,9 +81,26 @@ impl SessionStore {
         }
     }
 
-    fn session_path(&self, name: &str) -> PathBuf {
-        self.sessions_dir().join(format!("{name}.json"))
+    fn session_path(&self, name: &str) -> io::Result<PathBuf> {
+        validate_session_name(name)?;
+        Ok(self.sessions_dir().join(format!("{name}.json")))
     }
+}
+
+fn validate_session_name(name: &str) -> io::Result<()> {
+    if name.is_empty()
+        || name == "."
+        || name == ".."
+        || name.contains('/')
+        || name.contains('\\')
+        || name.contains(':')
+    {
+        return Err(io::Error::new(
+            io::ErrorKind::InvalidInput,
+            format!("invalid session name '{name}'"),
+        ));
+    }
+    Ok(())
 }
 
 fn default_home() -> io::Result<PathBuf> {
@@ -189,7 +206,7 @@ mod tests {
             .permissions()
             .mode()
             & 0o777;
-        let session_mode = fs::metadata(store.session_path("demo"))
+        let session_mode = fs::metadata(store.session_path("demo").unwrap())
             .unwrap()
             .permissions()
             .mode()
@@ -198,5 +215,26 @@ mod tests {
         assert_eq!(home_mode, 0o700);
         assert_eq!(sessions_mode, 0o700);
         assert_eq!(session_mode, 0o600);
+    }
+
+    #[test]
+    fn rejects_path_like_session_names() {
+        let temp = tempfile::tempdir().unwrap();
+        let store = SessionStore::new(temp.path().join("aget-home")).unwrap();
+
+        for name in [
+            "",
+            ".",
+            "..",
+            "../secret",
+            "nested/name",
+            "nested\\name",
+            "C:secret",
+        ] {
+            assert_eq!(
+                store.load(name).unwrap_err().kind(),
+                io::ErrorKind::InvalidInput
+            );
+        }
     }
 }

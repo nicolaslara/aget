@@ -189,7 +189,7 @@ Acceptance criteria:
 - Produce `metadata.json` and stable `--json` command output.
 - Add local-server integration tests for public fetch and timeout/error behavior.
 
-### 📋 Task I4: Verify local cookie replay path
+### ✅ Task I4: Verify local cookie replay path
 
 Acceptance criteria:
 
