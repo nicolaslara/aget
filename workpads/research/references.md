@@ -89,6 +89,14 @@ Reproducibility notes for the positive auth bridge:
 | Playwright persistent context | https://playwright.dev/docs/api/class-browsertype#browser-type-launch-persistent-context | Evaluate dedicated profile login reuse. |
 | Chrome DevTools Protocol | https://chromedevtools.github.io/devtools-protocol/ | Evaluate current-browser/current-tab extraction. |
 | WebDriver BiDi | https://w3c.github.io/webdriver-bidi/ | Evaluate future browser automation standard. |
+| Chromium user data directories | https://chromium.googlesource.com/chromium/src/+/HEAD/docs/user_data_dir.md | Primary source for Chrome/Chromium user data/profile paths, profile subdirectories, user cache directories, and `--user-data-dir` override behavior. Notes that two running Chrome instances cannot share the same user data directory in Chrome Remote Desktop context. |
+| Chrome profile version compatibility | https://chromium.org/administrators/common-problems-and-solutions | Chrome profiles are not backwards-compatible across mismatched Chrome versions; roaming/network-profile use across versions can cause crashes or data loss. |
+| Firefox profile service | https://firefox-source-docs.mozilla.org/toolkit/profile/ | Gecko profiles store persistent data; profile root/local directories may be split from caches; profiles are locked with OS file locks and a second instance using the same profile fails with profile-in-use. |
+| Firefox profile lock support note | https://support.mozilla.org/en-US/kb/firefox-already-running-not-responding | User-facing evidence that Firefox requires an unlocked profile and can leave lock files after abnormal shutdown; relevant to profile-reuse UX and failure messaging. |
+| Selenium CDP caveats | https://www.selenium.dev/documentation/webdriver/bidi/cdp/ | CDP is not designed for testing, has no stable API, and behavior is browser-version-dependent; Selenium frames WebDriver BiDi as the standards-based replacement. |
+| WebDriver BiDi spec | https://www.w3.org/TR/webdriver-bidi/ | W3C specification for bidirectional remote control of user agents over WebSocket, extending WebDriver sessions with event streaming and browser/session modules. |
+| OWASP Logging Cheat Sheet | https://cheatsheetseries.owasp.org/cheatsheets/Logging_Cheat_Sheet.html | Audit logs should exclude or mask session identifiers, access tokens, passwords, encryption keys, sensitive personal data, and other high-sensitivity data; use hashing/sanitization where correlation is needed. |
+| NIST Privacy Framework | https://www.nist.gov/privacy-framework | Privacy risk should be managed across the data lifecycle from collection through disposal; the core includes selective collection/disclosure, data minimization, provenance, audit/log records, and deletion/disposition outcomes. |
 
 ## Rust Candidates
 

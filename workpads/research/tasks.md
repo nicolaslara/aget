@@ -52,7 +52,7 @@ Acceptance criteria:
 
 ## Phase 2: Local Browser/Auth Research
 
-### 📋 Task R4a: Compare auth/session ownership models
+### ✅ Task R4a: Compare auth/session ownership models
 
 Acceptance criteria:
 

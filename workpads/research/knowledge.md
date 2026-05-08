@@ -473,6 +473,37 @@ For `--format text`, the Crawl4AI helper now prefers `result.extracted_content`,
 
 The stable output metadata now includes `output_options` plus expanded `limits` fields: `truncated_by`, `content_chars_before_truncation`, `content_chars_after_truncation`, and `max_tokens_enforced`. This preserves the I4/I5 session/sensitivity behavior while giving agents enough metadata to decide whether to refetch with larger limits or a narrower selector.
 
+### D25: Explicit copy/import is the MVP auth ownership model
+
+R4a compared three auth/session ownership models: direct use of existing browser data, a dedicated `aget` browser/profile, and explicit copy/import into `aget`'s local session store. The MVP default should remain explicit copy/import into scoped `aget` sessions. Direct existing-browser use and dedicated login/profile flows are useful advanced modes, but they have larger consent, lifecycle, and reliability surfaces.
+
+| Model | Fetch-time store | UX | Technical feasibility | Platform constraints | Privacy risk | Credential leakage risk | Profile lock/corruption risk | Auditability |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| Direct existing browser data | User's live browser/profile or debug session at fetch time | Most seamless if already logged in; highest risk of surprising the user because the tool touches the active browser environment | Feasible through CDP/debug-port, WebDriver/BiDi, extension/native bridge, or tool-specific auto-connect; CDP is browser-version-dependent and not a stable testing API | Chrome user data directories are platform/channel-specific; Chrome remote debugging exposes full local browser control; Firefox profiles are OS-locked while in use; WebDriver BiDi is the standards path but still requires explicit remote-control setup | Highest, because every fetch may see ambient browser state unrelated to the target task | Highest, because a local automation endpoint or extension can expose cookies, storage, DOM, and private page content broadly | Medium to high if reusing profile directories directly; concurrent browser/profile use can fail or risk data loss across versions | Weak unless every direct access is explicitly logged with consent, target origin, profile/session identifier, and redacted result metadata |
+| Dedicated `aget` browser/profile login | `aget`-owned profile at fetch time | Clear ownership once created; user logs in through a tool-owned browser/profile instead of normal browser | Feasible with Playwright persistent contexts, agent-browser persistent profile paths, or future Rust CDP/WebDriver adapter | OAuth/SSO can reject automation-controlled browsers; users may need visible login flows; cross-browser support varies; profile location and lifecycle are `aget`-owned | Medium, because data is isolated from the user's main browser but still broad within the profile | Medium, because profile data remains credential-equivalent and may include provider cookies/storage beyond the relying-party app | Low to medium if each profile is single-owner and not shared with other running browser processes | Strong: `aget` can name the profile, record consent, target domains/origins, and warn when provider domains are present |
+| Explicit copy/import into `aget` storage | `aget`'s scoped local session JSON at fetch time | Slightly more explicit setup, but best agent UX afterward: `aget get <url> --session <name>` never reads ambient browser state | Proven locally via cmux domain cookie import and agent-browser state export feeding Crawl4AI; requires robust filtering from broad source state to explicit cookie domains/storage origins | Browser/profile export can require Chrome to be quit or remote debugging enabled; exported state files are plaintext unless encrypted; backend output formats differ and must be normalized | Lowest for normal fetches because only pre-approved scoped state is used; import step is the risky boundary | Medium at import time because raw exported state is credential-equivalent; low during fetch if raw state is filtered, redacted, and deleted | Low for persisted `aget` sessions because original profile is not reused at fetch time; import may still hit locks or incomplete snapshots | Strongest: every session records source, allowed domains/origins, sensitivity, and provenance; normal inspect redacts values |
+
+Recommendation:
+
+- MVP default: explicit copy/import into `aget` storage. Fetches use only `aget`'s scoped local session file plus temporary Playwright state. This matches the no-ambient-auth rule and makes the consent boundary auditable.
+- Near-term implementation order: manual fixtures, cmux import, and agent-browser/Chrome import as explicit import commands. Import commands must post-filter by allowlist, delete raw broad state after success and failure, and return `requires_user_action` instead of closing or disturbing the user's browser.
+- Advanced/deferred: direct CDP/auto-connect/current-browser access should be an explicit advanced mode, not a default fetch path. A dedicated `aget login/profile` flow is attractive after import works, but should wait until the product can open the exact target login URL, explain profile ownership, and avoid automating credentials.
+
+Audit and logging rules for all models:
+
+- Log metadata only: timestamp, command, source type, session/profile name or salted hash, requested domains/origins, target origin, result code, warning class, and whether sensitive data was used.
+- Do not log raw cookies, storage values, access tokens, passwords, encryption keys, full private page content, unredacted provider identifiers, or raw browser-state file paths when they may reveal account names.
+- Treat full URLs as potentially sensitive in authenticated contexts; record origin by default and keep full URL only in local run metadata when needed for reproducibility.
+- Apply data minimization to import and audit records: collect only explicitly allowed domains/origins, retain raw broad exports for the shortest possible time, and support deletion/disposition of sessions and logs.
+
+Open questions for the later security/privacy model:
+
+- What encryption-at-rest boundary is required before broader use: only session files, or also run metadata, logs, cache, and temporary raw state?
+- Should audit logs be a separate feature with retention controls, or should provenance stay embedded in session/run metadata for the MVP?
+- Should authenticated run metadata record full URLs by default, origin-only by default, or configurable redacted URLs?
+- What exact consent UX is required before direct CDP/auto-connect access to an existing browser, given that local debugging endpoints expose broad browser control?
+- How should `aget` detect and report partial or stale imports caused by locked browser profiles without leaking profile paths or cookie names?
+
 ## Open Questions
 
 - Can pure Rust browser automation provide reliable persistent profiles and CDP attach, or do we need a small Node/Playwright sidecar?
