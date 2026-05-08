@@ -19,6 +19,7 @@ Use this loop for `/next` and similar task execution:
 7. Assess confidence and decide whether a review subagent is needed.
 8. Incorporate review feedback, document rejected feedback, or ask the user when the decision is product-sensitive.
 9. Mark the task `✅ completed` only after acceptance criteria and review requirements are satisfied.
+10. Before selecting another `/next` task, make an explicit commit decision for the completed pass: either commit the pass, or record/confirm why no commit should be made yet. Do not start the next task while this decision is unresolved.
 
 ## Confidence Assessment
 
