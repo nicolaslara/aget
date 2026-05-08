@@ -18,6 +18,7 @@ const EXTRACTOR: &str = "crawl4ai";
 #[derive(Debug, Clone)]
 pub struct GetOptions {
     pub url: String,
+    pub session: Option<String>,
     pub out: Option<PathBuf>,
     pub timeout: Option<Duration>,
 }
@@ -72,7 +73,13 @@ struct BackendResult {
 pub fn get_url(options: GetOptions) -> Result<GetSuccess, AgetError> {
     let started = Instant::now();
     let store = SessionStore::from_env().map_err(io_aget_error)?;
-    let state = compose_playwright_state(&[])?;
+    let sessions = load_selected_sessions(&store, options.session.as_deref())?;
+    let selected_session_names = sessions
+        .iter()
+        .map(|session| session.name.clone())
+        .collect::<Vec<_>>();
+    let sensitive = !sessions.is_empty();
+    let state = compose_playwright_state(&sessions)?;
     let temp_state =
         TempStateFile::write(&store.home().join("tmp"), &state).map_err(io_aget_error)?;
     let run_dir = store.home().join("runs").join(run_id());
@@ -100,6 +107,8 @@ pub fn get_url(options: GetOptions) -> Result<GetSuccess, AgetError> {
                 &metadata_path,
                 &options.url,
                 &markdown_path,
+                &selected_session_names,
+                sensitive,
                 &error,
                 started,
             );
@@ -118,6 +127,8 @@ pub fn get_url(options: GetOptions) -> Result<GetSuccess, AgetError> {
             &metadata_path,
             &options.url,
             &markdown_path,
+            &selected_session_names,
+            sensitive,
             &error,
             started,
         );
@@ -146,8 +157,8 @@ pub fn get_url(options: GetOptions) -> Result<GetSuccess, AgetError> {
             markdown: markdown_path.to_string_lossy().into_owned(),
             metadata: metadata_path.to_string_lossy().into_owned(),
         },
-        sessions: Vec::new(),
-        sensitive: false,
+        sessions: selected_session_names,
+        sensitive,
         warnings: backend.warnings,
         timing_ms: TimingMs {
             total: started.elapsed().as_millis(),
@@ -161,6 +172,19 @@ pub fn get_url(options: GetOptions) -> Result<GetSuccess, AgetError> {
 
     write_metadata(&metadata_path, &success)?;
     Ok(success)
+}
+
+fn load_selected_sessions(
+    store: &SessionStore,
+    session_name: Option<&str>,
+) -> Result<Vec<crate::session::Session>, AgetError> {
+    match session_name {
+        Some(name) => store
+            .load(name)
+            .map(|session| vec![session])
+            .map_err(io_aget_error),
+        None => Ok(Vec::new()),
+    }
 }
 
 fn run_backend(
@@ -311,6 +335,8 @@ fn write_error_metadata(
     path: &Path,
     url: &str,
     markdown_path: &Path,
+    sessions: &[String],
+    sensitive: bool,
     error: &AgetError,
     started: Instant,
 ) -> Result<(), AgetError> {
@@ -326,8 +352,8 @@ fn write_error_metadata(
             "markdown": markdown_path.to_string_lossy(),
             "metadata": path.to_string_lossy(),
         },
-        "sessions": [],
-        "sensitive": false,
+        "sessions": sessions,
+        "sensitive": sensitive,
         "warnings": [],
         "timing_ms": {"total": started.elapsed().as_millis()},
         "limits": {"max_chars": null, "max_tokens": null, "truncated": false},

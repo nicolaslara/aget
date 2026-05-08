@@ -59,6 +59,9 @@ pub struct GetCommand {
     pub url: String,
 
     #[arg(long)]
+    pub session: Option<String>,
+
+    #[arg(long)]
     pub out: Option<PathBuf>,
 }
 
@@ -111,6 +114,7 @@ mod tests {
             cli.command,
             Command::Get(GetCommand {
                 url: "https://example.com".to_string(),
+                session: None,
                 out: None,
             })
         );
@@ -124,6 +128,7 @@ mod tests {
             cli.command,
             Command::Get(GetCommand {
                 url: "https://example.com".to_string(),
+                session: None,
                 out: None,
             })
         );
@@ -163,7 +168,23 @@ mod tests {
             cli.command,
             Command::Get(GetCommand {
                 url: "https://example.com".to_string(),
+                session: None,
                 out: Some(PathBuf::from("page.md")),
+            })
+        );
+    }
+
+    #[test]
+    fn parses_get_session() {
+        let cli = Cli::try_parse_from(["aget", "get", "https://example.com", "--session", "demo"])
+            .unwrap();
+
+        assert_eq!(
+            cli.command,
+            Command::Get(GetCommand {
+                url: "https://example.com".to_string(),
+                session: Some("demo".to_string()),
+                out: None,
             })
         );
     }

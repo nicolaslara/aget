@@ -27,6 +27,7 @@ fn run(cli: Cli) -> Result<(), ErrorResponse> {
         Command::Get(get) => {
             let success = get_url(GetOptions {
                 url: get.url,
+                session: get.session,
                 out: get.out,
                 timeout: cli.global.timeout,
             })

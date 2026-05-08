@@ -12,6 +12,7 @@ What works today:
 - `aget <url>` as a shortcut alias
 - `--json`
 - `--out <path>`
+- `--session <name>` for explicit named-session replay
 - empty-session default
 - local run artifacts
 - session list, inspect, and delete commands
@@ -34,6 +35,7 @@ cargo run --quiet -- get https://example.com
 cargo run --quiet -- https://example.com
 cargo run --quiet -- get https://example.com --json
 cargo run --quiet -- get https://example.com --out /tmp/example.md
+cargo run --quiet -- get https://example.com/account --session my-session --json
 ```
 
 Session commands:
@@ -59,8 +61,8 @@ It exercises a static public page and a JS-rendered page using the real default 
 Concise usage:
 
 ```text
-aget get <url> [--json] [--out <path>] [--timeout <seconds>]
-aget <url> [--json] [--out <path>] [--timeout <seconds>]
+aget get <url> [--session <name>] [--json] [--out <path>] [--timeout <seconds>]
+aget <url> [--session <name>] [--json] [--out <path>] [--timeout <seconds>]
 aget session list
 aget session inspect <session-id>
 aget session delete <session-id>
@@ -72,6 +74,7 @@ Notes:
 - `aget <url>` is an alias for the same fetch path.
 - `--json` prints structured output.
 - `--out` writes the extracted markdown to a file.
+- `--session` explicitly replays one named local session for the request.
 - `--timeout` sets the request timeout in seconds.
 
 ## JSON Output
@@ -107,6 +110,7 @@ Example:
 ## Privacy and Local Storage
 
 - `aget` starts with an empty session by default.
+- Auth/session replay is opt-in per request with `--session <name>`.
 - Run artifacts live under `~/.aget/runs`.
 - Temporary browser/session state is local and should be cleaned up when no longer needed.
 - Only process content you are authorized to access.

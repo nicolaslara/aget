@@ -2,9 +2,11 @@ use std::fs;
 use std::io::{Read, Write};
 use std::net::TcpListener;
 use std::path::{Path, PathBuf};
+use std::sync::mpsc::{self, Receiver};
 use std::thread::{self, JoinHandle};
-use std::time::{SystemTime, UNIX_EPOCH};
+use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 
+use aget::{Session, SessionCookie, SessionStore};
 use assert_cmd::Command;
 
 #[test]
@@ -119,6 +121,159 @@ fn get_out_writes_markdown_to_requested_path_and_metadata_to_run_dir() {
     assert_eq!(fs::read_to_string(&out_path).unwrap(), "# Fake\n");
     let metadata_path = PathBuf::from(json["artifacts"]["metadata"].as_str().unwrap());
     assert!(metadata_path.starts_with(aget_home.join("runs")));
+}
+
+#[test]
+fn get_session_uses_named_session_state_and_marks_sensitive() {
+    let temp = tempfile::tempdir().unwrap();
+    let aget_home = temp.path().join("aget-home");
+    save_cookie_session(&aget_home, "local", "127.0.0.1", "sid", "secret-cookie");
+    let fake_backend = write_fake_backend(
+        temp.path(),
+        r#"#!/usr/bin/env python3
+import argparse, json, pathlib
+parser = argparse.ArgumentParser()
+parser.add_argument('--url', required=True)
+parser.add_argument('--state', required=True)
+parser.add_argument('--output', required=True)
+parser.add_argument('--metadata', required=True)
+args = parser.parse_args()
+state = json.loads(pathlib.Path(args.state).read_text(encoding='utf-8'))
+assert state['origins'] == []
+assert state['cookies'] == [{
+    'name': 'sid',
+    'value': 'secret-cookie',
+    'domain': '127.0.0.1',
+    'path': '/',
+    'httpOnly': True,
+    'secure': False,
+    'sameSite': 'Lax',
+}]
+content = '# Session Fetch'
+pathlib.Path(args.output).write_text(content, encoding='utf-8')
+print(json.dumps({'ok': True, 'final_url': args.url, 'content': content, 'warnings': []}))
+"#,
+    );
+
+    let mut cmd = Command::cargo_bin("aget").unwrap();
+    let output = cmd
+        .env("AGET_HOME", &aget_home)
+        .env("AGET_CRAWL4AI_COMMAND", python_command(&fake_backend))
+        .args([
+            "--json",
+            "get",
+            "http://127.0.0.1/session",
+            "--session",
+            "local",
+        ])
+        .assert()
+        .success()
+        .get_output()
+        .stdout
+        .clone();
+
+    let json: serde_json::Value = serde_json::from_slice(&output).unwrap();
+    assert_eq!(json["ok"], true);
+    assert_eq!(json["sessions"], serde_json::json!(["local"]));
+    assert_eq!(json["sensitive"], true);
+
+    let metadata_path = PathBuf::from(json["artifacts"]["metadata"].as_str().unwrap());
+    let metadata: serde_json::Value =
+        serde_json::from_str(&fs::read_to_string(metadata_path).unwrap()).unwrap();
+    assert_eq!(metadata["sessions"], serde_json::json!(["local"]));
+    assert_eq!(metadata["sensitive"], true);
+}
+
+#[test]
+fn get_session_marks_output_sensitive_even_if_session_metadata_is_false() {
+    let temp = tempfile::tempdir().unwrap();
+    let aget_home = temp.path().join("aget-home");
+    save_cookie_session_with_sensitivity(
+        &aget_home,
+        "local",
+        "127.0.0.1",
+        "sid",
+        "secret-cookie",
+        false,
+    );
+    let fake_backend = write_success_backend(temp.path());
+
+    let mut cmd = Command::cargo_bin("aget").unwrap();
+    let output = cmd
+        .env("AGET_HOME", &aget_home)
+        .env("AGET_CRAWL4AI_COMMAND", python_command(&fake_backend))
+        .args([
+            "--json",
+            "get",
+            "http://127.0.0.1/session",
+            "--session",
+            "local",
+        ])
+        .assert()
+        .success()
+        .get_output()
+        .stdout
+        .clone();
+
+    let json: serde_json::Value = serde_json::from_slice(&output).unwrap();
+    assert_eq!(json["sessions"], serde_json::json!(["local"]));
+    assert_eq!(json["sensitive"], true);
+}
+
+#[test]
+#[ignore = "requires local Crawl4AI and Playwright browser setup"]
+fn real_crawl4ai_replays_named_session_cookie() {
+    let temp = tempfile::tempdir().unwrap();
+    let empty_home = temp.path().join("empty-home");
+    let (empty_url, empty_server, empty_cookie) = cookie_echo_server("/cookie-empty");
+
+    let mut empty_cmd = Command::cargo_bin("aget").unwrap();
+    let empty_output = empty_cmd
+        .env("AGET_HOME", &empty_home)
+        .args(["--json", "get", &empty_url, "--timeout", "60"])
+        .assert()
+        .success()
+        .get_output()
+        .stdout
+        .clone();
+    empty_server.join().unwrap();
+
+    let empty_json: serde_json::Value = serde_json::from_slice(&empty_output).unwrap();
+    assert_eq!(empty_json["sessions"], serde_json::json!([]));
+    assert_eq!(empty_json["sensitive"], false);
+    assert!(empty_cookie
+        .try_iter()
+        .all(|cookie| !cookie.contains("sid=secret-cookie")));
+
+    let session_home = temp.path().join("session-home");
+    save_cookie_session(&session_home, "local", "127.0.0.1", "sid", "secret-cookie");
+    let (session_url, session_server, session_cookie) = cookie_echo_server("/cookie-session");
+
+    let mut session_cmd = Command::cargo_bin("aget").unwrap();
+    let session_output = session_cmd
+        .env("AGET_HOME", &session_home)
+        .args([
+            "--json",
+            "get",
+            &session_url,
+            "--session",
+            "local",
+            "--timeout",
+            "60",
+        ])
+        .assert()
+        .success()
+        .get_output()
+        .stdout
+        .clone();
+    session_server.join().unwrap();
+
+    let session_json: serde_json::Value = serde_json::from_slice(&session_output).unwrap();
+    assert_eq!(session_json["sessions"], serde_json::json!(["local"]));
+    assert_eq!(session_json["sensitive"], true);
+    assert!(session_cookie
+        .try_iter()
+        .any(|cookie| cookie.contains("sid=secret-cookie")));
 }
 
 #[test]
@@ -404,6 +559,61 @@ fn local_server(path: &str) -> (String, JoinHandle<()>) {
     (url, handle)
 }
 
+fn cookie_echo_server(path: &str) -> (String, JoinHandle<()>, Receiver<String>) {
+    let listener = TcpListener::bind("127.0.0.1:0").unwrap();
+    listener.set_nonblocking(true).unwrap();
+    let addr = listener.local_addr().unwrap();
+    let path = path.to_string();
+    let url = format!("http://{addr}{path}");
+    let (cookie_sender, cookie_receiver) = mpsc::channel();
+
+    let handle = thread::spawn(move || {
+        let deadline = Instant::now() + Duration::from_secs(30);
+        let mut handled_request = false;
+        let mut idle_after_request = None;
+
+        while Instant::now() < deadline {
+            match listener.accept() {
+                Ok((mut stream, _)) => {
+                    let mut buffer = [0; 4096];
+                    let bytes_read = stream.read(&mut buffer).unwrap_or_default();
+                    let request = String::from_utf8_lossy(&buffer[..bytes_read]);
+                    handled_request = true;
+                    idle_after_request = Some(Instant::now() + Duration::from_secs(2));
+                    let cookie = request
+                        .lines()
+                        .find_map(|line| line.strip_prefix("Cookie: "))
+                        .unwrap_or("none");
+                    let _ = cookie_sender.send(cookie.to_string());
+                    let filler = "Local cookie replay verification content. ".repeat(40);
+                    let body = format!(
+                        "<!doctype html><html><body><main><h1>Cookie Echo</h1><p>Path: {path}</p><p>Cookie: {cookie}</p><article>{filler}</article></main></body></html>"
+                    );
+                    let response = format!(
+                        "HTTP/1.1 200 OK\r\nContent-Type: text/html; charset=utf-8\r\nSet-Cookie: server_set=ok; Path=/; SameSite=Lax\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{}",
+                        body.len(),
+                        body
+                    );
+                    let _ = stream.write_all(response.as_bytes());
+                }
+                Err(error) if error.kind() == std::io::ErrorKind::WouldBlock => {
+                    if handled_request
+                        && idle_after_request.is_some_and(|end| Instant::now() >= end)
+                    {
+                        break;
+                    }
+                    thread::sleep(Duration::from_millis(20));
+                }
+                Err(error) => panic!("cookie echo server failed: {error}"),
+            }
+        }
+
+        assert!(handled_request);
+    });
+
+    (url, handle, cookie_receiver)
+}
+
 fn write_fake_backend(dir: &Path, content: &str) -> PathBuf {
     let nanos = SystemTime::now()
         .duration_since(UNIX_EPOCH)
@@ -432,4 +642,34 @@ fn metadata_files(aget_home: &Path) -> Vec<PathBuf> {
         }
     }
     files
+}
+
+fn save_cookie_session(home: &Path, name: &str, domain: &str, cookie_name: &str, value: &str) {
+    save_cookie_session_with_sensitivity(home, name, domain, cookie_name, value, true);
+}
+
+fn save_cookie_session_with_sensitivity(
+    home: &Path,
+    name: &str,
+    domain: &str,
+    cookie_name: &str,
+    value: &str,
+    sensitive: bool,
+) {
+    let store = SessionStore::new(home).unwrap();
+    let mut session = Session::new(name);
+    session.sensitive = sensitive;
+    session.allowed_cookie_domains.push(domain.to_string());
+    session.cookies.push(SessionCookie {
+        name: cookie_name.to_string(),
+        value: value.to_string(),
+        domain: domain.to_string(),
+        path: "/".to_string(),
+        expires: None,
+        http_only: true,
+        secure: false,
+        same_site: Some("Lax".to_string()),
+        source_session: Some(name.to_string()),
+    });
+    store.save(&session).unwrap();
 }
