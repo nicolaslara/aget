@@ -62,7 +62,7 @@ Acceptance criteria:
 - Recommend MVP default and advanced/deferred modes.
 - Record open questions for the later security/privacy model task.
 
-### 📋 Task R4: Research persistent browser profile strategies
+### ✅ Task R4: Research persistent browser profile strategies
 
 Acceptance criteria:
 

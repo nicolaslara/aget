@@ -504,6 +504,27 @@ Open questions for the later security/privacy model:
 - What exact consent UX is required before direct CDP/auto-connect access to an existing browser, given that local debugging endpoints expose broad browser control?
 - How should `aget` detect and report partial or stale imports caused by locked browser profiles without leaking profile paths or cookie names?
 
+### D26: R4 persistent profile strategy favors explicit state import over live profile reuse
+
+R4 compared Playwright persistent contexts, CDP attach, and WebDriver-based profile reuse for authenticated local extraction. The recommendation stays aligned with D25: the MVP should use explicit copy/import into `aget` storage for normal fetches, with `agent-browser`/Chrome import as an import-time bridge. Direct use of a live existing browser/profile should remain an advanced/deferred mode because it has the broadest control surface, browser/version sensitivity, and profile-locking risk.
+
+| Strategy | Login reuse behavior | Risks | Platform constraints | Fit for `aget` |
+| --- | --- | --- | --- | --- |
+| Playwright persistent context | Uses an on-disk `userDataDir` and keeps cookies/local storage/profile data across launches. `storageState` can also export cookies, localStorage, and IndexedDB for replay into a fresh context, but Playwright does not persist `sessionStorage` through the storage-state API. | Persistent profile directories are credential-equivalent local state. Reusing a user's default Chrome profile is explicitly discouraged; shared mutable state can leak across tasks or break when tests/fetches mutate server-side state. | Browsers do not allow multiple running instances with the same user data directory. The safe pattern is a dedicated automation profile directory, not the user's main profile. | Good for a future `aget login/profile` flow where `aget` owns the profile lifecycle. For I7, exported storage state is the better bridge because `aget` can filter and persist only scoped session material. |
+| CDP attach / Chrome remote debugging | Can attach to an already-running or explicitly launched Chromium/Chrome instance and inspect/control pages through DevTools Protocol WebSockets. It can observe the browser's live authenticated page state when the endpoint has access. | A CDP endpoint is effectively a live browser control/data endpoint for open pages. It exposes authenticated DOM/storage/cookies via debugging capabilities, is Chrome/CDP-version sensitive, and has a sharp consent boundary. | Chrome 136+ blocks `--remote-debugging-port`/`--remote-debugging-pipe` against the default Chrome data directory unless a non-standard `--user-data-dir` is supplied. User data directories contain cookies/history/bookmarks and use singleton/lock files; cross-version profile reuse can cause degraded behavior, crashes, or data loss. | Useful as an explicit advanced/current-browser mode later. Not the MVP default. It may be used indirectly by `agent-browser` during import, but `aget` should treat raw exported state as short-lived and filter it before persistence. |
+| WebDriver / WebDriver BiDi | Standardizes browser automation sessions and, with BiDi, bidirectional messaging/subscriptions. Persistent login reuse is possible only through browser-specific launch options such as Chrome `--user-data-dir` or Firefox `-profile`. | Profile reuse inherits browser-profile risks while providing less direct, portable auth-state semantics than Playwright storage state. The spec does not standardize a safe persistent-profile/auth-state model. | WebDriver capabilities are portable for session creation, timeouts, proxy, and browser metadata, but profile persistence is vendor-specific. BiDi improves eventing/control but does not define profile persistence. | Good standards direction for future pure browser automation research, but not the shortest path for I7. It does not replace the current `agent-browser` plus filtered storage-state import plan. |
+
+MVP auth/session strategy after R4:
+
+- Keep `aget get` empty-session by default.
+- Keep normal authenticated fetches on scoped `aget` session files, never ambient browser stores.
+- Implement I7 as explicit Chrome import through `agent-browser`: create/use a named temporary agent-browser session, export raw state to a private temp file, filter by explicit domains/origins, save only scoped state, and delete the raw broad export on success and failure.
+- If Chrome/profile state cannot be acquired cleanly, return `requires_user_action`; do not close or disturb the user's running browser.
+- Defer a first-class `aget login/profile` persistent-context flow until the product can own a dedicated profile directory, open the exact target login URL, explain profile ownership, and document sessionStorage limitations.
+- Defer direct CDP/current-browser attach until it has explicit consent UX, endpoint exposure warnings, and redacted audit metadata.
+
+Confidence: High for the MVP direction. The recommendation is supported by primary Playwright, Chrome/Chromium, WebDriver, and Selenium sources, and it matches local benchmark evidence from D17/D18 plus the explicit ownership model from D25. Remaining uncertainty is implementation-specific: how reliably `agent-browser` can export state across Chrome profile lock/version conditions without requiring user action.
+
 ## Open Questions
 
 - Can pure Rust browser automation provide reliable persistent profiles and CDP attach, or do we need a small Node/Playwright sidecar?
