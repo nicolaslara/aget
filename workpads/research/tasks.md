@@ -199,7 +199,7 @@ Acceptance criteria:
 - Verify `aget get <url> --session <name>` sends the expected cookie through Crawl4AI.
 - Verify authenticated/sensitive metadata is set when a session is used.
 
-### 📋 Task I5: Add optional cmux session import
+### ✅ Task I5: Add optional cmux session import
 
 Acceptance criteria:
 

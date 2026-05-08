@@ -4,11 +4,13 @@ pub mod extraction;
 pub mod session;
 
 pub use cli::{
-    Cli, Command, DeleteSessionCommand, GetCommand, GlobalOptions, InspectSessionCommand,
-    SessionCommand, SessionSubcommand,
+    Cli, Command, DeleteSessionCommand, GetCommand, GlobalOptions, ImportCmuxSessionCommand,
+    ImportSessionCommand, ImportSessionSource, InspectSessionCommand, SessionCommand,
+    SessionSubcommand,
 };
 pub use error::{AgetError, ErrorCode, ErrorResponse};
 pub use extraction::{get_url, GetOptions, GetSuccess};
 pub use session::{
-    Session, SessionCookie, SessionOrigin, SessionSource, SessionStore, StorageEntry,
+    import_cmux_session, CmuxImportOptions, Session, SessionCookie, SessionOrigin, SessionSource,
+    SessionStore, StorageEntry,
 };

@@ -1,7 +1,9 @@
+pub mod cmux;
 pub mod model;
 pub mod playwright;
 pub mod store;
 
+pub use cmux::{import_cmux_session, CmuxImportOptions};
 pub use model::{Session, SessionCookie, SessionOrigin, SessionSource, StorageEntry};
 pub use playwright::{
     compose_playwright_state, PlaywrightCookie, PlaywrightOrigin, PlaywrightState, TempStateFile,

@@ -2,8 +2,8 @@ use std::process::ExitCode;
 
 use aget::session::SessionStore;
 use aget::{
-    get_url, Cli, Command, ErrorCode, ErrorResponse, GetOptions, Session, SessionCookie,
-    SessionSubcommand,
+    get_url, import_cmux_session, Cli, CmuxImportOptions, Command, ErrorCode, ErrorResponse,
+    GetOptions, ImportSessionSource, Session, SessionCookie, SessionSubcommand,
 };
 
 fn main() -> ExitCode {
@@ -94,6 +94,35 @@ fn run_session(command: SessionSubcommand, json: bool) -> Result<(), ErrorRespon
             }
             Ok(())
         }
+        SessionSubcommand::Import(import) => match import.source {
+            ImportSessionSource::Cmux(cmux) => {
+                let session = import_cmux_session(CmuxImportOptions {
+                    surface: cmux.surface,
+                    name: cmux.name,
+                    domains: cmux.domain,
+                })
+                .map_err(error_response)?;
+                store.save(&session).map_err(io_error)?;
+                if json {
+                    println!(
+                        "{}",
+                        serde_json::json!({
+                            "ok": true,
+                            "source": "cmux",
+                            "name": session.name,
+                            "cookie_count": session.cookies.len(),
+                        })
+                    );
+                } else {
+                    println!(
+                        "Imported cmux session {} with {} cookies",
+                        session.name,
+                        session.cookies.len()
+                    );
+                }
+                Ok(())
+            }
+        },
     }
 }
 

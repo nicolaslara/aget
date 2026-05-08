@@ -76,6 +76,30 @@ pub enum SessionSubcommand {
     List,
     Inspect(InspectSessionCommand),
     Delete(DeleteSessionCommand),
+    Import(ImportSessionCommand),
+}
+
+#[derive(Debug, Args, PartialEq, Eq)]
+pub struct ImportSessionCommand {
+    #[command(subcommand)]
+    pub source: ImportSessionSource,
+}
+
+#[derive(Debug, Subcommand, PartialEq, Eq)]
+pub enum ImportSessionSource {
+    Cmux(ImportCmuxSessionCommand),
+}
+
+#[derive(Debug, Args, PartialEq, Eq)]
+pub struct ImportCmuxSessionCommand {
+    #[arg(long)]
+    pub surface: String,
+
+    #[arg(long)]
+    pub name: String,
+
+    #[arg(long, required = true)]
+    pub domain: Vec<String>,
 }
 
 #[derive(Debug, Args, PartialEq, Eq)]
@@ -199,6 +223,38 @@ mod tests {
                 command: SessionSubcommand::Inspect(InspectSessionCommand {
                     name: "demo".to_string(),
                     show_secrets: false
+                })
+            })
+        );
+    }
+
+    #[test]
+    fn parses_session_import_cmux_with_repeated_domains() {
+        let cli = Cli::try_parse_from([
+            "aget",
+            "session",
+            "import",
+            "cmux",
+            "--surface",
+            "surface:1",
+            "--name",
+            "demo",
+            "--domain",
+            "example.com",
+            "--domain",
+            "docs.example.com",
+        ])
+        .unwrap();
+
+        assert_eq!(
+            cli.command,
+            Command::Session(SessionCommand {
+                command: SessionSubcommand::Import(ImportSessionCommand {
+                    source: ImportSessionSource::Cmux(ImportCmuxSessionCommand {
+                        surface: "surface:1".to_string(),
+                        name: "demo".to_string(),
+                        domain: vec!["example.com".to_string(), "docs.example.com".to_string()],
+                    })
                 })
             })
         );

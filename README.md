@@ -16,6 +16,7 @@ What works today:
 - empty-session default
 - local run artifacts
 - session list, inspect, and delete commands
+- optional cmux cookie import for explicitly allowed domains
 - the real demo script
 
 See [`project.md`](./project.md) for the original product goal, [`AGENTS.md`](./AGENTS.md) for agent instructions, [`WORKING.md`](./WORKING.md) for the living workflow, and [`workpads/`](./workpads/) for active project notes.
@@ -25,6 +26,7 @@ See [`project.md`](./project.md) for the original product goal, [`AGENTS.md`](./
 - Rust and Cargo
 - `uv`
 - the default Crawl4AI/Playwright browser setup for the built-in backend
+- optional: `cmux` for `aget session import cmux`
 
 ## Quick Start
 
@@ -44,6 +46,7 @@ Session commands:
 cargo run --quiet -- session list
 cargo run --quiet -- session inspect <session-id>
 cargo run --quiet -- session delete <session-id>
+cargo run --quiet -- session import cmux --surface <surface> --name <name> --domain <domain> [--domain <domain>...]
 ```
 
 ## Real CLI Demo
@@ -66,6 +69,7 @@ aget <url> [--session <name>] [--json] [--out <path>] [--timeout <seconds>]
 aget session list
 aget session inspect <session-id>
 aget session delete <session-id>
+aget session import cmux --surface <surface> --name <name> --domain <domain> [--domain <domain>...]
 ```
 
 Notes:
@@ -76,6 +80,8 @@ Notes:
 - `--out` writes the extracted markdown to a file.
 - `--session` explicitly replays one named local session for the request.
 - `--timeout` sets the request timeout in seconds.
+- `aget session import cmux` imports cookies from a cmux browser surface for explicitly allowed domains only; imported cookies are stored locally as a sensitive named session.
+- cmux import reads raw cookie values from the selected local cmux surface. Use only disposable or user-authorized surfaces and domains.
 
 ## JSON Output
 
