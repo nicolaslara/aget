@@ -239,6 +239,16 @@ Acceptance criteria:
 - Reject conflicts with redacted conflict reporting.
 - Add local app/provider-session tests.
 
+### 📋 Task I8a: Review output and response API flags
+
+Acceptance criteria:
+
+- Clarify the distinction between page content format and agent control-plane response format.
+- Evaluate whether `--json` plus `--format markdown` should be replaced or supplemented with clearer names.
+- Preserve a human-friendly default that prints markdown directly.
+- Preserve an agent-friendly structured mode that exposes status, errors, artifact paths, sensitivity, sessions, and warnings.
+- Document the chosen CLI/API design before implementing OpenCode integration.
+
 ### 📋 Task I9: Add OpenCode CLI-backed integration
 
 Acceptance criteria:
