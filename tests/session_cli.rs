@@ -209,6 +209,308 @@ fn session_import_cmux_missing_backend_returns_backend_unavailable() {
 }
 
 #[test]
+fn session_import_chrome_saves_filtered_state_and_cleans_raw_file() {
+    let temp = tempfile::tempdir().unwrap();
+    let aget_home = temp.path().join("aget-home");
+    let log_path = temp.path().join("agent-browser.log");
+    let fake_agent_browser = write_fake_agent_browser(
+        temp.path(),
+        r#"#!/usr/bin/env python3
+import json, os, pathlib, sys
+args = sys.argv[1:]
+log = pathlib.Path(os.environ['AGET_FAKE_AGENT_BROWSER_LOG'])
+with log.open('a', encoding='utf-8') as handle:
+    handle.write(json.dumps(args) + '\n')
+if len(args) == 6 and args[:1] == ['--profile'] and args[2:3] == ['--session'] and args[4:] == ['open', 'about:blank']:
+    raise SystemExit(0)
+if len(args) == 5 and args[:1] == ['--session'] and args[2:4] == ['state', 'save']:
+    state_path = pathlib.Path(args[4])
+    with log.open('a', encoding='utf-8') as handle:
+        handle.write('STATE_PATH=' + str(state_path) + '\n')
+    state = {
+        'cookies': [
+            {'name': 'sid', 'value': 'allowed-secret', 'domain': 'example.com', 'path': '/', 'expires': 1910000000, 'httpOnly': True, 'secure': True, 'sameSite': 'Lax'},
+            {'name': 'sub', 'value': 'sub-secret', 'domain': 'docs.example.com', 'path': '/', 'httpOnly': False, 'secure': False},
+            {'name': 'evil', 'value': 'blocked-secret', 'domain': 'example.com.evil', 'path': '/', 'httpOnly': False, 'secure': False},
+        ],
+        'origins': [
+            {'origin': 'https://example.com', 'localStorage': [{'name': 'token', 'value': 'allowed-storage'}], 'sessionStorage': [{'name': 'ignored', 'value': 'session-only'}]},
+            {'origin': 'https://docs.example.com:443', 'localStorage': [{'name': 'subtoken', 'value': 'sub-storage'}]},
+            {'origin': 'https://example.com.evil', 'localStorage': [{'name': 'evil', 'value': 'blocked-storage'}]},
+        ],
+    }
+    state_path.write_text(json.dumps(state), encoding='utf-8')
+    raise SystemExit(0)
+if len(args) == 3 and args[:1] == ['--session'] and args[2:] == ['close']:
+    raise SystemExit(0)
+print('unexpected args: ' + repr(args), file=sys.stderr)
+raise SystemExit(2)
+"#,
+    );
+
+    let mut cmd = Command::cargo_bin("aget").unwrap();
+    let output = cmd
+        .env("AGET_HOME", &aget_home)
+        .env("AGET_AGENT_BROWSER_COMMAND", &fake_agent_browser)
+        .env("AGET_FAKE_AGENT_BROWSER_LOG", &log_path)
+        .args([
+            "--json",
+            "session",
+            "import",
+            "chrome",
+            "--profile",
+            "Default",
+            "--name",
+            "chrome-imported",
+            "--domain",
+            "example.com",
+        ])
+        .assert()
+        .success()
+        .get_output()
+        .stdout
+        .clone();
+
+    let json: serde_json::Value = serde_json::from_slice(&output).unwrap();
+    assert_eq!(json["ok"], true);
+    assert_eq!(json["source"], "chrome");
+    assert_eq!(json["name"], "chrome-imported");
+    assert_eq!(json["cookie_count"], 2);
+    assert_eq!(json["origin_count"], 2);
+
+    let store = SessionStore::new(&aget_home).unwrap();
+    let session = store.load("chrome-imported").unwrap();
+    assert_eq!(
+        session.source,
+        SessionSource::ChromeProfile {
+            profile: "Default".to_string()
+        }
+    );
+    assert!(session.sensitive);
+    assert_eq!(
+        session.allowed_cookie_domains,
+        vec!["example.com".to_string()]
+    );
+    assert_eq!(
+        session.allowed_storage_origins,
+        vec![
+            "https://docs.example.com:443".to_string(),
+            "https://example.com".to_string(),
+        ]
+    );
+    assert_eq!(session.cookies.len(), 2);
+    assert!(session.cookies.iter().all(|cookie| cookie
+        .source_session
+        .as_deref()
+        .is_some_and(|source| source.starts_with("aget-import-"))));
+    assert!(session.cookies.iter().any(|cookie| cookie.name == "sid"));
+    assert!(session.cookies.iter().any(|cookie| cookie.name == "sub"));
+    assert!(!session.cookies.iter().any(|cookie| cookie.name == "evil"));
+    assert_eq!(session.origins.len(), 2);
+    assert!(session
+        .origins
+        .iter()
+        .any(|origin| origin.origin == "https://example.com"
+            && origin
+                .local_storage
+                .iter()
+                .any(|entry| entry.name == "token")));
+    assert!(!session
+        .origins
+        .iter()
+        .any(|origin| origin.origin == "https://example.com.evil"));
+
+    let mut inspect = Command::cargo_bin("aget").unwrap();
+    let inspect_output = inspect
+        .env("AGET_HOME", &aget_home)
+        .args(["--json", "session", "inspect", "chrome-imported"])
+        .assert()
+        .success()
+        .get_output()
+        .stdout
+        .clone();
+    let inspect_json: serde_json::Value = serde_json::from_slice(&inspect_output).unwrap();
+    assert_eq!(
+        inspect_json["origins"][0]["local_storage"][0]["value"],
+        "<redacted>"
+    );
+    assert!(!String::from_utf8_lossy(&inspect_output).contains("allowed-storage"));
+
+    let mut inspect_secrets = Command::cargo_bin("aget").unwrap();
+    inspect_secrets
+        .env("AGET_HOME", &aget_home)
+        .args([
+            "--json",
+            "session",
+            "inspect",
+            "chrome-imported",
+            "--show-secrets",
+        ])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("allowed-storage"));
+
+    let log = fs::read_to_string(&log_path).unwrap();
+    let calls = log
+        .lines()
+        .filter(|line| line.starts_with('['))
+        .collect::<Vec<_>>();
+    assert_eq!(calls.len(), 3);
+    assert!(calls[0].contains(r#""--profile", "Default", "--session", "#));
+    assert!(calls[1].contains(r#""state", "save""#));
+    assert!(calls[2].contains(r#""close""#));
+    let raw_state_path = log
+        .lines()
+        .find_map(|line| line.strip_prefix("STATE_PATH="))
+        .map(PathBuf::from)
+        .unwrap();
+    assert!(!raw_state_path.exists());
+}
+
+#[test]
+fn session_import_chrome_missing_backend_returns_backend_unavailable() {
+    let temp = tempfile::tempdir().unwrap();
+    let aget_home = temp.path().join("aget-home");
+
+    let mut cmd = Command::cargo_bin("aget").unwrap();
+    let output = cmd
+        .env("AGET_HOME", &aget_home)
+        .env(
+            "AGET_AGENT_BROWSER_COMMAND",
+            "definitely_missing_aget_agent_browser",
+        )
+        .args([
+            "--json",
+            "session",
+            "import",
+            "chrome",
+            "--profile",
+            "Default",
+            "--name",
+            "imported",
+            "--domain",
+            "example.com",
+        ])
+        .assert()
+        .failure()
+        .get_output()
+        .stderr
+        .clone();
+
+    let json: serde_json::Value = serde_json::from_slice(&output).unwrap();
+    assert_eq!(json["ok"], false);
+    assert_eq!(json["error"]["code"], "backend_unavailable");
+}
+
+#[test]
+fn session_import_chrome_requires_user_action_for_profile_lock() {
+    let temp = tempfile::tempdir().unwrap();
+    let aget_home = temp.path().join("aget-home");
+    let log_path = temp.path().join("agent-browser.log");
+    let fake_agent_browser = write_fake_agent_browser(
+        temp.path(),
+        r#"#!/usr/bin/env python3
+import json, os, pathlib, sys
+args = sys.argv[1:]
+pathlib.Path(os.environ['AGET_FAKE_AGENT_BROWSER_LOG']).write_text(json.dumps(args), encoding='utf-8')
+print('Please quit Chrome before importing this profile', file=sys.stderr)
+raise SystemExit(2)
+"#,
+    );
+
+    let mut cmd = Command::cargo_bin("aget").unwrap();
+    let output = cmd
+        .env("AGET_HOME", &aget_home)
+        .env("AGET_AGENT_BROWSER_COMMAND", &fake_agent_browser)
+        .env("AGET_FAKE_AGENT_BROWSER_LOG", &log_path)
+        .args([
+            "--json",
+            "session",
+            "import",
+            "chrome",
+            "--profile",
+            "Default",
+            "--name",
+            "imported",
+            "--domain",
+            "example.com",
+        ])
+        .assert()
+        .failure()
+        .get_output()
+        .stderr
+        .clone();
+
+    let json: serde_json::Value = serde_json::from_slice(&output).unwrap();
+    assert_eq!(json["ok"], false);
+    assert_eq!(json["error"]["code"], "requires_user_action");
+}
+
+#[test]
+fn session_import_chrome_closes_and_cleans_raw_state_on_malformed_state() {
+    let temp = tempfile::tempdir().unwrap();
+    let aget_home = temp.path().join("aget-home");
+    let log_path = temp.path().join("agent-browser.log");
+    let fake_agent_browser = write_fake_agent_browser(
+        temp.path(),
+        r#"#!/usr/bin/env python3
+import json, os, pathlib, sys
+args = sys.argv[1:]
+log = pathlib.Path(os.environ['AGET_FAKE_AGENT_BROWSER_LOG'])
+with log.open('a', encoding='utf-8') as handle:
+    handle.write(json.dumps(args) + '\n')
+if args[-2:] == ['open', 'about:blank']:
+    raise SystemExit(0)
+if args[2:4] == ['state', 'save']:
+    with log.open('a', encoding='utf-8') as handle:
+        handle.write('STATE_PATH=' + args[4] + '\n')
+    pathlib.Path(args[4]).write_text('{bad json', encoding='utf-8')
+    raise SystemExit(0)
+if args[-1:] == ['close']:
+    raise SystemExit(0)
+raise SystemExit(2)
+"#,
+    );
+
+    let mut cmd = Command::cargo_bin("aget").unwrap();
+    let output = cmd
+        .env("AGET_HOME", &aget_home)
+        .env("AGET_AGENT_BROWSER_COMMAND", &fake_agent_browser)
+        .env("AGET_FAKE_AGENT_BROWSER_LOG", &log_path)
+        .args([
+            "--json",
+            "session",
+            "import",
+            "chrome",
+            "--profile",
+            "Default",
+            "--name",
+            "imported",
+            "--domain",
+            "example.com",
+        ])
+        .assert()
+        .failure()
+        .get_output()
+        .stderr
+        .clone();
+
+    let json: serde_json::Value = serde_json::from_slice(&output).unwrap();
+    assert_eq!(json["ok"], false);
+    assert_eq!(json["error"]["code"], "extraction_failed");
+    let log = fs::read_to_string(&log_path).unwrap();
+    assert!(log.contains(r#""open", "about:blank""#));
+    assert!(log.contains(r#""state", "save""#));
+    assert!(log.contains(r#""close""#));
+    let raw_state_path = log
+        .lines()
+        .find_map(|line| line.strip_prefix("STATE_PATH="))
+        .map(PathBuf::from)
+        .unwrap();
+    assert!(!raw_state_path.exists());
+}
+
+#[test]
 #[ignore = "requires a running cmux browser surface named by AGET_REAL_CMUX_SURFACE"]
 fn real_cmux_imports_loopback_cookie() {
     let surface = match std::env::var("AGET_REAL_CMUX_SURFACE") {
@@ -489,6 +791,17 @@ fn write_fake_cmux(dir: &Path, content: &str) -> PathBuf {
         .map(|duration| duration.as_nanos())
         .unwrap_or_default();
     let path = dir.join(format!("fake-cmux-{nanos}.py"));
+    fs::write(&path, content).unwrap();
+    make_executable(&path);
+    path
+}
+
+fn write_fake_agent_browser(dir: &Path, content: &str) -> PathBuf {
+    let nanos = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .map(|duration| duration.as_nanos())
+        .unwrap_or_default();
+    let path = dir.join(format!("fake-agent-browser-{nanos}.py"));
     fs::write(&path, content).unwrap();
     make_executable(&path);
     path

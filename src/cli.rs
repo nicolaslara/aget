@@ -135,12 +135,25 @@ pub struct ImportSessionCommand {
 #[derive(Debug, Subcommand, PartialEq, Eq)]
 pub enum ImportSessionSource {
     Cmux(ImportCmuxSessionCommand),
+    Chrome(ImportChromeSessionCommand),
 }
 
 #[derive(Debug, Args, PartialEq, Eq)]
 pub struct ImportCmuxSessionCommand {
     #[arg(long)]
     pub surface: String,
+
+    #[arg(long)]
+    pub name: String,
+
+    #[arg(long, required = true)]
+    pub domain: Vec<String>,
+}
+
+#[derive(Debug, Args, PartialEq, Eq)]
+pub struct ImportChromeSessionCommand {
+    #[arg(long)]
+    pub profile: String,
 
     #[arg(long)]
     pub name: String,
@@ -406,6 +419,38 @@ mod tests {
                 command: SessionSubcommand::Import(ImportSessionCommand {
                     source: ImportSessionSource::Cmux(ImportCmuxSessionCommand {
                         surface: "surface:1".to_string(),
+                        name: "demo".to_string(),
+                        domain: vec!["example.com".to_string(), "docs.example.com".to_string()],
+                    })
+                })
+            })
+        );
+    }
+
+    #[test]
+    fn parses_session_import_chrome_with_repeated_domains() {
+        let cli = Cli::try_parse_from([
+            "aget",
+            "session",
+            "import",
+            "chrome",
+            "--profile",
+            "Default",
+            "--name",
+            "demo",
+            "--domain",
+            "example.com",
+            "--domain",
+            "docs.example.com",
+        ])
+        .unwrap();
+
+        assert_eq!(
+            cli.command,
+            Command::Session(SessionCommand {
+                command: SessionSubcommand::Import(ImportSessionCommand {
+                    source: ImportSessionSource::Chrome(ImportChromeSessionCommand {
+                        profile: "Default".to_string(),
                         name: "demo".to_string(),
                         domain: vec!["example.com".to_string(), "docs.example.com".to_string()],
                     })

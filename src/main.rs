@@ -2,8 +2,9 @@ use std::process::ExitCode;
 
 use aget::session::SessionStore;
 use aget::{
-    get_url, import_cmux_session, Cli, CmuxImportOptions, Command, ErrorCode, ErrorResponse,
-    GetOptions, ImportSessionSource, Session, SessionCookie, SessionSubcommand,
+    get_url, import_chrome_session, import_cmux_session, ChromeImportOptions, Cli,
+    CmuxImportOptions, Command, ErrorCode, ErrorResponse, GetOptions, ImportSessionSource, Session,
+    SessionCookie, SessionSubcommand,
 };
 
 fn main() -> ExitCode {
@@ -130,6 +131,36 @@ fn run_session(command: SessionSubcommand, json: bool) -> Result<(), ErrorRespon
                 }
                 Ok(())
             }
+            ImportSessionSource::Chrome(chrome) => {
+                let session = import_chrome_session(ChromeImportOptions {
+                    profile: chrome.profile,
+                    name: chrome.name,
+                    domains: chrome.domain,
+                    tmp_dir: store.home().join("tmp"),
+                })
+                .map_err(error_response)?;
+                store.save(&session).map_err(io_error)?;
+                if json {
+                    println!(
+                        "{}",
+                        serde_json::json!({
+                            "ok": true,
+                            "source": "chrome",
+                            "name": session.name,
+                            "cookie_count": session.cookies.len(),
+                            "origin_count": session.origins.len(),
+                        })
+                    );
+                } else {
+                    println!(
+                        "Imported chrome session {} with {} cookies and {} origins",
+                        session.name,
+                        session.cookies.len(),
+                        session.origins.len()
+                    );
+                }
+                Ok(())
+            }
         },
     }
 }
@@ -143,7 +174,7 @@ struct SessionView<'a> {
     allowed_cookie_domains: &'a [String],
     allowed_storage_origins: &'a [String],
     cookies: Vec<CookieView<'a>>,
-    origins: &'a [aget::SessionOrigin],
+    origins: Vec<OriginView<'a>>,
 }
 
 #[derive(serde::Serialize)]
@@ -154,6 +185,19 @@ struct CookieView<'a> {
     path: &'a str,
     secure: bool,
     http_only: bool,
+}
+
+#[derive(serde::Serialize)]
+struct OriginView<'a> {
+    origin: &'a str,
+    local_storage: Vec<StorageEntryView<'a>>,
+    source_session: &'a Option<String>,
+}
+
+#[derive(serde::Serialize)]
+struct StorageEntryView<'a> {
+    name: &'a str,
+    value: String,
 }
 
 fn session_view(session: &Session, show_secrets: bool) -> SessionView<'_> {
@@ -169,7 +213,11 @@ fn session_view(session: &Session, show_secrets: bool) -> SessionView<'_> {
             .iter()
             .map(|cookie| cookie_view(cookie, show_secrets))
             .collect(),
-        origins: &session.origins,
+        origins: session
+            .origins
+            .iter()
+            .map(|origin| origin_view(origin, show_secrets))
+            .collect(),
     }
 }
 
@@ -185,6 +233,29 @@ fn cookie_view(cookie: &SessionCookie, show_secrets: bool) -> CookieView<'_> {
         path: &cookie.path,
         secure: cookie.secure,
         http_only: cookie.http_only,
+    }
+}
+
+fn origin_view(origin: &aget::SessionOrigin, show_secrets: bool) -> OriginView<'_> {
+    OriginView {
+        origin: &origin.origin,
+        local_storage: origin
+            .local_storage
+            .iter()
+            .map(|entry| storage_entry_view(entry, show_secrets))
+            .collect(),
+        source_session: &origin.source_session,
+    }
+}
+
+fn storage_entry_view(entry: &aget::StorageEntry, show_secrets: bool) -> StorageEntryView<'_> {
+    StorageEntryView {
+        name: &entry.name,
+        value: if show_secrets {
+            entry.value.clone()
+        } else {
+            "<redacted>".to_string()
+        },
     }
 }
 
