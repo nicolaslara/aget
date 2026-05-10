@@ -218,7 +218,7 @@ Acceptance criteria:
 - Record output options and truncation metadata.
 - Add tests for output shape and truncation metadata.
 
-### 📋 Task I7: Add Chrome import through agent-browser
+### ✅ Task I7: Add Chrome import through agent-browser
 
 Acceptance criteria:
 
