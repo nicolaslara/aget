@@ -13,10 +13,11 @@ What works today:
 - `--json`
 - `--out <path>`
 - output shaping with `--format`, CSS selectors, wait conditions, and deterministic character limits
-- `--session <name>` for explicit named-session replay
+- repeated `--session <name>` flags for explicit named-session replay and composition
 - empty-session default
 - local run artifacts
 - session list, inspect, and delete commands
+- session compose for persisting a deterministic composed session from named sources
 - optional cmux cookie import for explicitly allowed domains
 - optional Chrome profile import through `agent-browser` for explicitly allowed domains
 - the real demo script
@@ -42,6 +43,7 @@ cargo run --quiet -- get https://example.com --json
 cargo run --quiet -- get https://example.com --out /tmp/example.md
 cargo run --quiet -- get https://example.com --format text --selector main --max-chars 4000 --json
 cargo run --quiet -- get https://example.com/account --session my-session --json
+cargo run --quiet -- get https://example.com/account --session provider --session app --json
 ```
 
 Session commands:
@@ -50,6 +52,7 @@ Session commands:
 cargo run --quiet -- session list
 cargo run --quiet -- session inspect <session-id>
 cargo run --quiet -- session delete <session-id>
+cargo run --quiet -- session compose <new-name> --session <name> [--session <name>...]
 cargo run --quiet -- session import cmux --surface <surface> --name <name> --domain <domain> [--domain <domain>...]
 cargo run --quiet -- session import chrome --profile <profile> --name <name> --domain <domain> [--domain <domain>...]
 ```
@@ -69,12 +72,12 @@ It exercises a static public page and a JS-rendered page using the real default 
 Concise usage:
 
 ```text
-aget get <url> [--session <name>] [--json] [--out <path>] [--timeout <seconds>]
+aget get <url> [--session <name>...] [--json] [--out <path>] [--timeout <seconds>]
               [--format <markdown|html|text|json>] [--selector <css>]
               [--exclude-selector <css>] [--only-main] [--wait-for <text-or-selector>]
               [--max-chars <n>] [--max-tokens <n>]
               [--extractor-option <key=value>...]
-aget <url> [--session <name>] [--json] [--out <path>] [--timeout <seconds>]
+aget <url> [--session <name>...] [--json] [--out <path>] [--timeout <seconds>]
            [--format <markdown|html|text|json>] [--selector <css>]
            [--exclude-selector <css>] [--only-main] [--wait-for <text-or-selector>]
            [--max-chars <n>] [--max-tokens <n>]
@@ -82,6 +85,7 @@ aget <url> [--session <name>] [--json] [--out <path>] [--timeout <seconds>]
 aget session list
 aget session inspect <session-id>
 aget session delete <session-id>
+aget session compose <new-name> --session <name> [--session <name>...]
 aget session import cmux --surface <surface> --name <name> --domain <domain> [--domain <domain>...]
 aget session import chrome --profile <profile> --name <name> --domain <domain> [--domain <domain>...]
 ```
@@ -97,7 +101,8 @@ Notes:
 - `--only-main` is an accepted v1 tradeoff: it is recorded in metadata for API stability but is not enforced by the v1 Crawl4AI adapter because there is no equivalent backend option.
 - `--max-chars` truncates extracted content in Rust after backend extraction using Unicode scalar values; it never truncates the JSON response envelope.
 - `--max-tokens` is recorded as a requested limit but is not enforced in v1. JSON metadata reports `max_tokens_enforced: false`.
-- `--session` explicitly replays one named local session for the request.
+- Repeated `--session` flags replay named local sessions for the request in the order provided. Cookie conflicts and same-origin localStorage key conflicts are rejected instead of preferring one session; disjoint localStorage keys for the same origin are merged.
+- `aget session compose <new-name> --session <name>...` saves the same deterministic composition as a named local session, preserving cookie and storage-origin source provenance while redacting secret values in errors and inspect output by default.
 - `--timeout` sets the request timeout in seconds.
 - `aget session import cmux` imports cookies from a cmux browser surface for explicitly allowed domains only; imported cookies are stored locally as a sensitive named session.
 - cmux import reads raw cookie values from the selected local cmux surface. Use only disposable or user-authorized surfaces and domains.
