@@ -529,7 +529,7 @@ Confidence: High for the MVP direction. The recommendation is supported by prima
 
 I7 adds `aget session import chrome --profile <profile> --name <name> --domain <domain>...`. The implementation generates a unique temporary agent-browser session name (`aget-import-<pid>-<timestamp>`), runs the equivalent of `agent-browser --profile <profile> --session <temp> open about:blank`, `agent-browser --session <temp> state save <raw-state-path>`, then `agent-browser --session <temp> close`, and never uses broad close/close-all. `AGET_AGENT_BROWSER_COMMAND` exists for fake-command tests and is executed directly with `Command::new`, not through a shell.
 
-The raw agent-browser state is treated as bearer material because it can contain live cookies plus local/session storage. It is written only under `~/.aget/tmp` to a pre-created `0600` temp file, parsed as Playwright-compatible `{cookies, origins}`, filtered by the explicit domain allowlist, and deleted on success and failure. Persisted sessions contain only allowlisted cookies and localStorage origins whose parsed origin host matches the same exact/suffix rules used by cmux import; unfiltered raw state is never saved to `sessions/`. Conflicting duplicate cookies or storage origins are rejected instead of silently choosing one value.
+The raw agent-browser state is treated as bearer material because it can contain live cookies plus local/session storage. It is written only under `~/.aget/tmp` to a pre-created `0600` temp file, parsed as Playwright-compatible `{cookies, origins}`, filtered by the explicit domain allowlist, and deleted on success and failure. Persisted sessions contain only allowlisted cookies and localStorage origins whose parsed origin host matches the same exact/suffix rules used by cmux import; unfiltered raw state is never saved to `sessions/`. Conflicting duplicate cookies or same-origin localStorage keys are rejected instead of silently choosing one value; disjoint localStorage keys for the same origin can be merged during session composition.
 
 Chrome/profile acquisition can fail when Chrome is still running, the profile is locked/in use, the user is not logged in, or no auth state is present for the allowlist. These cases map to stable `requires_user_action`; `aget` does not try to quit Chrome or automate login. Missing `agent-browser` maps to `backend_unavailable`, and malformed storage-state JSON maps to `extraction_failed`.
 
@@ -543,6 +543,16 @@ cargo run -- --json get "https://www.hellointerview.com/learn/behavioral/course/
 ```
 
 If the import returns `requires_user_action`, manually quit Chrome after saving work and rerun the same import command. Do not run any command that closes Chrome on the user's behalf. After a successful manual import, inspect `~/.aget/tmp` and confirm no `agent-browser-raw-state-*.json` files remain; inspect the saved session only with `--show-secrets` if explicitly needed because values are live bearer material.
+
+### D28: I8 multi-session composition keeps sessions explicit and provenance-preserving
+
+I8 adds repeated `aget get <url> --session <name> --session <name>` support and `aget session compose <new-name> --session <name>...`. Request-time composition loads the named local sessions in flag order, builds one temporary Playwright storage-state file, returns the selected session names in JSON/metadata, and marks the run sensitive whenever any session is selected. The empty-session default remains unchanged.
+
+Persisted composition saves a new `SessionSource::Composed { sessions }` session without mutating its sources. Cookie provenance is preserved when already present and filled from the contributing source session otherwise. Storage-origin provenance is preserved for single-source origins; multi-source origins keep merged localStorage entries but omit a single origin-level source because no one source owns the whole origin.
+
+Conflict handling remains strict and redacted. Cookie conflicts report only name/domain/path, same-origin localStorage conflicts report only key/origin, and `session compose` rejects a target that matches any source or already exists because there is no `--force` flag. Disjoint localStorage keys for the same origin are merged deterministically so provider/app sessions can compose without losing separate storage entries.
+
+Post-review hardening added generic session-backed backend failure errors plus artifact redaction for cookie/localStorage values that reached the backend, plain `session inspect` provenance output, target-overwrite rejection, and a local app/provider cookie-flow test. Verification passed `cargo test --test get_cli`, `cargo test --test session_cli`, full `cargo test`, `cargo fmt --check`, and `git diff --check`. LSP diagnostics remain limited by the known local rust-analyzer proc-macro version mismatch; cargo compile/tests are clean.
 
 ## Open Questions
 

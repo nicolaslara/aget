@@ -229,7 +229,7 @@ Acceptance criteria:
 - Return `requires_user_action` if Chrome must be quit or login is needed.
 - Add manual verification steps for an authenticated page.
 
-### 📋 Task I8: Add multi-session composition CLI
+### ✅ Task I8: Add multi-session composition CLI
 
 Acceptance criteria:
 
