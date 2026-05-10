@@ -57,6 +57,10 @@ impl SessionStore {
         serde_json::from_reader(file).map_err(io::Error::other)
     }
 
+    pub fn exists(&self, name: &str) -> io::Result<bool> {
+        Ok(self.session_path(name)?.exists())
+    }
+
     pub fn list(&self) -> io::Result<Vec<String>> {
         let mut names = Vec::new();
         for entry in fs::read_dir(self.sessions_dir())? {

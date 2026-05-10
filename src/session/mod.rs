@@ -8,6 +8,7 @@ pub use chrome::{import_chrome_session, ChromeImportOptions};
 pub use cmux::{import_cmux_session, CmuxImportOptions};
 pub use model::{Session, SessionCookie, SessionOrigin, SessionSource, StorageEntry};
 pub use playwright::{
-    compose_playwright_state, PlaywrightCookie, PlaywrightOrigin, PlaywrightState, TempStateFile,
+    compose_playwright_state, compose_session, PlaywrightCookie, PlaywrightOrigin, PlaywrightState,
+    TempStateFile,
 };
 pub use store::SessionStore;

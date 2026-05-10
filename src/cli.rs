@@ -56,7 +56,7 @@ pub struct GetCommand {
     pub url: String,
 
     #[arg(long)]
-    pub session: Option<String>,
+    pub session: Vec<String>,
 
     #[arg(long)]
     pub out: Option<PathBuf>,
@@ -124,6 +124,15 @@ pub enum SessionSubcommand {
     Inspect(InspectSessionCommand),
     Delete(DeleteSessionCommand),
     Import(ImportSessionCommand),
+    Compose(ComposeSessionCommand),
+}
+
+#[derive(Debug, Args, PartialEq, Eq)]
+pub struct ComposeSessionCommand {
+    pub name: String,
+
+    #[arg(long, required = true)]
+    pub session: Vec<String>,
 }
 
 #[derive(Debug, Args, PartialEq, Eq)]
@@ -228,7 +237,7 @@ mod tests {
             cli.command,
             Command::Get(GetCommand {
                 url: "https://example.com".to_string(),
-                session: None,
+                session: Vec::new(),
                 out: None,
                 format: OutputFormat::Markdown,
                 selector: None,
@@ -250,7 +259,7 @@ mod tests {
             cli.command,
             Command::Get(GetCommand {
                 url: "https://example.com".to_string(),
-                session: None,
+                session: Vec::new(),
                 out: None,
                 format: OutputFormat::Markdown,
                 selector: None,
@@ -298,7 +307,7 @@ mod tests {
             cli.command,
             Command::Get(GetCommand {
                 url: "https://example.com".to_string(),
-                session: None,
+                session: Vec::new(),
                 out: Some(PathBuf::from("page.md")),
                 format: OutputFormat::Markdown,
                 selector: None,
@@ -313,15 +322,23 @@ mod tests {
     }
 
     #[test]
-    fn parses_get_session() {
-        let cli = Cli::try_parse_from(["aget", "get", "https://example.com", "--session", "demo"])
-            .unwrap();
+    fn parses_repeated_get_sessions() {
+        let cli = Cli::try_parse_from([
+            "aget",
+            "get",
+            "https://example.com",
+            "--session",
+            "provider",
+            "--session",
+            "app",
+        ])
+        .unwrap();
 
         assert_eq!(
             cli.command,
             Command::Get(GetCommand {
                 url: "https://example.com".to_string(),
-                session: Some("demo".to_string()),
+                session: vec!["provider".to_string(), "app".to_string()],
                 out: None,
                 format: OutputFormat::Markdown,
                 selector: None,
@@ -363,7 +380,7 @@ mod tests {
             cli.command,
             Command::Get(GetCommand {
                 url: "https://example.com".to_string(),
-                session: None,
+                session: Vec::new(),
                 out: None,
                 format: OutputFormat::Json,
                 selector: Some("main".to_string()),
@@ -422,6 +439,31 @@ mod tests {
                         name: "demo".to_string(),
                         domain: vec!["example.com".to_string(), "docs.example.com".to_string()],
                     })
+                })
+            })
+        );
+    }
+
+    #[test]
+    fn parses_session_compose_with_repeated_sessions() {
+        let cli = Cli::try_parse_from([
+            "aget",
+            "session",
+            "compose",
+            "combined",
+            "--session",
+            "provider",
+            "--session",
+            "app",
+        ])
+        .unwrap();
+
+        assert_eq!(
+            cli.command,
+            Command::Session(SessionCommand {
+                command: SessionSubcommand::Compose(ComposeSessionCommand {
+                    name: "combined".to_string(),
+                    session: vec!["provider".to_string(), "app".to_string()],
                 })
             })
         );

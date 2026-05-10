@@ -11,7 +11,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::cli::{ExtractorOption, OutputFormat};
 use crate::error::{AgetError, ErrorCode};
-use crate::session::{compose_playwright_state, SessionStore, TempStateFile};
+use crate::session::{compose_playwright_state, PlaywrightState, SessionStore, TempStateFile};
 
 const DEFAULT_TIMEOUT: Duration = Duration::from_secs(60);
 const EXTRACTOR: &str = "crawl4ai";
@@ -19,7 +19,7 @@ const EXTRACTOR: &str = "crawl4ai";
 #[derive(Debug, Clone)]
 pub struct GetOptions {
     pub url: String,
-    pub session: Option<String>,
+    pub sessions: Vec<String>,
     pub out: Option<PathBuf>,
     pub timeout: Option<Duration>,
     pub format: OutputFormat,
@@ -97,7 +97,7 @@ struct BackendResult {
 pub fn get_url(options: GetOptions) -> Result<GetSuccess, AgetError> {
     let started = Instant::now();
     let store = SessionStore::from_env().map_err(io_aget_error)?;
-    let sessions = load_selected_sessions(&store, options.session.as_deref())?;
+    let sessions = load_selected_sessions(&store, &options.sessions)?;
     let selected_session_names = sessions
         .iter()
         .map(|session| session.name.clone())
@@ -105,6 +105,7 @@ pub fn get_url(options: GetOptions) -> Result<GetSuccess, AgetError> {
     let sensitive = !sessions.is_empty();
     let output_options = output_options(&options);
     let state = compose_playwright_state(&sessions)?;
+    let sensitive_values = sensitive_values(&state);
     let temp_state =
         TempStateFile::write(&store.home().join("tmp"), &state).map_err(io_aget_error)?;
     let run_dir = store.home().join("runs").join(run_id());
@@ -129,6 +130,10 @@ pub fn get_url(options: GetOptions) -> Result<GetSuccess, AgetError> {
     ) {
         Ok(backend) => backend,
         Err(error) => {
+            if sensitive {
+                sanitize_backend_artifacts(&metadata_path, &sensitive_values);
+            }
+            let error = sanitize_backend_error(error, sensitive);
             let _ = write_error_metadata(
                 &metadata_path,
                 &options.url,
@@ -144,13 +149,20 @@ pub fn get_url(options: GetOptions) -> Result<GetSuccess, AgetError> {
         }
     };
 
+    if sensitive {
+        sanitize_backend_artifacts(&metadata_path, &sensitive_values);
+    }
+
     if !backend.ok {
-        let error = AgetError::Stable {
-            code: ErrorCode::ExtractionFailed,
-            message: backend
-                .error
-                .unwrap_or_else(|| "Crawl4AI extraction failed".to_string()),
-        };
+        let error = sanitize_backend_error(
+            AgetError::Stable {
+                code: ErrorCode::ExtractionFailed,
+                message: backend
+                    .error
+                    .unwrap_or_else(|| "Crawl4AI extraction failed".to_string()),
+            },
+            sensitive,
+        );
         let _ = write_error_metadata(
             &metadata_path,
             &options.url,
@@ -205,15 +217,12 @@ pub fn get_url(options: GetOptions) -> Result<GetSuccess, AgetError> {
 
 fn load_selected_sessions(
     store: &SessionStore,
-    session_name: Option<&str>,
+    session_names: &[String],
 ) -> Result<Vec<crate::session::Session>, AgetError> {
-    match session_name {
-        Some(name) => store
-            .load(name)
-            .map(|session| vec![session])
-            .map_err(io_aget_error),
-        None => Ok(Vec::new()),
-    }
+    session_names
+        .iter()
+        .map(|name| store.load(name).map_err(io_aget_error))
+        .collect()
 }
 
 struct LimitApplication {
@@ -262,6 +271,57 @@ fn output_options(options: &GetOptions) -> OutputOptions {
         wait_for: options.wait_for.clone(),
         extractor_options,
     }
+}
+
+fn sensitive_values(state: &PlaywrightState) -> Vec<String> {
+    state
+        .cookies
+        .iter()
+        .map(|cookie| cookie.value.clone())
+        .chain(
+            state
+                .origins
+                .iter()
+                .flat_map(|origin| origin.local_storage.iter().map(|entry| entry.value.clone())),
+        )
+        .filter(|value| !value.is_empty())
+        .collect()
+}
+
+fn sanitize_backend_error(error: AgetError, sensitive: bool) -> AgetError {
+    if !sensitive {
+        return error;
+    }
+
+    match error {
+        AgetError::Stable { code, .. } => AgetError::Stable {
+            code,
+            message: "Crawl4AI extraction failed for session-backed request".to_string(),
+        },
+    }
+}
+
+fn sanitize_backend_artifacts(metadata_path: &Path, sensitive_values: &[String]) {
+    for path in [
+        metadata_path.with_file_name("backend-stdout.json"),
+        metadata_path.with_file_name("backend-stderr.txt"),
+    ] {
+        let Ok(text) = read_output_file(&path) else {
+            continue;
+        };
+        let redacted = redact_values(&text, sensitive_values);
+        if redacted != text {
+            let _ = write_private_file(&path, redacted.as_bytes());
+        }
+    }
+}
+
+fn redact_values(text: &str, sensitive_values: &[String]) -> String {
+    let mut redacted = text.to_string();
+    for value in sensitive_values {
+        redacted = redacted.replace(value, "<redacted>");
+    }
+    redacted
 }
 
 fn run_backend(

@@ -2,7 +2,7 @@ use std::process::ExitCode;
 
 use aget::session::SessionStore;
 use aget::{
-    get_url, import_chrome_session, import_cmux_session, ChromeImportOptions, Cli,
+    compose_session, get_url, import_chrome_session, import_cmux_session, ChromeImportOptions, Cli,
     CmuxImportOptions, Command, ErrorCode, ErrorResponse, GetOptions, ImportSessionSource, Session,
     SessionCookie, SessionSubcommand,
 };
@@ -28,7 +28,7 @@ fn run(cli: Cli) -> Result<(), ErrorResponse> {
         Command::Get(get) => {
             let success = get_url(GetOptions {
                 url: get.url,
-                session: get.session,
+                sessions: get.session,
                 out: get.out,
                 timeout: cli.global.timeout,
                 format: get.format,
@@ -87,7 +87,24 @@ fn run_session(command: SessionSubcommand, json: bool) -> Result<(), ErrorRespon
                 );
                 println!("Cookies: {}", session.cookies.len());
                 for cookie in view.cookies {
-                    println!("- {} {}={}", cookie.domain, cookie.name, cookie.value);
+                    println!(
+                        "- {} {}={}{}",
+                        cookie.domain,
+                        cookie.name,
+                        cookie.value,
+                        source_suffix(cookie.source_session)
+                    );
+                }
+                println!("Origins: {}", session.origins.len());
+                for origin in view.origins {
+                    println!(
+                        "- {}{}",
+                        origin.origin,
+                        source_suffix(origin.source_session)
+                    );
+                    for entry in origin.local_storage {
+                        println!("  - localStorage {}={}", entry.name, entry.value);
+                    }
                 }
             }
             Ok(())
@@ -162,6 +179,38 @@ fn run_session(command: SessionSubcommand, json: bool) -> Result<(), ErrorRespon
                 Ok(())
             }
         },
+        SessionSubcommand::Compose(compose) => {
+            validate_compose_target(&store, &compose.name, &compose.session)?;
+            let source_sessions = compose
+                .session
+                .iter()
+                .map(|name| store.load(name).map_err(io_error))
+                .collect::<Result<Vec<_>, _>>()?;
+            let session =
+                compose_session(&compose.name, &source_sessions).map_err(error_response)?;
+            store.save(&session).map_err(io_error)?;
+            if json {
+                println!(
+                    "{}",
+                    serde_json::json!({
+                        "ok": true,
+                        "name": session.name,
+                        "source_sessions": compose.session,
+                        "cookie_count": session.cookies.len(),
+                        "origin_count": session.origins.len(),
+                    })
+                );
+            } else {
+                println!(
+                    "Composed session {} from {} source sessions with {} cookies and {} origins",
+                    session.name,
+                    compose.session.len(),
+                    session.cookies.len(),
+                    session.origins.len()
+                );
+            }
+            Ok(())
+        }
     }
 }
 
@@ -185,6 +234,7 @@ struct CookieView<'a> {
     path: &'a str,
     secure: bool,
     http_only: bool,
+    source_session: &'a Option<String>,
 }
 
 #[derive(serde::Serialize)]
@@ -221,6 +271,26 @@ fn session_view(session: &Session, show_secrets: bool) -> SessionView<'_> {
     }
 }
 
+fn validate_compose_target(
+    store: &SessionStore,
+    target: &str,
+    sources: &[String],
+) -> Result<(), ErrorResponse> {
+    if sources.iter().any(|source| source == target) {
+        return Err(ErrorResponse::new(
+            ErrorCode::UsageError,
+            format!("compose target '{target}' must not match a source session"),
+        ));
+    }
+    if store.exists(target).map_err(io_error)? {
+        return Err(ErrorResponse::new(
+            ErrorCode::UsageError,
+            format!("session '{target}' already exists"),
+        ));
+    }
+    Ok(())
+}
+
 fn cookie_view(cookie: &SessionCookie, show_secrets: bool) -> CookieView<'_> {
     CookieView {
         name: &cookie.name,
@@ -233,6 +303,7 @@ fn cookie_view(cookie: &SessionCookie, show_secrets: bool) -> CookieView<'_> {
         path: &cookie.path,
         secure: cookie.secure,
         http_only: cookie.http_only,
+        source_session: &cookie.source_session,
     }
 }
 
@@ -256,6 +327,13 @@ fn storage_entry_view(entry: &aget::StorageEntry, show_secrets: bool) -> Storage
         } else {
             "<redacted>".to_string()
         },
+    }
+}
+
+fn source_suffix(source_session: &Option<String>) -> String {
+    match source_session {
+        Some(source) => format!(" source={source}"),
+        None => String::new(),
     }
 }
 
