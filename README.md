@@ -18,6 +18,7 @@ What works today:
 - local run artifacts
 - session list, inspect, and delete commands
 - optional cmux cookie import for explicitly allowed domains
+- optional Chrome profile import through `agent-browser` for explicitly allowed domains
 - the real demo script
 
 See [`project.md`](./project.md) for the original product goal, [`AGENTS.md`](./AGENTS.md) for agent instructions, [`WORKING.md`](./WORKING.md) for the living workflow, and [`workpads/`](./workpads/) for active project notes.
@@ -28,6 +29,7 @@ See [`project.md`](./project.md) for the original product goal, [`AGENTS.md`](./
 - `uv`
 - the default Crawl4AI/Playwright browser setup for the built-in backend
 - optional: `cmux` for `aget session import cmux`
+- optional: `agent-browser` for `aget session import chrome`
 
 ## Quick Start
 
@@ -49,6 +51,7 @@ cargo run --quiet -- session list
 cargo run --quiet -- session inspect <session-id>
 cargo run --quiet -- session delete <session-id>
 cargo run --quiet -- session import cmux --surface <surface> --name <name> --domain <domain> [--domain <domain>...]
+cargo run --quiet -- session import chrome --profile <profile> --name <name> --domain <domain> [--domain <domain>...]
 ```
 
 ## Real CLI Demo
@@ -80,6 +83,7 @@ aget session list
 aget session inspect <session-id>
 aget session delete <session-id>
 aget session import cmux --surface <surface> --name <name> --domain <domain> [--domain <domain>...]
+aget session import chrome --profile <profile> --name <name> --domain <domain> [--domain <domain>...]
 ```
 
 Notes:
@@ -97,6 +101,7 @@ Notes:
 - `--timeout` sets the request timeout in seconds.
 - `aget session import cmux` imports cookies from a cmux browser surface for explicitly allowed domains only; imported cookies are stored locally as a sensitive named session.
 - cmux import reads raw cookie values from the selected local cmux surface. Use only disposable or user-authorized surfaces and domains.
+- `aget session import chrome` uses `agent-browser` to snapshot a Chrome profile into a temporary local state file, filters cookies and storage by explicit `--domain` allowlists, stores only the scoped result, then deletes the raw temp state. Chrome may need to be quit manually if the profile is locked.
 
 ## JSON Output
 
@@ -146,6 +151,7 @@ Example:
 - Auth/session replay is opt-in per request with `--session <name>`.
 - Run artifacts live under `~/.aget/runs`.
 - Temporary browser/session state is local and should be cleaned up when no longer needed.
+- Imported Chrome sessions and localStorage values are credential-equivalent bearer material. `session inspect` redacts values by default; use `--show-secrets` only when explicitly needed.
 - Only process content you are authorized to access.
 - Do not use `aget` to bypass access controls, paywalls, or site policies.
 
