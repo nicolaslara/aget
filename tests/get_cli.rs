@@ -6,7 +6,7 @@ use std::sync::mpsc::{self, Receiver};
 use std::thread::{self, JoinHandle};
 use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 
-use aget::{Session, SessionCookie, SessionStore};
+use aget::{Session, SessionCookie, SessionOrigin, SessionStore, StorageEntry};
 use assert_cmd::Command;
 
 #[test]
@@ -182,6 +182,165 @@ print(json.dumps({'ok': True, 'final_url': args.url, 'content': content, 'warnin
         serde_json::from_str(&fs::read_to_string(metadata_path).unwrap()).unwrap();
     assert_eq!(metadata["sessions"], serde_json::json!(["local"]));
     assert_eq!(metadata["sensitive"], true);
+}
+
+#[test]
+fn get_repeated_sessions_compose_request_state_in_order_for_command_and_alias() {
+    let temp = tempfile::tempdir().unwrap();
+    let command_home = temp.path().join("command-home");
+    save_cookie_session(
+        &command_home,
+        "provider",
+        "127.0.0.1",
+        "oauth",
+        "provider-secret",
+    );
+    save_cookie_session(&command_home, "app", "127.0.0.1", "appsid", "app-secret");
+    let fake_backend = write_fake_backend(
+        temp.path(),
+        r#"#!/usr/bin/env python3
+import argparse, json, pathlib
+parser = argparse.ArgumentParser()
+parser.add_argument('--url', required=True)
+parser.add_argument('--state', required=True)
+parser.add_argument('--output', required=True)
+parser.add_argument('--metadata', required=True)
+args, _unknown = parser.parse_known_args()
+state = json.loads(pathlib.Path(args.state).read_text(encoding='utf-8'))
+cookies = sorted((cookie['name'], cookie['value']) for cookie in state['cookies'])
+assert cookies == [('appsid', 'app-secret'), ('oauth', 'provider-secret')]
+assert state['origins'] == []
+content = '# Multi Session Fetch'
+pathlib.Path(args.output).write_text(content, encoding='utf-8')
+print(json.dumps({'ok': True, 'final_url': args.url, 'content': content, 'warnings': []}))
+"#,
+    );
+
+    let mut command = Command::cargo_bin("aget").unwrap();
+    let command_output = command
+        .env("AGET_HOME", &command_home)
+        .env("AGET_CRAWL4AI_COMMAND", python_command(&fake_backend))
+        .args([
+            "--json",
+            "get",
+            "http://127.0.0.1/multi",
+            "--session",
+            "provider",
+            "--session",
+            "app",
+        ])
+        .assert()
+        .success()
+        .get_output()
+        .stdout
+        .clone();
+    let command_json: serde_json::Value = serde_json::from_slice(&command_output).unwrap();
+    assert_eq!(
+        command_json["sessions"],
+        serde_json::json!(["provider", "app"])
+    );
+    assert_eq!(command_json["sensitive"], true);
+
+    let alias_home = temp.path().join("alias-home");
+    save_cookie_session(
+        &alias_home,
+        "provider",
+        "127.0.0.1",
+        "oauth",
+        "provider-secret",
+    );
+    save_cookie_session(&alias_home, "app", "127.0.0.1", "appsid", "app-secret");
+    let mut alias = Command::cargo_bin("aget").unwrap();
+    let alias_output = alias
+        .env("AGET_HOME", &alias_home)
+        .env("AGET_CRAWL4AI_COMMAND", python_command(&fake_backend))
+        .args([
+            "--json",
+            "http://127.0.0.1/multi-alias",
+            "--session",
+            "provider",
+            "--session",
+            "app",
+        ])
+        .assert()
+        .success()
+        .get_output()
+        .stdout
+        .clone();
+    let alias_json: serde_json::Value = serde_json::from_slice(&alias_output).unwrap();
+    assert_eq!(
+        alias_json["sessions"],
+        serde_json::json!(["provider", "app"])
+    );
+}
+
+#[test]
+fn get_repeated_sessions_satisfy_local_app_provider_cookie_flow() {
+    let temp = tempfile::tempdir().unwrap();
+    let aget_home = temp.path().join("aget-home");
+    save_cookie_session(
+        &aget_home,
+        "provider",
+        "127.0.0.1",
+        "oauth",
+        "provider-secret",
+    );
+    save_cookie_session(&aget_home, "app", "127.0.0.1", "appsid", "app-secret");
+    let (local_url, server, cookies) = both_cookie_required_server("/app-provider");
+    let fake_backend = write_fake_backend(
+        temp.path(),
+        r#"#!/usr/bin/env python3
+import argparse, json, pathlib, sys, urllib.error, urllib.request
+parser = argparse.ArgumentParser()
+parser.add_argument('--url', required=True)
+parser.add_argument('--state', required=True)
+parser.add_argument('--output', required=True)
+parser.add_argument('--metadata', required=True)
+args, _unknown = parser.parse_known_args()
+state = json.loads(pathlib.Path(args.state).read_text(encoding='utf-8'))
+cookie_header = '; '.join(f"{cookie['name']}={cookie['value']}" for cookie in state['cookies'])
+request = urllib.request.Request(args.url, headers={'Cookie': cookie_header})
+try:
+    body = urllib.request.urlopen(request, timeout=5).read().decode('utf-8')
+except urllib.error.HTTPError as error:
+    print('local app/provider request failed with ' + str(error.code), file=sys.stderr)
+    raise SystemExit(2)
+content = '# App Provider OK\n\n' + body
+pathlib.Path(args.output).write_text(content, encoding='utf-8')
+print(json.dumps({'ok': True, 'final_url': args.url, 'content': content, 'warnings': []}))
+"#,
+    );
+
+    let mut cmd = Command::cargo_bin("aget").unwrap();
+    let output = cmd
+        .env("AGET_HOME", &aget_home)
+        .env("AGET_CRAWL4AI_COMMAND", python_command(&fake_backend))
+        .args([
+            "--json",
+            "get",
+            &local_url,
+            "--session",
+            "provider",
+            "--session",
+            "app",
+        ])
+        .assert()
+        .success()
+        .get_output()
+        .stdout
+        .clone();
+    server.join().unwrap();
+
+    let json: serde_json::Value = serde_json::from_slice(&output).unwrap();
+    assert_eq!(json["ok"], true);
+    assert_eq!(
+        json["content"],
+        "# App Provider OK\n\nboth cookies accepted"
+    );
+    assert!(cookies
+        .try_iter()
+        .any(|cookie| cookie.contains("oauth=provider-secret")
+            && cookie.contains("appsid=app-secret")));
 }
 
 #[test]
@@ -362,6 +521,88 @@ print(json.dumps({'ok': True, 'final_url': args.url, 'content': content, 'warnin
     let backend_stdout_path = metadata_path.with_file_name("backend-stdout.json");
     let backend_stdout = fs::read_to_string(backend_stdout_path).unwrap();
     assert!(!backend_stdout.contains("SECRET-UNTRUNCATED-CONTENT"));
+}
+
+#[test]
+fn get_session_backend_failure_redacts_state_secrets_from_errors_metadata_and_artifacts() {
+    let temp = tempfile::tempdir().unwrap();
+    let aget_home = temp.path().join("aget-home");
+    save_cookie_and_storage_session(
+        &aget_home,
+        "local",
+        "127.0.0.1",
+        "sid",
+        "cookie-secret-value",
+        "https://127.0.0.1",
+        "token",
+        "storage-secret-value",
+    );
+    let fake_backend = write_fake_backend(
+        temp.path(),
+        r#"#!/usr/bin/env python3
+import argparse, json, pathlib, sys
+parser = argparse.ArgumentParser()
+parser.add_argument('--url', required=True)
+parser.add_argument('--state', required=True)
+parser.add_argument('--output', required=True)
+parser.add_argument('--metadata', required=True)
+args, _unknown = parser.parse_known_args()
+state = json.loads(pathlib.Path(args.state).read_text(encoding='utf-8'))
+cookie_secret = state['cookies'][0]['value']
+storage_secret = state['origins'][0]['localStorage'][0]['value']
+print('stderr leaked ' + cookie_secret + ' and ' + storage_secret, file=sys.stderr)
+print(json.dumps({'ok': False, 'error': 'backend returned ' + cookie_secret + ' and ' + storage_secret}))
+"#,
+    );
+
+    let mut cmd = Command::cargo_bin("aget").unwrap();
+    let output = cmd
+        .env("AGET_HOME", &aget_home)
+        .env("AGET_CRAWL4AI_COMMAND", python_command(&fake_backend))
+        .args([
+            "--json",
+            "get",
+            "http://127.0.0.1/sensitive-fail",
+            "--session",
+            "local",
+        ])
+        .assert()
+        .failure()
+        .get_output()
+        .stderr
+        .clone();
+
+    let stderr = String::from_utf8_lossy(&output);
+    assert!(!stderr.contains("cookie-secret-value"));
+    assert!(!stderr.contains("storage-secret-value"));
+    let json: serde_json::Value = serde_json::from_slice(&output).unwrap();
+    assert_eq!(json["error"]["code"], "extraction_failed");
+    assert_eq!(
+        json["error"]["message"],
+        "Crawl4AI extraction failed for session-backed request"
+    );
+
+    let metadata_files = metadata_files(&aget_home);
+    assert_eq!(metadata_files.len(), 1);
+    let metadata_text = fs::read_to_string(&metadata_files[0]).unwrap();
+    assert!(!metadata_text.contains("cookie-secret-value"));
+    assert!(!metadata_text.contains("storage-secret-value"));
+    let metadata: serde_json::Value = serde_json::from_str(&metadata_text).unwrap();
+    assert_eq!(
+        metadata["error"]["message"],
+        "Crawl4AI extraction failed for session-backed request"
+    );
+
+    let backend_stdout =
+        fs::read_to_string(metadata_files[0].with_file_name("backend-stdout.json")).unwrap();
+    let backend_stderr =
+        fs::read_to_string(metadata_files[0].with_file_name("backend-stderr.txt")).unwrap();
+    assert!(!backend_stdout.contains("cookie-secret-value"));
+    assert!(!backend_stdout.contains("storage-secret-value"));
+    assert!(!backend_stderr.contains("cookie-secret-value"));
+    assert!(!backend_stderr.contains("storage-secret-value"));
+    assert!(backend_stdout.contains("<redacted>"));
+    assert!(backend_stderr.contains("<redacted>"));
 }
 
 #[test]
@@ -962,6 +1203,43 @@ fn cookie_echo_server(path: &str) -> (String, JoinHandle<()>, Receiver<String>) 
     (url, handle, cookie_receiver)
 }
 
+fn both_cookie_required_server(path: &str) -> (String, JoinHandle<()>, Receiver<String>) {
+    let listener = TcpListener::bind("127.0.0.1:0").unwrap();
+    let addr = listener.local_addr().unwrap();
+    let path = path.to_string();
+    let url = format!("http://{addr}{path}");
+    let (cookie_sender, cookie_receiver) = mpsc::channel();
+
+    let handle = thread::spawn(move || {
+        let (mut stream, _) = listener.accept().unwrap();
+        let mut buffer = [0; 4096];
+        let bytes_read = stream.read(&mut buffer).unwrap_or_default();
+        let request = String::from_utf8_lossy(&buffer[..bytes_read]);
+        assert!(request.starts_with(&format!("GET {path} HTTP/1.1")));
+        let cookie = request
+            .lines()
+            .find_map(|line| line.strip_prefix("Cookie: "))
+            .unwrap_or("none")
+            .to_string();
+        let _ = cookie_sender.send(cookie.clone());
+        let accepted =
+            cookie.contains("oauth=provider-secret") && cookie.contains("appsid=app-secret");
+        let (status, body) = if accepted {
+            ("200 OK", "both cookies accepted")
+        } else {
+            ("403 Forbidden", "missing required cookies")
+        };
+        let response = format!(
+            "HTTP/1.1 {status}\r\nContent-Type: text/plain\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{}",
+            body.len(),
+            body
+        );
+        stream.write_all(response.as_bytes()).unwrap();
+    });
+
+    (url, handle, cookie_receiver)
+}
+
 fn write_fake_backend(dir: &Path, content: &str) -> PathBuf {
     let nanos = SystemTime::now()
         .duration_since(UNIX_EPOCH)
@@ -1017,6 +1295,43 @@ fn save_cookie_session_with_sensitivity(
         http_only: true,
         secure: false,
         same_site: Some("Lax".to_string()),
+        source_session: Some(name.to_string()),
+    });
+    store.save(&session).unwrap();
+}
+
+#[allow(clippy::too_many_arguments)]
+fn save_cookie_and_storage_session(
+    home: &Path,
+    name: &str,
+    domain: &str,
+    cookie_name: &str,
+    cookie_value: &str,
+    origin: &str,
+    storage_name: &str,
+    storage_value: &str,
+) {
+    let store = SessionStore::new(home).unwrap();
+    let mut session = Session::new(name);
+    session.allowed_cookie_domains.push(domain.to_string());
+    session.allowed_storage_origins.push(origin.to_string());
+    session.cookies.push(SessionCookie {
+        name: cookie_name.to_string(),
+        value: cookie_value.to_string(),
+        domain: domain.to_string(),
+        path: "/".to_string(),
+        expires: None,
+        http_only: true,
+        secure: false,
+        same_site: Some("Lax".to_string()),
+        source_session: Some(name.to_string()),
+    });
+    session.origins.push(SessionOrigin {
+        origin: origin.to_string(),
+        local_storage: vec![StorageEntry {
+            name: storage_name.to_string(),
+            value: storage_value.to_string(),
+        }],
         source_session: Some(name.to_string()),
     });
     store.save(&session).unwrap();
