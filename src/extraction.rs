@@ -186,6 +186,21 @@ pub fn get_url(options: GetOptions) -> Result<GetSuccess, AgetError> {
             ),
         })?,
     };
+    if let Some(error) = login_required_error(&options.url, &content, !sessions.is_empty()) {
+        let _ = write_private_file(&markdown_path, b"");
+        let _ = write_error_metadata(
+            &metadata_path,
+            &options.url,
+            &markdown_path,
+            &selected_session_names,
+            sensitive,
+            &output_options,
+            &options,
+            &error,
+            started,
+        );
+        return Err(error);
+    }
     let limits = apply_limits(content, options.max_chars, options.max_tokens);
     let content = limits.content;
     write_private_file(&markdown_path, content.as_bytes()).map_err(io_aget_error)?;
@@ -271,6 +286,35 @@ fn output_options(options: &GetOptions) -> OutputOptions {
         wait_for: options.wait_for.clone(),
         extractor_options,
     }
+}
+
+fn login_required_error(url: &str, content: &str, used_session: bool) -> Option<AgetError> {
+    if !is_hellointerview_url(url) || !looks_like_hellointerview_paywall(content) {
+        return None;
+    }
+    let message = if used_session {
+        "HelloInterview login is required or the selected session no longer has access"
+    } else {
+        "HelloInterview login is required; run `aget session login start hellointerview --url <url>` and finish the login flow before retrying with `--session hellointerview`"
+    };
+    Some(AgetError::Stable {
+        code: ErrorCode::RequiresUserAction,
+        message: message.to_string(),
+    })
+}
+
+fn is_hellointerview_url(url: &str) -> bool {
+    url.contains("//www.hellointerview.com/") || url.contains("//hellointerview.com/")
+}
+
+fn looks_like_hellointerview_paywall(content: &str) -> bool {
+    [
+        "Sign in / Sign up",
+        "Premium users can view this video once signed in",
+        "Purchase Premium to Keep Reading",
+    ]
+    .iter()
+    .any(|marker| content.contains(marker))
 }
 
 fn sensitive_values(state: &PlaywrightState) -> Vec<String> {

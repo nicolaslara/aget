@@ -606,6 +606,57 @@ print(json.dumps({'ok': False, 'error': 'backend returned ' + cookie_secret + ' 
 }
 
 #[test]
+fn get_hellointerview_paywall_returns_requires_user_action() {
+    let temp = tempfile::tempdir().unwrap();
+    let aget_home = temp.path().join("aget-home");
+    let fake_backend = write_fake_backend(
+        temp.path(),
+        r#"#!/usr/bin/env python3
+import argparse, json, pathlib
+parser = argparse.ArgumentParser()
+parser.add_argument('--url', required=True)
+parser.add_argument('--state', required=True)
+parser.add_argument('--output', required=True)
+parser.add_argument('--metadata', required=True)
+args, _unknown = parser.parse_known_args()
+content = '# Select Choosing Responses Strategically\n\nPremium users can view this video once signed in\n\nPurchase Premium to Keep Reading'
+pathlib.Path(args.output).write_text(content, encoding='utf-8')
+print(json.dumps({'ok': True, 'final_url': args.url, 'content': content, 'warnings': []}))
+"#,
+    );
+
+    let mut cmd = Command::cargo_bin("aget").unwrap();
+    let output = cmd
+        .env("AGET_HOME", &aget_home)
+        .env("AGET_CRAWL4AI_COMMAND", python_command(&fake_backend))
+        .args([
+            "--json",
+            "get",
+            "https://www.hellointerview.com/learn/behavioral/course/select-choosing-responses-strategically",
+            "--format",
+            "markdown",
+        ])
+        .assert()
+        .failure()
+        .get_output()
+        .stderr
+        .clone();
+
+    let json: serde_json::Value = serde_json::from_slice(&output).unwrap();
+    assert_eq!(json["ok"], false);
+    assert_eq!(json["error"]["code"], "requires_user_action");
+    assert!(json["error"]["message"]
+        .as_str()
+        .unwrap()
+        .contains("aget session login start hellointerview"));
+    let metadata_files = metadata_files(&aget_home);
+    assert_eq!(metadata_files.len(), 1);
+    let metadata: serde_json::Value =
+        serde_json::from_str(&fs::read_to_string(&metadata_files[0]).unwrap()).unwrap();
+    assert_eq!(metadata["error"]["code"], "requires_user_action");
+}
+
+#[test]
 fn get_real_helper_rejects_unsupported_extractor_option_before_crawl4ai_import() {
     let temp = tempfile::tempdir().unwrap();
     let aget_home = temp.path().join("aget-home");
