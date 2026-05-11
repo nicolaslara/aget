@@ -96,7 +96,7 @@ Crawl4AI still appears viable as the default local markdown extractor. For authe
 
 ### D14: Existing Chrome login plus agent-browser profile snapshot successfully extracts authenticated content
 
-The successful HelloInterview authenticated benchmark used regular Google Chrome for login, not an automation-controlled browser. After the user logged in manually and quit Chrome, `agent-browser --profile Default --session hi-auth-after-manual-chrome-login open <url>` snapshotted Chrome's authenticated `Default` profile and extracted local text/HTML. The result no longer contained sign-in or paywall CTAs and included video metadata/content plus the full premium article body.
+The successful HelloInterview authenticated benchmark used regular Google Chrome for login, not an automation-controlled browser. After the user logged in manually and quit Chrome, `agent-browser --profile Default --session hi-auth-after-manual-chrome-login open <url>` snapshotted Chrome's authenticated `Default` profile and extracted local text/HTML. The result no longer contained sign-in or paywall CTAs and included video metadata/content plus the full premium article body. HelloInterview is the representative verification site here; the intended target class is any user-authorized gated page, including sites like FT and NYT.
 
 This is the best observed auth pattern so far: keep OAuth/login in a normal trusted browser, then use `agent-browser` to snapshot that browser profile for local extraction. It avoids putting credentials in agent context and avoids Google OAuth rejecting automated browsers. The tradeoff is that the user may need to quit Chrome first so profile files are not locked, and the output is text/HTML rather than markdown unless a conversion step is added.
 
@@ -553,6 +553,30 @@ Persisted composition saves a new `SessionSource::Composed { sessions }` session
 Conflict handling remains strict and redacted. Cookie conflicts report only name/domain/path, same-origin localStorage conflicts report only key/origin, and `session compose` rejects a target that matches any source or already exists because there is no `--force` flag. Disjoint localStorage keys for the same origin are merged deterministically so provider/app sessions can compose without losing separate storage entries.
 
 Post-review hardening added generic session-backed backend failure errors plus artifact redaction for cookie/localStorage values that reached the backend, plain `session inspect` provenance output, target-overwrite rejection, and a local app/provider cookie-flow test. Verification passed `cargo test --test get_cli`, `cargo test --test session_cli`, full `cargo test`, `cargo fmt --check`, and `git diff --check`. LSP diagnostics remain limited by the known local rust-analyzer proc-macro version mismatch; cargo compile/tests are clean.
+
+### D29: Response format and page content format are separate concepts
+
+I8a keeps the current `--json` flag as the agent control-plane response envelope and `--format` as the fetched page content format. This means `aget --json get <url> --format markdown` should be read as: return structured status/error/artifact/session metadata to the caller, with markdown as the extracted page content. Human-facing `aget get <url>` still prints markdown directly by default.
+
+The naming is still not ideal because `--format json` means JSON page content while `--json` means JSON response envelope. The current decision is to document this distinction and avoid a breaking rename before the login/bootstrap work. OpenCode integration should treat the structured response envelope as the behavior source of truth; a later API cleanup can add clearer aliases such as `--response json` or `--content-format markdown` after the end-to-end auth flow is proven.
+
+### D30: Agent-driven login bootstrap uses an explicit user-action loop
+
+I8b starts with a narrow HelloInterview login bootstrap instead of a generic site-profile system. `aget session login start hellointerview --url <target>` opens a visible, `aget`-owned `agent-browser` profile/session at the target URL. The user completes HelloInterview/Google OAuth manually in that browser. `aget session login finish hellointerview` then exports browser state, filters it to `hellointerview.com` and `www.hellointerview.com`, saves the scoped result as the normal local `hellointerview` session, and removes the raw temp state. `cancel` closes only the pending `aget` login session.
+
+The flow deliberately does not script, collect, or store Google credentials, and it does not persist Google/provider cookies by default. If the final relying-party session is insufficient without provider cookies, that should be treated as a product finding requiring explicit provider-session composition rather than silent broad state persistence. Unauthenticated HelloInterview paywall markers now map to `requires_user_action` so agents can switch from fetch to login bootstrap before retrying with `--session hellointerview`.
+
+### D31: I8b is blocked on manual real-site verification
+
+Automated/local I8b validation passed after blocker fixes. Review found and fixes addressed HTTPS-only login URLs, duplicate pending starts, finish close failures, and pending cleanup ordering. Remaining blocker is the manual authorized HelloInterview e2e (`real_hellointerview_login_flow_fetches_paywalled_markdown`), which still needs local agent-browser/Crawl4AI setup plus explicit user go-ahead/login.
+
+### D32: Manual agent-flow verification improved bootstrap handling but I8b remains blocked
+
+This was the actual CLI flow an agent would use, not the ignored Rust test. `agent-browser` was not on PATH, so the run used a temporary wrapper at `/var/folders/3y/smwkyhkn7gdfw7rz8cnmd40r0000gn/T/opencode/aget-agent-browser-npx` around `npx -y agent-browser`; `npx -y agent-browser --version` returned `0.27.0`. Unauthenticated `aget --json get <HelloInterview URL> --format markdown --timeout 120` returned `extraction_failed` from Crawl4AI waiting for `body`, not `requires_user_action`.
+
+`session login start hellointerview` initially failed because the bare profile `aget-hellointerview` was treated as a missing Chrome profile; the code now defaults to `AGET_HOME/tmp/agent-browser/aget-hellointerview`, and the real start/cancel smoke passes. `session login finish hellointerview` initially failed on real agent-browser state because cookie `expires` was a float; the parser now accepts floating expires in both login and Chrome import paths. After that fix, `session login finish hellointerview` succeeded and saved a local redacted session with 3 cookies and 1 storage origin.
+
+A safe marker check in the opened agent-browser profile still found paywall/sign-in markers, so the browser was not actually authenticated during the forced continuation. Session-backed `aget --json get <URL> --session hellointerview --format markdown` still failed in Crawl4AI waiting for `body`; retry with `--wait-for html` and longer timeouts still failed waiting for `html`. I8b remains blocked: the login/start/finish mechanics are improved, but the final agent-flow acceptance has not passed.
 
 ## Open Questions
 

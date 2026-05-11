@@ -239,7 +239,7 @@ Acceptance criteria:
 - Reject conflicts with redacted conflict reporting.
 - Add local app/provider-session tests.
 
-### 📋 Task I8a: Review output and response API flags
+### ✅ Task I8a: Review output and response API flags
 
 Acceptance criteria:
 
@@ -248,6 +248,27 @@ Acceptance criteria:
 - Preserve a human-friendly default that prints markdown directly.
 - Preserve an agent-friendly structured mode that exposes status, errors, artifact paths, sensitivity, sessions, and warnings.
 - Document the chosen CLI/API design before implementing OpenCode integration.
+
+### 🚫 Task I8b: Add representative gated-site login/session bootstrap
+
+Acceptance criteria:
+
+- Add an agent-callable login flow that opens a visible `aget`-owned browser session for user-driven login on a representative gated site, starting with HelloInterview.
+- Do not collect, script, or store Google credentials.
+- Persist only scoped cookies/storage for the selected authorized site after the user completes login.
+- Support start, finish, and cancel steps with structured agent-friendly output.
+- Verify the workflow can fetch a paywalled HelloInterview-style page as markdown with the corresponding session name.
+- Add fake-backend/local tests plus an ignored/manual real-site e2e check.
+
+### 📋 Task I8c: Write agent skill for core aget fetch/auth flows
+
+Acceptance criteria:
+
+- Create an agent-facing skill or equivalent guide for using `aget` from an agent.
+- Cover the core `aget` fetch/auth flows: fetch an open page, fetch a page behind auth, start/finish login to get auth, combine sessions while logging in, and combine sessions while fetching.
+- Use concrete examples that start with HelloInterview, then generalize to authorized gated sites such as `ft.com`, `nytimes.com`, and similar pages the user can access.
+- Make clear that agents never collect credentials, bypass access controls, or use ambient browser auth without explicit user action.
+- Keep advanced token-saving, crawling, and extraction-tuning guidance for later expansion.
 
 ### 📋 Task I9: Add OpenCode CLI-backed integration
 
