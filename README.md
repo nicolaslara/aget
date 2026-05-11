@@ -18,6 +18,7 @@ What works today:
 - local run artifacts
 - session list, inspect, and delete commands
 - session compose for persisting a deterministic composed session from named sources
+- HelloInterview login start/finish/cancel for user-driven OAuth session bootstrap
 - optional cmux cookie import for explicitly allowed domains
 - optional Chrome profile import through `agent-browser` for explicitly allowed domains
 - the real demo script
@@ -53,8 +54,21 @@ cargo run --quiet -- session list
 cargo run --quiet -- session inspect <session-id>
 cargo run --quiet -- session delete <session-id>
 cargo run --quiet -- session compose <new-name> --session <name> [--session <name>...]
+cargo run --quiet -- session login start hellointerview --url <paywalled-url>
+cargo run --quiet -- session login finish hellointerview
+cargo run --quiet -- session login cancel hellointerview
 cargo run --quiet -- session import cmux --surface <surface> --name <name> --domain <domain> [--domain <domain>...]
 cargo run --quiet -- session import chrome --profile <profile> --name <name> --domain <domain> [--domain <domain>...]
+```
+
+Agent-driven authenticated markdown flow:
+
+```bash
+cargo run --quiet -- --json get "https://www.hellointerview.com/learn/behavioral/course/select-choosing-responses-strategically" --format markdown
+cargo run --quiet -- --json session login start hellointerview --url "https://www.hellointerview.com/learn/behavioral/course/select-choosing-responses-strategically"
+# User completes Google/HelloInterview login in the opened browser.
+cargo run --quiet -- --json session login finish hellointerview
+cargo run --quiet -- --json get "https://www.hellointerview.com/learn/behavioral/course/select-choosing-responses-strategically" --session hellointerview --format markdown --out /tmp/hellointerview.md
 ```
 
 ## Real CLI Demo
@@ -86,6 +100,9 @@ aget session list
 aget session inspect <session-id>
 aget session delete <session-id>
 aget session compose <new-name> --session <name> [--session <name>...]
+aget session login start hellointerview --url <paywalled-url> [--name <session-name>] [--profile <agent-browser-profile>]
+aget session login finish hellointerview [--name <session-name>]
+aget session login cancel hellointerview [--name <session-name>]
 aget session import cmux --surface <surface> --name <name> --domain <domain> [--domain <domain>...]
 aget session import chrome --profile <profile> --name <name> --domain <domain> [--domain <domain>...]
 ```
@@ -94,15 +111,16 @@ Notes:
 
 - `aget get <url>` is the primary command.
 - `aget <url>` is an alias for the same fetch path.
-- `--json` prints structured output.
+- `--json` prints the agent control-plane response envelope: status, errors, artifact paths, sessions, sensitivity, warnings, and timing. It does not change the fetched page content format.
 - `--out` writes the extracted markdown to a file.
-- `--format` requests `markdown`, `html`, `text`, or `json` content from the extractor; markdown remains the default. For `text`, the Crawl4AI helper prefers extracted content and otherwise derives plain text from cleaned/raw HTML before falling back to markdown as a last resort.
+- `--format` requests `markdown`, `html`, `text`, or `json` page content from the extractor; markdown remains the default. For `text`, the Crawl4AI helper prefers extracted content and otherwise derives plain text from cleaned/raw HTML before falling back to markdown as a last resort.
 - `--selector`, `--exclude-selector`, `--wait-for`, and repeated `--extractor-option key=value` are forwarded to the Crawl4AI helper when supported. `--wait-for` is CSS-only in v1 for authenticated-session safety: use `css:<selector>` or a plain CSS selector; JavaScript waits are rejected. Supported extractor option keys are `target_elements`, `excluded_tags`, `only_text`, `word_count_threshold`, `wait_until`, `page_timeout`, `wait_for_timeout`, `delay_before_return_html`, and `wait_for_images`; unsupported keys fail instead of being ignored. List values are comma-separated, booleans accept `true`/`false`, and numeric fields use integer or decimal values as appropriate.
 - `--only-main` is an accepted v1 tradeoff: it is recorded in metadata for API stability but is not enforced by the v1 Crawl4AI adapter because there is no equivalent backend option.
 - `--max-chars` truncates extracted content in Rust after backend extraction using Unicode scalar values; it never truncates the JSON response envelope.
 - `--max-tokens` is recorded as a requested limit but is not enforced in v1. JSON metadata reports `max_tokens_enforced: false`.
 - Repeated `--session` flags replay named local sessions for the request in the order provided. Cookie conflicts and same-origin localStorage key conflicts are rejected instead of preferring one session; disjoint localStorage keys for the same origin are merged.
 - `aget session compose <new-name> --session <name>...` saves the same deterministic composition as a named local session, preserving cookie and storage-origin source provenance while redacting secret values in errors and inspect output by default.
+- `aget session login start hellointerview --url <url>` opens a visible `aget`-owned `agent-browser` profile for user-driven login. It does not collect or script Google credentials. `finish` exports local browser state, persists only HelloInterview-scoped cookies/storage as a normal local session, then removes the raw temp state. `cancel` closes only the pending `aget` login session.
 - `--timeout` sets the request timeout in seconds.
 - `aget session import cmux` imports cookies from a cmux browser surface for explicitly allowed domains only; imported cookies are stored locally as a sensitive named session.
 - cmux import reads raw cookie values from the selected local cmux surface. Use only disposable or user-authorized surfaces and domains.
