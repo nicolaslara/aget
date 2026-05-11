@@ -125,6 +125,50 @@ pub enum SessionSubcommand {
     Delete(DeleteSessionCommand),
     Import(ImportSessionCommand),
     Compose(ComposeSessionCommand),
+    Login(LoginSessionCommand),
+}
+
+#[derive(Debug, Args, PartialEq, Eq)]
+pub struct LoginSessionCommand {
+    #[command(subcommand)]
+    pub command: LoginSessionSubcommand,
+}
+
+#[derive(Debug, Subcommand, PartialEq, Eq)]
+pub enum LoginSessionSubcommand {
+    Start(LoginStartCommand),
+    Finish(LoginFinishCommand),
+    Cancel(LoginCancelCommand),
+}
+
+#[derive(Debug, Args, PartialEq, Eq)]
+pub struct LoginStartCommand {
+    pub site: String,
+
+    #[arg(long)]
+    pub url: String,
+
+    #[arg(long)]
+    pub name: Option<String>,
+
+    #[arg(long)]
+    pub profile: Option<String>,
+}
+
+#[derive(Debug, Args, PartialEq, Eq)]
+pub struct LoginFinishCommand {
+    pub site: String,
+
+    #[arg(long)]
+    pub name: Option<String>,
+}
+
+#[derive(Debug, Args, PartialEq, Eq)]
+pub struct LoginCancelCommand {
+    pub site: String,
+
+    #[arg(long)]
+    pub name: Option<String>,
 }
 
 #[derive(Debug, Args, PartialEq, Eq)]
@@ -464,6 +508,77 @@ mod tests {
                 command: SessionSubcommand::Compose(ComposeSessionCommand {
                     name: "combined".to_string(),
                     session: vec!["provider".to_string(), "app".to_string()],
+                })
+            })
+        );
+    }
+
+    #[test]
+    fn parses_session_login_start() {
+        let cli = Cli::try_parse_from([
+            "aget",
+            "session",
+            "login",
+            "start",
+            "hellointerview",
+            "--url",
+            "https://www.hellointerview.com/learn/behavioral/course/select-choosing-responses-strategically",
+            "--name",
+            "hi",
+            "--profile",
+            "aget-hi",
+        ])
+        .unwrap();
+
+        assert_eq!(
+            cli.command,
+            Command::Session(SessionCommand {
+                command: SessionSubcommand::Login(LoginSessionCommand {
+                    command: LoginSessionSubcommand::Start(LoginStartCommand {
+                        site: "hellointerview".to_string(),
+                        url: "https://www.hellointerview.com/learn/behavioral/course/select-choosing-responses-strategically".to_string(),
+                        name: Some("hi".to_string()),
+                        profile: Some("aget-hi".to_string()),
+                    })
+                })
+            })
+        );
+    }
+
+    #[test]
+    fn parses_session_login_finish_and_cancel() {
+        let finish = Cli::try_parse_from([
+            "aget",
+            "session",
+            "login",
+            "finish",
+            "hellointerview",
+            "--name",
+            "hi",
+        ])
+        .unwrap();
+        let cancel =
+            Cli::try_parse_from(["aget", "session", "login", "cancel", "hellointerview"]).unwrap();
+
+        assert_eq!(
+            finish.command,
+            Command::Session(SessionCommand {
+                command: SessionSubcommand::Login(LoginSessionCommand {
+                    command: LoginSessionSubcommand::Finish(LoginFinishCommand {
+                        site: "hellointerview".to_string(),
+                        name: Some("hi".to_string()),
+                    })
+                })
+            })
+        );
+        assert_eq!(
+            cancel.command,
+            Command::Session(SessionCommand {
+                command: SessionSubcommand::Login(LoginSessionCommand {
+                    command: LoginSessionSubcommand::Cancel(LoginCancelCommand {
+                        site: "hellointerview".to_string(),
+                        name: None,
+                    })
                 })
             })
         );

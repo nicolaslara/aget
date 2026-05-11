@@ -33,7 +33,7 @@ struct AgentBrowserCookie {
     value: String,
     domain: String,
     path: String,
-    #[serde(default)]
+    #[serde(default, deserialize_with = "deserialize_agent_browser_expires")]
     expires: Option<i64>,
     #[serde(rename = "httpOnly", default)]
     http_only: bool,
@@ -50,6 +50,23 @@ struct AgentBrowserOrigin {
     local_storage: Vec<StorageEntry>,
     #[serde(rename = "sessionStorage", default)]
     _session_storage: Vec<StorageEntry>,
+}
+
+fn deserialize_agent_browser_expires<'de, D>(deserializer: D) -> Result<Option<i64>, D::Error>
+where
+    D: serde::Deserializer<'de>,
+{
+    use serde::de::Error;
+
+    let expires = Option::<serde_json::Number>::deserialize(deserializer)?;
+    expires
+        .map(|number| {
+            number
+                .as_i64()
+                .or_else(|| number.as_f64().map(|value| value.trunc() as i64))
+                .ok_or_else(|| Error::custom("agent-browser expires must be numeric"))
+        })
+        .transpose()
 }
 
 pub fn import_chrome_session(options: ChromeImportOptions) -> Result<Session, AgetError> {
