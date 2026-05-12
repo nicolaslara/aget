@@ -18,7 +18,7 @@ What works today:
 - local run artifacts
 - session list, inspect, and delete commands
 - session compose for persisting a deterministic composed session from named sources
-- HelloInterview login start/finish/cancel for user-driven OAuth session bootstrap
+- experimental login start/finish/cancel for user-driven session bootstrap with caller-chosen session names
 - optional cmux cookie import for explicitly allowed domains
 - optional Chrome profile import through `agent-browser` for explicitly allowed domains
 - the real demo script
@@ -54,9 +54,9 @@ cargo run --quiet -- session list
 cargo run --quiet -- session inspect <session-id>
 cargo run --quiet -- session delete <session-id>
 cargo run --quiet -- session compose <new-name> --session <name> [--session <name>...]
-cargo run --quiet -- session login start hellointerview --url <paywalled-url>
-cargo run --quiet -- session login finish hellointerview
-cargo run --quiet -- session login cancel hellointerview
+cargo run --quiet -- session login start <name> --url <login-or-target-url>
+cargo run --quiet -- session login finish <name>
+cargo run --quiet -- session login cancel <name>
 cargo run --quiet -- session import cmux --surface <surface> --name <name> --domain <domain> [--domain <domain>...]
 cargo run --quiet -- session import chrome --profile <profile> --name <name> --domain <domain> [--domain <domain>...]
 ```
@@ -64,12 +64,14 @@ cargo run --quiet -- session import chrome --profile <profile> --name <name> --d
 Agent-driven authenticated markdown flow:
 
 ```bash
-cargo run --quiet -- --json get "https://www.hellointerview.com/learn/behavioral/course/select-choosing-responses-strategically" --format markdown
-cargo run --quiet -- --json session login start hellointerview --url "https://www.hellointerview.com/learn/behavioral/course/select-choosing-responses-strategically"
-# User completes Google/HelloInterview login in the opened browser.
-cargo run --quiet -- --json session login finish hellointerview
-cargo run --quiet -- --json get "https://www.hellointerview.com/learn/behavioral/course/select-choosing-responses-strategically" --session hellointerview --format markdown --out /tmp/hellointerview.md
+cargo run --quiet -- --json get "https://docs.example.com/account" --format markdown
+cargo run --quiet -- --json session login start workdocs --url "https://docs.example.com/account"
+# User completes the site login in the opened browser.
+cargo run --quiet -- --json session login finish workdocs
+cargo run --quiet -- --json get "https://docs.example.com/account" --session workdocs --format markdown --out /tmp/workdocs.md
 ```
+
+`workdocs` is only a local session name chosen by the caller. `aget` does not ship site-specific login, paywall, or access-state detection; the calling agent interprets fetched content and decides whether to ask the user to log in or retry with a session.
 
 ## Real CLI Demo
 
@@ -100,9 +102,9 @@ aget session list
 aget session inspect <session-id>
 aget session delete <session-id>
 aget session compose <new-name> --session <name> [--session <name>...]
-aget session login start hellointerview --url <paywalled-url> [--name <session-name>] [--profile <agent-browser-profile>]
-aget session login finish hellointerview [--name <session-name>]
-aget session login cancel hellointerview [--name <session-name>]
+aget session login start <name> --url <login-or-target-url> [--profile <agent-browser-profile>]
+aget session login finish <name>
+aget session login cancel <name>
 aget session import cmux --surface <surface> --name <name> --domain <domain> [--domain <domain>...]
 aget session import chrome --profile <profile> --name <name> --domain <domain> [--domain <domain>...]
 ```
@@ -120,7 +122,8 @@ Notes:
 - `--max-tokens` is recorded as a requested limit but is not enforced in v1. JSON metadata reports `max_tokens_enforced: false`.
 - Repeated `--session` flags replay named local sessions for the request in the order provided. Cookie conflicts and same-origin localStorage key conflicts are rejected instead of preferring one session; disjoint localStorage keys for the same origin are merged.
 - `aget session compose <new-name> --session <name>...` saves the same deterministic composition as a named local session, preserving cookie and storage-origin source provenance while redacting secret values in errors and inspect output by default.
-- `aget session login start hellointerview --url <url>` opens a visible `aget`-owned `agent-browser` profile for user-driven login. It does not collect or script Google credentials. `finish` exports local browser state, persists only HelloInterview-scoped cookies/storage as a normal local session, then removes the raw temp state. `cancel` closes only the pending `aget` login session.
+- `aget session login start <name> --url <url>` opens a visible `aget`-owned `agent-browser` profile for user-driven login. It does not collect or script credentials. `finish` exports local browser state, persists only URL-scoped cookies/storage as a normal local session, then removes the raw temp state. `cancel` closes only the pending `aget` login session.
+- `aget` is a generic fetcher. It returns page content and extraction outcomes; it does not detect site-specific paywalls, login walls, rate limits, or content quirks. Site-specific reasoning belongs to the calling agent or a future agent skill.
 - `--timeout` sets the request timeout in seconds.
 - `aget session import cmux` imports cookies from a cmux browser surface for explicitly allowed domains only; imported cookies are stored locally as a sensitive named session.
 - cmux import reads raw cookie values from the selected local cmux surface. Use only disposable or user-authorized surfaces and domains.

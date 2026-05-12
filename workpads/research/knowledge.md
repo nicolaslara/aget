@@ -562,9 +562,9 @@ The naming is still not ideal because `--format json` means JSON page content wh
 
 ### D30: Agent-driven login bootstrap uses an explicit user-action loop
 
-I8b starts with a narrow HelloInterview login bootstrap instead of a generic site-profile system. `aget session login start hellointerview --url <target>` opens a visible, `aget`-owned `agent-browser` profile/session at the target URL. The user completes HelloInterview/Google OAuth manually in that browser. `aget session login finish hellointerview` then exports browser state, filters it to `hellointerview.com` and `www.hellointerview.com`, saves the scoped result as the normal local `hellointerview` session, and removes the raw temp state. `cancel` closes only the pending `aget` login session.
+I8b implements a generic user-driven login bootstrap rather than a site-profile system. `aget session login start <name> --url <target>` opens a visible, `aget`-owned `agent-browser` profile/session at the target URL. The user completes the site's login manually in that browser. `aget session login finish <name>` then exports browser state, filters it to the URL-derived allowed domains, saves the scoped result as the normal local `<name>` session, and removes the raw temp state. `cancel` closes only the pending `aget` login session.
 
-The flow deliberately does not script, collect, or store Google credentials, and it does not persist Google/provider cookies by default. If the final relying-party session is insufficient without provider cookies, that should be treated as a product finding requiring explicit provider-session composition rather than silent broad state persistence. Unauthenticated HelloInterview paywall markers now map to `requires_user_action` so agents can switch from fetch to login bootstrap before retrying with `--session hellointerview`.
+The flow deliberately does not script, collect, or store credentials, and it does not persist provider cookies by default. If the final relying-party session is insufficient without provider cookies, that should be treated as a product finding requiring explicit provider-session composition rather than silent broad state persistence. `aget get` no longer maps site-specific content markers to `requires_user_action`; agents must interpret fetched content and decide whether to start or retry a login/session flow.
 
 ### D31: I8b is blocked on manual real-site verification
 
@@ -577,6 +577,14 @@ This was the actual CLI flow an agent would use, not the ignored Rust test. `age
 `session login start hellointerview` initially failed because the bare profile `aget-hellointerview` was treated as a missing Chrome profile; the code now defaults to `AGET_HOME/tmp/agent-browser/aget-hellointerview`, and the real start/cancel smoke passes. `session login finish hellointerview` initially failed on real agent-browser state because cookie `expires` was a float; the parser now accepts floating expires in both login and Chrome import paths. After that fix, `session login finish hellointerview` succeeded and saved a local redacted session with 3 cookies and 1 storage origin.
 
 A safe marker check in the opened agent-browser profile still found paywall/sign-in markers, so the browser was not actually authenticated during the forced continuation. Session-backed `aget --json get <URL> --session hellointerview --format markdown` still failed in Crawl4AI waiting for `body`; retry with `--wait-for html` and longer timeouts still failed waiting for `html`. I8b remains blocked: the login/start/finish mechanics are improved, but the final agent-flow acceptance has not passed.
+
+### D33: Site-specific extraction behavior is out of scope for the binary
+
+The review in `CLAUDE_REVIEW.md` identified that `aget get` had crossed the generic fetcher boundary by matching HelloInterview hostnames/content and returning a site-shaped login CTA. That behavior is out of scope for the binary even if HelloInterview remains a useful representative manual test site.
+
+Decision: `aget` returns fetched content and generic extraction outcomes. It does not classify page content as a paywall/login wall for specific sites, and it does not name built-in sessions in retry advice. Calling agents or future skills decide whether a page's content means login is required and which caller-chosen session name to use.
+
+Task tracking was updated to keep the partially implemented login bootstrap visible as `I8b`, add `I8b-followup` for removing site-specific coupling, add `I8a-followup` for response API stabilization before OpenCode integration, and add `I8d` for extractor/session-glue consolidation before `I9`.
 
 ## Open Questions
 

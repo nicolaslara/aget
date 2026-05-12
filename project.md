@@ -20,6 +20,10 @@ Existing tools solve parts of the problem:
 
 Build a local-first tool that feels like `curl.md` for simple known URLs but can escalate toward Firecrawl-like capabilities when needed.
 
+## Scope Boundary
+
+`aget` is a generic fetcher. It does not detect site-specific paywalls, login walls, rate limits, or content quirks. Site-specific reasoning is the calling agent's responsibility, expressed through session names, selected URLs, and run results. `aget` reports extraction outcomes; the agent decides what to do next.
+
 Initial command shape:
 
 ```bash

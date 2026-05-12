@@ -606,22 +606,55 @@ print(json.dumps({'ok': False, 'error': 'backend returned ' + cookie_secret + ' 
 }
 
 #[test]
-fn get_hellointerview_paywall_returns_requires_user_action() {
+fn get_session_backend_failure_uses_agent_browser_fallback_with_composed_state() {
     let temp = tempfile::tempdir().unwrap();
     let aget_home = temp.path().join("aget-home");
+    let agent_log = temp.path().join("agent-browser.log");
+    save_cookie_and_storage_session(
+        &aget_home,
+        "local",
+        "127.0.0.1",
+        "sid",
+        "cookie-secret-value",
+        "https://127.0.0.1",
+        "token",
+        "storage-secret-value",
+    );
     let fake_backend = write_fake_backend(
         temp.path(),
         r#"#!/usr/bin/env python3
-import argparse, json, pathlib
+import argparse, json, pathlib, sys
 parser = argparse.ArgumentParser()
 parser.add_argument('--url', required=True)
 parser.add_argument('--state', required=True)
 parser.add_argument('--output', required=True)
 parser.add_argument('--metadata', required=True)
 args, _unknown = parser.parse_known_args()
-content = '# Select Choosing Responses Strategically\n\nPremium users can view this video once signed in\n\nPurchase Premium to Keep Reading'
-pathlib.Path(args.output).write_text(content, encoding='utf-8')
-print(json.dumps({'ok': True, 'final_url': args.url, 'content': content, 'warnings': []}))
+state = json.loads(pathlib.Path(args.state).read_text(encoding='utf-8'))
+print('backend saw ' + state['cookies'][0]['value'], file=sys.stderr)
+print(json.dumps({'ok': False, 'error': 'crawl4ai failed after state load ' + state['origins'][0]['localStorage'][0]['value']}))
+sys.exit(1)
+"#,
+    );
+    let fake_agent_browser = write_fake_agent_browser(
+        temp.path(),
+        r#"#!/usr/bin/env python3
+import json, os, pathlib, sys
+args = sys.argv[1:]
+log_path = pathlib.Path(os.environ['AGENT_BROWSER_LOG'])
+entry = {'args': args}
+if 'state' in args and 'load' in args:
+    state_path = pathlib.Path(args[-1])
+    state = json.loads(state_path.read_text(encoding='utf-8'))
+    entry['state'] = state
+    assert state['cookies'][0]['value'] == 'cookie-secret-value'
+    assert state['origins'][0]['localStorage'][0]['value'] == 'storage-secret-value'
+log_path.parent.mkdir(parents=True, exist_ok=True)
+with log_path.open('a', encoding='utf-8') as file:
+    file.write(json.dumps(entry, sort_keys=True) + '\n')
+if args[-3:] == ['get', 'html', 'body']:
+    print('<main><h1>Fallback Title</h1><p>Useful &amp; local content</p></main>')
+sys.exit(0)
 "#,
     );
 
@@ -629,12 +662,157 @@ print(json.dumps({'ok': True, 'final_url': args.url, 'content': content, 'warnin
     let output = cmd
         .env("AGET_HOME", &aget_home)
         .env("AGET_CRAWL4AI_COMMAND", python_command(&fake_backend))
+        .env("AGET_AGENT_BROWSER_COMMAND", &fake_agent_browser)
+        .env("AGENT_BROWSER_LOG", &agent_log)
         .args([
             "--json",
             "get",
-            "https://www.hellointerview.com/learn/behavioral/course/select-choosing-responses-strategically",
+            "http://127.0.0.1/fallback",
+            "--session",
+            "local",
             "--format",
             "markdown",
+        ])
+        .assert()
+        .success()
+        .get_output()
+        .stdout
+        .clone();
+
+    let json: serde_json::Value = serde_json::from_slice(&output).unwrap();
+    assert_eq!(json["ok"], true);
+    assert_eq!(json["extractor"], "agent-browser-fallback");
+    assert_eq!(json["sessions"], serde_json::json!(["local"]));
+    assert_eq!(json["sensitive"], true);
+    assert_eq!(
+        json["warnings"],
+        serde_json::json!(["agent-browser fallback used after Crawl4AI failed"])
+    );
+    assert_eq!(json["content"], "Fallback Title\n\nUseful & local content");
+
+    let metadata_path = PathBuf::from(json["artifacts"]["metadata"].as_str().unwrap());
+    let metadata: serde_json::Value =
+        serde_json::from_str(&fs::read_to_string(&metadata_path).unwrap()).unwrap();
+    assert_eq!(metadata["extractor"], "agent-browser-fallback");
+    let backend_stderr =
+        fs::read_to_string(metadata_path.with_file_name("backend-stderr.txt")).unwrap();
+    assert!(!backend_stderr.contains("cookie-secret-value"));
+    assert!(backend_stderr.contains("<redacted>"));
+
+    let log = fs::read_to_string(&agent_log).unwrap();
+    assert!(log.contains("\"state\", \"load\""));
+    assert!(log.contains("\"open\""));
+    assert!(log.contains("\"get\", \"html\", \"body\""));
+    assert!(log.contains("\"close\""));
+    assert!(log.contains(
+        &aget_home
+            .join("tmp/agent-browser")
+            .to_string_lossy()
+            .to_string()
+    ));
+    assert!(fs::read_dir(aget_home.join("tmp/agent-browser"))
+        .map(|mut entries| entries.next().is_none())
+        .unwrap_or(true));
+}
+
+#[test]
+fn get_unauthenticated_backend_failure_does_not_use_agent_browser_fallback() {
+    let temp = tempfile::tempdir().unwrap();
+    let aget_home = temp.path().join("aget-home");
+    let agent_log = temp.path().join("agent-browser.log");
+    let fake_backend = write_fake_backend(
+        temp.path(),
+        r#"#!/usr/bin/env python3
+import argparse, json, sys
+parser = argparse.ArgumentParser()
+parser.add_argument('--url', required=True)
+parser.add_argument('--state', required=True)
+parser.add_argument('--output', required=True)
+parser.add_argument('--metadata', required=True)
+args, _unknown = parser.parse_known_args()
+print(json.dumps({'ok': False, 'error': 'public crawl4ai failure'}))
+sys.exit(1)
+"#,
+    );
+    let fake_agent_browser = write_fake_agent_browser(
+        temp.path(),
+        r#"#!/usr/bin/env python3
+import os, pathlib, sys
+pathlib.Path(os.environ['AGENT_BROWSER_LOG']).write_text('called', encoding='utf-8')
+sys.exit(0)
+"#,
+    );
+
+    let mut cmd = Command::cargo_bin("aget").unwrap();
+    let output = cmd
+        .env("AGET_HOME", &aget_home)
+        .env("AGET_CRAWL4AI_COMMAND", python_command(&fake_backend))
+        .env("AGET_AGENT_BROWSER_COMMAND", &fake_agent_browser)
+        .env("AGENT_BROWSER_LOG", &agent_log)
+        .args(["--json", "get", "http://127.0.0.1/public-failure"])
+        .assert()
+        .failure()
+        .get_output()
+        .stderr
+        .clone();
+
+    let json: serde_json::Value = serde_json::from_slice(&output).unwrap();
+    assert_eq!(json["error"]["code"], "extraction_failed");
+    assert_eq!(json["error"]["message"], "public crawl4ai failure");
+    assert!(!agent_log.exists());
+}
+
+#[test]
+fn get_session_fallback_close_failure_preserves_original_sanitized_crawl4ai_error() {
+    let temp = tempfile::tempdir().unwrap();
+    let aget_home = temp.path().join("aget-home");
+    save_cookie_session(
+        &aget_home,
+        "local",
+        "127.0.0.1",
+        "sid",
+        "cookie-secret-value",
+    );
+    let fake_backend = write_fake_backend(
+        temp.path(),
+        r#"#!/usr/bin/env python3
+import argparse, json, pathlib, sys
+parser = argparse.ArgumentParser()
+parser.add_argument('--url', required=True)
+parser.add_argument('--state', required=True)
+parser.add_argument('--output', required=True)
+parser.add_argument('--metadata', required=True)
+args, _unknown = parser.parse_known_args()
+state = json.loads(pathlib.Path(args.state).read_text(encoding='utf-8'))
+print(json.dumps({'ok': False, 'error': 'crawl4ai leaked ' + state['cookies'][0]['value']}))
+sys.exit(1)
+"#,
+    );
+    let fake_agent_browser = write_fake_agent_browser(
+        temp.path(),
+        r#"#!/usr/bin/env python3
+import sys
+args = sys.argv[1:]
+if args[-1] == 'close':
+    print('close failed', file=sys.stderr)
+    sys.exit(1)
+if args[-3:] == ['get', 'html', 'body']:
+    print('<main>fallback content</main>')
+sys.exit(0)
+"#,
+    );
+
+    let mut cmd = Command::cargo_bin("aget").unwrap();
+    let output = cmd
+        .env("AGET_HOME", &aget_home)
+        .env("AGET_CRAWL4AI_COMMAND", python_command(&fake_backend))
+        .env("AGET_AGENT_BROWSER_COMMAND", &fake_agent_browser)
+        .args([
+            "--json",
+            "get",
+            "http://127.0.0.1/fallback-close-fails",
+            "--session",
+            "local",
         ])
         .assert()
         .failure()
@@ -643,17 +821,20 @@ print(json.dumps({'ok': True, 'final_url': args.url, 'content': content, 'warnin
         .clone();
 
     let json: serde_json::Value = serde_json::from_slice(&output).unwrap();
-    assert_eq!(json["ok"], false);
-    assert_eq!(json["error"]["code"], "requires_user_action");
-    assert!(json["error"]["message"]
-        .as_str()
-        .unwrap()
-        .contains("aget session login start hellointerview"));
+    assert_eq!(json["error"]["code"], "extraction_failed");
+    assert_eq!(
+        json["error"]["message"],
+        "Crawl4AI extraction failed for session-backed request"
+    );
     let metadata_files = metadata_files(&aget_home);
     assert_eq!(metadata_files.len(), 1);
     let metadata: serde_json::Value =
         serde_json::from_str(&fs::read_to_string(&metadata_files[0]).unwrap()).unwrap();
-    assert_eq!(metadata["error"]["code"], "requires_user_action");
+    assert_eq!(metadata["ok"], false);
+    assert_eq!(metadata["extractor"], "crawl4ai");
+    assert!(!fs::read_to_string(&metadata_files[0])
+        .unwrap()
+        .contains("cookie-secret-value"));
 }
 
 #[test]
@@ -1300,6 +1481,29 @@ fn write_fake_backend(dir: &Path, content: &str) -> PathBuf {
     fs::write(&path, content).unwrap();
     path
 }
+
+fn write_fake_agent_browser(dir: &Path, content: &str) -> PathBuf {
+    let nanos = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .map(|duration| duration.as_nanos())
+        .unwrap_or_default();
+    let path = dir.join(format!("fake-agent-browser-{nanos}.py"));
+    fs::write(&path, content).unwrap();
+    make_executable(&path);
+    path
+}
+
+#[cfg(unix)]
+fn make_executable(path: &Path) {
+    use std::os::unix::fs::PermissionsExt;
+
+    let mut permissions = fs::metadata(path).unwrap().permissions();
+    permissions.set_mode(0o700);
+    fs::set_permissions(path, permissions).unwrap();
+}
+
+#[cfg(not(unix))]
+fn make_executable(_path: &Path) {}
 
 fn python_command(path: &Path) -> String {
     format!("python3 {}", shell_quote(&path.to_string_lossy()))

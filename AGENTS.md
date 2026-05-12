@@ -59,6 +59,8 @@ The likely implementation language is Rust, but this is not finalized. Research 
 
 `aget` should only help users process content they are authorized to access. It must not be designed to bypass paywalls, access controls, or site policies. Authenticated data must stay local by default.
 
+`aget` is a generic fetcher. Do not add site-specific paywall/login detection, built-in site names, or site-shaped retry advice to the binary. Site-specific reasoning belongs to the calling agent or an agent-facing skill that interprets generic extraction outcomes.
+
 ## Verification
 
 During research, verification means:
