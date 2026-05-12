@@ -153,7 +153,7 @@ V1 should be a thin wrapper: use `agent-browser` for Chrome profile state acquis
 
 The PoC spec now treats `aget <url>` as an alias for `aget get <url>`, keeps commands non-interactive by default, and requires bounded timeouts plus structured `--json` output for agent callers. Commands that need user action should fail with a machine-readable `requires_user_action` result unless explicitly invoked in interactive mode.
 
-The `get` command should accept common output-shaping options (`--format`, `--selector`, `--only-main`, `--max-tokens`, `--max-chars`, `--wait-for`) and an extractor-specific escape hatch so v1 can expose Crawl4AI features without freezing the final `aget` API too early.
+The `get` command should accept common output-shaping options (`--format`, `--selector`, `--max-chars`, `--wait-for`) and an extractor-specific escape hatch so v1 can expose Crawl4AI features without freezing the final `aget` API too early.
 
 Future action/API workflows, such as searching or adding to cart on behalf of a user, are explicitly out of v1 scope but should guide the design: sessions must remain explicit and composable, read-only extraction must be separable from mutating actions, and command outputs must carry enough provenance for agents to make safe decisions.
 
@@ -220,10 +220,8 @@ Common `get` options should be represented in the CLI early, even if only some m
 --format <markdown|html|text|json>
 --selector <css>
 --exclude-selector <css>
---only-main
 --wait-for <text-or-selector>
 --max-chars <n>
---max-tokens <n>
 --extractor-option <key=value>
 ```
 
@@ -334,7 +332,7 @@ Success shape:
   "sensitive": false,
   "warnings": [],
   "timing_ms": {"total": 1234},
-  "limits": {"max_chars": null, "max_tokens": null, "truncated": false}
+  "limits": {"max_chars": null, "truncated": false}
 }
 ```
 
@@ -461,17 +459,17 @@ Post-implementation review initially found two blockers and one acceptance gap. 
 
 ### D24: I6 output shaping is Rust-owned where limits affect contract stability
 
-I6 adds `aget get` output shaping flags for `--format markdown|html|text|json`, CSS include/exclude selectors, `--wait-for`, `--only-main`, `--max-chars`, `--max-tokens`, and repeated `--extractor-option key=value`. Rust forwards only backend-supported options to the Crawl4AI helper: format, selector, exclude selector, wait condition, and extractor options. `--only-main` is an accepted v1 tradeoff: it is recorded but not enforced because Crawl4AI has no first-class option matching the requested contract, and inventing an approximate mapping would make the metadata misleading.
+I6 adds `aget get` output shaping flags for `--format markdown|html|text|json`, CSS include/exclude selectors, `--wait-for`, `--max-chars`, and repeated `--extractor-option key=value`. Rust forwards only backend-supported options to the Crawl4AI helper: format, selector, exclude selector, wait condition, and extractor options. Earlier WIP accepted `--only-main` and `--max-tokens` as metadata-only flags, but those were later removed before OpenCode integration because they were not enforced.
 
 `--wait-for` is intentionally CSS-only in v1 for authenticated-session safety. The helper accepts `css:<selector>` and plain CSS selector strings, but rejects `js:` waits and obvious JavaScript function syntax before importing or running Crawl4AI. This prevents user-supplied wait conditions from executing JavaScript in a browser context that may include replayed local session state.
 
 The Crawl4AI helper treats extractor options as an explicit allowlist, not an arbitrary escape hatch. V1 supports `target_elements`, `excluded_tags`, `only_text`, `word_count_threshold`, `wait_until`, `page_timeout`, `wait_for_timeout`, `delay_before_return_html`, and `wait_for_images` when the installed Crawl4AI config constructor accepts the key. Unknown keys fail with structured backend JSON before importing or running Crawl4AI, so dangerous options such as `js_code` are not silently ignored or executed.
 
-Character truncation is enforced after backend extraction in Rust using `.chars()` so results are deterministic across backends and cannot cut a UTF-8 scalar in half. After a successful backend parse, Rust sanitizes the retained backend stdout capture so untruncated content is not left in the run directory when `--max-chars` later shortens final content. For `--format json`, the CLI still returns a complete JSON response envelope; only the extracted `content` string is truncated. Token limits are metadata-only in v1: `limits.max_tokens` records the requested value and `limits.max_tokens_enforced` is always false until a tokenizer strategy is selected.
+Character truncation is enforced after backend extraction in Rust using `.chars()` so results are deterministic across backends and cannot cut a UTF-8 scalar in half. After a successful backend parse, Rust sanitizes the retained backend stdout capture so untruncated content is not left in the run directory when `--max-chars` later shortens final content. For `--format json`, the CLI still returns a complete JSON response envelope; only the extracted `content` string is truncated.
 
 For `--format text`, the Crawl4AI helper now prefers `result.extracted_content`, then derives plain text from `cleaned_html` or raw `html` with a stdlib HTML parser, and only falls back to markdown if no HTML content is available. This keeps real backend text output from silently being markdown in the common no-`extracted_content` case.
 
-The stable output metadata now includes `output_options` plus expanded `limits` fields: `truncated_by`, `content_chars_before_truncation`, `content_chars_after_truncation`, and `max_tokens_enforced`. This preserves the I4/I5 session/sensitivity behavior while giving agents enough metadata to decide whether to refetch with larger limits or a narrower selector.
+The stable output metadata now includes `output_options` plus expanded `limits` fields: `truncated_by`, `content_chars_before_truncation`, and `content_chars_after_truncation`. This preserves the I4/I5 session/sensitivity behavior while giving agents enough metadata to decide whether to refetch with larger limits or a narrower selector.
 
 ### D25: Explicit copy/import is the MVP auth ownership model
 

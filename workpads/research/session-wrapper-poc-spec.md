@@ -223,8 +223,8 @@ Extractor options can reduce or reshape output:
 aget get https://www.hellointerview.com/... \
   --session hellointerview \
   --format markdown \
-  --only-main \
-  --max-tokens 8000 \
+  --selector main \
+  --max-chars 8000 \
   --wait-for "Video Content"
 ```
 
@@ -420,11 +420,9 @@ Top-level extractor options:
 
 ```bash
 --format <markdown|html|text|json>
---only-main
 --selector <css>
 --exclude-selector <css>
 --wait-for <text-or-selector>
---max-tokens <n>
 --max-chars <n>
 --include-links
 --include-images
@@ -623,8 +621,7 @@ Each run should write metadata:
     "extractor": 1000
   },
   "limits": {
-    "max_tokens": 8000,
-    "max_chars": null,
+    "max_chars": 8000,
     "truncated": false
   }
 }
@@ -657,7 +654,7 @@ V1 must include at least these tests or scripts:
 - Temp state files are deleted after extraction.
 - `session inspect` redacts values by default.
 - `aget get --format markdown|html|text|json` returns the expected shape where supported.
-- `aget get --max-chars` or `--max-tokens` truncates deterministically and records truncation metadata.
+- `aget get --max-chars` truncates deterministically and records truncation metadata.
 - Missing optional backend returns a structured actionable error.
 - Non-interactive commands fail fast with `requires_user_action` when user action is needed.
 

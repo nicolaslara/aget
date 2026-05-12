@@ -27,10 +27,8 @@ pub struct GetOptions {
     pub format: OutputFormat,
     pub selector: Option<String>,
     pub exclude_selector: Option<String>,
-    pub only_main: bool,
     pub wait_for: Option<String>,
     pub max_chars: Option<usize>,
-    pub max_tokens: Option<usize>,
     pub extractor_options: Vec<ExtractorOption>,
 }
 
@@ -65,12 +63,10 @@ pub struct TimingMs {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Limits {
     pub max_chars: Option<usize>,
-    pub max_tokens: Option<usize>,
     pub truncated: bool,
     pub truncated_by: Option<String>,
     pub content_chars_before_truncation: usize,
     pub content_chars_after_truncation: usize,
-    pub max_tokens_enforced: bool,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -78,7 +74,6 @@ pub struct OutputOptions {
     pub format: OutputFormat,
     pub selector: Option<String>,
     pub exclude_selector: Option<String>,
-    pub only_main: bool,
     pub wait_for: Option<String>,
     pub extractor_options: BTreeMap<String, String>,
 }
@@ -261,7 +256,7 @@ fn finalize_success(
     extraction: SuccessfulExtraction,
     started: Instant,
 ) -> Result<GetSuccess, AgetError> {
-    let limits = apply_limits(extraction.content, options.max_chars, options.max_tokens);
+    let limits = apply_limits(extraction.content, options.max_chars);
     let content = limits.content;
     write_private_file(markdown_path, content.as_bytes()).map_err(io_aget_error)?;
 
@@ -305,11 +300,7 @@ struct LimitApplication {
     metadata: Limits,
 }
 
-fn apply_limits(
-    content: String,
-    max_chars: Option<usize>,
-    max_tokens: Option<usize>,
-) -> LimitApplication {
+fn apply_limits(content: String, max_chars: Option<usize>) -> LimitApplication {
     let before = content.chars().count();
     let (content, truncated) = match max_chars {
         Some(max_chars) if before > max_chars => (content.chars().take(max_chars).collect(), true),
@@ -321,12 +312,10 @@ fn apply_limits(
         content,
         metadata: Limits {
             max_chars,
-            max_tokens,
             truncated,
             truncated_by: truncated.then(|| "max_chars".to_string()),
             content_chars_before_truncation: before,
             content_chars_after_truncation: after,
-            max_tokens_enforced: false,
         },
     }
 }
@@ -342,7 +331,6 @@ fn output_options(options: &GetOptions) -> OutputOptions {
         format: options.format,
         selector: options.selector.clone(),
         exclude_selector: options.exclude_selector.clone(),
-        only_main: options.only_main,
         wait_for: options.wait_for.clone(),
         extractor_options,
     }
@@ -972,12 +960,10 @@ fn write_error_metadata(
         "timing_ms": {"total": started.elapsed().as_millis()},
         "limits": {
             "max_chars": options.max_chars,
-            "max_tokens": options.max_tokens,
             "truncated": false,
             "truncated_by": null,
             "content_chars_before_truncation": 0,
             "content_chars_after_truncation": 0,
-            "max_tokens_enforced": false,
         },
         "output_options": output_options,
         "error": {"code": code, "message": message},

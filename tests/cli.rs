@@ -22,10 +22,8 @@ fn get_help_is_available() {
             .and(predicate::str::contains("--format"))
             .and(predicate::str::contains("--selector"))
             .and(predicate::str::contains("--exclude-selector"))
-            .and(predicate::str::contains("--only-main"))
             .and(predicate::str::contains("--wait-for"))
             .and(predicate::str::contains("--max-chars"))
-            .and(predicate::str::contains("--max-tokens"))
             .and(predicate::str::contains("--extractor-option")),
     );
 }

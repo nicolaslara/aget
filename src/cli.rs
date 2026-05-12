@@ -71,16 +71,10 @@ pub struct GetCommand {
     pub exclude_selector: Option<String>,
 
     #[arg(long)]
-    pub only_main: bool,
-
-    #[arg(long)]
     pub wait_for: Option<String>,
 
     #[arg(long)]
     pub max_chars: Option<usize>,
-
-    #[arg(long)]
-    pub max_tokens: Option<usize>,
 
     #[arg(long = "extractor-option", value_parser = parse_extractor_option)]
     pub extractor_options: Vec<ExtractorOption>,
@@ -277,10 +271,8 @@ mod tests {
                 format: OutputFormat::Markdown,
                 selector: None,
                 exclude_selector: None,
-                only_main: false,
                 wait_for: None,
                 max_chars: None,
-                max_tokens: None,
                 extractor_options: Vec::new(),
             })
         );
@@ -299,10 +291,8 @@ mod tests {
                 format: OutputFormat::Markdown,
                 selector: None,
                 exclude_selector: None,
-                only_main: false,
                 wait_for: None,
                 max_chars: None,
-                max_tokens: None,
                 extractor_options: Vec::new(),
             })
         );
@@ -347,10 +337,8 @@ mod tests {
                 format: OutputFormat::Markdown,
                 selector: None,
                 exclude_selector: None,
-                only_main: false,
                 wait_for: None,
                 max_chars: None,
-                max_tokens: None,
                 extractor_options: Vec::new(),
             })
         );
@@ -378,10 +366,8 @@ mod tests {
                 format: OutputFormat::Markdown,
                 selector: None,
                 exclude_selector: None,
-                only_main: false,
                 wait_for: None,
                 max_chars: None,
-                max_tokens: None,
                 extractor_options: Vec::new(),
             })
         );
@@ -399,13 +385,10 @@ mod tests {
             "main",
             "--exclude-selector",
             "nav",
-            "--only-main",
             "--wait-for",
             "css:.ready",
             "--max-chars",
             "123",
-            "--max-tokens",
-            "456",
             "--extractor-option",
             "cache=bypass",
         ])
@@ -420,10 +403,8 @@ mod tests {
                 format: OutputFormat::Json,
                 selector: Some("main".to_string()),
                 exclude_selector: Some("nav".to_string()),
-                only_main: true,
                 wait_for: Some("css:.ready".to_string()),
                 max_chars: Some(123),
-                max_tokens: Some(456),
                 extractor_options: vec![ExtractorOption {
                     key: "cache".to_string(),
                     value: "bypass".to_string(),

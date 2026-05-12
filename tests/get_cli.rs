@@ -61,7 +61,6 @@ print(json.dumps({'ok': True, 'final_url': args.url + '/final', 'content': conte
     assert_eq!(json["sensitive"], false);
     assert_eq!(json["warnings"], serde_json::json!(["fake warning"]));
     assert_eq!(json["limits"]["max_chars"], serde_json::Value::Null);
-    assert_eq!(json["limits"]["max_tokens"], serde_json::Value::Null);
     assert_eq!(json["limits"]["truncated"], false);
     assert!(json["timing_ms"]["total"].as_u64().is_some());
 
@@ -403,9 +402,7 @@ assert args.selector == 'main.article'
 assert args.exclude_selector == 'nav,.ad'
 assert args.wait_for == 'css:.ready'
 assert args.extractor_option == ['cache=bypass', 'magic=value']
-assert '--only-main' not in _unknown
 assert '--max-chars' not in _unknown
-assert '--max-tokens' not in _unknown
 content = 'aé💡bc'
 pathlib.Path(args.output).write_text(content, encoding='utf-8')
 print(json.dumps({'ok': True, 'final_url': args.url + '#done', 'content': content, 'warnings': []}))
@@ -426,13 +423,10 @@ print(json.dumps({'ok': True, 'final_url': args.url + '#done', 'content': conten
             "main.article",
             "--exclude-selector",
             "nav,.ad",
-            "--only-main",
             "--wait-for",
             "css:.ready",
             "--max-chars",
             "3",
-            "--max-tokens",
-            "17",
             "--extractor-option",
             "cache=bypass",
             "--extractor-option",
@@ -450,16 +444,13 @@ print(json.dumps({'ok': True, 'final_url': args.url + '#done', 'content': conten
     assert_eq!(json["content"], "aé💡");
     assert_eq!(json["final_url"], "https://example.com/options#done");
     assert_eq!(json["limits"]["max_chars"], 3);
-    assert_eq!(json["limits"]["max_tokens"], 17);
     assert_eq!(json["limits"]["truncated"], true);
     assert_eq!(json["limits"]["truncated_by"], "max_chars");
     assert_eq!(json["limits"]["content_chars_before_truncation"], 5);
     assert_eq!(json["limits"]["content_chars_after_truncation"], 3);
-    assert_eq!(json["limits"]["max_tokens_enforced"], false);
     assert_eq!(json["output_options"]["format"], "text");
     assert_eq!(json["output_options"]["selector"], "main.article");
     assert_eq!(json["output_options"]["exclude_selector"], "nav,.ad");
-    assert_eq!(json["output_options"]["only_main"], true);
     assert_eq!(json["output_options"]["wait_for"], "css:.ready");
     assert_eq!(
         json["output_options"]["extractor_options"],

@@ -213,7 +213,7 @@ Acceptance criteria:
 
 Acceptance criteria:
 
-- Implement or pass through `--format`, `--selector`, `--exclude-selector`, `--only-main`, `--wait-for`, `--max-chars`, `--max-tokens`, and `--extractor-option` where feasible.
+- Implement or pass through `--format`, `--selector`, `--exclude-selector`, `--wait-for`, `--max-chars`, and `--extractor-option` where feasible.
 - Implement deterministic `--max-chars` truncation.
 - Record output options and truncation metadata.
 - Add tests for output shape and truncation metadata.
@@ -249,12 +249,12 @@ Acceptance criteria:
 - Preserve an agent-friendly structured mode that exposes status, errors, artifact paths, sensitivity, sessions, and warnings.
 - Document the chosen CLI/API design before implementing OpenCode integration.
 
-### 📋 Task I8a-followup: Stabilize response API before OpenCode integration
+### 🚧 Task I8a-followup: Stabilize response API before OpenCode integration
 
 Acceptance criteria:
 
 - Decide whether to keep `--json` as-is, add a clearer alias such as `--envelope`, or rename the page-content `--format json` value.
-- Remove, implement, or explicitly deprecate non-enforced API promises such as `--max-tokens` and `--only-main` before agents depend on them.
+- Remove, implement, or explicitly deprecate non-enforced API promises before agents depend on them. `--max-tokens` and `--only-main` have been removed from the active CLI/API until they can be enforced.
 - Rename `artifacts.markdown` to a content-format-neutral key, or document a short compatibility window if keeping the old key temporarily.
 - Stabilize JSON command output around one agent-friendly envelope shape before `I9` uses it as the OpenCode behavior source of truth.
 - Decide how backend-specific `--extractor-option` should be namespaced or constrained before adding another extractor.

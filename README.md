@@ -90,13 +90,13 @@ Concise usage:
 ```text
 aget get <url> [--session <name>...] [--json] [--out <path>] [--timeout <seconds>]
               [--format <markdown|html|text|json>] [--selector <css>]
-              [--exclude-selector <css>] [--only-main] [--wait-for <text-or-selector>]
-              [--max-chars <n>] [--max-tokens <n>]
+              [--exclude-selector <css>] [--wait-for <text-or-selector>]
+              [--max-chars <n>]
               [--extractor-option <key=value>...]
 aget <url> [--session <name>...] [--json] [--out <path>] [--timeout <seconds>]
            [--format <markdown|html|text|json>] [--selector <css>]
-           [--exclude-selector <css>] [--only-main] [--wait-for <text-or-selector>]
-           [--max-chars <n>] [--max-tokens <n>]
+           [--exclude-selector <css>] [--wait-for <text-or-selector>]
+           [--max-chars <n>]
            [--extractor-option <key=value>...]
 aget session list
 aget session inspect <session-id>
@@ -117,9 +117,7 @@ Notes:
 - `--out` writes the extracted markdown to a file.
 - `--format` requests `markdown`, `html`, `text`, or `json` page content from the extractor; markdown remains the default. For `text`, the Crawl4AI helper prefers extracted content and otherwise derives plain text from cleaned/raw HTML before falling back to markdown as a last resort.
 - `--selector`, `--exclude-selector`, `--wait-for`, and repeated `--extractor-option key=value` are forwarded to the Crawl4AI helper when supported. `--wait-for` is CSS-only in v1 for authenticated-session safety: use `css:<selector>` or a plain CSS selector; JavaScript waits are rejected. Supported extractor option keys are `target_elements`, `excluded_tags`, `only_text`, `word_count_threshold`, `wait_until`, `page_timeout`, `wait_for_timeout`, `delay_before_return_html`, and `wait_for_images`; unsupported keys fail instead of being ignored. List values are comma-separated, booleans accept `true`/`false`, and numeric fields use integer or decimal values as appropriate.
-- `--only-main` is an accepted v1 tradeoff: it is recorded in metadata for API stability but is not enforced by the v1 Crawl4AI adapter because there is no equivalent backend option.
 - `--max-chars` truncates extracted content in Rust after backend extraction using Unicode scalar values; it never truncates the JSON response envelope.
-- `--max-tokens` is recorded as a requested limit but is not enforced in v1. JSON metadata reports `max_tokens_enforced: false`.
 - Repeated `--session` flags replay named local sessions for the request in the order provided. Cookie conflicts and same-origin localStorage key conflicts are rejected instead of preferring one session; disjoint localStorage keys for the same origin are merged.
 - `aget session compose <new-name> --session <name>...` saves the same deterministic composition as a named local session, preserving cookie and storage-origin source provenance while redacting secret values in errors and inspect output by default.
 - `aget session login start <name> --url <url>` opens a visible `aget`-owned `agent-browser` profile for user-driven login. It does not collect or script credentials. `finish` exports local browser state, persists only URL-scoped cookies/storage as a normal local session, then removes the raw temp state. `cancel` closes only the pending `aget` login session.
@@ -153,18 +151,15 @@ Example:
   },
   "limits": {
     "max_chars": null,
-    "max_tokens": null,
     "truncated": false,
     "truncated_by": null,
     "content_chars_before_truncation": 13,
-    "content_chars_after_truncation": 13,
-    "max_tokens_enforced": false
+    "content_chars_after_truncation": 13
   },
   "output_options": {
     "format": "markdown",
     "selector": null,
     "exclude_selector": null,
-    "only_main": false,
     "wait_for": null,
     "extractor_options": {}
   }

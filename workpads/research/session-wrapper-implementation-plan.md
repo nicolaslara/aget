@@ -181,10 +181,9 @@ Deliverables:
   - `--exclude-selector`
   - `--wait-for`
   - `--max-chars`
-  - `--max-tokens`
   - `--extractor-option key=value`
 - Implement deterministic char truncation first.
-- Token estimation can be approximate in v1 but must be recorded as approximate.
+- Token limits are deferred until they can be enforced; do not expose metadata-only token truncation.
 
 Acceptance criteria:
 
