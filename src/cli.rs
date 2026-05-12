@@ -143,13 +143,10 @@ pub enum LoginSessionSubcommand {
 
 #[derive(Debug, Args, PartialEq, Eq)]
 pub struct LoginStartCommand {
-    pub site: String,
+    pub name: String,
 
     #[arg(long)]
     pub url: String,
-
-    #[arg(long)]
-    pub name: Option<String>,
 
     #[arg(long)]
     pub profile: Option<String>,
@@ -157,18 +154,12 @@ pub struct LoginStartCommand {
 
 #[derive(Debug, Args, PartialEq, Eq)]
 pub struct LoginFinishCommand {
-    pub site: String,
-
-    #[arg(long)]
-    pub name: Option<String>,
+    pub name: String,
 }
 
 #[derive(Debug, Args, PartialEq, Eq)]
 pub struct LoginCancelCommand {
-    pub site: String,
-
-    #[arg(long)]
-    pub name: Option<String>,
+    pub name: String,
 }
 
 #[derive(Debug, Args, PartialEq, Eq)]
@@ -520,13 +511,11 @@ mod tests {
             "session",
             "login",
             "start",
-            "hellointerview",
+            "news",
             "--url",
-            "https://www.hellointerview.com/learn/behavioral/course/select-choosing-responses-strategically",
-            "--name",
-            "hi",
+            "https://www.nytimes.com/article",
             "--profile",
-            "aget-hi",
+            "aget-news",
         ])
         .unwrap();
 
@@ -535,10 +524,9 @@ mod tests {
             Command::Session(SessionCommand {
                 command: SessionSubcommand::Login(LoginSessionCommand {
                     command: LoginSessionSubcommand::Start(LoginStartCommand {
-                        site: "hellointerview".to_string(),
-                        url: "https://www.hellointerview.com/learn/behavioral/course/select-choosing-responses-strategically".to_string(),
-                        name: Some("hi".to_string()),
-                        profile: Some("aget-hi".to_string()),
+                        name: "news".to_string(),
+                        url: "https://www.nytimes.com/article".to_string(),
+                        profile: Some("aget-news".to_string()),
                     })
                 })
             })
@@ -547,26 +535,15 @@ mod tests {
 
     #[test]
     fn parses_session_login_finish_and_cancel() {
-        let finish = Cli::try_parse_from([
-            "aget",
-            "session",
-            "login",
-            "finish",
-            "hellointerview",
-            "--name",
-            "hi",
-        ])
-        .unwrap();
-        let cancel =
-            Cli::try_parse_from(["aget", "session", "login", "cancel", "hellointerview"]).unwrap();
+        let finish = Cli::try_parse_from(["aget", "session", "login", "finish", "news"]).unwrap();
+        let cancel = Cli::try_parse_from(["aget", "session", "login", "cancel", "news"]).unwrap();
 
         assert_eq!(
             finish.command,
             Command::Session(SessionCommand {
                 command: SessionSubcommand::Login(LoginSessionCommand {
                     command: LoginSessionSubcommand::Finish(LoginFinishCommand {
-                        site: "hellointerview".to_string(),
-                        name: Some("hi".to_string()),
+                        name: "news".to_string(),
                     })
                 })
             })
@@ -576,8 +553,7 @@ mod tests {
             Command::Session(SessionCommand {
                 command: SessionSubcommand::Login(LoginSessionCommand {
                     command: LoginSessionSubcommand::Cancel(LoginCancelCommand {
-                        site: "hellointerview".to_string(),
-                        name: None,
+                        name: "news".to_string(),
                     })
                 })
             })

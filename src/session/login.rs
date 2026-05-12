@@ -11,13 +11,9 @@ use serde::{Deserialize, Serialize};
 use crate::error::{AgetError, ErrorCode};
 use crate::session::{Session, SessionCookie, SessionOrigin, SessionSource, StorageEntry};
 
-const HELLOINTERVIEW: &str = "hellointerview";
-const HELLOINTERVIEW_DOMAINS: [&str; 2] = ["hellointerview.com", "www.hellointerview.com"];
-
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct LoginStartOptions {
-    pub site: String,
-    pub name: Option<String>,
+    pub name: String,
     pub profile: Option<String>,
     pub url: String,
     pub tmp_dir: PathBuf,
@@ -25,21 +21,18 @@ pub struct LoginStartOptions {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct LoginFinishOptions {
-    pub site: String,
-    pub name: Option<String>,
+    pub name: String,
     pub tmp_dir: PathBuf,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct LoginCancelOptions {
-    pub site: String,
-    pub name: Option<String>,
+    pub name: String,
     pub tmp_dir: PathBuf,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct PendingLogin {
-    pub site: String,
     pub name: String,
     pub profile: String,
     pub agent_session: String,
@@ -127,28 +120,19 @@ struct AgentBrowserOutput {
 }
 
 pub fn start_login_session(options: LoginStartOptions) -> Result<LoginStartResult, AgetError> {
-    let site = login_site(&options.site)?;
-    let name = options
-        .name
-        .unwrap_or_else(|| site.default_name.to_string());
-    validate_login_name(&name)?;
+    validate_login_name(&options.name)?;
+    let allowed_domains = allowed_domains_from_url(&options.url)?;
     let profile = options
         .profile
         .map(PathBuf::from)
-        .unwrap_or_else(|| default_login_profile_path(&options.tmp_dir, site.default_name));
-    validate_login_url_host(&options.url, site.domains)?;
+        .unwrap_or_else(|| default_login_profile_path(&options.tmp_dir, &options.name));
     prepare_login_profile_path(&profile)?;
     let pending = PendingLogin {
-        site: site.name.to_string(),
-        agent_session: format!("aget-login-{name}"),
-        name,
+        agent_session: format!("aget-login-{}", options.name),
+        name: options.name,
         profile: profile.to_string_lossy().into_owned(),
         url: options.url,
-        allowed_domains: site
-            .domains
-            .iter()
-            .map(|domain| domain.to_string())
-            .collect(),
+        allowed_domains,
     };
 
     fs::create_dir_all(&options.tmp_dir).map_err(io_aget_error)?;
@@ -169,13 +153,8 @@ pub fn start_login_session(options: LoginStartOptions) -> Result<LoginStartResul
 }
 
 pub fn finish_login_session(options: LoginFinishOptions) -> Result<LoginFinishResult, AgetError> {
-    let site = login_site(&options.site)?;
-    let name = options
-        .name
-        .unwrap_or_else(|| site.default_name.to_string());
-    validate_login_name(&name)?;
-    let pending = read_pending_login(&options.tmp_dir, &name)?;
-    ensure_pending_site(&pending, site.name)?;
+    validate_login_name(&options.name)?;
+    let pending = read_pending_login(&options.tmp_dir, &options.name)?;
     let raw_state = RawStateFile::new(&options.tmp_dir).map_err(io_aget_error)?;
     let raw_state_path = raw_state.path().to_string_lossy().into_owned();
     let save = run_agent_browser(&[
@@ -209,26 +188,57 @@ pub fn finish_login_session(options: LoginFinishOptions) -> Result<LoginFinishRe
 }
 
 pub fn complete_login_session(options: LoginCompleteOptions) -> Result<(), AgetError> {
-    let site = login_site(&options.pending.site)?;
     validate_login_name(&options.pending.name)?;
-    ensure_pending_site(&options.pending, site.name)?;
     remove_pending_login(&options.tmp_dir, &options.pending.name).map_err(io_aget_error)?;
     Ok(())
 }
 
+pub fn merge_login_session(mut existing: Session, mut fresh: Session) -> Session {
+    let authorized_domains = fresh.allowed_cookie_domains.clone();
+    let authorized_origins = fresh.allowed_storage_origins.clone();
+
+    existing
+        .cookies
+        .retain(|cookie| !domain_allowed(&cookie.domain, &authorized_domains));
+    existing.origins.retain(|origin| {
+        !authorized_origins
+            .iter()
+            .any(|allowed| allowed == &origin.origin)
+    });
+    existing.allowed_cookie_domains.retain(|domain| {
+        !authorized_domains
+            .iter()
+            .any(|allowed| domain_matches_allowed(domain, allowed))
+    });
+    existing
+        .allowed_storage_origins
+        .retain(|origin| !authorized_origins.iter().any(|allowed| allowed == origin));
+
+    existing.source = fresh.source;
+    existing.sensitive = existing.sensitive || fresh.sensitive;
+    existing
+        .allowed_cookie_domains
+        .append(&mut fresh.allowed_cookie_domains);
+    existing.allowed_cookie_domains.sort();
+    existing.allowed_cookie_domains.dedup();
+    existing
+        .allowed_storage_origins
+        .append(&mut fresh.allowed_storage_origins);
+    existing.allowed_storage_origins.sort();
+    existing.allowed_storage_origins.dedup();
+    existing.cookies.append(&mut fresh.cookies);
+    existing.origins.append(&mut fresh.origins);
+    existing
+}
+
 pub fn cancel_login_session(options: LoginCancelOptions) -> Result<LoginCancelResult, AgetError> {
-    let site = login_site(&options.site)?;
-    let name = options
-        .name
-        .unwrap_or_else(|| site.default_name.to_string());
-    validate_login_name(&name)?;
-    let pending = read_pending_login(&options.tmp_dir, &name)?;
-    ensure_pending_site(&pending, site.name)?;
+    validate_login_name(&options.name)?;
+    let pending = read_pending_login(&options.tmp_dir, &options.name)?;
     let close = run_agent_browser(&["--session", &pending.agent_session, "close"])?;
     if !close.status.success() {
         return Err(classify_agent_browser_failure("close", &close));
     }
-    remove_pending_login(&options.tmp_dir, &name).map_err(io_aget_error)?;
+    remove_pending_login(&options.tmp_dir, &pending.name).map_err(io_aget_error)?;
     Ok(LoginCancelResult { pending })
 }
 
@@ -333,30 +343,8 @@ fn filter_agent_browser_state(
     Ok(session)
 }
 
-struct LoginSite {
-    name: &'static str,
-    default_name: &'static str,
-    domains: &'static [&'static str],
-}
-
-fn login_site(site: &str) -> Result<LoginSite, AgetError> {
-    match site {
-        HELLOINTERVIEW => Ok(LoginSite {
-            name: HELLOINTERVIEW,
-            default_name: HELLOINTERVIEW,
-            domains: &HELLOINTERVIEW_DOMAINS,
-        }),
-        _ => Err(AgetError::Stable {
-            code: ErrorCode::UsageError,
-            message: format!("unsupported login site '{site}'"),
-        }),
-    }
-}
-
-fn default_login_profile_path(tmp_dir: &Path, site_default_name: &str) -> PathBuf {
-    tmp_dir
-        .join("agent-browser")
-        .join(format!("aget-{site_default_name}"))
+fn default_login_profile_path(tmp_dir: &Path, name: &str) -> PathBuf {
+    tmp_dir.join("agent-browser").join(format!("aget-{name}"))
 }
 
 fn prepare_login_profile_path(profile: &Path) -> Result<(), AgetError> {
@@ -364,20 +352,6 @@ fn prepare_login_profile_path(profile: &Path) -> Result<(), AgetError> {
         fs::create_dir_all(parent).map_err(io_aget_error)?;
     }
     Ok(())
-}
-
-fn ensure_pending_site(pending: &PendingLogin, site: &str) -> Result<(), AgetError> {
-    if pending.site == site {
-        Ok(())
-    } else {
-        Err(AgetError::Stable {
-            code: ErrorCode::UsageError,
-            message: format!(
-                "pending login '{}' belongs to site '{}'",
-                pending.name, pending.site
-            ),
-        })
-    }
 }
 
 fn pending_login_path(tmp_dir: &Path, name: &str) -> PathBuf {
@@ -400,43 +374,31 @@ fn validate_login_name(name: &str) -> Result<(), AgetError> {
     Ok(())
 }
 
-fn validate_login_url_host(url: &str, allowed_domains: &[&str]) -> Result<(), AgetError> {
+fn allowed_domains_from_url(url: &str) -> Result<Vec<String>, AgetError> {
     let Some((scheme, _)) = url.split_once("://") else {
         return Err(AgetError::Stable {
             code: ErrorCode::UsageError,
-            message: format!("invalid HelloInterview login URL '{url}'"),
+            message: format!("invalid login URL '{url}'"),
         });
     };
     if !scheme.eq_ignore_ascii_case("https") {
         return Err(AgetError::Stable {
             code: ErrorCode::UsageError,
-            message: format!(
-                "HelloInterview login URL must use https://hellointerview.com or https://www.hellointerview.com, got '{url}'"
-            ),
+            message: format!("login URL must use https, got '{url}'"),
         });
     }
     let Some(host) = origin_host(url) else {
         return Err(AgetError::Stable {
             code: ErrorCode::UsageError,
-            message: format!("invalid HelloInterview login URL '{url}'"),
+            message: format!("invalid login URL '{url}'"),
         });
     };
 
-    let host_allowed = allowed_domains
-        .iter()
-        .map(|allowed| normalize_domain(allowed))
-        .any(|allowed| host == allowed);
-    if host_allowed {
-        return Ok(());
+    if let Some(bare_host) = host.strip_prefix("www.") {
+        Ok(vec![bare_host.to_string(), host])
+    } else {
+        Ok(vec![host])
     }
-
-    Err(AgetError::Stable {
-        code: ErrorCode::UsageError,
-        message: format!(
-            "HelloInterview login URL host '{host}' must be one of: {}",
-            allowed_domains.join(", ")
-        ),
-    })
 }
 
 fn write_pending_login(tmp_dir: &Path, pending: &PendingLogin) -> Result<(), AgetError> {

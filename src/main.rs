@@ -3,10 +3,10 @@ use std::process::ExitCode;
 use aget::session::SessionStore;
 use aget::{
     cancel_login_session, complete_login_session, compose_session, finish_login_session, get_url,
-    import_chrome_session, import_cmux_session, start_login_session, ChromeImportOptions, Cli,
-    CmuxImportOptions, Command, ErrorCode, ErrorResponse, GetOptions, ImportSessionSource,
-    LoginCancelOptions, LoginCompleteOptions, LoginFinishOptions, LoginSessionSubcommand,
-    LoginStartOptions, Session, SessionCookie, SessionSubcommand,
+    import_chrome_session, import_cmux_session, merge_login_session, start_login_session,
+    ChromeImportOptions, Cli, CmuxImportOptions, Command, ErrorCode, ErrorResponse, GetOptions,
+    ImportSessionSource, LoginCancelOptions, LoginCompleteOptions, LoginFinishOptions,
+    LoginSessionSubcommand, LoginStartOptions, Session, SessionCookie, SessionSubcommand,
 };
 
 fn main() -> ExitCode {
@@ -216,7 +216,6 @@ fn run_session(command: SessionSubcommand, json: bool) -> Result<(), ErrorRespon
         SessionSubcommand::Login(login) => match login.command {
             LoginSessionSubcommand::Start(start) => {
                 let result = start_login_session(LoginStartOptions {
-                    site: start.site,
                     name: start.name,
                     profile: start.profile,
                     url: start.url,
@@ -229,7 +228,6 @@ fn run_session(command: SessionSubcommand, json: bool) -> Result<(), ErrorRespon
                         serde_json::json!({
                             "ok": true,
                             "state": "login_started",
-                            "site": result.pending.site,
                             "name": result.pending.name,
                             "profile": result.pending.profile,
                             "agent_session": result.pending.agent_session,
@@ -240,18 +238,15 @@ fn run_session(command: SessionSubcommand, json: bool) -> Result<(), ErrorRespon
                                 "session",
                                 "login",
                                 "finish",
-                                result.pending.site,
-                                "--name",
                                 result.pending.name,
                             ],
                         })
                     );
                 } else {
                     println!(
-                        "Opened {} login in profile {}. After completing login, run: aget session login finish {} --name {}",
-                        result.pending.site,
+                        "Opened login bucket {} in profile {}. After completing login, run: aget session login finish {}",
+                        result.pending.name,
                         result.pending.profile,
-                        result.pending.site,
                         result.pending.name,
                     );
                 }
@@ -259,12 +254,16 @@ fn run_session(command: SessionSubcommand, json: bool) -> Result<(), ErrorRespon
             }
             LoginSessionSubcommand::Finish(finish) => {
                 let result = finish_login_session(LoginFinishOptions {
-                    site: finish.site,
                     name: finish.name,
                     tmp_dir: store.home().join("tmp"),
                 })
                 .map_err(error_response)?;
-                store.save(&result.session).map_err(io_error)?;
+                let session = match store.load(&result.session.name) {
+                    Ok(existing) => merge_login_session(existing, result.session),
+                    Err(error) if error.kind() == std::io::ErrorKind::NotFound => result.session,
+                    Err(error) => return Err(io_error(error)),
+                };
+                store.save(&session).map_err(io_error)?;
                 complete_login_session(LoginCompleteOptions {
                     pending: result.pending,
                     tmp_dir: store.home().join("tmp"),
@@ -276,25 +275,24 @@ fn run_session(command: SessionSubcommand, json: bool) -> Result<(), ErrorRespon
                         serde_json::json!({
                             "ok": true,
                             "state": "login_finished",
-                            "name": result.session.name,
+                            "name": session.name,
                             "source": "agent_browser",
-                            "cookie_count": result.session.cookies.len(),
-                            "origin_count": result.session.origins.len(),
+                            "cookie_count": session.cookies.len(),
+                            "origin_count": session.origins.len(),
                         })
                     );
                 } else {
                     println!(
                         "Saved session {} with {} cookies and {} origins",
-                        result.session.name,
-                        result.session.cookies.len(),
-                        result.session.origins.len(),
+                        session.name,
+                        session.cookies.len(),
+                        session.origins.len(),
                     );
                 }
                 Ok(())
             }
             LoginSessionSubcommand::Cancel(cancel) => {
                 let result = cancel_login_session(LoginCancelOptions {
-                    site: cancel.site,
                     name: cancel.name,
                     tmp_dir: store.home().join("tmp"),
                 })
@@ -305,7 +303,6 @@ fn run_session(command: SessionSubcommand, json: bool) -> Result<(), ErrorRespon
                         serde_json::json!({
                             "ok": true,
                             "state": "login_cancelled",
-                            "site": result.pending.site,
                             "name": result.pending.name,
                             "agent_session": result.pending.agent_session,
                         })

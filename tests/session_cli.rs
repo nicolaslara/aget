@@ -528,7 +528,7 @@ fn session_login_start_opens_aget_owned_browser_and_records_pending_flow() {
     let temp = tempfile::tempdir().unwrap();
     let aget_home = temp.path().join("aget-home");
     let log_path = temp.path().join("agent-browser.log");
-    let target_url = "https://www.hellointerview.com/learn/behavioral/course/select-choosing-responses-strategically";
+    let target_url = "https://www.nytimes.com/article";
     let fake_agent_browser = write_fake_agent_browser(
         temp.path(),
         r#"#!/usr/bin/env python3
@@ -543,7 +543,7 @@ print('unexpected args: ' + repr(args), file=sys.stderr)
 raise SystemExit(2)
 "#,
     );
-    let expected_profile = aget_home.join("tmp/agent-browser/aget-hellointerview");
+    let expected_profile = aget_home.join("tmp/agent-browser/aget-news");
 
     let mut cmd = Command::cargo_bin("aget").unwrap();
     let output = cmd
@@ -551,15 +551,7 @@ raise SystemExit(2)
         .env("AGET_AGENT_BROWSER_COMMAND", &fake_agent_browser)
         .env("AGET_FAKE_AGENT_BROWSER_LOG", &log_path)
         .args([
-            "--json",
-            "session",
-            "login",
-            "start",
-            "hellointerview",
-            "--url",
-            target_url,
-            "--name",
-            "hi",
+            "--json", "session", "login", "start", "news", "--url", target_url,
         ])
         .assert()
         .success()
@@ -570,8 +562,8 @@ raise SystemExit(2)
     let json: serde_json::Value = serde_json::from_slice(&output).unwrap();
     assert_eq!(json["ok"], true);
     assert_eq!(json["state"], "login_started");
-    assert_eq!(json["site"], "hellointerview");
-    assert_eq!(json["name"], "hi");
+    assert!(json.get("site").is_none());
+    assert_eq!(json["name"], "news");
     assert_eq!(
         PathBuf::from(json["profile"].as_str().unwrap()),
         expected_profile
@@ -579,32 +571,24 @@ raise SystemExit(2)
     assert_eq!(json["url"], target_url);
     assert_eq!(
         json["allowed_domains"],
-        serde_json::json!(["hellointerview.com", "www.hellointerview.com"])
+        serde_json::json!(["nytimes.com", "www.nytimes.com"])
     );
     assert_eq!(
         json["next_command"],
-        serde_json::json!([
-            "aget",
-            "session",
-            "login",
-            "finish",
-            "hellointerview",
-            "--name",
-            "hi"
-        ])
+        serde_json::json!(["aget", "session", "login", "finish", "news"])
     );
     let log = fs::read_to_string(&log_path).unwrap();
     assert!(log.contains(&format!(
-        r#""--profile", "{}", "--session", "aget-login-hi", "open""#,
+        r#""--profile", "{}", "--session", "aget-login-news", "open""#,
         expected_profile.display()
     )));
     assert!(log.contains(target_url));
-    assert!(aget_home.join("tmp/login-hi.json").exists());
+    assert!(aget_home.join("tmp/login-news.json").exists());
     assert!(expected_profile.parent().unwrap().exists());
 }
 
 #[test]
-fn session_login_start_rejects_http_hellointerview_url_before_agent_browser() {
+fn session_login_start_rejects_http_url_before_agent_browser() {
     let temp = tempfile::tempdir().unwrap();
     let aget_home = temp.path().join("aget-home");
     let log_path = temp.path().join("agent-browser.log");
@@ -630,9 +614,9 @@ raise SystemExit(0)
             "session",
             "login",
             "start",
-            "hellointerview",
+            "news",
             "--url",
-            "http://www.hellointerview.com/login",
+            "http://www.nytimes.com/login",
         ])
         .assert()
         .failure()
@@ -645,13 +629,13 @@ raise SystemExit(0)
     assert!(json["error"]["message"]
         .as_str()
         .unwrap()
-        .contains("must use https://hellointerview.com or https://www.hellointerview.com"));
+        .contains("login URL must use https"));
     assert!(!log_path.exists() || fs::read_to_string(&log_path).unwrap().is_empty());
-    assert!(!aget_home.join("tmp/login-hellointerview.json").exists());
+    assert!(!aget_home.join("tmp/login-news.json").exists());
 }
 
 #[test]
-fn session_login_start_rejects_non_hellointerview_url_before_agent_browser() {
+fn session_login_start_uses_exact_non_www_url_host_scope() {
     let temp = tempfile::tempdir().unwrap();
     let aget_home = temp.path().join("aget-home");
     let log_path = temp.path().join("agent-browser.log");
@@ -663,7 +647,9 @@ args = sys.argv[1:]
 log = pathlib.Path(os.environ['AGET_FAKE_AGENT_BROWSER_LOG'])
 with log.open('a', encoding='utf-8') as handle:
     handle.write(json.dumps(args) + '\n')
-raise SystemExit(0)
+if args[-2:-1] == ['open']:
+    raise SystemExit(0)
+raise SystemExit(2)
 "#,
     );
 
@@ -677,24 +663,23 @@ raise SystemExit(0)
             "session",
             "login",
             "start",
-            "hellointerview",
+            "docs",
             "--url",
-            "https://example.com/login",
+            "https://docs.example.com/login",
         ])
         .assert()
-        .failure()
+        .success()
         .get_output()
-        .stderr
+        .stdout
         .clone();
 
     let json: serde_json::Value = serde_json::from_slice(&output).unwrap();
-    assert_eq!(json["error"]["code"], "usage_error");
-    assert!(json["error"]["message"]
-        .as_str()
-        .unwrap()
-        .contains("HelloInterview login URL host 'example.com'"));
-    assert!(!log_path.exists() || fs::read_to_string(&log_path).unwrap().is_empty());
-    assert!(!aget_home.join("tmp/login-hellointerview.json").exists());
+    assert_eq!(json["name"], "docs");
+    assert_eq!(
+        json["allowed_domains"],
+        serde_json::json!(["docs.example.com"])
+    );
+    assert!(aget_home.join("tmp/login-docs.json").exists());
 }
 
 #[test]
@@ -719,8 +704,8 @@ raise SystemExit(2)
 "#,
     );
 
-    let first_url = "https://www.hellointerview.com/learn/behavioral/course/select-choosing-responses-strategically";
-    let second_url = "https://www.hellointerview.com/login";
+    let first_url = "https://www.nytimes.com/article";
+    let second_url = "https://www.nytimes.com/login";
 
     let mut first = Command::cargo_bin("aget").unwrap();
     first
@@ -731,18 +716,16 @@ raise SystemExit(2)
             "session",
             "login",
             "start",
-            "hellointerview",
+            "news",
             "--url",
             first_url,
-            "--name",
-            "hi",
             "--profile",
             "aget-hi",
         ])
         .assert()
         .success();
 
-    let pending_path = aget_home.join("tmp/login-hi.json");
+    let pending_path = aget_home.join("tmp/login-news.json");
     let original_pending = fs::read_to_string(&pending_path).unwrap();
 
     let mut second = Command::cargo_bin("aget").unwrap();
@@ -755,11 +738,9 @@ raise SystemExit(2)
             "session",
             "login",
             "start",
-            "hellointerview",
+            "news",
             "--url",
             second_url,
-            "--name",
-            "hi",
             "--profile",
             "aget-hi-2",
         ])
@@ -774,16 +755,16 @@ raise SystemExit(2)
     assert!(json["error"]["message"]
         .as_str()
         .unwrap()
-        .contains("pending login flow named 'hi' already exists"));
+        .contains("pending login flow named 'news' already exists"));
     assert_eq!(fs::read_to_string(&pending_path).unwrap(), original_pending);
     let log = fs::read_to_string(&log_path).unwrap();
-    assert!(log.contains(r#""--profile", "aget-hi", "--session", "aget-login-hi", "open""#));
+    assert!(log.contains(r#""--profile", "aget-hi", "--session", "aget-login-news", "open""#));
     assert!(!log.contains(r#"aget-hi-2"#));
-    assert!(!log.contains(r#"["--session", "aget-login-hi", "close"]"#));
+    assert!(!log.contains(r#"["--session", "aget-login-news", "close"]"#));
 }
 
 #[test]
-fn session_login_finish_saves_only_hellointerview_state_and_cleans_temp_files() {
+fn session_login_finish_saves_only_url_scoped_state_and_cleans_temp_files() {
     let temp = tempfile::tempdir().unwrap();
     let aget_home = temp.path().join("aget-home");
     let log_path = temp.path().join("agent-browser.log");
@@ -803,11 +784,11 @@ if len(args) == 5 and args[:1] == ['--session'] and args[2:4] == ['state', 'save
         handle.write('STATE_PATH=' + str(state_path) + '\n')
     state = {
         'cookies': [
-            {'name': 'hi_session', 'value': 'hi-secret', 'domain': 'www.hellointerview.com', 'path': '/', 'expires': 1812619153.69691, 'httpOnly': True, 'secure': True, 'sameSite': 'Lax'},
+            {'name': 'nyt_session', 'value': 'nyt-secret', 'domain': '.nytimes.com', 'path': '/', 'expires': 1812619153.69691, 'httpOnly': True, 'secure': True, 'sameSite': 'Lax'},
             {'name': 'provider', 'value': 'google-secret', 'domain': 'accounts.google.com', 'path': '/', 'httpOnly': True, 'secure': True},
         ],
         'origins': [
-            {'origin': 'https://www.hellointerview.com', 'localStorage': [{'name': 'token', 'value': 'hi-storage'}]},
+            {'origin': 'https://www.nytimes.com', 'localStorage': [{'name': 'token', 'value': 'nyt-storage'}]},
             {'origin': 'https://accounts.google.com', 'localStorage': [{'name': 'provider', 'value': 'google-storage'}]},
         ],
     }
@@ -829,11 +810,9 @@ raise SystemExit(2)
             "session",
             "login",
             "start",
-            "hellointerview",
+            "news",
             "--url",
-            "https://www.hellointerview.com/learn/behavioral/course/select-choosing-responses-strategically",
-            "--name",
-            "hellointerview",
+            "https://www.nytimes.com/article",
         ])
         .assert()
         .success();
@@ -843,7 +822,7 @@ raise SystemExit(2)
         .env("AGET_HOME", &aget_home)
         .env("AGET_AGENT_BROWSER_COMMAND", &fake_agent_browser)
         .env("AGET_FAKE_AGENT_BROWSER_LOG", &log_path)
-        .args(["--json", "session", "login", "finish", "hellointerview"])
+        .args(["--json", "session", "login", "finish", "news"])
         .assert()
         .success()
         .get_output()
@@ -853,29 +832,26 @@ raise SystemExit(2)
     let json: serde_json::Value = serde_json::from_slice(&output).unwrap();
     assert_eq!(json["ok"], true);
     assert_eq!(json["state"], "login_finished");
-    assert_eq!(json["name"], "hellointerview");
+    assert_eq!(json["name"], "news");
     assert_eq!(json["cookie_count"], 1);
     assert_eq!(json["origin_count"], 1);
 
     let store = SessionStore::new(&aget_home).unwrap();
-    let session = store.load("hellointerview").unwrap();
+    let session = store.load("news").unwrap();
     assert_eq!(
         session.source,
         SessionSource::AgentBrowser {
-            session: "aget-login-hellointerview".to_string()
+            session: "aget-login-news".to_string()
         }
     );
     assert_eq!(
         session.allowed_cookie_domains,
-        vec![
-            "hellointerview.com".to_string(),
-            "www.hellointerview.com".to_string()
-        ]
+        vec!["nytimes.com".to_string(), "www.nytimes.com".to_string()]
     );
     assert_eq!(session.cookies.len(), 1);
-    assert_eq!(session.cookies[0].name, "hi_session");
+    assert_eq!(session.cookies[0].name, "nyt_session");
     assert_eq!(session.origins.len(), 1);
-    assert_eq!(session.origins[0].origin, "https://www.hellointerview.com");
+    assert_eq!(session.origins[0].origin, "https://www.nytimes.com");
     assert!(!session
         .cookies
         .iter()
@@ -884,7 +860,7 @@ raise SystemExit(2)
         .origins
         .iter()
         .any(|origin| origin.origin.contains("google")));
-    assert!(!aget_home.join("tmp/login-hellointerview.json").exists());
+    assert!(!aget_home.join("tmp/login-news.json").exists());
     let log = fs::read_to_string(&log_path).unwrap();
     assert!(log.contains(r#""state", "save""#));
     assert!(log.contains(r#""close""#));
@@ -894,6 +870,131 @@ raise SystemExit(2)
         .map(PathBuf::from)
         .unwrap();
     assert!(!raw_state_path.exists());
+}
+
+#[test]
+fn session_login_finish_merges_new_scope_into_existing_bucket() {
+    let temp = tempfile::tempdir().unwrap();
+    let aget_home = temp.path().join("aget-home");
+    let log_path = temp.path().join("agent-browser.log");
+    let store = SessionStore::new(&aget_home).unwrap();
+    let mut existing = named_session("news", "nyt_old", "old-nyt-secret", ".nytimes.com");
+    existing.allowed_cookie_domains.push("ft.com".to_string());
+    existing.cookies.push(SessionCookie {
+        name: "ft_session".to_string(),
+        value: "ft-secret".to_string(),
+        domain: "ft.com".to_string(),
+        path: "/".to_string(),
+        expires: None,
+        http_only: true,
+        secure: true,
+        same_site: Some("Lax".to_string()),
+        source_session: None,
+    });
+    existing.allowed_storage_origins = vec![
+        "https://www.nytimes.com".to_string(),
+        "https://www.ft.com".to_string(),
+    ];
+    existing.origins.push(session_origin(
+        "https://www.nytimes.com",
+        "old-token",
+        "old-storage",
+    ));
+    existing.origins.push(session_origin(
+        "https://www.ft.com",
+        "ft-token",
+        "ft-storage",
+    ));
+    store.save(&existing).unwrap();
+
+    let fake_agent_browser = write_fake_agent_browser(
+        temp.path(),
+        r#"#!/usr/bin/env python3
+import json, os, pathlib, sys
+args = sys.argv[1:]
+log = pathlib.Path(os.environ['AGET_FAKE_AGENT_BROWSER_LOG'])
+with log.open('a', encoding='utf-8') as handle:
+    handle.write(json.dumps(args) + '\n')
+if args[-2:-1] == ['open']:
+    raise SystemExit(0)
+if args[2:4] == ['state', 'save']:
+    state_path = pathlib.Path(args[4])
+    state = {
+        'cookies': [
+            {'name': 'nyt_new', 'value': 'new-nyt-secret', 'domain': '.nytimes.com', 'path': '/', 'httpOnly': True, 'secure': True},
+            {'name': 'provider', 'value': 'google-secret', 'domain': 'accounts.google.com', 'path': '/', 'httpOnly': True, 'secure': True},
+        ],
+        'origins': [
+            {'origin': 'https://www.nytimes.com', 'localStorage': [{'name': 'new-token', 'value': 'new-storage'}]},
+            {'origin': 'https://accounts.google.com', 'localStorage': [{'name': 'provider', 'value': 'google-storage'}]},
+        ],
+    }
+    state_path.write_text(json.dumps(state), encoding='utf-8')
+    raise SystemExit(0)
+if args[-1:] == ['close']:
+    raise SystemExit(0)
+raise SystemExit(2)
+"#,
+    );
+
+    let mut start = Command::cargo_bin("aget").unwrap();
+    start
+        .env("AGET_HOME", &aget_home)
+        .env("AGET_AGENT_BROWSER_COMMAND", &fake_agent_browser)
+        .env("AGET_FAKE_AGENT_BROWSER_LOG", &log_path)
+        .args([
+            "session",
+            "login",
+            "start",
+            "news",
+            "--url",
+            "https://www.nytimes.com/article",
+        ])
+        .assert()
+        .success();
+
+    let mut finish = Command::cargo_bin("aget").unwrap();
+    finish
+        .env("AGET_HOME", &aget_home)
+        .env("AGET_AGENT_BROWSER_COMMAND", &fake_agent_browser)
+        .env("AGET_FAKE_AGENT_BROWSER_LOG", &log_path)
+        .args(["session", "login", "finish", "news"])
+        .assert()
+        .success();
+
+    let merged = store.load("news").unwrap();
+    assert!(merged.cookies.iter().any(|cookie| cookie.name == "nyt_new"));
+    assert!(merged
+        .cookies
+        .iter()
+        .any(|cookie| cookie.name == "ft_session"));
+    assert!(!merged.cookies.iter().any(|cookie| cookie.name == "nyt_old"));
+    assert!(merged.origins.iter().any(|origin| {
+        origin.origin == "https://www.nytimes.com"
+            && origin
+                .local_storage
+                .iter()
+                .any(|entry| entry.name == "new-token")
+    }));
+    assert!(merged
+        .origins
+        .iter()
+        .any(|origin| origin.origin == "https://www.ft.com"));
+    assert!(!merged.origins.iter().any(|origin| {
+        origin.origin == "https://www.nytimes.com"
+            && origin
+                .local_storage
+                .iter()
+                .any(|entry| entry.name == "old-token")
+    }));
+    assert_eq!(
+        merged.allowed_cookie_domains,
+        vec![
+            "ft.com".to_string(),
+            "nytimes.com".to_string(),
+            "www.nytimes.com".to_string()
+        ]
+    );
 }
 
 #[test]
@@ -915,10 +1016,10 @@ if len(args) == 5 and args[:1] == ['--session'] and args[2:4] == ['state', 'save
     state_path = pathlib.Path(args[4])
     state = {
         'cookies': [
-            {'name': 'hi_session', 'value': 'hi-secret', 'domain': 'www.hellointerview.com', 'path': '/', 'expires': 1812619153.69691, 'httpOnly': True, 'secure': True, 'sameSite': 'Lax'},
+            {'name': 'nyt_session', 'value': 'nyt-secret', 'domain': '.nytimes.com', 'path': '/', 'expires': 1812619153.69691, 'httpOnly': True, 'secure': True, 'sameSite': 'Lax'},
         ],
         'origins': [
-            {'origin': 'https://www.hellointerview.com', 'localStorage': [{'name': 'token', 'value': 'hi-storage'}]},
+            {'origin': 'https://www.nytimes.com', 'localStorage': [{'name': 'token', 'value': 'nyt-storage'}]},
         ],
     }
     state_path.write_text(json.dumps(state), encoding='utf-8')
@@ -940,11 +1041,9 @@ raise SystemExit(2)
             "session",
             "login",
             "start",
-            "hellointerview",
+            "news",
             "--url",
-            "https://www.hellointerview.com/learn/behavioral/course/select-choosing-responses-strategically",
-            "--name",
-            "hellointerview",
+            "https://www.nytimes.com/article",
         ])
         .assert()
         .success();
@@ -954,7 +1053,7 @@ raise SystemExit(2)
         .env("AGET_HOME", &aget_home)
         .env("AGET_AGENT_BROWSER_COMMAND", &fake_agent_browser)
         .env("AGET_FAKE_AGENT_BROWSER_LOG", &log_path)
-        .args(["--json", "session", "login", "finish", "hellointerview"])
+        .args(["--json", "session", "login", "finish", "news"])
         .assert()
         .failure()
         .get_output()
@@ -967,13 +1066,10 @@ raise SystemExit(2)
         .as_str()
         .unwrap()
         .contains("close failed"));
-    assert!(aget_home.join("tmp/login-hellointerview.json").exists());
-    assert!(SessionStore::new(&aget_home)
-        .unwrap()
-        .load("hellointerview")
-        .is_err());
+    assert!(aget_home.join("tmp/login-news.json").exists());
+    assert!(SessionStore::new(&aget_home).unwrap().load("news").is_err());
     let log = fs::read_to_string(&log_path).unwrap();
-    assert!(log.contains(r#"["--session", "aget-login-hellointerview", "close"]"#));
+    assert!(log.contains(r#"["--session", "aget-login-news", "close"]"#));
 }
 
 #[test]
@@ -996,10 +1092,10 @@ if len(args) == 5 and args[:1] == ['--session'] and args[2:4] == ['state', 'save
     state_path = pathlib.Path(args[4])
     state = {
         'cookies': [
-            {'name': 'hi_session', 'value': 'hi-secret', 'domain': 'www.hellointerview.com', 'path': '/', 'expires': 1812619153.69691, 'httpOnly': True, 'secure': True, 'sameSite': 'Lax'},
+            {'name': 'nyt_session', 'value': 'nyt-secret', 'domain': '.nytimes.com', 'path': '/', 'expires': 1812619153.69691, 'httpOnly': True, 'secure': True, 'sameSite': 'Lax'},
         ],
         'origins': [
-            {'origin': 'https://www.hellointerview.com', 'localStorage': [{'name': 'token', 'value': 'hi-storage'}]},
+            {'origin': 'https://www.nytimes.com', 'localStorage': [{'name': 'token', 'value': 'nyt-storage'}]},
         ],
     }
     state_path.write_text(json.dumps(state), encoding='utf-8')
@@ -1016,22 +1112,20 @@ raise SystemExit(2)
     }
 
     let start_result = start_login_session(LoginStartOptions {
-        site: "hellointerview".to_string(),
-        name: Some("hi".to_string()),
+        name: "hi".to_string(),
         profile: None,
-        url: "https://www.hellointerview.com/learn/behavioral/course/select-choosing-responses-strategically".to_string(),
+        url: "https://www.nytimes.com/article".to_string(),
         tmp_dir: tmp_dir.clone(),
     })
     .unwrap();
     assert!(tmp_dir.join("login-hi.json").exists());
     assert_eq!(
         PathBuf::from(&start_result.pending.profile),
-        tmp_dir.join("agent-browser/aget-hellointerview")
+        tmp_dir.join("agent-browser/aget-hi")
     );
 
     let finish_result = finish_login_session(LoginFinishOptions {
-        site: "hellointerview".to_string(),
-        name: Some("hi".to_string()),
+        name: "hi".to_string(),
         tmp_dir: tmp_dir.clone(),
     })
     .unwrap();
