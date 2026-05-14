@@ -64,10 +64,10 @@ print(json.dumps({'ok': True, 'final_url': args.url + '/final', 'content': conte
     assert_eq!(json["limits"]["truncated"], false);
     assert!(json["timing_ms"]["total"].as_u64().is_some());
 
-    let markdown_path = PathBuf::from(json["artifacts"]["markdown"].as_str().unwrap());
+    let content_path = PathBuf::from(json["artifacts"]["content"].as_str().unwrap());
     let metadata_path = PathBuf::from(json["artifacts"]["metadata"].as_str().unwrap());
     assert_eq!(
-        fs::read_to_string(&markdown_path).unwrap(),
+        fs::read_to_string(&content_path).unwrap(),
         "# Example\n\nFetched locally.\n"
     );
     assert!(metadata_path.starts_with(aget_home.join("runs")));
@@ -77,8 +77,8 @@ print(json.dumps({'ok': True, 'final_url': args.url + '/final', 'content': conte
     assert_eq!(metadata["ok"], true);
     assert_eq!(metadata["extractor"], "crawl4ai");
     assert_eq!(
-        metadata["artifacts"]["markdown"],
-        markdown_path.to_string_lossy().as_ref()
+        metadata["artifacts"]["content"],
+        content_path.to_string_lossy().as_ref()
     );
     assert!(fs::read_dir(aget_home.join("tmp"))
         .unwrap()
@@ -114,7 +114,7 @@ fn get_out_writes_markdown_to_requested_path_and_metadata_to_run_dir() {
     let json: serde_json::Value = serde_json::from_slice(&output).unwrap();
     assert_eq!(json["extractor"], "crawl4ai");
     assert_eq!(
-        json["artifacts"]["markdown"].as_str().unwrap(),
+        json["artifacts"]["content"].as_str().unwrap(),
         out_path.to_string_lossy().as_ref()
     );
     assert_eq!(fs::read_to_string(&out_path).unwrap(), "# Fake\n");
@@ -457,8 +457,8 @@ print(json.dumps({'ok': True, 'final_url': args.url + '#done', 'content': conten
         serde_json::json!({"cache": "bypass", "magic": "value"})
     );
 
-    let markdown_path = PathBuf::from(json["artifacts"]["markdown"].as_str().unwrap());
-    assert_eq!(fs::read_to_string(&markdown_path).unwrap(), "aé💡\n");
+    let content_path = PathBuf::from(json["artifacts"]["content"].as_str().unwrap());
+    assert_eq!(fs::read_to_string(&content_path).unwrap(), "aé💡\n");
     let metadata_path = PathBuf::from(json["artifacts"]["metadata"].as_str().unwrap());
     let metadata: serde_json::Value =
         serde_json::from_str(&fs::read_to_string(metadata_path).unwrap()).unwrap();

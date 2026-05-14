@@ -140,7 +140,7 @@ Example:
   "extractor": "crawl4ai",
   "content": "# Example\n...",
   "artifacts": {
-    "markdown": "/Users/me/.aget/runs/abc123/output.md",
+    "content": "/Users/me/.aget/runs/abc123/output.md",
     "metadata": "/Users/me/.aget/runs/abc123/metadata.json"
   },
   "sessions": [],

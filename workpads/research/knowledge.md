@@ -325,7 +325,7 @@ Success shape:
   "format": "markdown",
   "content": "# Example...",
   "artifacts": {
-    "markdown": "/Users/name/.aget/runs/run-id/content.md",
+    "content": "/Users/name/.aget/runs/run-id/content.md",
     "metadata": "/Users/name/.aget/runs/run-id/metadata.json"
   },
   "sessions": [],

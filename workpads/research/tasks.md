@@ -255,7 +255,7 @@ Acceptance criteria:
 
 - Decide whether to keep `--json` as-is, add a clearer alias such as `--envelope`, or rename the page-content `--format json` value.
 - Remove, implement, or explicitly deprecate non-enforced API promises before agents depend on them. `--max-tokens` and `--only-main` have been removed from the active CLI/API until they can be enforced.
-- Rename `artifacts.markdown` to a content-format-neutral key, or document a short compatibility window if keeping the old key temporarily.
+- Rename `artifacts.markdown` to a content-format-neutral key. The active envelope now uses `artifacts.content`.
 - Stabilize JSON command output around one agent-friendly envelope shape before `I9` uses it as the OpenCode behavior source of truth.
 - Decide how backend-specific `--extractor-option` should be namespaced or constrained before adding another extractor.
 

@@ -51,7 +51,7 @@ pub struct GetSuccess {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Artifacts {
-    pub markdown: String,
+    pub content: String,
     pub metadata: String,
 }
 
@@ -108,11 +108,11 @@ pub fn get_url(options: GetOptions) -> Result<GetSuccess, AgetError> {
     let run_dir = store.home().join("runs").join(run_id());
     create_private_dir(&run_dir).map_err(io_aget_error)?;
 
-    let markdown_path = options
+    let content_path = options
         .out
         .clone()
         .unwrap_or_else(|| run_dir.join("content.md"));
-    if let Some(parent) = markdown_path.parent() {
+    if let Some(parent) = content_path.parent() {
         fs::create_dir_all(parent).map_err(io_aget_error)?;
     }
     let metadata_path = run_dir.join("metadata.json");
@@ -120,7 +120,7 @@ pub fn get_url(options: GetOptions) -> Result<GetSuccess, AgetError> {
     let backend = match run_backend(
         &options.url,
         temp_state.path(),
-        &markdown_path,
+        &content_path,
         &metadata_path,
         &options,
         options.timeout.unwrap_or(DEFAULT_TIMEOUT),
@@ -138,7 +138,7 @@ pub fn get_url(options: GetOptions) -> Result<GetSuccess, AgetError> {
                 ) {
                     return finalize_success(
                         &options,
-                        &markdown_path,
+                        &content_path,
                         &metadata_path,
                         selected_session_names,
                         sensitive,
@@ -152,7 +152,7 @@ pub fn get_url(options: GetOptions) -> Result<GetSuccess, AgetError> {
             let _ = write_error_metadata(
                 &metadata_path,
                 &options.url,
-                &markdown_path,
+                &content_path,
                 &selected_session_names,
                 sensitive,
                 &output_options,
@@ -189,7 +189,7 @@ pub fn get_url(options: GetOptions) -> Result<GetSuccess, AgetError> {
             ) {
                 return finalize_success(
                     &options,
-                    &markdown_path,
+                    &content_path,
                     &metadata_path,
                     selected_session_names,
                     sensitive,
@@ -202,7 +202,7 @@ pub fn get_url(options: GetOptions) -> Result<GetSuccess, AgetError> {
         let _ = write_error_metadata(
             &metadata_path,
             &options.url,
-            &markdown_path,
+            &content_path,
             &selected_session_names,
             sensitive,
             &output_options,
@@ -215,16 +215,16 @@ pub fn get_url(options: GetOptions) -> Result<GetSuccess, AgetError> {
 
     let content = match backend.content {
         Some(content) => content,
-        None => fs::read_to_string(&markdown_path).map_err(|error| AgetError::Stable {
+        None => fs::read_to_string(&content_path).map_err(|error| AgetError::Stable {
             code: ErrorCode::ExtractionFailed,
             message: format!(
-                "backend did not return content and markdown artifact could not be read: {error}"
+                "backend did not return content and content artifact could not be read: {error}"
             ),
         })?,
     };
     finalize_success(
         &options,
-        &markdown_path,
+        &content_path,
         &metadata_path,
         selected_session_names,
         sensitive,
@@ -248,7 +248,7 @@ struct SuccessfulExtraction {
 
 fn finalize_success(
     options: &GetOptions,
-    markdown_path: &Path,
+    content_path: &Path,
     metadata_path: &Path,
     selected_session_names: Vec<String>,
     sensitive: bool,
@@ -258,7 +258,7 @@ fn finalize_success(
 ) -> Result<GetSuccess, AgetError> {
     let limits = apply_limits(extraction.content, options.max_chars);
     let content = limits.content;
-    write_private_file(markdown_path, content.as_bytes()).map_err(io_aget_error)?;
+    write_private_file(content_path, content.as_bytes()).map_err(io_aget_error)?;
 
     let success = GetSuccess {
         ok: true,
@@ -268,7 +268,7 @@ fn finalize_success(
         extractor: extraction.extractor,
         content,
         artifacts: Artifacts {
-            markdown: markdown_path.to_string_lossy().into_owned(),
+            content: content_path.to_string_lossy().into_owned(),
             metadata: metadata_path.to_string_lossy().into_owned(),
         },
         sessions: selected_session_names,
@@ -390,7 +390,7 @@ fn redact_values(text: &str, sensitive_values: &[String]) -> String {
 fn run_backend(
     url: &str,
     state_path: &Path,
-    markdown_path: &Path,
+    content_path: &Path,
     metadata_path: &Path,
     options: &GetOptions,
     timeout: Duration,
@@ -401,7 +401,7 @@ fn run_backend(
         "--state".to_string(),
         state_path.to_string_lossy().into_owned(),
         "--output".to_string(),
-        markdown_path.to_string_lossy().into_owned(),
+        content_path.to_string_lossy().into_owned(),
         "--metadata".to_string(),
         metadata_path.to_string_lossy().into_owned(),
         "--format".to_string(),
@@ -934,7 +934,7 @@ fn terminate_backend(child: &mut std::process::Child) {
 fn write_error_metadata(
     path: &Path,
     url: &str,
-    markdown_path: &Path,
+    content_path: &Path,
     sessions: &[String],
     sensitive: bool,
     output_options: &OutputOptions,
@@ -951,7 +951,7 @@ fn write_error_metadata(
         "format": options.format.to_string(),
         "extractor": EXTRACTOR,
         "artifacts": {
-            "markdown": markdown_path.to_string_lossy(),
+            "content": content_path.to_string_lossy(),
             "metadata": path.to_string_lossy(),
         },
         "sessions": sessions,
