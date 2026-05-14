@@ -7,6 +7,7 @@ fn top_level_help_includes_global_flags() {
 
     cmd.arg("--help").assert().success().stdout(
         predicate::str::contains("--json")
+            .and(predicate::str::contains("--envelope"))
             .and(predicate::str::contains("--timeout"))
             .and(predicate::str::contains("get")),
     );
@@ -126,6 +127,46 @@ print(json.dumps({'ok': True, 'final_url': args.url, 'content': content, 'warnin
     assert_eq!(json["ok"], true);
     assert_eq!(json["format"], "html");
     assert_eq!(json["content"], "<main>Example</main>");
+}
+
+#[test]
+fn envelope_global_flag_emits_structured_output() {
+    let temp = tempfile::tempdir().unwrap();
+    let fake_backend = temp.path().join("fake_backend.py");
+    std::fs::write(
+        &fake_backend,
+        r#"#!/usr/bin/env python3
+import argparse, json, pathlib
+parser = argparse.ArgumentParser()
+parser.add_argument('--url', required=True)
+parser.add_argument('--state', required=True)
+parser.add_argument('--output', required=True)
+parser.add_argument('--metadata', required=True)
+args, _unknown = parser.parse_known_args()
+content = '# Example\n'
+pathlib.Path(args.output).write_text(content, encoding='utf-8')
+print(json.dumps({'ok': True, 'final_url': args.url, 'content': content, 'warnings': []}))
+"#,
+    )
+    .unwrap();
+    let mut cmd = Command::cargo_bin("aget").unwrap();
+
+    let output = cmd
+        .env("AGET_HOME", temp.path().join("aget-home"))
+        .env(
+            "AGET_CRAWL4AI_COMMAND",
+            format!("python3 {}", shell_quote(&fake_backend.to_string_lossy())),
+        )
+        .args(["--envelope", "get", "https://example.com"])
+        .assert()
+        .success()
+        .get_output()
+        .stdout
+        .clone();
+
+    let json: serde_json::Value = serde_json::from_slice(&output).unwrap();
+    assert_eq!(json["ok"], true);
+    assert_eq!(json["content"], "# Example\n");
 }
 
 fn shell_quote(value: &str) -> String {

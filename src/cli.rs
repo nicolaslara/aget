@@ -35,6 +35,9 @@ pub struct GlobalOptions {
     #[arg(long, global = true)]
     pub json: bool,
 
+    #[arg(long, global = true)]
+    pub envelope: bool,
+
     #[arg(long, value_parser = parse_duration_secs, global = true)]
     pub timeout: Option<Duration>,
 
@@ -312,6 +315,14 @@ mod tests {
 
         assert!(cli.global.json);
         assert_eq!(cli.global.timeout, Some(Duration::from_secs(30)));
+    }
+
+    #[test]
+    fn parses_envelope_alias_for_structured_output() {
+        let cli =
+            Cli::try_parse_from(["aget", "get", "https://example.com", "--envelope"]).unwrap();
+
+        assert!(cli.global.envelope);
     }
 
     #[test]

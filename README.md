@@ -10,7 +10,7 @@ What works today:
 
 - `aget get <url>`
 - `aget <url>` as a shortcut alias
-- `--json`
+- `--json` / `--envelope` structured output
 - `--out <path>`
 - output shaping with `--format`, CSS selectors, wait conditions, and deterministic character limits
 - repeated `--session <name>` flags for explicit named-session replay and composition
@@ -40,7 +40,7 @@ Run the CLI from the repo root:
 ```bash
 cargo run --quiet -- get https://example.com
 cargo run --quiet -- https://example.com
-cargo run --quiet -- get https://example.com --json
+cargo run --quiet -- get https://example.com --envelope
 cargo run --quiet -- get https://example.com --out /tmp/example.md
 cargo run --quiet -- get https://example.com --format text --selector main --max-chars 4000 --json
 cargo run --quiet -- get https://example.com/account --session my-session --json
@@ -88,12 +88,12 @@ It exercises a static public page and a JS-rendered page using the real default 
 Concise usage:
 
 ```text
-aget get <url> [--session <name>...] [--json] [--out <path>] [--timeout <seconds>]
+aget get <url> [--session <name>...] [--json|--envelope] [--out <path>] [--timeout <seconds>]
               [--format <markdown|html|text|json>] [--selector <css>]
               [--exclude-selector <css>] [--wait-for <text-or-selector>]
               [--max-chars <n>]
               [--extractor-option <key=value>...]
-aget <url> [--session <name>...] [--json] [--out <path>] [--timeout <seconds>]
+aget <url> [--session <name>...] [--json|--envelope] [--out <path>] [--timeout <seconds>]
            [--format <markdown|html|text|json>] [--selector <css>]
            [--exclude-selector <css>] [--wait-for <text-or-selector>]
            [--max-chars <n>]
@@ -113,7 +113,7 @@ Notes:
 
 - `aget get <url>` is the primary command.
 - `aget <url>` is an alias for the same fetch path.
-- `--json` prints the agent control-plane response envelope: status, errors, artifact paths, sessions, sensitivity, warnings, and timing. It does not change the fetched page content format.
+- `--envelope` prints the agent control-plane response envelope: status, errors, artifact paths, sessions, sensitivity, warnings, and timing. It does not change the fetched page content format. `--json` is kept as a compatibility alias for the same structured response mode.
 - `--out` writes the extracted markdown to a file.
 - `--format` requests `markdown`, `html`, `text`, or `json` page content from the extractor; markdown remains the default. For `text`, the Crawl4AI helper prefers extracted content and otherwise derives plain text from cleaned/raw HTML before falling back to markdown as a last resort.
 - `--selector`, `--exclude-selector`, `--wait-for`, and repeated `--extractor-option key=value` are forwarded to the Crawl4AI helper when supported. `--wait-for` is CSS-only in v1 for authenticated-session safety: use `css:<selector>` or a plain CSS selector; JavaScript waits are rejected. Supported extractor option keys are `target_elements`, `excluded_tags`, `only_text`, `word_count_threshold`, `wait_until`, `page_timeout`, `wait_for_timeout`, `delay_before_return_html`, and `wait_for_images`; unsupported keys fail instead of being ignored. List values are comma-separated, booleans accept `true`/`false`, and numeric fields use integer or decimal values as appropriate.

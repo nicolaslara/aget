@@ -26,6 +26,7 @@ fn main() -> ExitCode {
 }
 
 fn run(cli: Cli) -> Result<(), ErrorResponse> {
+    let structured_output = cli.global.json || cli.global.envelope;
     match cli.command {
         Command::Get(get) => {
             let success = get_url(GetOptions {
@@ -41,14 +42,14 @@ fn run(cli: Cli) -> Result<(), ErrorResponse> {
                 extractor_options: get.extractor_options,
             })
             .map_err(error_response)?;
-            if cli.global.json {
+            if structured_output {
                 println!("{}", serde_json::to_string(&success).map_err(io_error)?);
             } else if !cli.global.quiet {
                 println!("{}", success.content);
             }
             Ok(())
         }
-        Command::Session(session) => run_session(session.command, cli.global.json),
+        Command::Session(session) => run_session(session.command, structured_output),
     }
 }
 

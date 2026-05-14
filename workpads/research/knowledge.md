@@ -554,9 +554,9 @@ Post-review hardening added generic session-backed backend failure errors plus a
 
 ### D29: Response format and page content format are separate concepts
 
-I8a keeps the current `--json` flag as the agent control-plane response envelope and `--format` as the fetched page content format. This means `aget --json get <url> --format markdown` should be read as: return structured status/error/artifact/session metadata to the caller, with markdown as the extracted page content. Human-facing `aget get <url>` still prints markdown directly by default.
+I8a keeps `--json` as a compatibility alias and adds `--envelope` as the clearer agent control-plane response flag. `--format` remains the fetched page content format. This means `aget --envelope get <url> --format markdown` should be read as: return structured status/error/artifact/session metadata to the caller, with markdown as the extracted page content. Human-facing `aget get <url>` still prints markdown directly by default.
 
-The naming is still not ideal because `--format json` means JSON page content while `--json` means JSON response envelope. The current decision is to document this distinction and avoid a breaking rename before the login/bootstrap work. OpenCode integration should treat the structured response envelope as the behavior source of truth; a later API cleanup can add clearer aliases such as `--response json` or `--content-format markdown` after the end-to-end auth flow is proven.
+The naming is still not perfect because `--format json` means JSON page content while `--json` remains accepted as a response-envelope alias. OpenCode integration should prefer `--envelope` and treat the structured response envelope as the behavior source of truth; a later API cleanup can still consider clearer content-format names if `--format json` proves confusing.
 
 ### D30: Agent-driven login bootstrap uses an explicit user-action loop
 
