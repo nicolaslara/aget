@@ -427,10 +427,10 @@ Top-level extractor options:
 --include-links
 --include-images
 --screenshot
---extractor-option <key=value>
+--extractor-option <backend.key=value>
 ```
 
-V1 does not need perfect support for all options across all extractors. It should normalize common options where feasible and forward backend-specific options through `--extractor-option`.
+V1 does not need perfect support for all options across all extractors. It should normalize common options where feasible and forward backend-specific options through namespaced `--extractor-option backend.key=value` values.
 
 #### `aget session import cmux`
 

@@ -251,6 +251,14 @@ fn parse_extractor_option(value: &str) -> Result<ExtractorOption, String> {
     if key.is_empty() {
         return Err("extractor option key must not be empty".to_string());
     }
+    if !key.starts_with("crawl4ai.") {
+        return Err(
+            "extractor option key must be namespaced, e.g. crawl4ai.wait_until".to_string(),
+        );
+    }
+    if key.trim_start_matches("crawl4ai.").is_empty() {
+        return Err("extractor option key must include a crawl4ai option name".to_string());
+    }
     Ok(ExtractorOption {
         key: key.to_string(),
         value: option_value.to_string(),
@@ -401,7 +409,7 @@ mod tests {
             "--max-chars",
             "123",
             "--extractor-option",
-            "cache=bypass",
+            "crawl4ai.cache=bypass",
         ])
         .unwrap();
 
@@ -417,7 +425,7 @@ mod tests {
                 wait_for: Some("css:.ready".to_string()),
                 max_chars: Some(123),
                 extractor_options: vec![ExtractorOption {
-                    key: "cache".to_string(),
+                    key: "crawl4ai.cache".to_string(),
                     value: "bypass".to_string(),
                 }],
             })

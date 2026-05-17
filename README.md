@@ -92,12 +92,12 @@ aget get <url> [--session <name>...] [--json|--envelope] [--out <path>] [--timeo
               [--format <markdown|html|text|json>] [--selector <css>]
               [--exclude-selector <css>] [--wait-for <text-or-selector>]
               [--max-chars <n>]
-              [--extractor-option <key=value>...]
+              [--extractor-option <backend.key=value>...]
 aget <url> [--session <name>...] [--json|--envelope] [--out <path>] [--timeout <seconds>]
            [--format <markdown|html|text|json>] [--selector <css>]
            [--exclude-selector <css>] [--wait-for <text-or-selector>]
            [--max-chars <n>]
-           [--extractor-option <key=value>...]
+           [--extractor-option <backend.key=value>...]
 aget session list
 aget session inspect <session-id>
 aget session delete <session-id>
@@ -116,7 +116,7 @@ Notes:
 - `--envelope` prints the agent control-plane response envelope: status, errors, artifact paths, sessions, sensitivity, warnings, and timing. It does not change the fetched page content format. `--json` is kept as a compatibility alias for the same structured response mode.
 - `--out` writes the extracted markdown to a file.
 - `--format` requests `markdown`, `html`, `text`, or `json` page content from the extractor; markdown remains the default. For `text`, the Crawl4AI helper prefers extracted content and otherwise derives plain text from cleaned/raw HTML before falling back to markdown as a last resort.
-- `--selector`, `--exclude-selector`, `--wait-for`, and repeated `--extractor-option key=value` are forwarded to the Crawl4AI helper when supported. `--wait-for` is CSS-only in v1 for authenticated-session safety: use `css:<selector>` or a plain CSS selector; JavaScript waits are rejected. Supported extractor option keys are `target_elements`, `excluded_tags`, `only_text`, `word_count_threshold`, `wait_until`, `page_timeout`, `wait_for_timeout`, `delay_before_return_html`, and `wait_for_images`; unsupported keys fail instead of being ignored. List values are comma-separated, booleans accept `true`/`false`, and numeric fields use integer or decimal values as appropriate.
+- `--selector`, `--exclude-selector`, `--wait-for`, and repeated `--extractor-option backend.key=value` are forwarded to the Crawl4AI helper when supported. `--wait-for` is CSS-only in v1 for authenticated-session safety: use `css:<selector>` or a plain CSS selector; JavaScript waits are rejected. Supported Crawl4AI option keys use the `crawl4ai.` namespace: `crawl4ai.target_elements`, `crawl4ai.excluded_tags`, `crawl4ai.only_text`, `crawl4ai.word_count_threshold`, `crawl4ai.wait_until`, `crawl4ai.page_timeout`, `crawl4ai.wait_for_timeout`, `crawl4ai.delay_before_return_html`, and `crawl4ai.wait_for_images`; unsupported keys fail instead of being ignored. List values are comma-separated, booleans accept `true`/`false`, and numeric fields use integer or decimal values as appropriate.
 - `--max-chars` truncates extracted content in Rust after backend extraction using Unicode scalar values; it never truncates the JSON response envelope.
 - Repeated `--session` flags replay named local sessions for the request in the order provided. Cookie conflicts and same-origin localStorage key conflicts are rejected instead of preferring one session; disjoint localStorage keys for the same origin are merged.
 - `aget session compose <new-name> --session <name>...` saves the same deterministic composition as a named local session, preserving cookie and storage-origin source provenance while redacting secret values in errors and inspect output by default.

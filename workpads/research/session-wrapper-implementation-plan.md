@@ -181,7 +181,7 @@ Deliverables:
   - `--exclude-selector`
   - `--wait-for`
   - `--max-chars`
-  - `--extractor-option key=value`
+  - `--extractor-option backend.key=value`
 - Implement deterministic char truncation first.
 - Token limits are deferred until they can be enforced; do not expose metadata-only token truncation.
 

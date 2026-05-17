@@ -257,7 +257,7 @@ Acceptance criteria:
 - Remove, implement, or explicitly deprecate non-enforced API promises before agents depend on them. `--max-tokens` and `--only-main` have been removed from the active CLI/API until they can be enforced.
 - Rename `artifacts.markdown` to a content-format-neutral key. The active envelope now uses `artifacts.content`.
 - Stabilize JSON command output around one agent-friendly envelope shape before `I9` uses it as the OpenCode behavior source of truth.
-- Decide how backend-specific `--extractor-option` should be namespaced or constrained before adding another extractor.
+- Namespace backend-specific `--extractor-option` values before adding another extractor. The active CLI requires `crawl4ai.<key>=<value>`.
 
 ### 🚧 Task I8b: Add representative gated-site login/session bootstrap
 

@@ -401,7 +401,7 @@ assert args.format == 'text'
 assert args.selector == 'main.article'
 assert args.exclude_selector == 'nav,.ad'
 assert args.wait_for == 'css:.ready'
-assert args.extractor_option == ['cache=bypass', 'magic=value']
+assert args.extractor_option == ['crawl4ai.cache=bypass', 'crawl4ai.magic=value']
 assert '--max-chars' not in _unknown
 content = 'aé💡bc'
 pathlib.Path(args.output).write_text(content, encoding='utf-8')
@@ -428,9 +428,9 @@ print(json.dumps({'ok': True, 'final_url': args.url + '#done', 'content': conten
             "--max-chars",
             "3",
             "--extractor-option",
-            "cache=bypass",
+            "crawl4ai.cache=bypass",
             "--extractor-option",
-            "magic=value",
+            "crawl4ai.magic=value",
         ])
         .assert()
         .success()
@@ -454,7 +454,7 @@ print(json.dumps({'ok': True, 'final_url': args.url + '#done', 'content': conten
     assert_eq!(json["output_options"]["wait_for"], "css:.ready");
     assert_eq!(
         json["output_options"]["extractor_options"],
-        serde_json::json!({"cache": "bypass", "magic": "value"})
+        serde_json::json!({"crawl4ai.cache": "bypass", "crawl4ai.magic": "value"})
     );
 
     let content_path = PathBuf::from(json["artifacts"]["content"].as_str().unwrap());
@@ -843,7 +843,7 @@ fn get_real_helper_rejects_unsupported_extractor_option_before_crawl4ai_import()
             "get",
             "https://example.com/unsupported-option",
             "--extractor-option",
-            "js_code=alert(1)",
+            "crawl4ai.js_code=alert(1)",
         ])
         .assert()
         .failure()

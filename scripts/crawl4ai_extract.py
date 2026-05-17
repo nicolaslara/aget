@@ -130,6 +130,10 @@ def parse_extractor_options(values: list[str]) -> dict[str, dict[str, object]]:
         if "=" not in value:
             raise ValueError(f"extractor option must use key=value form: {value}")
         key, raw_value = value.split("=", 1)
+        namespace = "crawl4ai."
+        if not key.startswith(namespace):
+            raise ValueError(f"extractor option '{key}' must use the crawl4ai.<key> namespace")
+        key = key[len(namespace):]
         if key not in EXTRACTOR_OPTION_TYPES:
             allowed = ", ".join(sorted(EXTRACTOR_OPTION_TYPES))
             raise ValueError(f"unsupported extractor option '{key}'; supported keys: {allowed}")

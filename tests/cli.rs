@@ -55,6 +55,21 @@ fn get_rejects_malformed_extractor_option() {
 }
 
 #[test]
+fn get_rejects_unnamespaced_extractor_option() {
+    let mut cmd = Command::cargo_bin("aget").unwrap();
+
+    cmd.args([
+        "get",
+        "https://example.com",
+        "--extractor-option",
+        "wait_until=networkidle",
+    ])
+    .assert()
+    .failure()
+    .stderr(predicate::str::contains("must be namespaced"));
+}
+
+#[test]
 fn top_level_url_runs_get_command() {
     let temp = tempfile::tempdir().unwrap();
     let fake_backend = temp.path().join("fake_backend.py");

@@ -222,7 +222,7 @@ Common `get` options should be represented in the CLI early, even if only some m
 --exclude-selector <css>
 --wait-for <text-or-selector>
 --max-chars <n>
---extractor-option <key=value>
+--extractor-option <backend.key=value>
 ```
 
 All commands are non-interactive by default. Commands that require user action must return a structured `requires_user_action` error unless invoked through an explicit interactive command or flag.
@@ -459,11 +459,11 @@ Post-implementation review initially found two blockers and one acceptance gap. 
 
 ### D24: I6 output shaping is Rust-owned where limits affect contract stability
 
-I6 adds `aget get` output shaping flags for `--format markdown|html|text|json`, CSS include/exclude selectors, `--wait-for`, `--max-chars`, and repeated `--extractor-option key=value`. Rust forwards only backend-supported options to the Crawl4AI helper: format, selector, exclude selector, wait condition, and extractor options. Earlier WIP accepted `--only-main` and `--max-tokens` as metadata-only flags, but those were later removed before OpenCode integration because they were not enforced.
+I6 adds `aget get` output shaping flags for `--format markdown|html|text|json`, CSS include/exclude selectors, `--wait-for`, `--max-chars`, and repeated `--extractor-option backend.key=value`. Rust forwards only backend-supported options to the Crawl4AI helper: format, selector, exclude selector, wait condition, and extractor options. Earlier WIP accepted `--only-main` and `--max-tokens` as metadata-only flags, but those were later removed before OpenCode integration because they were not enforced.
 
 `--wait-for` is intentionally CSS-only in v1 for authenticated-session safety. The helper accepts `css:<selector>` and plain CSS selector strings, but rejects `js:` waits and obvious JavaScript function syntax before importing or running Crawl4AI. This prevents user-supplied wait conditions from executing JavaScript in a browser context that may include replayed local session state.
 
-The Crawl4AI helper treats extractor options as an explicit allowlist, not an arbitrary escape hatch. V1 supports `target_elements`, `excluded_tags`, `only_text`, `word_count_threshold`, `wait_until`, `page_timeout`, `wait_for_timeout`, `delay_before_return_html`, and `wait_for_images` when the installed Crawl4AI config constructor accepts the key. Unknown keys fail with structured backend JSON before importing or running Crawl4AI, so dangerous options such as `js_code` are not silently ignored or executed.
+The Crawl4AI helper treats extractor options as an explicit allowlist, not an arbitrary escape hatch. V1 supports `crawl4ai.target_elements`, `crawl4ai.excluded_tags`, `crawl4ai.only_text`, `crawl4ai.word_count_threshold`, `crawl4ai.wait_until`, `crawl4ai.page_timeout`, `crawl4ai.wait_for_timeout`, `crawl4ai.delay_before_return_html`, and `crawl4ai.wait_for_images` when the installed Crawl4AI config constructor accepts the key. Unknown or unnamespaced keys fail before importing or running Crawl4AI, so dangerous options such as `crawl4ai.js_code` are not silently ignored or executed.
 
 Character truncation is enforced after backend extraction in Rust using `.chars()` so results are deterministic across backends and cannot cut a UTF-8 scalar in half. After a successful backend parse, Rust sanitizes the retained backend stdout capture so untruncated content is not left in the run directory when `--max-chars` later shortens final content. For `--format json`, the CLI still returns a complete JSON response envelope; only the extracted `content` string is truncated.
 
