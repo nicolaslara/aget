@@ -259,7 +259,7 @@ Acceptance criteria:
 - Stabilize JSON command output around one agent-friendly envelope shape before `I9` uses it as the OpenCode behavior source of truth.
 - Namespace backend-specific `--extractor-option` values before adding another extractor. The active CLI requires `crawl4ai.<key>=<value>`.
 
-### 🚧 Task I8b: Add representative gated-site login/session bootstrap
+### 🚫 Task I8b: Add representative gated-site login/session bootstrap
 
 Acceptance criteria:
 
@@ -272,9 +272,9 @@ Acceptance criteria:
 
 Status note:
 
-- Login start/finish/cancel mechanics are implemented, but the manual authorized real-site flow is not verified and the extraction path currently has site-specific behavior that violates the generic fetcher boundary.
+- Login start/finish/cancel mechanics are implemented, and the extraction path has been returned to the generic fetcher boundary. The manual authorized real-site flow is still not verified.
 
-### 🚧 Task I8b-followup: Remove site-specific extraction coupling
+### ✅ Task I8b-followup: Remove site-specific extraction coupling
 
 Acceptance criteria:
 

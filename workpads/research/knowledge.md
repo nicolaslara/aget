@@ -604,6 +604,19 @@ Focused review found that parse-time errors were still Clap-formatted under `--j
 
 Verification updated CLI, get, and session tests to assert the envelope shape before OpenCode integration depends on it. Confidence: high for the CLI contract change, with the remaining product risk deferred to I10 around whether sensitive `get` content should be embedded inline in structured output by default.
 
+### D35: I8b-followup confirms extraction is generic again
+
+The I8b-followup pass searched the active source and tests for `HelloInterview`, `hellointerview`, paywall markers, premium-content markers, and site-specific retry language. No hostname/content matching or site-shaped CTA remains in `src/`; `aget get` reports generic extraction success/failure and leaves interpretation of login walls, paywalls, or gated content to the calling agent or future agent skill.
+
+The remaining HelloInterview references are historical benchmark notes, representative manual e2e names, and future agent-skill examples. They are not binary behavior. I8b itself remains open because the manual authorized real-site login/fetch acceptance criterion is still unverified.
+
+Verification for this pass:
+
+- `rg "HelloInterview|hellointerview|paywall|Purchase Premium|Premium users|Sign in / Sign up|site-specific|site specific" src`
+- `cargo test`
+- `cargo fmt --check`
+- `git diff --check`
+
 ## Open Questions
 
 - Can pure Rust browser automation provide reliable persistent profiles and CDP attach, or do we need a small Node/Playwright sidecar?
