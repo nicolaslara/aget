@@ -387,6 +387,47 @@ Acceptance criteria:
 - Keep the public `Aget` API stable enough that CLI and tests call capabilities, not implementation-specific commands.
 - Add comments around each backend boundary explaining what is abstracted and why the current adapter is command-backed.
 
+### 📋 Task I19: Replace PoC command backends with homegrown implementations
+
+Acceptance criteria:
+
+- Build homegrown implementations behind the existing static backend interfaces rather than changing the public CLI/API first.
+- Replace the current Crawl4AI-compatible extractor command adapter with an in-process extraction backend that preserves the behavior `aget` uses today:
+  - Fetch/render one URL using an explicit Playwright-compatible session state input or an equivalent internal session representation.
+  - Produce markdown by default and preserve `html`, `text`, and `json` content-format behavior.
+  - Support CSS `selector`, `exclude_selector`, CSS-only `wait_for`, `max_chars` finalization, warnings, final URL, artifacts, metadata, and stable failure reporting.
+  - Preserve the current safety rule that JavaScript wait/extractor options are not executed from user input in authenticated contexts.
+- Replace the current `agent-browser` command adapter with homegrown browser/session automation that preserves the behavior `aget` uses today:
+  - Start a dedicated login profile/session at a URL.
+  - Export cookies/localStorage into `aget` session records for login finish and Chrome/profile import.
+  - Load composed session state into a temporary browser profile for authenticated fallback extraction.
+  - Extract body HTML/text for fallback output and close/cleanup sessions and temp profiles.
+  - Preserve profile-lock/login-needed/user-action classification, timeouts, temp-file cleanup, and local-only handling of auth state.
+- Keep the command-backed adapters available behind tests or feature flags until the homegrown replacements pass equivalent e2e coverage.
+- Add e2e tests using the existing `MockSite` fixture that prove public fetch, authenticated replay, login finish, import, fallback extraction, output formats, selectors/exclusions, and waits work without Crawl4AI or `agent-browser`.
+- Record any dependency choices and license implications before adding browser automation or markdown/readability crates.
+
+### 🚧 Task I20: Design OAuth-safe browser login and profile import flow
+
+Acceptance criteria:
+
+- Redesign login/import around a real user browser flow rather than headless automation for OAuth-sensitive sites.
+- Define the default decision tree:
+  - Try explicit/session-scoped browser profile import first.
+  - Verify imported scoped auth is actually usable before reporting success.
+  - If auth is missing, warn that user login/OAuth is required before opening a browser.
+  - Suggest importing existing OAuth sessions from the user's real browser/profile whenever possible.
+  - Open the user's chosen browser/profile for login and ask the user to confirm completion.
+  - Re-import and verify scoped auth before using the session.
+- Decide whether a dedicated `aget` browser profile should be the default, optional, or deferred:
+  - Dedicated profiles are desirable for isolation.
+  - Manual Hello Interview testing showed a fresh Chrome `--user-data-dir` profile did not persist the expected auth cookies after attempted OAuth/login.
+  - Normal Chrome `Default` profile import did work when the user was already logged in.
+- Add browser-choice terminology and flags to the proposed public API, e.g. default browser, Chrome profile, Arc/Brave support, and explicit profile path.
+- Preserve the safety boundary: never ask the agent to handle user passwords or OAuth prompts; the user completes login in their browser.
+- Add deterministic mocked-site tests for the decision tree and a documented manual smoke-test recipe for real OAuth sites.
+- Record lock-handling behavior and error messages for open profile directories, including "quit this browser/profile before import."
+
 ### 📋 Task I17: Redesign public CLI/API and README around coherent concepts
 
 Acceptance criteria:

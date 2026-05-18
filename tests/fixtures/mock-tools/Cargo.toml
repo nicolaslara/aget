@@ -14,3 +14,7 @@ path = "../../support/bin/aget_mock_backend.rs"
 [[bin]]
 name = "aget-mock-agent-browser"
 path = "../../support/bin/aget_mock_agent_browser.rs"
+
+[[bin]]
+name = "aget-mock-cmux"
+path = "../../support/bin/aget_mock_cmux.rs"

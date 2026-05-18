@@ -10,6 +10,8 @@ use clap::error::ErrorKind;
 use serde::Serialize;
 use serde_json::Value;
 
+const OAUTH_LOGIN_WARNING: &str = "OAuth providers may reject automation-controlled login browsers. If this site uses OAuth, prefer signing in with your real browser and importing a scoped session, for example: aget session import chrome --profile <profile> --name <name> --domain <domain>.";
+
 fn main() -> ExitCode {
     let args = std::env::args_os().collect::<Vec<_>>();
     let structured_output = args
@@ -313,6 +315,7 @@ fn run_session(command: SessionSubcommand, json: bool) -> Result<(), ErrorRespon
                 let result = aget
                     .start_login_session(start.name, start.profile, start.url)
                     .map_err(error_response)?;
+                let warnings = vec![OAUTH_LOGIN_WARNING.to_string()];
                 if json {
                     print_success_envelope(
                         command_name,
@@ -331,10 +334,11 @@ fn run_session(command: SessionSubcommand, json: bool) -> Result<(), ErrorRespon
                                 result.pending.name,
                             ],
                         }),
-                        Vec::<String>::new(),
+                        warnings,
                         elapsed_timing(started),
                     )?;
                 } else {
+                    println!("Warning: {OAUTH_LOGIN_WARNING}");
                     println!(
                         "Opened login bucket {} in profile {}. After completing login, run: aget session login finish {}",
                         result.pending.name,

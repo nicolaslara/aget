@@ -4,6 +4,7 @@ use std::fs;
 use std::io::{Read, Write};
 use std::net::TcpStream;
 use std::path::PathBuf;
+use std::process::Command;
 use std::time::Duration;
 
 use serde_json::Value;
@@ -37,20 +38,165 @@ struct HttpResponse {
 }
 
 fn main() {
-    if let Err(error) = run() {
-        eprintln!("{error}");
-        std::process::exit(2);
+    if let Some(marker) = descendant_marker_arg() {
+        std::thread::sleep(Duration::from_secs(2));
+        let _ = fs::write(marker, "survived");
+        return;
+    }
+
+    match run() {
+        Ok(code) => std::process::exit(code),
+        Err(error) => {
+            eprintln!("{error}");
+            std::process::exit(2);
+        }
     }
 }
 
-fn run() -> Result<(), String> {
+fn run() -> Result<i32, String> {
     let args = parse_args(env::args().skip(1).collect())?;
-    let parsed = parse_http_url(&args.url)?;
-    let state: Value = serde_json::from_str(
-        &fs::read_to_string(&args.state).map_err(|error| format!("read state: {error}"))?,
+    let config = read_config()?;
+
+    assert_expected_args(&args, &config)?;
+    assert_expected_environment(&config)?;
+    assert_expected_state(&args, &config)?;
+
+    match config["behavior"].as_str().unwrap_or("http_fetch") {
+        "success" => success(&args, &config),
+        "http_fetch" => http_fetch(&args, &config),
+        "structured_failure" => structured_failure(&args, &config),
+        "exit" => {
+            if let Some(stderr) = config["stderr"].as_str() {
+                eprintln!("{stderr}");
+            }
+            Ok(config["exit_code"].as_i64().unwrap_or(2) as i32)
+        }
+        "malformed" => {
+            println!("{}", config["stdout"].as_str().unwrap_or("not json"));
+            Ok(config["exit_code"].as_i64().unwrap_or(0) as i32)
+        }
+        "sleep" => {
+            std::thread::sleep(Duration::from_secs(
+                config["seconds"].as_u64().unwrap_or(3),
+            ));
+            Ok(0)
+        }
+        "noisy_success" => {
+            eprint!(
+                "{}",
+                "noise".repeat(config["noise_repetitions"].as_u64().unwrap_or(20000) as usize)
+            );
+            success(&args, &config)
+        }
+        "stdout_logs_success" => {
+            for line in config["stdout_lines"].as_array().into_iter().flatten() {
+                if let Some(line) = line.as_str() {
+                    println!("{line}");
+                }
+            }
+            success(&args, &config)
+        }
+        "spawn_descendant_and_sleep" => {
+            let marker = config["marker"]
+                .as_str()
+                .ok_or_else(|| "spawn_descendant_and_sleep requires marker".to_string())?;
+            Command::new(env::current_exe().map_err(|error| error.to_string())?)
+                .arg("--descendant-marker")
+                .arg(marker)
+                .spawn()
+                .map_err(|error| format!("spawn descendant: {error}"))?;
+            std::thread::sleep(Duration::from_secs(
+                config["seconds"].as_u64().unwrap_or(5),
+            ));
+            Ok(0)
+        }
+        other => Err(format!("unknown mock backend behavior: {other}")),
+    }
+}
+
+fn descendant_marker_arg() -> Option<PathBuf> {
+    let mut args = env::args().skip(1);
+    if args.next().as_deref() == Some("--descendant-marker") {
+        args.next().map(PathBuf::from)
+    } else {
+        None
+    }
+}
+
+fn read_config() -> Result<Value, String> {
+    let config_path = env::current_exe()
+        .map_err(|error| format!("locate mock backend executable: {error}"))?
+        .with_extension("json");
+    if !config_path.exists() {
+        return Ok(serde_json::json!({}));
+    }
+    serde_json::from_str(
+        &fs::read_to_string(&config_path)
+            .map_err(|error| format!("read mock backend config: {error}"))?,
     )
-    .map_err(|error| format!("parse state: {error}"))?;
+    .map_err(|error| format!("parse mock backend config: {error}"))
+}
+
+fn success(args: &Args, config: &Value) -> Result<i32, String> {
+    let content = config["content"].as_str().unwrap_or("# Fake");
+    fs::write(&args.output, content).map_err(|error| format!("write output: {error}"))?;
+    if let Some(metadata) = config.get("backend_metadata") {
+        fs::write(
+            &args.metadata,
+            serde_json::to_vec(metadata).map_err(|error| format!("serialize metadata: {error}"))?,
+        )
+        .map_err(|error| format!("write metadata: {error}"))?;
+    }
+    let final_url = config["final_url"]
+        .as_str()
+        .map(ToOwned::to_owned)
+        .or_else(|| {
+            config["final_url_suffix"]
+                .as_str()
+                .map(|suffix| format!("{}{suffix}", args.url))
+        })
+        .unwrap_or_else(|| args.url.clone());
+    let warnings = config["warnings"].as_array().cloned().unwrap_or_default();
+    print_backend_result(true, Some(final_url), Some(content.to_string()), warnings, None);
+    Ok(config["exit_code"].as_i64().unwrap_or(0) as i32)
+}
+
+fn structured_failure(args: &Args, config: &Value) -> Result<i32, String> {
+    let state = read_state(&args.state)?;
+    let error = expand_state_placeholders(
+        config["error"]
+            .as_str()
+            .unwrap_or("structured backend failure"),
+        &state,
+    );
+    if let Some(stderr) = config["stderr"].as_str() {
+        eprintln!("{}", expand_state_placeholders(stderr, &state));
+    }
+    print_backend_result(false, None, None, Vec::new(), Some(error));
+    Ok(config["exit_code"].as_i64().unwrap_or(0) as i32)
+}
+
+fn http_fetch(args: &Args, config: &Value) -> Result<i32, String> {
+    let parsed = parse_http_url(&args.url)?;
+    let state = read_state(&args.state)?;
     let mut headers = session_headers(&state, &parsed);
+    if let Some(cookie_header) = config["cookie_header"].as_str() {
+        headers.insert("Cookie".to_string(), cookie_header.to_string());
+    }
+    if !headers.contains_key("Cookie") {
+        if let Some(expected) = config["expect_state_cookies"].as_array() {
+            let cookies = expected
+                .iter()
+                .filter_map(|pair| {
+                    let pair = pair.as_array()?;
+                    Some(format!("{}={}", pair.first()?.as_str()?, pair.get(1)?.as_str()?))
+                })
+                .collect::<Vec<_>>();
+            if !cookies.is_empty() {
+                headers.insert("Cookie".to_string(), cookies.join("; "));
+            }
+        }
+    }
     let mut response = fetch_following_redirects(&args.url, &headers)?;
 
     if parsed.path == "/storage-protected" {
@@ -75,7 +221,7 @@ fn run() -> Result<(), String> {
         }
     }
 
-    let content = match args.format.as_str() {
+    let mut content = match args.format.as_str() {
         "html" => body,
         "json" => serde_json::json!({
             "url": response.final_url,
@@ -84,6 +230,12 @@ fn run() -> Result<(), String> {
         .to_string(),
         _ => textify(&body),
     };
+    if let Some(override_content) = config["content"].as_str() {
+        content = override_content.to_string();
+    }
+    if let Some(prefix) = config["content_prefix"].as_str() {
+        content = format!("{prefix}{content}");
+    }
 
     fs::write(&args.output, &content).map_err(|error| format!("write output: {error}"))?;
     fs::write(
@@ -98,20 +250,218 @@ fn run() -> Result<(), String> {
     .map_err(|error| format!("write metadata: {error}"))?;
 
     let warnings = if parsed.path == "/warning" {
-        vec!["mock warning"]
+        vec![serde_json::json!("mock warning")]
     } else {
-        Vec::new()
+        config["warnings"].as_array().cloned().unwrap_or_default()
     };
+    let final_url = config["final_url"]
+        .as_str()
+        .map(ToOwned::to_owned)
+        .or_else(|| {
+            config["final_url_suffix"]
+                .as_str()
+                .map(|suffix| format!("{}{suffix}", args.url))
+        })
+        .unwrap_or(response.final_url);
+    print_backend_result(true, Some(final_url), Some(content), warnings, None);
+    Ok(0)
+}
+
+fn print_backend_result(
+    ok: bool,
+    final_url: Option<String>,
+    content: Option<String>,
+    warnings: Vec<Value>,
+    error: Option<String>,
+) {
     println!(
         "{}",
         serde_json::json!({
-            "ok": true,
-            "final_url": response.final_url,
+            "ok": ok,
+            "final_url": final_url,
             "content": content,
             "warnings": warnings,
+            "error": error,
         })
     );
+}
+
+fn assert_expected_args(args: &Args, config: &Value) -> Result<(), String> {
+    for (field, actual) in [
+        ("format", Some(args.format.as_str())),
+        ("selector", args.selector.as_deref()),
+        ("exclude_selector", args.exclude_selector.as_deref()),
+        ("wait_for", args.wait_for.as_deref()),
+    ] {
+        if let Some(expected) = config[format!("expect_{field}")].as_str() {
+            if Some(expected) != actual {
+                return Err(format!("expected {field}={expected:?}, got {actual:?}"));
+            }
+        }
+    }
+    if let Some(expected) = config["expect_extractor_options"].as_array() {
+        let expected = expected
+            .iter()
+            .map(|value| {
+                value
+                    .as_str()
+                    .ok_or_else(|| "expect_extractor_options entries must be strings".to_string())
+                    .map(ToOwned::to_owned)
+            })
+            .collect::<Result<Vec<_>, _>>()?;
+        if args.extractor_options != expected {
+            return Err(format!(
+                "expected extractor_options={expected:?}, got {:?}",
+                args.extractor_options
+            ));
+        }
+    }
+    if config["validate_crawl4ai_options"].as_bool().unwrap_or(false) {
+        validate_crawl4ai_options(args)?;
+    }
     Ok(())
+}
+
+fn validate_crawl4ai_options(args: &Args) -> Result<(), String> {
+    const ALLOWED: &[&str] = &[
+        "target_elements",
+        "excluded_tags",
+        "only_text",
+        "word_count_threshold",
+        "wait_until",
+        "page_timeout",
+        "wait_for_timeout",
+        "delay_before_return_html",
+        "wait_for_images",
+    ];
+    for option in &args.extractor_options {
+        let Some((key, _value)) = option.split_once('=') else {
+            return structured_validation_error(
+                args,
+                format!("extractor option must use key=value form: {option}"),
+            );
+        };
+        let key = key.strip_prefix("crawl4ai.").ok_or_else(|| {
+            format!("extractor option '{key}' must use the crawl4ai.<key> namespace")
+        })?;
+        if !ALLOWED.contains(&key) {
+            let allowed = ALLOWED.join(", ");
+            return structured_validation_error(
+                args,
+                format!("unsupported extractor option '{key}'; supported keys: {allowed}"),
+            );
+        }
+    }
+    if let Some(wait_for) = &args.wait_for {
+        let normalized = wait_for.trim().to_ascii_lowercase();
+        if normalized.starts_with("js:")
+            || ["=>", "function(", "return ", ";"]
+                .iter()
+                .any(|marker| normalized.contains(marker))
+        {
+            return structured_validation_error(
+                args,
+                "--wait-for only supports CSS selectors in v1; JavaScript wait conditions are not allowed".to_string(),
+            );
+        }
+    }
+    Ok(())
+}
+
+fn structured_validation_error(args: &Args, message: String) -> Result<(), String> {
+    print_backend_result(false, None, None, Vec::new(), Some(message.clone()));
+    fs::write(
+        &args.metadata,
+        serde_json::to_vec_pretty(&serde_json::json!({
+            "ok": false,
+            "final_url": null,
+            "content": null,
+            "warnings": [],
+            "error": message,
+        }))
+        .map_err(|error| format!("serialize validation metadata: {error}"))?,
+    )
+    .map_err(|error| format!("write validation metadata: {error}"))?;
+    std::process::exit(1);
+}
+
+fn assert_expected_environment(config: &Value) -> Result<(), String> {
+    for key in config["expect_env_absent"].as_array().into_iter().flatten() {
+        let key = key
+            .as_str()
+            .ok_or_else(|| "expect_env_absent entries must be strings".to_string())?;
+        if env::var_os(key).is_some() {
+            return Err(format!("expected environment variable {key} to be absent"));
+        }
+    }
+    Ok(())
+}
+
+fn assert_expected_state(args: &Args, config: &Value) -> Result<(), String> {
+    if config.get("expect_state").is_none() && config.get("expect_state_cookies").is_none() {
+        return Ok(());
+    }
+    let state = read_state(&args.state)?;
+    if let Some(expected) = config.get("expect_state") {
+        if &state != expected {
+            return Err(format!("expected state {expected}, got {state}"));
+        }
+    }
+    if let Some(expected) = config["expect_state_cookies"].as_array() {
+        let mut actual = state["cookies"]
+            .as_array()
+            .into_iter()
+            .flatten()
+            .map(|cookie| {
+                serde_json::json!([
+                    cookie["name"].as_str().unwrap_or_default(),
+                    cookie["value"].as_str().unwrap_or_default()
+                ])
+            })
+            .collect::<Vec<_>>();
+        actual.sort_by_key(|value| value.to_string());
+        let mut expected = expected.clone();
+        expected.sort_by_key(|value| value.to_string());
+        if actual != expected {
+            return Err(format!(
+                "expected state cookies {expected:?}, got {actual:?}"
+            ));
+        }
+    }
+    Ok(())
+}
+
+fn read_state(path: &PathBuf) -> Result<Value, String> {
+    serde_json::from_str(
+        &fs::read_to_string(path).map_err(|error| format!("read state: {error}"))?,
+    )
+    .map_err(|error| format!("parse state: {error}"))
+}
+
+fn expand_state_placeholders(template: &str, state: &Value) -> String {
+    template
+        .replace(
+            "{first_cookie_value}",
+            first_cookie_value(state).unwrap_or_default().as_str(),
+        )
+        .replace(
+            "{first_storage_value}",
+            first_storage_value(state).unwrap_or_default().as_str(),
+        )
+}
+
+fn first_cookie_value(state: &Value) -> Option<String> {
+    state["cookies"].as_array()?.first()?["value"]
+        .as_str()
+        .map(ToOwned::to_owned)
+}
+
+fn first_storage_value(state: &Value) -> Option<String> {
+    state["origins"].as_array()?.first()?["localStorage"]
+        .as_array()?
+        .first()?["value"]
+        .as_str()
+        .map(ToOwned::to_owned)
 }
 
 fn parse_args(raw: Vec<String>) -> Result<Args, String> {

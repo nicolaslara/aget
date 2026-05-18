@@ -1,6 +1,6 @@
 ---
 name: aget
-description: Use the local aget CLI for agent-friendly URL fetching, local markdown extraction, and explicit user-authorized session replay. Use when a task needs page content through `aget`, authenticated/gated-page fetches, `aget session login`, session composition, cmux or Chrome session import, or safe local-only web context workflows.
+description: Use the local aget CLI for agent-friendly URL fetching, local markdown extraction, and explicit user-authorized session replay. Use when a task needs page content through `aget`, authenticated/gated-page fetches, OAuth/session import from the user's real browser, session composition, cmux or Chrome session import, or safe local-only web context workflows.
 disable-model-invocation: true
 ---
 
@@ -14,6 +14,7 @@ Use `aget` as a generic local fetcher. It returns page content and extraction ou
 - Never collect, type, script, store, or ask the user to reveal credentials.
 - Do not try to bypass paywalls, access controls, anti-bot systems, or site policy.
 - Do not use ambient browser auth silently. Authenticated fetches require an explicit named session.
+- For OAuth-backed sites, prefer importing a user-authorized real browser session over opening an automation-controlled login browser.
 - Treat session files, storage-state temp files, screenshots, authenticated markdown, and envelope content as private local data.
 - Prefer `--out <path>` for large or sensitive content so the agent can read only the needed artifact.
 
@@ -60,23 +61,23 @@ aget --envelope get "https://www.hellointerview.com/learn/behavioral/course/adap
 If the returned content looks like a login/subscription wall, tell the user what you observed and ask whether they want to create a local session. If they agree:
 
 ```bash
-aget --envelope session login start hellointerview --url "https://www.hellointerview.com/learn/behavioral/course/adapting-to-big-tech-behaviorals"
+aget --envelope session import chrome --profile Default --name hellointerview --domain hellointerview.com --domain www.hellointerview.com
 ```
 
-The user completes login manually in the opened browser. Then finish:
+Then verify the imported session unlocks the page:
 
 ```bash
-aget --envelope session login finish hellointerview
 aget --envelope get "https://www.hellointerview.com/learn/behavioral/course/adapting-to-big-tech-behaviorals" --session hellointerview --format markdown --out /tmp/hi-auth.md
 ```
 
-Generalize the same pattern to any user-authorized gated site, such as `ft.com`, `nytimes.com`, private docs, dashboards, or account pages. Session names are caller-chosen labels, not built-in site handlers:
+Generalize the same pattern to any user-authorized gated site, such as `ft.com`, `nytimes.com`, private docs, dashboards, or account pages. Session names are caller-chosen labels, not built-in site handlers. For OAuth-backed sites, ask the user whether they are already logged in through a real browser and prefer importing that browser profile:
 
 ```bash
-aget --envelope session login start news --url "https://www.nytimes.com/account"
-aget --envelope session login finish news
+aget --envelope session import chrome --profile Default --name news --domain nytimes.com --domain www.nytimes.com
 aget --envelope get "https://www.nytimes.com/account" --session news --out /tmp/news-account.md
 ```
+
+If import returns `requires_user_action` because the profile is locked, ask the user to quit the relevant browser/profile and retry. If import succeeds but the follow-up fetch still shows a login wall, explain that the existing browser profile is not logged in for the target site; ask the user to sign in through their normal browser, then import again.
 
 ## Combining Sessions
 
@@ -100,6 +101,8 @@ If session composition reports a conflict, do not guess which secret wins. Ask t
 ## Combining Sessions While Logging In
 
 `aget session login start` does not currently accept `--session`. Do not pretend provider/app session composition is built into the login command.
+
+`aget session login start` is a fallback for non-OAuth or controlled test flows. It opens an automation-owned browser profile and may be rejected by OAuth providers. Do not use it as the first authenticated path for OAuth-backed sites when a real browser session can be imported.
 
 If a login flow appears to require provider cookies beyond the relying-party session:
 

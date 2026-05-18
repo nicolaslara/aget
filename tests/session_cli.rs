@@ -5,7 +5,7 @@ use std::path::{Path, PathBuf};
 use std::process::Command as StdCommand;
 use std::sync::mpsc::{self, Receiver};
 use std::thread;
-use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
+use std::time::{Duration, Instant};
 
 use aget::session::SessionStore;
 use aget::{
@@ -15,6 +15,11 @@ use aget::{
 };
 use assert_cmd::Command;
 use predicates::prelude::*;
+use serde_json::json;
+
+#[path = "support/mock_tools.rs"]
+mod mock_tools;
+use mock_tools::{mock_agent_browser, mock_backend_command, mock_cmux};
 
 #[test]
 fn session_list_inspect_and_delete_use_aget_home() {
@@ -84,23 +89,7 @@ fn session_list_json_has_stable_shape() {
 fn session_import_cmux_saves_filtered_cookies() {
     let temp = tempfile::tempdir().unwrap();
     let aget_home = temp.path().join("aget-home");
-    let fake_cmux = write_fake_cmux(
-        temp.path(),
-        r#"#!/usr/bin/env python3
-import json, sys
-args = sys.argv[1:]
-if args[:4] != ['--json', 'browser', '--surface', 'surface:1'] or args[4:7] != ['cookies', 'get', '--domain']:
-    print('unexpected args: ' + repr(args), file=sys.stderr)
-    raise SystemExit(2)
-domain = args[7]
-cookies = [
-    {'name': 'sid', 'value': 'allowed-secret', 'domain': domain, 'path': '/', 'secure': True, 'session_only': False, 'expires': 1910000000},
-    {'name': 'wide', 'value': 'suffix-secret', 'domain': '.' + domain, 'path': '/', 'secure': False, 'session_only': True, 'expires': None},
-    {'name': 'evil', 'value': 'blocked-secret', 'domain': domain + '.evil', 'path': '/', 'secure': False, 'session_only': True, 'expires': None},
-]
-print(json.dumps({'cookies': cookies}))
-"#,
-    );
+    let fake_cmux = mock_cmux(temp.path(), json!({"surface": "surface:1"}));
 
     let mut cmd = Command::cargo_bin("aget").unwrap();
     let output = cmd
@@ -216,39 +205,10 @@ fn session_import_chrome_saves_filtered_state_and_cleans_raw_file() {
     let temp = tempfile::tempdir().unwrap();
     let aget_home = temp.path().join("aget-home");
     let log_path = temp.path().join("agent-browser.log");
-    let fake_agent_browser = write_fake_agent_browser(
+    let fake_agent_browser = agent_browser_tool(
         temp.path(),
-        r#"#!/usr/bin/env python3
-import json, os, pathlib, sys
-args = sys.argv[1:]
-log = pathlib.Path(os.environ['AGET_FAKE_AGENT_BROWSER_LOG'])
-with log.open('a', encoding='utf-8') as handle:
-    handle.write(json.dumps(args) + '\n')
-if len(args) == 6 and args[:1] == ['--profile'] and args[2:3] == ['--session'] and args[4:] == ['open', 'about:blank']:
-    raise SystemExit(0)
-if len(args) == 5 and args[:1] == ['--session'] and args[2:4] == ['state', 'save']:
-    state_path = pathlib.Path(args[4])
-    with log.open('a', encoding='utf-8') as handle:
-        handle.write('STATE_PATH=' + str(state_path) + '\n')
-    state = {
-        'cookies': [
-            {'name': 'sid', 'value': 'allowed-secret', 'domain': 'example.com', 'path': '/', 'expires': 1812619153.69691, 'httpOnly': True, 'secure': True, 'sameSite': 'Lax'},
-            {'name': 'sub', 'value': 'sub-secret', 'domain': 'docs.example.com', 'path': '/', 'httpOnly': False, 'secure': False},
-            {'name': 'evil', 'value': 'blocked-secret', 'domain': 'example.com.evil', 'path': '/', 'httpOnly': False, 'secure': False},
-        ],
-        'origins': [
-            {'origin': 'https://example.com', 'localStorage': [{'name': 'token', 'value': 'allowed-storage'}], 'sessionStorage': [{'name': 'ignored', 'value': 'session-only'}]},
-            {'origin': 'https://docs.example.com:443', 'localStorage': [{'name': 'subtoken', 'value': 'sub-storage'}]},
-            {'origin': 'https://example.com.evil', 'localStorage': [{'name': 'evil', 'value': 'blocked-storage'}]},
-        ],
-    }
-    state_path.write_text(json.dumps(state), encoding='utf-8')
-    raise SystemExit(0)
-if len(args) == 3 and args[:1] == ['--session'] and args[2:] == ['close']:
-    raise SystemExit(0)
-print('unexpected args: ' + repr(args), file=sys.stderr)
-raise SystemExit(2)
-"#,
+        &log_path,
+        json!({"state": chrome_import_state()}),
     );
 
     let mut cmd = Command::cargo_bin("aget").unwrap();
@@ -418,16 +378,8 @@ fn session_import_chrome_requires_user_action_for_profile_lock() {
     let temp = tempfile::tempdir().unwrap();
     let aget_home = temp.path().join("aget-home");
     let log_path = temp.path().join("agent-browser.log");
-    let fake_agent_browser = write_fake_agent_browser(
-        temp.path(),
-        r#"#!/usr/bin/env python3
-import json, os, pathlib, sys
-args = sys.argv[1:]
-pathlib.Path(os.environ['AGET_FAKE_AGENT_BROWSER_LOG']).write_text(json.dumps(args), encoding='utf-8')
-print('Please quit Chrome before importing this profile', file=sys.stderr)
-raise SystemExit(2)
-"#,
-    );
+    let fake_agent_browser =
+        agent_browser_tool(temp.path(), &log_path, json!({"behavior": "profile_lock"}));
 
     let mut cmd = Command::cargo_bin("aget").unwrap();
     let output = cmd
@@ -462,25 +414,10 @@ fn session_import_chrome_closes_and_cleans_raw_state_on_malformed_state() {
     let temp = tempfile::tempdir().unwrap();
     let aget_home = temp.path().join("aget-home");
     let log_path = temp.path().join("agent-browser.log");
-    let fake_agent_browser = write_fake_agent_browser(
+    let fake_agent_browser = agent_browser_tool(
         temp.path(),
-        r#"#!/usr/bin/env python3
-import json, os, pathlib, sys
-args = sys.argv[1:]
-log = pathlib.Path(os.environ['AGET_FAKE_AGENT_BROWSER_LOG'])
-with log.open('a', encoding='utf-8') as handle:
-    handle.write(json.dumps(args) + '\n')
-if args[-2:] == ['open', 'about:blank']:
-    raise SystemExit(0)
-if args[2:4] == ['state', 'save']:
-    with log.open('a', encoding='utf-8') as handle:
-        handle.write('STATE_PATH=' + args[4] + '\n')
-    pathlib.Path(args[4]).write_text('{bad json', encoding='utf-8')
-    raise SystemExit(0)
-if args[-1:] == ['close']:
-    raise SystemExit(0)
-raise SystemExit(2)
-"#,
+        &log_path,
+        json!({"behavior": "malformed_state"}),
     );
 
     let mut cmd = Command::cargo_bin("aget").unwrap();
@@ -527,20 +464,7 @@ fn session_login_start_opens_aget_owned_browser_and_records_pending_flow() {
     let aget_home = temp.path().join("aget-home");
     let log_path = temp.path().join("agent-browser.log");
     let target_url = "https://www.nytimes.com/article";
-    let fake_agent_browser = write_fake_agent_browser(
-        temp.path(),
-        r#"#!/usr/bin/env python3
-import json, os, pathlib, sys
-args = sys.argv[1:]
-log = pathlib.Path(os.environ['AGET_FAKE_AGENT_BROWSER_LOG'])
-with log.open('a', encoding='utf-8') as handle:
-    handle.write(json.dumps(args) + '\n')
-if len(args) == 6 and args[:1] == ['--profile'] and args[2:3] == ['--session'] and args[4] == 'open':
-    raise SystemExit(0)
-print('unexpected args: ' + repr(args), file=sys.stderr)
-raise SystemExit(2)
-"#,
-    );
+    let fake_agent_browser = agent_browser_tool(temp.path(), &log_path, json!({}));
     let expected_profile = aget_home.join("tmp/agent-browser/aget-news");
 
     let mut cmd = Command::cargo_bin("aget").unwrap();
@@ -557,7 +481,12 @@ raise SystemExit(2)
         .stdout
         .clone();
 
-    let json = success_data(&output, "session.login.start");
+    let envelope = success_envelope(&output, "session.login.start");
+    assert!(envelope["warnings"][0]
+        .as_str()
+        .unwrap()
+        .contains("prefer signing in with your real browser"));
+    let json = envelope["data"].clone();
     assert_eq!(json["state"], "login_started");
     assert!(json.get("site").is_none());
     assert_eq!(json["name"], "news");
@@ -589,17 +518,7 @@ fn session_login_start_rejects_http_url_before_agent_browser() {
     let temp = tempfile::tempdir().unwrap();
     let aget_home = temp.path().join("aget-home");
     let log_path = temp.path().join("agent-browser.log");
-    let fake_agent_browser = write_fake_agent_browser(
-        temp.path(),
-        r#"#!/usr/bin/env python3
-import json, os, pathlib, sys
-args = sys.argv[1:]
-log = pathlib.Path(os.environ['AGET_FAKE_AGENT_BROWSER_LOG'])
-with log.open('a', encoding='utf-8') as handle:
-    handle.write(json.dumps(args) + '\n')
-raise SystemExit(0)
-"#,
-    );
+    let fake_agent_browser = agent_browser_tool(temp.path(), &log_path, json!({}));
 
     let mut cmd = Command::cargo_bin("aget").unwrap();
     let output = cmd
@@ -637,19 +556,7 @@ fn session_login_start_uses_exact_non_www_url_host_scope() {
     let temp = tempfile::tempdir().unwrap();
     let aget_home = temp.path().join("aget-home");
     let log_path = temp.path().join("agent-browser.log");
-    let fake_agent_browser = write_fake_agent_browser(
-        temp.path(),
-        r#"#!/usr/bin/env python3
-import json, os, pathlib, sys
-args = sys.argv[1:]
-log = pathlib.Path(os.environ['AGET_FAKE_AGENT_BROWSER_LOG'])
-with log.open('a', encoding='utf-8') as handle:
-    handle.write(json.dumps(args) + '\n')
-if args[-2:-1] == ['open']:
-    raise SystemExit(0)
-raise SystemExit(2)
-"#,
-    );
+    let fake_agent_browser = agent_browser_tool(temp.path(), &log_path, json!({}));
 
     let mut cmd = Command::cargo_bin("aget").unwrap();
     let output = cmd
@@ -685,22 +592,7 @@ fn session_login_start_rejects_duplicate_pending_flow_without_overwriting() {
     let temp = tempfile::tempdir().unwrap();
     let aget_home = temp.path().join("aget-home");
     let log_path = temp.path().join("agent-browser.log");
-    let fake_agent_browser = write_fake_agent_browser(
-        temp.path(),
-        r#"#!/usr/bin/env python3
-import json, os, pathlib, sys
-args = sys.argv[1:]
-log = pathlib.Path(os.environ['AGET_FAKE_AGENT_BROWSER_LOG'])
-with log.open('a', encoding='utf-8') as handle:
-    handle.write(json.dumps(args) + '\n')
-if len(args) == 6 and args[:1] == ['--profile'] and args[2:3] == ['--session'] and args[4] == 'open':
-    raise SystemExit(0)
-if len(args) == 3 and args[:1] == ['--session'] and args[2:] == ['close']:
-    raise SystemExit(0)
-print('unexpected args: ' + repr(args), file=sys.stderr)
-raise SystemExit(2)
-"#,
-    );
+    let fake_agent_browser = agent_browser_tool(temp.path(), &log_path, json!({}));
 
     let first_url = "https://www.nytimes.com/article";
     let second_url = "https://www.nytimes.com/login";
@@ -766,37 +658,10 @@ fn session_login_finish_saves_only_url_scoped_state_and_cleans_temp_files() {
     let temp = tempfile::tempdir().unwrap();
     let aget_home = temp.path().join("aget-home");
     let log_path = temp.path().join("agent-browser.log");
-    let fake_agent_browser = write_fake_agent_browser(
+    let fake_agent_browser = agent_browser_tool(
         temp.path(),
-        r#"#!/usr/bin/env python3
-import json, os, pathlib, sys
-args = sys.argv[1:]
-log = pathlib.Path(os.environ['AGET_FAKE_AGENT_BROWSER_LOG'])
-with log.open('a', encoding='utf-8') as handle:
-    handle.write(json.dumps(args) + '\n')
-if len(args) == 6 and args[:1] == ['--profile'] and args[2:3] == ['--session'] and args[4] == 'open':
-    raise SystemExit(0)
-if len(args) == 5 and args[:1] == ['--session'] and args[2:4] == ['state', 'save']:
-    state_path = pathlib.Path(args[4])
-    with log.open('a', encoding='utf-8') as handle:
-        handle.write('STATE_PATH=' + str(state_path) + '\n')
-    state = {
-        'cookies': [
-            {'name': 'nyt_session', 'value': 'nyt-secret', 'domain': '.nytimes.com', 'path': '/', 'expires': 1812619153.69691, 'httpOnly': True, 'secure': True, 'sameSite': 'Lax'},
-            {'name': 'provider', 'value': 'google-secret', 'domain': 'accounts.google.com', 'path': '/', 'httpOnly': True, 'secure': True},
-        ],
-        'origins': [
-            {'origin': 'https://www.nytimes.com', 'localStorage': [{'name': 'token', 'value': 'nyt-storage'}]},
-            {'origin': 'https://accounts.google.com', 'localStorage': [{'name': 'provider', 'value': 'google-storage'}]},
-        ],
-    }
-    state_path.write_text(json.dumps(state), encoding='utf-8')
-    raise SystemExit(0)
-if len(args) == 3 and args[:1] == ['--session'] and args[2:] == ['close']:
-    raise SystemExit(0)
-print('unexpected args: ' + repr(args), file=sys.stderr)
-raise SystemExit(2)
-"#,
+        &log_path,
+        json!({"state": nyt_state("nyt_session", "token")}),
     );
 
     let mut start = Command::cargo_bin("aget").unwrap();
@@ -904,34 +769,10 @@ fn session_login_finish_merges_new_scope_into_existing_bucket() {
     ));
     store.save(&existing).unwrap();
 
-    let fake_agent_browser = write_fake_agent_browser(
+    let fake_agent_browser = agent_browser_tool(
         temp.path(),
-        r#"#!/usr/bin/env python3
-import json, os, pathlib, sys
-args = sys.argv[1:]
-log = pathlib.Path(os.environ['AGET_FAKE_AGENT_BROWSER_LOG'])
-with log.open('a', encoding='utf-8') as handle:
-    handle.write(json.dumps(args) + '\n')
-if args[-2:-1] == ['open']:
-    raise SystemExit(0)
-if args[2:4] == ['state', 'save']:
-    state_path = pathlib.Path(args[4])
-    state = {
-        'cookies': [
-            {'name': 'nyt_new', 'value': 'new-nyt-secret', 'domain': '.nytimes.com', 'path': '/', 'httpOnly': True, 'secure': True},
-            {'name': 'provider', 'value': 'google-secret', 'domain': 'accounts.google.com', 'path': '/', 'httpOnly': True, 'secure': True},
-        ],
-        'origins': [
-            {'origin': 'https://www.nytimes.com', 'localStorage': [{'name': 'new-token', 'value': 'new-storage'}]},
-            {'origin': 'https://accounts.google.com', 'localStorage': [{'name': 'provider', 'value': 'google-storage'}]},
-        ],
-    }
-    state_path.write_text(json.dumps(state), encoding='utf-8')
-    raise SystemExit(0)
-if args[-1:] == ['close']:
-    raise SystemExit(0)
-raise SystemExit(2)
-"#,
+        &log_path,
+        json!({"state": nyt_state("nyt_new", "new-token")}),
     );
 
     let mut start = Command::cargo_bin("aget").unwrap();
@@ -999,34 +840,14 @@ fn session_login_finish_reports_close_failure_and_keeps_pending_metadata() {
     let temp = tempfile::tempdir().unwrap();
     let aget_home = temp.path().join("aget-home");
     let log_path = temp.path().join("agent-browser.log");
-    let fake_agent_browser = write_fake_agent_browser(
+    let fake_agent_browser = agent_browser_tool(
         temp.path(),
-        r#"#!/usr/bin/env python3
-import json, os, pathlib, sys
-args = sys.argv[1:]
-log = pathlib.Path(os.environ['AGET_FAKE_AGENT_BROWSER_LOG'])
-with log.open('a', encoding='utf-8') as handle:
-    handle.write(json.dumps(args) + '\n')
-if len(args) == 6 and args[:1] == ['--profile'] and args[2:3] == ['--session'] and args[4] == 'open':
-    raise SystemExit(0)
-if len(args) == 5 and args[:1] == ['--session'] and args[2:4] == ['state', 'save']:
-    state_path = pathlib.Path(args[4])
-    state = {
-        'cookies': [
-            {'name': 'nyt_session', 'value': 'nyt-secret', 'domain': '.nytimes.com', 'path': '/', 'expires': 1812619153.69691, 'httpOnly': True, 'secure': True, 'sameSite': 'Lax'},
-        ],
-        'origins': [
-            {'origin': 'https://www.nytimes.com', 'localStorage': [{'name': 'token', 'value': 'nyt-storage'}]},
-        ],
-    }
-    state_path.write_text(json.dumps(state), encoding='utf-8')
-    raise SystemExit(0)
-if len(args) == 3 and args[:1] == ['--session'] and args[2:] == ['close']:
-    print('close failed', file=sys.stderr)
-    raise SystemExit(1)
-print('unexpected args: ' + repr(args), file=sys.stderr)
-raise SystemExit(2)
-"#,
+        &log_path,
+        json!({
+            "behavior": "close_failure",
+            "state": nyt_state("nyt_session", "token"),
+            "close_stderr": "close failed"
+        }),
     );
 
     let mut start = Command::cargo_bin("aget").unwrap();
@@ -1075,33 +896,10 @@ fn finish_login_session_leaves_pending_until_complete_login_session_runs() {
     let aget_home = temp.path().join("aget-home");
     let tmp_dir = aget_home.join("tmp");
     let log_path = temp.path().join("agent-browser.log");
-    let fake_agent_browser = write_fake_agent_browser(
+    let fake_agent_browser = agent_browser_tool(
         temp.path(),
-        r#"#!/usr/bin/env python3
-import json, os, pathlib, sys
-args = sys.argv[1:]
-log = pathlib.Path(os.environ['AGET_FAKE_AGENT_BROWSER_LOG'])
-with log.open('a', encoding='utf-8') as handle:
-    handle.write(json.dumps(args) + '\n')
-if len(args) == 6 and args[:1] == ['--profile'] and args[2:3] == ['--session'] and args[4] == 'open':
-    raise SystemExit(0)
-if len(args) == 5 and args[:1] == ['--session'] and args[2:4] == ['state', 'save']:
-    state_path = pathlib.Path(args[4])
-    state = {
-        'cookies': [
-            {'name': 'nyt_session', 'value': 'nyt-secret', 'domain': '.nytimes.com', 'path': '/', 'expires': 1812619153.69691, 'httpOnly': True, 'secure': True, 'sameSite': 'Lax'},
-        ],
-        'origins': [
-            {'origin': 'https://www.nytimes.com', 'localStorage': [{'name': 'token', 'value': 'nyt-storage'}]},
-        ],
-    }
-    state_path.write_text(json.dumps(state), encoding='utf-8')
-    raise SystemExit(0)
-if len(args) == 3 and args[:1] == ['--session'] and args[2:] == ['close']:
-    raise SystemExit(0)
-print('unexpected args: ' + repr(args), file=sys.stderr)
-raise SystemExit(2)
-"#,
+        &log_path,
+        json!({"state": nyt_state("nyt_session", "token")}),
     );
     unsafe {
         std::env::set_var("AGET_AGENT_BROWSER_COMMAND", &fake_agent_browser);
@@ -1147,18 +945,7 @@ fn session_login_cancel_closes_only_pending_agent_browser_session() {
     let temp = tempfile::tempdir().unwrap();
     let aget_home = temp.path().join("aget-home");
     let log_path = temp.path().join("agent-browser.log");
-    let fake_agent_browser = write_fake_agent_browser(
-        temp.path(),
-        r#"#!/usr/bin/env python3
-import json, os, pathlib, sys
-args = sys.argv[1:]
-with pathlib.Path(os.environ['AGET_FAKE_AGENT_BROWSER_LOG']).open('a', encoding='utf-8') as handle:
-    handle.write(json.dumps(args) + '\n')
-if args[-2:-1] == ['open'] or args[-1:] == ['close']:
-    raise SystemExit(0)
-raise SystemExit(2)
-"#,
-    );
+    let fake_agent_browser = agent_browser_tool(temp.path(), &log_path, json!({}));
 
     let mut start = Command::cargo_bin("aget").unwrap();
     start
@@ -1203,20 +990,10 @@ fn session_login_cancel_cleans_profile_and_pending_when_close_fails() {
     let temp = tempfile::tempdir().unwrap();
     let aget_home = temp.path().join("aget-home");
     let log_path = temp.path().join("agent-browser.log");
-    let fake_agent_browser = write_fake_agent_browser(
+    let fake_agent_browser = agent_browser_tool(
         temp.path(),
-        r#"#!/usr/bin/env python3
-import json, os, pathlib, sys
-args = sys.argv[1:]
-with pathlib.Path(os.environ['AGET_FAKE_AGENT_BROWSER_LOG']).open('a', encoding='utf-8') as handle:
-    handle.write(json.dumps(args) + '\n')
-if args[-2:-1] == ['open']:
-    raise SystemExit(0)
-if args[-1:] == ['close']:
-    print('close failed', file=sys.stderr)
-    raise SystemExit(2)
-raise SystemExit(2)
-"#,
+        &log_path,
+        json!({"behavior": "close_failure", "close_stderr": "close failed", "close_exit_code": 2}),
     );
 
     let mut start = Command::cargo_bin("aget").unwrap();
@@ -1261,24 +1038,10 @@ fn session_login_finish_rejects_provider_only_state_without_saving_session() {
     let temp = tempfile::tempdir().unwrap();
     let aget_home = temp.path().join("aget-home");
     let log_path = temp.path().join("agent-browser.log");
-    let fake_agent_browser = write_fake_agent_browser(
+    let fake_agent_browser = agent_browser_tool(
         temp.path(),
-        r#"#!/usr/bin/env python3
-import json, os, pathlib, sys
-args = sys.argv[1:]
-log = pathlib.Path(os.environ['AGET_FAKE_AGENT_BROWSER_LOG'])
-with log.open('a', encoding='utf-8') as handle:
-    handle.write(json.dumps(args) + '\n')
-if args[-2:-1] == ['open']:
-    raise SystemExit(0)
-if args[2:4] == ['state', 'save']:
-    state_path = pathlib.Path(args[4])
-    state_path.write_text(json.dumps({'cookies': [{'name': 'provider', 'value': 'google-secret', 'domain': 'accounts.google.com', 'path': '/', 'httpOnly': True, 'secure': True}], 'origins': []}), encoding='utf-8')
-    raise SystemExit(0)
-if args[-1:] == ['close']:
-    raise SystemExit(0)
-raise SystemExit(2)
-"#,
+        &log_path,
+        json!({"state": provider_only_state()}),
     );
     let mut start = Command::cargo_bin("aget").unwrap();
     start
@@ -1770,43 +1533,19 @@ fn real_cmux_imports_loopback_cookie() {
     }));
 
     let (echo_url, echo_server) = loopback_cookie_echo_server();
-    let replay_backend = write_fake_backend(
+    let replay_backend = mock_backend_command(
         temp.path(),
-        r#"#!/usr/bin/env python3
-import argparse, json, pathlib, sys, urllib.request
-parser = argparse.ArgumentParser()
-parser.add_argument('--url', required=True)
-parser.add_argument('--state', required=True)
-parser.add_argument('--output', required=True)
-parser.add_argument('--metadata', required=True)
-args = parser.parse_args()
-state = json.loads(pathlib.Path(args.state).read_text(encoding='utf-8'))
-cookies = state.get('cookies', [])
-cookie_header = '; '.join(
-    f"{cookie['name']}={cookie['value']}"
-    for cookie in cookies
-    if cookie.get('domain') == '127.0.0.1'
-)
-expected = 'aget_cmux_e2e=loopback-secret'
-if expected not in cookie_header:
-    print('imported cookie missing from generated Playwright state', file=sys.stderr)
-    raise SystemExit(2)
-request = urllib.request.Request(args.url, headers={'Cookie': cookie_header})
-body = urllib.request.urlopen(request, timeout=5).read().decode('utf-8')
-if expected not in body:
-    print('imported cookie was not replayed to loopback echo server', file=sys.stderr)
-    raise SystemExit(3)
-content = '# cmux replay ok\n\n' + body
-pathlib.Path(args.output).write_text(content, encoding='utf-8')
-pathlib.Path(args.metadata).write_text(json.dumps({'backend': 'fake-cmux-replay'}), encoding='utf-8')
-print(json.dumps({'ok': True, 'final_url': args.url, 'content': content, 'warnings': []}))
-"#,
+        json!({
+            "behavior": "http_fetch",
+            "content_prefix": "# cmux replay ok\n\n",
+            "expect_state_cookies": [["aget_cmux_e2e", "loopback-secret"]]
+        }),
     );
 
     let mut replay = Command::cargo_bin("aget").unwrap();
     replay
         .env("AGET_HOME", &aget_home)
-        .env("AGET_CRAWL4AI_COMMAND", python_command(&replay_backend))
+        .env("AGET_CRAWL4AI_COMMAND", &replay_backend)
         .args(["get", &echo_url, "--session", "cmux-loopback"])
         .assert()
         .success()
@@ -1872,6 +1611,46 @@ fn real_cmux_import_replays_loopback_cookie_through_crawl4ai() {
     assert!(cookies
         .try_iter()
         .any(|cookie| cookie.contains("aget_cmux_e2e=loopback-secret")));
+}
+
+fn agent_browser_tool(dir: &Path, log_path: &Path, mut config: serde_json::Value) -> PathBuf {
+    config["log_path"] = serde_json::Value::String(log_path.to_string_lossy().into_owned());
+    mock_agent_browser(dir, config)
+}
+
+fn chrome_import_state() -> serde_json::Value {
+    json!({
+        "cookies": [
+            {"name": "sid", "value": "allowed-secret", "domain": "example.com", "path": "/", "expires": 1812619153.69691_f64, "httpOnly": true, "secure": true, "sameSite": "Lax"},
+            {"name": "sub", "value": "sub-secret", "domain": "docs.example.com", "path": "/", "httpOnly": false, "secure": false},
+            {"name": "evil", "value": "blocked-secret", "domain": "example.com.evil", "path": "/", "httpOnly": false, "secure": false}
+        ],
+        "origins": [
+            {"origin": "https://example.com", "localStorage": [{"name": "token", "value": "allowed-storage"}], "sessionStorage": [{"name": "ignored", "value": "session-only"}]},
+            {"origin": "https://docs.example.com:443", "localStorage": [{"name": "subtoken", "value": "sub-storage"}]},
+            {"origin": "https://example.com.evil", "localStorage": [{"name": "evil", "value": "blocked-storage"}]}
+        ]
+    })
+}
+
+fn nyt_state(cookie_name: &str, storage_name: &str) -> serde_json::Value {
+    json!({
+        "cookies": [
+            {"name": cookie_name, "value": "nyt-secret", "domain": ".nytimes.com", "path": "/", "expires": 1812619153.69691_f64, "httpOnly": true, "secure": true, "sameSite": "Lax"},
+            {"name": "provider", "value": "google-secret", "domain": "accounts.google.com", "path": "/", "httpOnly": true, "secure": true}
+        ],
+        "origins": [
+            {"origin": "https://www.nytimes.com", "localStorage": [{"name": storage_name, "value": "nyt-storage"}]},
+            {"origin": "https://accounts.google.com", "localStorage": [{"name": "provider", "value": "google-storage"}]}
+        ]
+    })
+}
+
+fn provider_only_state() -> serde_json::Value {
+    json!({
+        "cookies": [{"name": "provider", "value": "google-secret", "domain": "accounts.google.com", "path": "/", "httpOnly": true, "secure": true}],
+        "origins": []
+    })
 }
 
 fn success_envelope(output: &[u8], command: &str) -> serde_json::Value {
@@ -2033,50 +1812,4 @@ fn crawl4ai_cookie_echo_server() -> (String, thread::JoinHandle<()>, Receiver<St
     });
 
     (url, handle, cookie_receiver)
-}
-
-fn write_fake_cmux(dir: &Path, content: &str) -> PathBuf {
-    let nanos = SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .map(|duration| duration.as_nanos())
-        .unwrap_or_default();
-    let path = dir.join(format!("fake-cmux-{nanos}.py"));
-    fs::write(&path, content).unwrap();
-    make_executable(&path);
-    path
-}
-
-fn write_fake_agent_browser(dir: &Path, content: &str) -> PathBuf {
-    let nanos = SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .map(|duration| duration.as_nanos())
-        .unwrap_or_default();
-    let path = dir.join(format!("fake-agent-browser-{nanos}.py"));
-    fs::write(&path, content).unwrap();
-    make_executable(&path);
-    path
-}
-
-#[cfg(unix)]
-fn make_executable(path: &Path) {
-    use std::os::unix::fs::PermissionsExt;
-
-    let mut permissions = fs::metadata(path).unwrap().permissions();
-    permissions.set_mode(0o700);
-    fs::set_permissions(path, permissions).unwrap();
-}
-
-#[cfg(not(unix))]
-fn make_executable(_path: &Path) {}
-
-fn write_fake_backend(dir: &Path, content: &str) -> PathBuf {
-    write_fake_cmux(dir, content)
-}
-
-fn python_command(path: &Path) -> String {
-    format!("python3 {}", shell_quote(&path.to_string_lossy()))
-}
-
-fn shell_quote(value: &str) -> String {
-    format!("'{}'", value.replace('\'', "'\\''"))
 }

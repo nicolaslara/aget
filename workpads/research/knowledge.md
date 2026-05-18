@@ -706,6 +706,40 @@ The e2e/CLI suite covers current command-backed behavior well, but the new gener
 
 This found an important architectural gap: `Aget::get` was still reopening the filesystem `SessionStore` through `GetOptions.home`, so replacing the session-store backend did not affect session-backed fetches. The extraction pipeline now accepts an `ExtractionSessionStore` capability for `AgetWith`, while the lower-level compatibility entry points still construct the filesystem store from `AGET_HOME` or `GetOptions.home`.
 
+### D48: Current PoC backend feature inventory
+
+`aget` currently uses Crawl4AI through the local `scripts/crawl4ai_extract.py` command adapter for a narrow extraction contract:
+
+- Render/fetch one URL from a Playwright-compatible storage state file.
+- Return markdown by default, plus `html`, `text`, and `json` content formats.
+- Apply CSS selector narrowing through `--selector`.
+- Remove matching content through `--exclude-selector`.
+- Wait for CSS readiness through `--wait-for`; JavaScript waits are rejected before backend execution.
+- Accept a small namespaced escape hatch for Crawl4AI options through `crawl4ai.*` extractor options.
+- Write content and metadata artifacts to paths controlled by `aget`.
+- Report structured success/failure, warnings, final URL, malformed output, timeouts, and subprocess errors.
+
+`aget` currently uses `agent-browser` for browser/session capabilities:
+
+- Open a URL in a named session and optional profile for login bootstrap.
+- Save browser state as Playwright-compatible cookies/localStorage for login finish and Chrome import.
+- Load composed Playwright state into a temporary browser profile for authenticated fallback extraction.
+- Fetch body HTML or text from the fallback browser session when Crawl4AI cannot use the session state successfully.
+- Close sessions after login/import/fallback flows.
+- Surface profile-lock/login-needed/browser-action failures as stable `requires_user_action` or backend errors.
+
+Replacement direction: homegrown backends should preserve these behavior contracts before adding broader features. The extraction replacement can start with "HTML fetch/render -> content artifacts -> markdown/text/html/json output shaping." The browser replacement can start with CDP/WebDriver-backed dedicated-profile login, state import/export, and body extraction. Current-tab, screenshots, actions, crawl/map, objective narrowing, and token estimates are later product features and should not be bundled into the first replacement task unless they are needed to preserve existing behavior.
+
+### D49: OAuth login should prefer real user browsers and verify persisted auth
+
+Manual release testing against Hello Interview showed three distinct auth behaviors:
+
+- OAuth in an automation-controlled `agent-browser` window can be rejected by Google with "This browser or app may not be secure."
+- Importing from the user's normal Chrome `Default` profile worked when that profile was already logged in: `aget session import chrome` captured scoped Hello Interview cookies, and the browser fallback extractor fetched the premium article.
+- Opening Chrome with a fresh `--user-data-dir` under `AGET_HOME` created a dedicated profile directory and anonymous Hello Interview cookies, but the expected auth cookies (`hi.session-token-2`, `hi.csrf-token`, `hi.callback-url`) did not persist there after the attempted login. Reopening that profile still rendered the logged-out/paywalled page.
+
+Do not treat a custom browser profile as the default login design until it has a proven persistence/import path. The safer product flow is: first detect/import usable existing browser auth, then if auth is missing warn the user that OAuth/user login is needed, suggest importing an existing OAuth session from the user's real browser/profile whenever possible, open the chosen real browser/profile only when user action is required, and verify persisted scoped auth before claiming login success. Dedicated `aget` profiles remain attractive for isolation, but need targeted research around browser choice, OAuth redirects, profile paths, lock handling, and state export before becoming the default.
+
 ## Open Questions
 
 - Can pure Rust browser automation provide reliable persistent profiles and CDP attach, or do we need a small Node/Playwright sidecar?

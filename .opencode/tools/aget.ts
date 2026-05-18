@@ -57,7 +57,7 @@ function addOptional(args: string[], flag: string, value: string | number | unde
 
 export const fetch = tool({
   description:
-    "Fetch an HTTP(S) URL with the local aget CLI. Returns aget's structured JSON envelope. Use sessions only when the user has authorized access to the target content.",
+    "Fetch an HTTP(S) URL with the local aget CLI. Returns aget's structured JSON envelope. Use explicit sessions only when the user has authorized access. If content looks gated and the site uses OAuth, ask before importing a real browser session; do not use automation login as the first path.",
   args: {
     url: tool.schema.string().describe("HTTP(S) URL to fetch."),
     sessions: tool.schema
@@ -137,5 +137,36 @@ export const session_inspect = tool({
   },
   async execute(args, context) {
     return runAget(["session", "inspect", args.name], context)
+  },
+})
+
+export const session_import_chrome = tool({
+  description:
+    "Import a scoped aget session from a user-approved real Chrome profile. Prefer this for OAuth-backed sites: the user logs in through their normal browser, then the agent imports only the allowed domains and verifies with fetch using the named session.",
+  args: {
+    profile: tool.schema
+      .string()
+      .describe("Chrome profile name or profile path approved by the user, e.g. Default."),
+    name: tool.schema.string().describe("Local aget session name to create or replace."),
+    domains: tool.schema
+      .array(tool.schema.string())
+      .min(1)
+      .describe("Explicit allowed domains to import, e.g. ['example.com', 'www.example.com']."),
+    timeout: tool.schema
+      .number()
+      .int()
+      .positive()
+      .optional()
+      .describe("Optional timeout in seconds."),
+  },
+  async execute(args, context) {
+    const cliArgs: string[] = []
+    addOptional(cliArgs, "--timeout", args.timeout)
+    cliArgs.push("session", "import", "chrome", "--profile", args.profile, "--name", args.name)
+    for (const domain of args.domains) {
+      cliArgs.push("--domain", domain)
+    }
+
+    return runAget(cliArgs, context)
   },
 })

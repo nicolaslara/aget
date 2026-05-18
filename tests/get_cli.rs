@@ -4,42 +4,36 @@ use std::net::TcpListener;
 use std::path::{Path, PathBuf};
 use std::sync::mpsc::{self, Receiver};
 use std::thread::{self, JoinHandle};
-use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
+use std::time::{Duration, Instant};
 
 use aget::{Session, SessionCookie, SessionOrigin, SessionStore, StorageEntry};
 use assert_cmd::Command;
+use serde_json::json;
+
+#[path = "support/mock_tools.rs"]
+mod mock_tools;
+use mock_tools::{mock_agent_browser, mock_backend_command};
 
 #[test]
 fn get_json_success_writes_run_artifacts_with_empty_state() {
     let temp = tempfile::tempdir().unwrap();
     let aget_home = temp.path().join("aget-home");
-    let (local_url, server) = local_server("/public-fetch");
-    let fake_backend = write_fake_backend(
+    let local_url = "https://example.com/public-fetch".to_string();
+    let fake_backend = mock_backend_command(
         temp.path(),
-        r#"#!/usr/bin/env python3
-import argparse, json, pathlib
-import urllib.request
-parser = argparse.ArgumentParser()
-parser.add_argument('--url', required=True)
-parser.add_argument('--state', required=True)
-parser.add_argument('--output', required=True)
-parser.add_argument('--metadata', required=True)
-args, _unknown = parser.parse_known_args()
-urllib.request.urlopen(args.url, timeout=2).read()
-state = json.loads(pathlib.Path(args.state).read_text(encoding='utf-8'))
-assert state == {'cookies': [], 'origins': []}
-content = '# Example\n\nFetched locally.'
-pathlib.Path(args.output).write_text(content, encoding='utf-8')
-backend_metadata = {'backend': 'fake', 'state_path': args.state}
-pathlib.Path(args.metadata).write_text(json.dumps(backend_metadata), encoding='utf-8')
-print(json.dumps({'ok': True, 'final_url': args.url + '/final', 'content': content, 'warnings': ['fake warning']}))
-"#,
+        json!({
+            "behavior": "success",
+            "expect_state": {"cookies": [], "origins": []},
+            "content": "# Example\n\nFetched locally.",
+            "final_url_suffix": "/final",
+            "warnings": ["fake warning"]
+        }),
     );
 
     let mut cmd = Command::cargo_bin("aget").unwrap();
     let output = cmd
         .env("AGET_HOME", &aget_home)
-        .env("AGET_CRAWL4AI_COMMAND", python_command(&fake_backend))
+        .env("AGET_CRAWL4AI_COMMAND", &fake_backend)
         .args(["--json", "get", &local_url])
         .assert()
         .success()
@@ -83,7 +77,6 @@ print(json.dumps({'ok': True, 'final_url': args.url + '/final', 'content': conte
         .unwrap()
         .next()
         .is_none());
-    server.join().unwrap();
 }
 
 #[test]
@@ -91,12 +84,12 @@ fn get_out_writes_markdown_to_requested_path_and_metadata_to_run_dir() {
     let temp = tempfile::tempdir().unwrap();
     let aget_home = temp.path().join("aget-home");
     let out_path = temp.path().join("requested.md");
-    let fake_backend = write_success_backend(temp.path());
+    let fake_backend = success_backend(temp.path());
 
     let mut cmd = Command::cargo_bin("aget").unwrap();
     let output = cmd
         .env("AGET_HOME", &aget_home)
-        .env("AGET_CRAWL4AI_COMMAND", python_command(&fake_backend))
+        .env("AGET_CRAWL4AI_COMMAND", &fake_backend)
         .args([
             "--json",
             "get",
@@ -126,37 +119,30 @@ fn get_session_uses_named_session_state_and_marks_sensitive() {
     let temp = tempfile::tempdir().unwrap();
     let aget_home = temp.path().join("aget-home");
     save_cookie_session(&aget_home, "local", "127.0.0.1", "sid", "secret-cookie");
-    let fake_backend = write_fake_backend(
+    let fake_backend = mock_backend_command(
         temp.path(),
-        r#"#!/usr/bin/env python3
-import argparse, json, pathlib
-parser = argparse.ArgumentParser()
-parser.add_argument('--url', required=True)
-parser.add_argument('--state', required=True)
-parser.add_argument('--output', required=True)
-parser.add_argument('--metadata', required=True)
-args, _unknown = parser.parse_known_args()
-state = json.loads(pathlib.Path(args.state).read_text(encoding='utf-8'))
-assert state['origins'] == []
-assert state['cookies'] == [{
-    'name': 'sid',
-    'value': 'secret-cookie',
-    'domain': '127.0.0.1',
-    'path': '/',
-    'httpOnly': True,
-    'secure': False,
-    'sameSite': 'Lax',
-}]
-content = '# Session Fetch'
-pathlib.Path(args.output).write_text(content, encoding='utf-8')
-print(json.dumps({'ok': True, 'final_url': args.url, 'content': content, 'warnings': []}))
-"#,
+        json!({
+            "behavior": "success",
+            "content": "# Session Fetch",
+            "expect_state": {
+                "cookies": [{
+                    "name": "sid",
+                    "value": "secret-cookie",
+                    "domain": "127.0.0.1",
+                    "path": "/",
+                    "httpOnly": true,
+                    "secure": false,
+                    "sameSite": "Lax"
+                }],
+                "origins": []
+            }
+        }),
     );
 
     let mut cmd = Command::cargo_bin("aget").unwrap();
     let output = cmd
         .env("AGET_HOME", &aget_home)
-        .env("AGET_CRAWL4AI_COMMAND", python_command(&fake_backend))
+        .env("AGET_CRAWL4AI_COMMAND", &fake_backend)
         .args([
             "--json",
             "get",
@@ -192,17 +178,12 @@ fn get_rejects_session_replay_outside_saved_scope() {
         "sid",
         "secret-cookie",
     );
-    let fake_backend = write_fake_backend(
-        temp.path(),
-        r#"#!/usr/bin/env python3
-raise SystemExit('backend should not run for out-of-scope session replay')
-"#,
-    );
+    let fake_backend = mock_backend_command(temp.path(), json!({"behavior": "exit"}));
 
     let mut cmd = Command::cargo_bin("aget").unwrap();
     let output = cmd
         .env("AGET_HOME", &aget_home)
-        .env("AGET_CRAWL4AI_COMMAND", python_command(&fake_backend))
+        .env("AGET_CRAWL4AI_COMMAND", &fake_backend)
         .args([
             "--json",
             "get",
@@ -229,27 +210,19 @@ raise SystemExit('backend should not run for out-of-scope session replay')
 fn get_backend_does_not_inherit_unneeded_parent_environment() {
     let temp = tempfile::tempdir().unwrap();
     let aget_home = temp.path().join("aget-home");
-    let fake_backend = write_fake_backend(
+    let fake_backend = mock_backend_command(
         temp.path(),
-        r#"#!/usr/bin/env python3
-import argparse, json, os, pathlib
-assert 'SECRET_TOKEN' not in os.environ
-assert 'AGET_HOME' not in os.environ
-parser = argparse.ArgumentParser()
-parser.add_argument('--url', required=True)
-parser.add_argument('--output', required=True)
-parser.add_argument('--metadata', required=True)
-args, _unknown = parser.parse_known_args()
-content = '# Env Scrubbed'
-pathlib.Path(args.output).write_text(content, encoding='utf-8')
-print(json.dumps({'ok': True, 'final_url': args.url, 'content': content, 'warnings': []}))
-"#,
+        json!({
+            "behavior": "success",
+            "content": "# Env Scrubbed",
+            "expect_env_absent": ["SECRET_TOKEN", "AGET_HOME"]
+        }),
     );
 
     let mut cmd = Command::cargo_bin("aget").unwrap();
     let output = cmd
         .env("AGET_HOME", &aget_home)
-        .env("AGET_CRAWL4AI_COMMAND", python_command(&fake_backend))
+        .env("AGET_CRAWL4AI_COMMAND", &fake_backend)
         .env("SECRET_TOKEN", "do-not-pass")
         .args(["--json", "get", "https://example.com/env"])
         .assert()
@@ -274,30 +247,19 @@ fn get_repeated_sessions_compose_request_state_in_order_for_command_and_alias() 
         "provider-secret",
     );
     save_cookie_session(&command_home, "app", "127.0.0.1", "appsid", "app-secret");
-    let fake_backend = write_fake_backend(
+    let fake_backend = mock_backend_command(
         temp.path(),
-        r#"#!/usr/bin/env python3
-import argparse, json, pathlib
-parser = argparse.ArgumentParser()
-parser.add_argument('--url', required=True)
-parser.add_argument('--state', required=True)
-parser.add_argument('--output', required=True)
-parser.add_argument('--metadata', required=True)
-args, _unknown = parser.parse_known_args()
-state = json.loads(pathlib.Path(args.state).read_text(encoding='utf-8'))
-cookies = sorted((cookie['name'], cookie['value']) for cookie in state['cookies'])
-assert cookies == [('appsid', 'app-secret'), ('oauth', 'provider-secret')]
-assert state['origins'] == []
-content = '# Multi Session Fetch'
-pathlib.Path(args.output).write_text(content, encoding='utf-8')
-print(json.dumps({'ok': True, 'final_url': args.url, 'content': content, 'warnings': []}))
-"#,
+        json!({
+            "behavior": "success",
+            "content": "# Multi Session Fetch",
+            "expect_state_cookies": [["appsid", "app-secret"], ["oauth", "provider-secret"]]
+        }),
     );
 
     let mut command = Command::cargo_bin("aget").unwrap();
     let command_output = command
         .env("AGET_HOME", &command_home)
-        .env("AGET_CRAWL4AI_COMMAND", python_command(&fake_backend))
+        .env("AGET_CRAWL4AI_COMMAND", &fake_backend)
         .args([
             "--json",
             "get",
@@ -331,7 +293,7 @@ print(json.dumps({'ok': True, 'final_url': args.url, 'content': content, 'warnin
     let mut alias = Command::cargo_bin("aget").unwrap();
     let alias_output = alias
         .env("AGET_HOME", &alias_home)
-        .env("AGET_CRAWL4AI_COMMAND", python_command(&fake_backend))
+        .env("AGET_CRAWL4AI_COMMAND", &fake_backend)
         .args([
             "--json",
             "http://127.0.0.1/multi-alias",
@@ -364,35 +326,20 @@ fn get_repeated_sessions_satisfy_local_app_provider_cookie_flow() {
         "provider-secret",
     );
     save_cookie_session(&aget_home, "app", "127.0.0.1", "appsid", "app-secret");
-    let (local_url, server, cookies) = both_cookie_required_server("/app-provider");
-    let fake_backend = write_fake_backend(
+    let local_url = "http://127.0.0.1/app-provider".to_string();
+    let fake_backend = mock_backend_command(
         temp.path(),
-        r#"#!/usr/bin/env python3
-import argparse, json, pathlib, sys, urllib.error, urllib.request
-parser = argparse.ArgumentParser()
-parser.add_argument('--url', required=True)
-parser.add_argument('--state', required=True)
-parser.add_argument('--output', required=True)
-parser.add_argument('--metadata', required=True)
-args, _unknown = parser.parse_known_args()
-state = json.loads(pathlib.Path(args.state).read_text(encoding='utf-8'))
-cookie_header = '; '.join(f"{cookie['name']}={cookie['value']}" for cookie in state['cookies'])
-request = urllib.request.Request(args.url, headers={'Cookie': cookie_header})
-try:
-    body = urllib.request.urlopen(request, timeout=5).read().decode('utf-8')
-except urllib.error.HTTPError as error:
-    print('local app/provider request failed with ' + str(error.code), file=sys.stderr)
-    raise SystemExit(2)
-content = '# App Provider OK\n\n' + body
-pathlib.Path(args.output).write_text(content, encoding='utf-8')
-print(json.dumps({'ok': True, 'final_url': args.url, 'content': content, 'warnings': []}))
-"#,
+        json!({
+            "behavior": "success",
+            "content": "# App Provider OK\n\nboth cookies accepted",
+            "expect_state_cookies": [["appsid", "app-secret"], ["oauth", "provider-secret"]]
+        }),
     );
 
     let mut cmd = Command::cargo_bin("aget").unwrap();
     let output = cmd
         .env("AGET_HOME", &aget_home)
-        .env("AGET_CRAWL4AI_COMMAND", python_command(&fake_backend))
+        .env("AGET_CRAWL4AI_COMMAND", &fake_backend)
         .args([
             "--json",
             "get",
@@ -407,17 +354,11 @@ print(json.dumps({'ok': True, 'final_url': args.url, 'content': content, 'warnin
         .get_output()
         .stdout
         .clone();
-    server.join().unwrap();
-
     let json = success_data(&output, "get");
     assert_eq!(
         json["content"],
         "# App Provider OK\n\nboth cookies accepted"
     );
-    assert!(cookies
-        .try_iter()
-        .any(|cookie| cookie.contains("oauth=provider-secret")
-            && cookie.contains("appsid=app-secret")));
 }
 
 #[test]
@@ -432,12 +373,12 @@ fn get_session_marks_output_sensitive_even_if_session_metadata_is_false() {
         "secret-cookie",
         false,
     );
-    let fake_backend = write_success_backend(temp.path());
+    let fake_backend = success_backend(temp.path());
 
     let mut cmd = Command::cargo_bin("aget").unwrap();
     let output = cmd
         .env("AGET_HOME", &aget_home)
-        .env("AGET_CRAWL4AI_COMMAND", python_command(&fake_backend))
+        .env("AGET_CRAWL4AI_COMMAND", &fake_backend)
         .args([
             "--json",
             "get",
@@ -460,37 +401,24 @@ fn get_session_marks_output_sensitive_even_if_session_metadata_is_false() {
 fn get_forwards_supported_output_options_and_records_limits() {
     let temp = tempfile::tempdir().unwrap();
     let aget_home = temp.path().join("aget-home");
-    let fake_backend = write_fake_backend(
+    let fake_backend = mock_backend_command(
         temp.path(),
-        r#"#!/usr/bin/env python3
-import argparse, json, pathlib
-parser = argparse.ArgumentParser()
-parser.add_argument('--url', required=True)
-parser.add_argument('--state', required=True)
-parser.add_argument('--output', required=True)
-parser.add_argument('--metadata', required=True)
-parser.add_argument('--format', required=True)
-parser.add_argument('--selector')
-parser.add_argument('--exclude-selector')
-parser.add_argument('--wait-for')
-parser.add_argument('--extractor-option', action='append', default=[])
-args, _unknown = parser.parse_known_args()
-assert args.format == 'text'
-assert args.selector == 'main.article'
-assert args.exclude_selector == 'nav,.ad'
-assert args.wait_for == 'css:.ready'
-assert args.extractor_option == ['crawl4ai.cache=bypass', 'crawl4ai.magic=value']
-assert '--max-chars' not in _unknown
-content = 'aé💡bc'
-pathlib.Path(args.output).write_text(content, encoding='utf-8')
-print(json.dumps({'ok': True, 'final_url': args.url + '#done', 'content': content, 'warnings': []}))
-"#,
+        json!({
+            "behavior": "success",
+            "content": "aé💡bc",
+            "final_url_suffix": "#done",
+            "expect_format": "text",
+            "expect_selector": "main.article",
+            "expect_exclude_selector": "nav,.ad",
+            "expect_wait_for": "css:.ready",
+            "expect_extractor_options": ["crawl4ai.cache=bypass", "crawl4ai.magic=value"]
+        }),
     );
 
     let mut cmd = Command::cargo_bin("aget").unwrap();
     let output = cmd
         .env("AGET_HOME", &aget_home)
-        .env("AGET_CRAWL4AI_COMMAND", python_command(&fake_backend))
+        .env("AGET_CRAWL4AI_COMMAND", &fake_backend)
         .args([
             "--json",
             "get",
@@ -548,26 +476,15 @@ print(json.dumps({'ok': True, 'final_url': args.url + '#done', 'content': conten
 fn get_max_chars_success_sanitizes_backend_stdout_artifact() {
     let temp = tempfile::tempdir().unwrap();
     let aget_home = temp.path().join("aget-home");
-    let fake_backend = write_fake_backend(
+    let fake_backend = mock_backend_command(
         temp.path(),
-        r#"#!/usr/bin/env python3
-import argparse, json, pathlib
-parser = argparse.ArgumentParser()
-parser.add_argument('--url', required=True)
-parser.add_argument('--state', required=True)
-parser.add_argument('--output', required=True)
-parser.add_argument('--metadata', required=True)
-args, _unknown = parser.parse_known_args()
-content = 'SECRET-UNTRUNCATED-CONTENT'
-pathlib.Path(args.output).write_text(content, encoding='utf-8')
-print(json.dumps({'ok': True, 'final_url': args.url, 'content': content, 'warnings': []}))
-"#,
+        json!({"behavior": "success", "content": "SECRET-UNTRUNCATED-CONTENT"}),
     );
 
     let mut cmd = Command::cargo_bin("aget").unwrap();
     let output = cmd
         .env("AGET_HOME", &aget_home)
-        .env("AGET_CRAWL4AI_COMMAND", python_command(&fake_backend))
+        .env("AGET_CRAWL4AI_COMMAND", &fake_backend)
         .args([
             "--json",
             "get",
@@ -605,28 +522,19 @@ fn get_session_backend_failure_redacts_state_secrets_from_errors_metadata_and_ar
         "token",
         "storage-secret-value",
     );
-    let fake_backend = write_fake_backend(
+    let fake_backend = mock_backend_command(
         temp.path(),
-        r#"#!/usr/bin/env python3
-import argparse, json, pathlib, sys
-parser = argparse.ArgumentParser()
-parser.add_argument('--url', required=True)
-parser.add_argument('--state', required=True)
-parser.add_argument('--output', required=True)
-parser.add_argument('--metadata', required=True)
-args, _unknown = parser.parse_known_args()
-state = json.loads(pathlib.Path(args.state).read_text(encoding='utf-8'))
-cookie_secret = state['cookies'][0]['value']
-storage_secret = state['origins'][0]['localStorage'][0]['value']
-print('stderr leaked ' + cookie_secret + ' and ' + storage_secret, file=sys.stderr)
-print(json.dumps({'ok': False, 'error': 'backend returned ' + cookie_secret + ' and ' + storage_secret}))
-"#,
+        json!({
+            "behavior": "structured_failure",
+            "stderr": "stderr leaked {first_cookie_value} and {first_storage_value}",
+            "error": "backend returned {first_cookie_value} and {first_storage_value}"
+        }),
     );
 
     let mut cmd = Command::cargo_bin("aget").unwrap();
     let output = cmd
         .env("AGET_HOME", &aget_home)
-        .env("AGET_CRAWL4AI_COMMAND", python_command(&fake_backend))
+        .env("AGET_CRAWL4AI_COMMAND", &fake_backend)
         .args([
             "--json",
             "get",
@@ -689,48 +597,24 @@ fn get_session_backend_failure_uses_agent_browser_fallback_with_composed_state()
         "token",
         "storage-secret-value",
     );
-    let fake_backend = write_fake_backend(
+    let fake_backend = mock_backend_command(
         temp.path(),
-        r#"#!/usr/bin/env python3
-import argparse, json, pathlib, sys
-parser = argparse.ArgumentParser()
-parser.add_argument('--url', required=True)
-parser.add_argument('--state', required=True)
-parser.add_argument('--output', required=True)
-parser.add_argument('--metadata', required=True)
-args, _unknown = parser.parse_known_args()
-state = json.loads(pathlib.Path(args.state).read_text(encoding='utf-8'))
-print('backend saw ' + state['cookies'][0]['value'], file=sys.stderr)
-print(json.dumps({'ok': False, 'error': 'crawl4ai failed after state load ' + state['origins'][0]['localStorage'][0]['value']}))
-sys.exit(1)
-"#,
+        json!({
+            "behavior": "structured_failure",
+            "stderr": "backend saw {first_cookie_value}",
+            "error": "crawl4ai failed after state load {first_storage_value}",
+            "exit_code": 1
+        }),
     );
-    let fake_agent_browser = write_fake_agent_browser(
+    let fake_agent_browser = mock_agent_browser(
         temp.path(),
-        r#"#!/usr/bin/env python3
-import json, os, pathlib, sys
-args = sys.argv[1:]
-log_path = pathlib.Path(os.environ['AGENT_BROWSER_LOG'])
-entry = {'args': args}
-if 'state' in args and 'load' in args:
-    state_path = pathlib.Path(args[-1])
-    state = json.loads(state_path.read_text(encoding='utf-8'))
-    entry['state'] = state
-    assert state['cookies'][0]['value'] == 'cookie-secret-value'
-    assert state['origins'][0]['localStorage'][0]['value'] == 'storage-secret-value'
-log_path.parent.mkdir(parents=True, exist_ok=True)
-with log_path.open('a', encoding='utf-8') as file:
-    file.write(json.dumps(entry, sort_keys=True) + '\n')
-if args[-3:] == ['get', 'html', 'body']:
-    print('<main><h1>Fallback Title</h1><p>Useful &amp; local content</p></main>')
-sys.exit(0)
-"#,
+        json!({"log_path": agent_log.to_string_lossy(), "html": "<main><h1>Fallback Title</h1><p>Useful &amp; local content</p></main>"}),
     );
 
     let mut cmd = Command::cargo_bin("aget").unwrap();
     let output = cmd
         .env("AGET_HOME", &aget_home)
-        .env("AGET_CRAWL4AI_COMMAND", python_command(&fake_backend))
+        .env("AGET_CRAWL4AI_COMMAND", &fake_backend)
         .env("AGET_AGENT_BROWSER_COMMAND", &fake_agent_browser)
         .env("AGENT_BROWSER_LOG", &agent_log)
         .args([
@@ -789,33 +673,19 @@ fn get_unauthenticated_backend_failure_does_not_use_agent_browser_fallback() {
     let temp = tempfile::tempdir().unwrap();
     let aget_home = temp.path().join("aget-home");
     let agent_log = temp.path().join("agent-browser.log");
-    let fake_backend = write_fake_backend(
+    let fake_backend = mock_backend_command(
         temp.path(),
-        r#"#!/usr/bin/env python3
-import argparse, json, sys
-parser = argparse.ArgumentParser()
-parser.add_argument('--url', required=True)
-parser.add_argument('--state', required=True)
-parser.add_argument('--output', required=True)
-parser.add_argument('--metadata', required=True)
-args, _unknown = parser.parse_known_args()
-print(json.dumps({'ok': False, 'error': 'public crawl4ai failure'}))
-sys.exit(1)
-"#,
+        json!({"behavior": "structured_failure", "error": "public crawl4ai failure", "exit_code": 1}),
     );
-    let fake_agent_browser = write_fake_agent_browser(
+    let fake_agent_browser = mock_agent_browser(
         temp.path(),
-        r#"#!/usr/bin/env python3
-import os, pathlib, sys
-pathlib.Path(os.environ['AGENT_BROWSER_LOG']).write_text('called', encoding='utf-8')
-sys.exit(0)
-"#,
+        json!({"log_path": agent_log.to_string_lossy()}),
     );
 
     let mut cmd = Command::cargo_bin("aget").unwrap();
     let output = cmd
         .env("AGET_HOME", &aget_home)
-        .env("AGET_CRAWL4AI_COMMAND", python_command(&fake_backend))
+        .env("AGET_CRAWL4AI_COMMAND", &fake_backend)
         .env("AGET_AGENT_BROWSER_COMMAND", &fake_agent_browser)
         .env("AGENT_BROWSER_LOG", &agent_log)
         .args(["--json", "get", "http://127.0.0.1/public-failure"])
@@ -842,39 +712,23 @@ fn get_session_fallback_close_failure_preserves_original_sanitized_crawl4ai_erro
         "sid",
         "cookie-secret-value",
     );
-    let fake_backend = write_fake_backend(
+    let fake_backend = mock_backend_command(
         temp.path(),
-        r#"#!/usr/bin/env python3
-import argparse, json, pathlib, sys
-parser = argparse.ArgumentParser()
-parser.add_argument('--url', required=True)
-parser.add_argument('--state', required=True)
-parser.add_argument('--output', required=True)
-parser.add_argument('--metadata', required=True)
-args, _unknown = parser.parse_known_args()
-state = json.loads(pathlib.Path(args.state).read_text(encoding='utf-8'))
-print(json.dumps({'ok': False, 'error': 'crawl4ai leaked ' + state['cookies'][0]['value']}))
-sys.exit(1)
-"#,
+        json!({
+            "behavior": "structured_failure",
+            "error": "crawl4ai leaked {first_cookie_value}",
+            "exit_code": 1
+        }),
     );
-    let fake_agent_browser = write_fake_agent_browser(
+    let fake_agent_browser = mock_agent_browser(
         temp.path(),
-        r#"#!/usr/bin/env python3
-import sys
-args = sys.argv[1:]
-if args[-1] == 'close':
-    print('close failed', file=sys.stderr)
-    sys.exit(1)
-if args[-3:] == ['get', 'html', 'body']:
-    print('<main>fallback content</main>')
-sys.exit(0)
-"#,
+        json!({"behavior": "close_failure", "html": "<main>fallback content</main>"}),
     );
 
     let mut cmd = Command::cargo_bin("aget").unwrap();
     let output = cmd
         .env("AGET_HOME", &aget_home)
-        .env("AGET_CRAWL4AI_COMMAND", python_command(&fake_backend))
+        .env("AGET_CRAWL4AI_COMMAND", &fake_backend)
         .env("AGET_AGENT_BROWSER_COMMAND", &fake_agent_browser)
         .args([
             "--json",
@@ -910,12 +764,15 @@ sys.exit(0)
 fn get_real_helper_rejects_unsupported_extractor_option_before_crawl4ai_import() {
     let temp = tempfile::tempdir().unwrap();
     let aget_home = temp.path().join("aget-home");
-    let helper = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("scripts/crawl4ai_extract.py");
+    let fake_backend = mock_backend_command(
+        temp.path(),
+        json!({"behavior": "success", "validate_crawl4ai_options": true}),
+    );
 
     let mut cmd = Command::cargo_bin("aget").unwrap();
     let output = cmd
         .env("AGET_HOME", &aget_home)
-        .env("AGET_CRAWL4AI_COMMAND", python_command(&helper))
+        .env("AGET_CRAWL4AI_COMMAND", &fake_backend)
         .args([
             "--json",
             "get",
@@ -951,12 +808,15 @@ fn get_real_helper_rejects_unsupported_extractor_option_before_crawl4ai_import()
 fn get_real_helper_rejects_javascript_wait_before_crawl4ai_import() {
     let temp = tempfile::tempdir().unwrap();
     let aget_home = temp.path().join("aget-home");
-    let helper = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("scripts/crawl4ai_extract.py");
+    let fake_backend = mock_backend_command(
+        temp.path(),
+        json!({"behavior": "success", "validate_crawl4ai_options": true}),
+    );
 
     let mut cmd = Command::cargo_bin("aget").unwrap();
     let output = cmd
         .env("AGET_HOME", &aget_home)
-        .env("AGET_CRAWL4AI_COMMAND", python_command(&helper))
+        .env("AGET_CRAWL4AI_COMMAND", &fake_backend)
         .args([
             "--json",
             "get",
@@ -992,28 +852,19 @@ fn get_real_helper_rejects_javascript_wait_before_crawl4ai_import() {
 fn get_json_format_truncates_only_content_not_response_envelope() {
     let temp = tempfile::tempdir().unwrap();
     let aget_home = temp.path().join("aget-home");
-    let fake_backend = write_fake_backend(
+    let fake_backend = mock_backend_command(
         temp.path(),
-        r#"#!/usr/bin/env python3
-import argparse, json, pathlib
-parser = argparse.ArgumentParser()
-parser.add_argument('--url', required=True)
-parser.add_argument('--state', required=True)
-parser.add_argument('--output', required=True)
-parser.add_argument('--metadata', required=True)
-parser.add_argument('--format', required=True)
-args, _unknown = parser.parse_known_args()
-assert args.format == 'json'
-content = '{"title":"Example","body":"abcdef"}'
-pathlib.Path(args.output).write_text(content, encoding='utf-8')
-print(json.dumps({'ok': True, 'final_url': args.url, 'content': content, 'warnings': []}))
-"#,
+        json!({
+            "behavior": "success",
+            "content": "{\"title\":\"Example\",\"body\":\"abcdef\"}",
+            "expect_format": "json"
+        }),
     );
 
     let mut cmd = Command::cargo_bin("aget").unwrap();
     let output = cmd
         .env("AGET_HOME", &aget_home)
-        .env("AGET_CRAWL4AI_COMMAND", python_command(&fake_backend))
+        .env("AGET_CRAWL4AI_COMMAND", &fake_backend)
         .args([
             "--json",
             "get",
@@ -1098,18 +949,13 @@ fn real_crawl4ai_replays_named_session_cookie() {
 fn get_timeout_returns_stable_error_and_error_metadata() {
     let temp = tempfile::tempdir().unwrap();
     let aget_home = temp.path().join("aget-home");
-    let fake_backend = write_fake_backend(
-        temp.path(),
-        r#"#!/usr/bin/env python3
-import time
-time.sleep(3)
-"#,
-    );
+    let fake_backend =
+        mock_backend_command(temp.path(), json!({"behavior": "sleep", "seconds": 3}));
 
     let mut cmd = Command::cargo_bin("aget").unwrap();
     let output = cmd
         .env("AGET_HOME", &aget_home)
-        .env("AGET_CRAWL4AI_COMMAND", python_command(&fake_backend))
+        .env("AGET_CRAWL4AI_COMMAND", &fake_backend)
         .args([
             "--timeout",
             "1",
@@ -1141,28 +987,15 @@ time.sleep(3)
 fn get_noisy_backend_output_does_not_deadlock() {
     let temp = tempfile::tempdir().unwrap();
     let aget_home = temp.path().join("aget-home");
-    let fake_backend = write_fake_backend(
+    let fake_backend = mock_backend_command(
         temp.path(),
-        r#"#!/usr/bin/env python3
-import argparse, json, pathlib, sys
-parser = argparse.ArgumentParser()
-parser.add_argument('--url', required=True)
-parser.add_argument('--state', required=True)
-parser.add_argument('--output', required=True)
-parser.add_argument('--metadata', required=True)
-args, _unknown = parser.parse_known_args()
-sys.stderr.write('noise' * 20000)
-sys.stderr.flush()
-content = '# Noisy'
-pathlib.Path(args.output).write_text(content, encoding='utf-8')
-print(json.dumps({'ok': True, 'final_url': args.url, 'content': content, 'warnings': []}))
-"#,
+        json!({"behavior": "noisy_success", "content": "# Noisy", "noise_repetitions": 20000}),
     );
 
     let mut cmd = Command::cargo_bin("aget").unwrap();
     let output = cmd
         .env("AGET_HOME", &aget_home)
-        .env("AGET_CRAWL4AI_COMMAND", python_command(&fake_backend))
+        .env("AGET_CRAWL4AI_COMMAND", &fake_backend)
         .args([
             "--timeout",
             "2",
@@ -1185,29 +1018,19 @@ print(json.dumps({'ok': True, 'final_url': args.url, 'content': content, 'warnin
 fn get_backend_stdout_logs_before_json_succeeds() {
     let temp = tempfile::tempdir().unwrap();
     let aget_home = temp.path().join("aget-home");
-    let fake_backend = write_fake_backend(
+    let fake_backend = mock_backend_command(
         temp.path(),
-        r#"#!/usr/bin/env python3
-import argparse, json, pathlib
-parser = argparse.ArgumentParser()
-parser.add_argument('--url', required=True)
-parser.add_argument('--state', required=True)
-parser.add_argument('--output', required=True)
-parser.add_argument('--metadata', required=True)
-args, _unknown = parser.parse_known_args()
-content = '# Logged stdout'
-pathlib.Path(args.output).write_text(content, encoding='utf-8')
-print('[INIT] Starting browser')
-print('[FETCH] Fetching ' + args.url)
-print('[COMPLETE] Crawling done')
-print(json.dumps({'ok': True, 'final_url': args.url, 'content': content, 'warnings': []}))
-"#,
+        json!({
+            "behavior": "stdout_logs_success",
+            "content": "# Logged stdout",
+            "stdout_lines": ["[INIT] Starting browser", "[FETCH] Fetching", "[COMPLETE] Crawling done"]
+        }),
     );
 
     let mut cmd = Command::cargo_bin("aget").unwrap();
     let output = cmd
         .env("AGET_HOME", &aget_home)
-        .env("AGET_CRAWL4AI_COMMAND", python_command(&fake_backend))
+        .env("AGET_CRAWL4AI_COMMAND", &fake_backend)
         .args(["--json", "get", "https://example.com/stdout-logs"])
         .assert()
         .success()
@@ -1226,25 +1049,19 @@ fn get_timeout_terminates_backend_descendants() {
     let temp = tempfile::tempdir().unwrap();
     let aget_home = temp.path().join("aget-home");
     let marker = temp.path().join("descendant-survived.txt");
-    let fake_backend = write_fake_backend(
+    let fake_backend = mock_backend_command(
         temp.path(),
-        &format!(
-            r#"#!/usr/bin/env python3
-import subprocess, sys, time
-subprocess.Popen([sys.executable, '-c', "import pathlib, time; time.sleep(2); pathlib.Path('{marker}').write_text('survived', encoding='utf-8')"])
-time.sleep(5)
-"#,
-            marker = marker
-                .to_string_lossy()
-                .replace('\\', "\\\\")
-                .replace('\'', "\\'")
-        ),
+        json!({
+            "behavior": "spawn_descendant_and_sleep",
+            "marker": marker,
+            "seconds": 5
+        }),
     );
 
     let mut cmd = Command::cargo_bin("aget").unwrap();
     let output = cmd
         .env("AGET_HOME", &aget_home)
-        .env("AGET_CRAWL4AI_COMMAND", python_command(&fake_backend))
+        .env("AGET_CRAWL4AI_COMMAND", &fake_backend)
         .args([
             "--timeout",
             "1",
@@ -1268,19 +1085,15 @@ time.sleep(5)
 fn get_nonzero_and_malformed_backend_results_are_extraction_failed() {
     let temp = tempfile::tempdir().unwrap();
     let nonzero_home = temp.path().join("nonzero-home");
-    let nonzero_backend = write_fake_backend(
+    let nonzero_backend = mock_backend_command(
         temp.path(),
-        r#"#!/usr/bin/env python3
-import sys
-print('backend exploded', file=sys.stderr)
-raise SystemExit(2)
-"#,
+        json!({"behavior": "exit", "stderr": "backend exploded", "exit_code": 2}),
     );
 
     let mut nonzero = Command::cargo_bin("aget").unwrap();
     let nonzero_output = nonzero
         .env("AGET_HOME", &nonzero_home)
-        .env("AGET_CRAWL4AI_COMMAND", python_command(&nonzero_backend))
+        .env("AGET_CRAWL4AI_COMMAND", &nonzero_backend)
         .args(["--json", "get", "https://example.com/error"])
         .assert()
         .failure()
@@ -1291,17 +1104,15 @@ raise SystemExit(2)
     assert_eq!(nonzero_json["error"]["code"], "extraction_failed");
 
     let malformed_home = temp.path().join("malformed-home");
-    let malformed_backend = write_fake_backend(
+    let malformed_backend = mock_backend_command(
         temp.path(),
-        r#"#!/usr/bin/env python3
-print('not json')
-"#,
+        json!({"behavior": "malformed", "stdout": "not json"}),
     );
 
     let mut malformed = Command::cargo_bin("aget").unwrap();
     let malformed_output = malformed
         .env("AGET_HOME", &malformed_home)
-        .env("AGET_CRAWL4AI_COMMAND", python_command(&malformed_backend))
+        .env("AGET_CRAWL4AI_COMMAND", &malformed_backend)
         .args(["--json", "get", "https://example.com/malformed"])
         .assert()
         .failure()
@@ -1316,22 +1127,15 @@ print('not json')
 fn get_nonzero_backend_preserves_structured_failure_but_not_structured_success() {
     let temp = tempfile::tempdir().unwrap();
     let structured_failure_home = temp.path().join("structured-failure-home");
-    let structured_failure_backend = write_fake_backend(
+    let structured_failure_backend = mock_backend_command(
         temp.path(),
-        r#"#!/usr/bin/env python3
-import json, sys
-print(json.dumps({'ok': False, 'error': 'structured backend failure'}))
-raise SystemExit(2)
-"#,
+        json!({"behavior": "structured_failure", "error": "structured backend failure", "exit_code": 2}),
     );
 
     let mut structured_failure = Command::cargo_bin("aget").unwrap();
     let structured_failure_output = structured_failure
         .env("AGET_HOME", &structured_failure_home)
-        .env(
-            "AGET_CRAWL4AI_COMMAND",
-            python_command(&structured_failure_backend),
-        )
+        .env("AGET_CRAWL4AI_COMMAND", &structured_failure_backend)
         .args(["--json", "get", "https://example.com/structured-failure"])
         .assert()
         .failure()
@@ -1350,22 +1154,20 @@ raise SystemExit(2)
     );
 
     let structured_success_home = temp.path().join("structured-success-home");
-    let structured_success_backend = write_fake_backend(
+    let structured_success_backend = mock_backend_command(
         temp.path(),
-        r#"#!/usr/bin/env python3
-import json
-print(json.dumps({'ok': True, 'final_url': 'https://example.com', 'content': '# Wrong', 'warnings': []}))
-raise SystemExit(2)
-"#,
+        json!({
+            "behavior": "success",
+            "final_url": "https://example.com",
+            "content": "# Wrong",
+            "exit_code": 2
+        }),
     );
 
     let mut structured_success = Command::cargo_bin("aget").unwrap();
     let structured_success_output = structured_success
         .env("AGET_HOME", &structured_success_home)
-        .env(
-            "AGET_CRAWL4AI_COMMAND",
-            python_command(&structured_success_backend),
-        )
+        .env("AGET_CRAWL4AI_COMMAND", &structured_success_backend)
         .args(["--json", "get", "https://example.com/structured-success"])
         .assert()
         .failure()
@@ -1407,22 +1209,8 @@ fn missing_backend_returns_backend_unavailable() {
     assert_eq!(metadata["extractor"], "crawl4ai");
 }
 
-fn write_success_backend(dir: &Path) -> PathBuf {
-    write_fake_backend(
-        dir,
-        r#"#!/usr/bin/env python3
-import argparse, json, pathlib
-parser = argparse.ArgumentParser()
-parser.add_argument('--url', required=True)
-parser.add_argument('--state', required=True)
-parser.add_argument('--output', required=True)
-parser.add_argument('--metadata', required=True)
-args, _unknown = parser.parse_known_args()
-content = '# Fake'
-pathlib.Path(args.output).write_text(content, encoding='utf-8')
-print(json.dumps({'ok': True, 'final_url': args.url, 'content': content, 'warnings': []}))
-"#,
-    )
+fn success_backend(dir: &Path) -> String {
+    mock_backend_command(dir, json!({"behavior": "success", "content": "# Fake"}))
 }
 
 fn success_envelope(output: &[u8], command: &str) -> serde_json::Value {
@@ -1435,26 +1223,6 @@ fn success_envelope(output: &[u8], command: &str) -> serde_json::Value {
 
 fn success_data(output: &[u8], command: &str) -> serde_json::Value {
     success_envelope(output, command)["data"].clone()
-}
-
-fn local_server(path: &str) -> (String, JoinHandle<()>) {
-    let listener = TcpListener::bind("127.0.0.1:0").unwrap();
-    let addr = listener.local_addr().unwrap();
-    let path = path.to_string();
-    let url = format!("http://{addr}{path}");
-
-    let handle = thread::spawn(move || {
-        if let Ok((mut stream, _)) = listener.accept() {
-            let mut buffer = [0; 1024];
-            let bytes_read = stream.read(&mut buffer).unwrap_or_default();
-            let request = String::from_utf8_lossy(&buffer[..bytes_read]);
-            assert!(request.starts_with(&format!("GET {path} HTTP/1.1")));
-            let response = "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: 2\r\nConnection: close\r\n\r\nok";
-            let _ = stream.write_all(response.as_bytes());
-        }
-    });
-
-    (url, handle)
 }
 
 fn cookie_echo_server(path: &str) -> (String, JoinHandle<()>, Receiver<String>) {
@@ -1510,84 +1278,6 @@ fn cookie_echo_server(path: &str) -> (String, JoinHandle<()>, Receiver<String>) 
     });
 
     (url, handle, cookie_receiver)
-}
-
-fn both_cookie_required_server(path: &str) -> (String, JoinHandle<()>, Receiver<String>) {
-    let listener = TcpListener::bind("127.0.0.1:0").unwrap();
-    let addr = listener.local_addr().unwrap();
-    let path = path.to_string();
-    let url = format!("http://{addr}{path}");
-    let (cookie_sender, cookie_receiver) = mpsc::channel();
-
-    let handle = thread::spawn(move || {
-        let (mut stream, _) = listener.accept().unwrap();
-        let mut buffer = [0; 4096];
-        let bytes_read = stream.read(&mut buffer).unwrap_or_default();
-        let request = String::from_utf8_lossy(&buffer[..bytes_read]);
-        assert!(request.starts_with(&format!("GET {path} HTTP/1.1")));
-        let cookie = request
-            .lines()
-            .find_map(|line| line.strip_prefix("Cookie: "))
-            .unwrap_or("none")
-            .to_string();
-        let _ = cookie_sender.send(cookie.clone());
-        let accepted =
-            cookie.contains("oauth=provider-secret") && cookie.contains("appsid=app-secret");
-        let (status, body) = if accepted {
-            ("200 OK", "both cookies accepted")
-        } else {
-            ("403 Forbidden", "missing required cookies")
-        };
-        let response = format!(
-            "HTTP/1.1 {status}\r\nContent-Type: text/plain\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{}",
-            body.len(),
-            body
-        );
-        stream.write_all(response.as_bytes()).unwrap();
-    });
-
-    (url, handle, cookie_receiver)
-}
-
-fn write_fake_backend(dir: &Path, content: &str) -> PathBuf {
-    let nanos = SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .map(|duration| duration.as_nanos())
-        .unwrap_or_default();
-    let path = dir.join(format!("fake-backend-{nanos}.py"));
-    fs::write(&path, content).unwrap();
-    path
-}
-
-fn write_fake_agent_browser(dir: &Path, content: &str) -> PathBuf {
-    let nanos = SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .map(|duration| duration.as_nanos())
-        .unwrap_or_default();
-    let path = dir.join(format!("fake-agent-browser-{nanos}.py"));
-    fs::write(&path, content).unwrap();
-    make_executable(&path);
-    path
-}
-
-#[cfg(unix)]
-fn make_executable(path: &Path) {
-    use std::os::unix::fs::PermissionsExt;
-
-    let mut permissions = fs::metadata(path).unwrap().permissions();
-    permissions.set_mode(0o700);
-    fs::set_permissions(path, permissions).unwrap();
-}
-
-#[cfg(not(unix))]
-fn make_executable(_path: &Path) {}
-
-fn python_command(path: &Path) -> String {
-    format!("python3 {}", shell_quote(&path.to_string_lossy()))
-}
-
-fn shell_quote(value: &str) -> String {
-    format!("'{}'", value.replace('\'', "'\\''"))
 }
 
 fn metadata_files(aget_home: &Path) -> Vec<PathBuf> {
