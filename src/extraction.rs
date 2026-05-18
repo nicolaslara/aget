@@ -25,15 +25,15 @@ const FALLBACK_WARNING: &str = "agent-browser fallback used after Crawl4AI faile
 pub struct GetOptions {
     pub url: String,
     pub sessions: Vec<String>,
-    pub out: Option<PathBuf>,
+    pub output: Option<PathBuf>,
     pub home: Option<PathBuf>,
     pub timeout: Option<Duration>,
-    pub format: OutputFormat,
+    pub content_format: OutputFormat,
     pub selector: Option<String>,
     pub exclude_selector: Option<String>,
-    pub wait_for: Option<String>,
+    pub wait_for_selector: Option<String>,
     pub max_chars: Option<usize>,
-    pub extractor_options: Vec<ExtractorOption>,
+    pub backend_options: Vec<ExtractorOption>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -41,7 +41,7 @@ pub struct GetSuccess {
     pub ok: bool,
     pub url: String,
     pub final_url: String,
-    pub format: String,
+    pub content_format: String,
     pub extractor: String,
     pub content: String,
     pub artifacts: Artifacts,
@@ -75,11 +75,11 @@ pub struct Limits {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct OutputOptions {
-    pub format: OutputFormat,
+    pub content_format: OutputFormat,
     pub selector: Option<String>,
     pub exclude_selector: Option<String>,
-    pub wait_for: Option<String>,
-    pub extractor_options: BTreeMap<String, String>,
+    pub wait_for_selector: Option<String>,
+    pub backend_options: BTreeMap<String, String>,
 }
 
 pub struct ExtractorRequest<'a> {
@@ -243,7 +243,7 @@ pub fn get_url_with_session_store(
     create_private_dir(&run_dir).map_err(io_aget_error)?;
 
     let content_path = options
-        .out
+        .output
         .clone()
         .unwrap_or_else(|| run_dir.join("content.md"));
     if let Some(parent) = content_path.parent() {
@@ -427,7 +427,7 @@ fn finalize_success(
         ok: true,
         url: options.url.clone(),
         final_url: extraction.final_url,
-        format: options.format.to_string(),
+        content_format: options.content_format.to_string(),
         extractor: extraction.extractor,
         content,
         artifacts: Artifacts {
@@ -571,18 +571,18 @@ fn apply_limits(content: String, max_chars: Option<usize>) -> LimitApplication {
 }
 
 fn output_options(options: &GetOptions) -> OutputOptions {
-    let extractor_options = options
-        .extractor_options
+    let backend_options = options
+        .backend_options
         .iter()
         .map(|option| (option.key.clone(), option.value.clone()))
         .collect();
 
     OutputOptions {
-        format: options.format,
+        content_format: options.content_format,
         selector: options.selector.clone(),
         exclude_selector: options.exclude_selector.clone(),
-        wait_for: options.wait_for.clone(),
-        extractor_options,
+        wait_for_selector: options.wait_for_selector.clone(),
+        backend_options,
     }
 }
 
@@ -699,7 +699,7 @@ fn run_command_extractor_backend(
         "--metadata".to_string(),
         request.metadata_path.to_string_lossy().into_owned(),
         "--format".to_string(),
-        request.options.format.to_string(),
+        request.options.content_format.to_string(),
     ];
     if let Some(selector) = &request.options.selector {
         args.push("--selector".to_string());
@@ -709,11 +709,11 @@ fn run_command_extractor_backend(
         args.push("--exclude-selector".to_string());
         args.push(exclude_selector.clone());
     }
-    if let Some(wait_for) = &request.options.wait_for {
+    if let Some(wait_for) = &request.options.wait_for_selector {
         args.push("--wait-for".to_string());
         args.push(wait_for.clone());
     }
-    for extractor_option in &request.options.extractor_options {
+    for extractor_option in &request.options.backend_options {
         args.push("--extractor-option".to_string());
         args.push(format!(
             "{}={}",
@@ -914,7 +914,7 @@ fn extract_agent_browser_content(
     )?;
     if html.status.success() {
         let html = html.stdout;
-        return Ok(match options.format {
+        return Ok(match options.content_format {
             OutputFormat::Html => html,
             OutputFormat::Json => serde_json::json!({
                 "url": options.url,
@@ -942,7 +942,7 @@ fn extract_agent_browser_content(
         return Err(classify_agent_browser_failure("get", &text));
     }
 
-    Ok(match options.format {
+    Ok(match options.content_format {
         OutputFormat::Json => serde_json::json!({
             "url": options.url,
             "content": text.stdout,
@@ -1186,7 +1186,7 @@ fn write_error_metadata(
     let metadata = serde_json::json!({
         "ok": false,
         "url": url,
-        "format": options.format.to_string(),
+        "content_format": options.content_format.to_string(),
         "extractor": EXTRACTOR,
         "artifacts": {
             "content": content_path.to_string_lossy(),
@@ -1218,7 +1218,7 @@ fn write_metadata(path: &Path, success: &GetSuccess) -> Result<(), AgetError> {
     metadata.insert("ok", serde_json::json!(success.ok));
     metadata.insert("url", serde_json::json!(success.url));
     metadata.insert("final_url", serde_json::json!(success.final_url));
-    metadata.insert("format", serde_json::json!(success.format));
+    metadata.insert("content_format", serde_json::json!(success.content_format));
     metadata.insert("extractor", serde_json::json!(success.extractor));
     metadata.insert("artifacts", serde_json::json!(success.artifacts));
     metadata.insert("sessions", serde_json::json!(success.sessions));

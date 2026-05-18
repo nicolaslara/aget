@@ -1,6 +1,8 @@
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
+pub const ENVELOPE_SCHEMA_VERSION: &str = "aget.envelope.v1";
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum ErrorCode {
@@ -18,6 +20,7 @@ pub enum ErrorCode {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ErrorResponse {
     pub ok: bool,
+    pub schema_version: String,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub command: Option<String>,
     pub error: ErrorBody,
@@ -35,6 +38,7 @@ impl ErrorResponse {
     pub fn new(code: ErrorCode, message: impl Into<String>) -> Self {
         Self {
             ok: false,
+            schema_version: ENVELOPE_SCHEMA_VERSION.to_string(),
             command: None,
             error: ErrorBody {
                 code,

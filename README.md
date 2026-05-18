@@ -2,7 +2,9 @@
 
 `aget` is a local-first, auth-aware, agent-friendly URL-to-markdown CLI.
 
-It is meant for getting clean, low-token page content into agent workflows without sending private browser state to a hosted service. The project is still in an early, experimental MVP bootstrap.
+It is meant for getting clean, low-token page content into agent workflows without sending private browser state to a hosted service.
+
+`aget` is currently a **proof of concept**. The CLI/API is intentionally still changing while the project validates the local authenticated-fetch workflow before replacing or bundling the current PoC backends.
 
 ## Current Status
 
@@ -10,9 +12,9 @@ What works today:
 
 - `aget get <url>`
 - `aget <url>` as a shortcut alias
-- `--json` / `--envelope` structured output
-- `--out <path>`
-- output shaping with `--format`, CSS selectors, wait conditions, and deterministic character limits
+- `--envelope json` structured output
+- `--output <path>`
+- output shaping with `--content-format`, CSS selectors, wait conditions, and deterministic character limits
 - repeated `--session <name>` flags for explicit named-session replay and composition
 - replay-time checks that reject sessions outside the requested URL's saved scope
 - empty-session default
@@ -43,11 +45,11 @@ Run the CLI from the repo root:
 ```bash
 cargo run --quiet -- get https://example.com
 cargo run --quiet -- https://example.com
-cargo run --quiet -- get https://example.com --envelope
-cargo run --quiet -- get https://example.com --out /tmp/example.md
-cargo run --quiet -- get https://example.com --format text --selector main --max-chars 4000 --json
-cargo run --quiet -- get https://example.com/account --session my-session --json
-cargo run --quiet -- get https://example.com/account --session provider --session app --json
+cargo run --quiet -- get https://example.com --envelope json
+cargo run --quiet -- get https://example.com --output /tmp/example.md
+cargo run --quiet -- get https://example.com --content-format text --selector main --max-chars 4000 --envelope json
+cargo run --quiet -- get https://example.com/account --session my-session --envelope json
+cargo run --quiet -- get https://example.com/account --session provider --session app --envelope json
 ```
 
 Session commands:
@@ -60,19 +62,19 @@ cargo run --quiet -- session compose <new-name> --session <name> [--session <nam
 cargo run --quiet -- session login start <name> --url <login-or-target-url>
 cargo run --quiet -- session login finish <name>
 cargo run --quiet -- session login cancel <name>
-cargo run --quiet -- session import cmux --surface <surface> --name <name> --domain <domain> [--domain <domain>...]
-cargo run --quiet -- session import chrome --profile <profile> --name <name> --domain <domain> [--domain <domain>...]
+cargo run --quiet -- session import cmux --surface <surface> --name <name> --allow-domain <domain> [--allow-domain <domain>...]
+cargo run --quiet -- session import chrome --chrome-profile <profile> --name <name> --allow-domain <domain> [--allow-domain <domain>...]
 ```
 
 Agent-driven authenticated markdown flow:
 
 ```bash
-cargo run --quiet -- --json get "https://docs.example.com/account" --format markdown
-cargo run --quiet -- --json session login start workdocs --url "https://docs.example.com/account"
-# User completes the site login in the opened browser.
-cargo run --quiet -- --json session login finish workdocs
-cargo run --quiet -- --json get "https://docs.example.com/account" --session workdocs --format markdown --out /tmp/workdocs.md
+cargo run --quiet -- --envelope json get "https://docs.example.com/account" --content-format markdown
+cargo run --quiet -- --envelope json session import chrome --chrome-profile Default --name workdocs --allow-domain docs.example.com
+cargo run --quiet -- --envelope json get "https://docs.example.com/account" --session workdocs --content-format markdown --output /tmp/workdocs.md
 ```
+
+For OAuth-backed sites, prefer asking the user to sign in through their real browser and importing a scoped browser session. `session login start` remains an experimental fallback for non-OAuth or controlled flows and may be rejected by OAuth providers.
 
 `workdocs` is only a local session name chosen by the caller. `aget` does not ship site-specific login, paywall, or access-state detection; the calling agent interprets fetched content and decides whether to ask the user to log in or retry with a session.
 
@@ -91,16 +93,16 @@ It exercises a static public page and a JS-rendered page using the real default 
 Concise usage:
 
 ```text
-aget get <url> [--session <name>...] [--json|--envelope] [--out <path>] [--timeout <seconds>]
-              [--format <markdown|html|text|json>] [--selector <css>]
-              [--exclude-selector <css>] [--wait-for <text-or-selector>]
-              [--max-chars <n>]
-              [--extractor-option <backend.key=value>...]
-aget <url> [--session <name>...] [--json|--envelope] [--out <path>] [--timeout <seconds>]
-           [--format <markdown|html|text|json>] [--selector <css>]
-           [--exclude-selector <css>] [--wait-for <text-or-selector>]
-           [--max-chars <n>]
-           [--extractor-option <backend.key=value>...]
+aget get <url> [--session <name>...] [--envelope <json|none>] [--output <path>] [--timeout <seconds>]
+              [--content-format <markdown|html|text|json>] [--selector <css>]
+              [--exclude-selector <css>] [--wait-for-selector <text-or-selector>]
+              [--inline-content <auto|always|never>] [--max-chars <n>]
+              [--backend-option <backend.key=value>...]
+aget <url> [--session <name>...] [--envelope <json|none>] [--output <path>] [--timeout <seconds>]
+           [--content-format <markdown|html|text|json>] [--selector <css>]
+           [--exclude-selector <css>] [--wait-for-selector <text-or-selector>]
+           [--inline-content <auto|always|never>] [--max-chars <n>]
+           [--backend-option <backend.key=value>...]
 aget session list
 aget session inspect <session-id>
 aget session delete <session-id>
@@ -108,18 +110,19 @@ aget session compose <new-name> --session <name> [--session <name>...]
 aget session login start <name> --url <login-or-target-url> [--profile <agent-browser-profile>]
 aget session login finish <name>
 aget session login cancel <name>
-aget session import cmux --surface <surface> --name <name> --domain <domain> [--domain <domain>...]
-aget session import chrome --profile <profile> --name <name> --domain <domain> [--domain <domain>...]
+aget session import cmux --surface <surface> --name <name> --allow-domain <domain> [--allow-domain <domain>...]
+aget session import chrome --chrome-profile <profile> --name <name> --allow-domain <domain> [--allow-domain <domain>...]
 ```
 
 Notes:
 
 - `aget get <url>` is the primary command.
 - `aget <url>` is an alias for the same fetch path.
-- `--envelope` prints the agent control-plane response envelope: `{ "ok": true, "command": "...", "data": {...}, "warnings": [], "timing_ms": {...} }` for success or `{ "ok": false, "command": "...", "error": {...} }` for failure. It does not change the fetched page content format. `--json` is kept as a compatibility alias for the same structured response mode.
-- `--out` writes the extracted markdown to a file.
-- `--format` requests `markdown`, `html`, `text`, or `json` page content from the extractor; markdown remains the default. For `text`, the Crawl4AI helper prefers extracted content and otherwise derives plain text from cleaned/raw HTML before falling back to markdown as a last resort.
-- `--selector`, `--exclude-selector`, `--wait-for`, and repeated `--extractor-option backend.key=value` are forwarded to the Crawl4AI helper when supported. `--wait-for` is CSS-only in v1 for authenticated-session safety: use `css:<selector>` or a plain CSS selector; JavaScript waits are rejected. Supported Crawl4AI option keys use the `crawl4ai.` namespace: `crawl4ai.target_elements`, `crawl4ai.excluded_tags`, `crawl4ai.only_text`, `crawl4ai.word_count_threshold`, `crawl4ai.wait_until`, `crawl4ai.page_timeout`, `crawl4ai.wait_for_timeout`, `crawl4ai.delay_before_return_html`, and `crawl4ai.wait_for_images`; unsupported keys fail instead of being ignored. List values are comma-separated, booleans accept `true`/`false`, and numeric fields use integer or decimal values as appropriate.
+- `--envelope json` prints the agent control-plane response envelope: `{ "ok": true, "schema_version": "aget.envelope.v1", "command": "...", "data": {...}, "warnings": [], "timing_ms": {...} }` for success or `{ "ok": false, "schema_version": "aget.envelope.v1", "command": "...", "error": {...} }` for failure. It does not change the fetched page content format.
+- `--output` writes the extracted markdown to a file.
+- `--content-format` requests `markdown`, `html`, `text`, or `json` page content from the extractor; markdown remains the default. For `text`, the Crawl4AI helper prefers extracted content and otherwise derives plain text from cleaned/raw HTML before falling back to markdown as a last resort.
+- `--inline-content` controls whether `data.content` is embedded in the JSON envelope. `auto` includes content for non-sensitive fetches and omits it for session-backed/sensitive fetches by default. `always` embeds content explicitly; `never` returns artifact paths and metadata only.
+- `--selector`, `--exclude-selector`, `--wait-for-selector`, and repeated `--backend-option backend.key=value` are forwarded to the Crawl4AI helper when supported. `--wait-for-selector` is CSS-only in v1 for authenticated-session safety: use `css:<selector>` or a plain CSS selector; JavaScript waits are rejected. Supported Crawl4AI option keys use the `crawl4ai.` namespace: `crawl4ai.target_elements`, `crawl4ai.excluded_tags`, `crawl4ai.only_text`, `crawl4ai.word_count_threshold`, `crawl4ai.wait_until`, `crawl4ai.page_timeout`, `crawl4ai.wait_for_timeout`, `crawl4ai.delay_before_return_html`, and `crawl4ai.wait_for_images`; unsupported keys fail instead of being ignored. List values are comma-separated, booleans accept `true`/`false`, and numeric fields use integer or decimal values as appropriate.
 - `--max-chars` truncates extracted content in Rust after backend extraction using Unicode scalar values; it never truncates the JSON response envelope.
 - Repeated `--session` flags replay named local sessions for the request in the order provided. Cookie conflicts and same-origin localStorage key conflicts are rejected instead of preferring one session; disjoint localStorage keys for the same origin are merged.
 - `aget session compose <new-name> --session <name>...` saves the same deterministic composition as a named local session, preserving cookie and storage-origin source provenance while redacting secret values in errors and inspect output by default.
@@ -128,7 +131,7 @@ Notes:
 - `--timeout` sets the request timeout in seconds.
 - `aget session import cmux` imports cookies from a cmux browser surface for explicitly allowed domains only; imported cookies are stored locally as a sensitive named session.
 - cmux import reads raw cookie values from the selected local cmux surface. Use only disposable or user-authorized surfaces and domains.
-- `aget session import chrome` uses `agent-browser` to snapshot a Chrome profile into a temporary local state file, filters cookies and storage by explicit `--domain` allowlists, stores only the scoped result, then deletes the raw temp state. Chrome may need to be quit manually if the profile is locked.
+- `aget session import chrome` uses `agent-browser` to snapshot a Chrome profile into a temporary local state file, filters cookies and storage by explicit `--allow-domain` allowlists, stores only the scoped result, then deletes the raw temp state. Chrome may need to be quit manually if the profile is locked.
 
 ## Envelope Output
 
@@ -137,11 +140,12 @@ Success example:
 ```json
 {
   "ok": true,
+  "schema_version": "aget.envelope.v1",
   "command": "get",
   "data": {
     "url": "https://example.com",
     "final_url": "https://example.com/",
-    "format": "markdown",
+    "content_format": "markdown",
     "extractor": "crawl4ai",
     "content": "# Example\n...",
     "artifacts": {
@@ -158,11 +162,11 @@ Success example:
       "content_chars_after_truncation": 13
     },
     "output_options": {
-      "format": "markdown",
+      "content_format": "markdown",
       "selector": null,
       "exclude_selector": null,
-      "wait_for": null,
-      "extractor_options": {}
+      "wait_for_selector": null,
+      "backend_options": {}
     }
   },
   "warnings": [],
@@ -177,6 +181,7 @@ Error example:
 ```json
 {
   "ok": false,
+  "schema_version": "aget.envelope.v1",
   "command": "get",
   "error": {
     "code": "extraction_failed",
@@ -199,13 +204,14 @@ Error example:
 
 ## OpenCode Integration
 
-This repo includes project-local OpenCode custom tools in `.opencode/tools/aget.ts`. They call the local `aget` CLI with `--json` and return the same structured envelopes as terminal usage.
+This repo includes project-local OpenCode custom tools in `.opencode/tools/aget.ts`. They call the local `aget` CLI with `--envelope json` and return the same structured envelopes as terminal usage.
 
 Available tools:
 
 - `aget_fetch`: fetch a URL, optionally with local sessions and output-shaping options.
 - `aget_session_list`: list local session names.
 - `aget_session_inspect`: inspect one local session with secret values redacted.
+- `aget_session_import_chrome`: import a scoped session from a user-approved Chrome profile.
 
 Install or build `aget` before starting OpenCode:
 
@@ -220,7 +226,7 @@ Privacy notes:
 
 - The tools do not read ambient browser auth. Authenticated fetches require explicit `sessions`.
 - `aget_session_inspect` does not expose `--show-secrets`; inspect output stays redacted.
-- Fetched authenticated content can still be sensitive in the returned envelope or artifact paths. `out` writes a local copy but does not suppress inline `data.content`; use `max_chars` to bound inline content until a future explicit content-mode flag exists.
+- Fetched authenticated content can still be sensitive. By default, `--inline-content auto` omits `data.content` for session-backed/sensitive fetches and returns artifact paths instead; use `inline_content: "always"` only when the user explicitly wants content embedded in the envelope.
 
 ## Development
 

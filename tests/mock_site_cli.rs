@@ -21,10 +21,13 @@ fn mock_site_fetch_handles_redirect_output_shaping_and_waits() {
         .env("AGET_HOME", &aget_home)
         .env("AGET_CRAWL4AI_COMMAND", &fake_backend)
         .args([
-            "--json",
+            "--envelope",
+            "json",
             "get",
+            "--inline-content",
+            "always",
             &site.url("/redirect"),
-            "--format",
+            "--content-format",
             "text",
             "--selector",
             "main",
@@ -50,12 +53,15 @@ fn mock_site_fetch_handles_redirect_output_shaping_and_waits() {
         .env("AGET_HOME", &aget_home)
         .env("AGET_CRAWL4AI_COMMAND", &fake_backend)
         .args([
-            "--json",
+            "--envelope",
+            "json",
             "get",
+            "--inline-content",
+            "always",
             &site.url("/delayed"),
-            "--format",
+            "--content-format",
             "text",
-            "--wait-for",
+            "--wait-for-selector",
             "#ready",
         ])
         .assert()
@@ -90,12 +96,15 @@ fn mock_site_replays_cookie_and_storage_sessions() {
         .env("AGET_HOME", &aget_home)
         .env("AGET_CRAWL4AI_COMMAND", &fake_backend)
         .args([
-            "--json",
+            "--envelope",
+            "json",
             "get",
+            "--inline-content",
+            "always",
             &site.url("/protected"),
             "--session",
             "app",
-            "--format",
+            "--content-format",
             "text",
         ])
         .assert()
@@ -117,12 +126,15 @@ fn mock_site_replays_cookie_and_storage_sessions() {
         .env("AGET_HOME", &aget_home)
         .env("AGET_CRAWL4AI_COMMAND", &fake_backend)
         .args([
-            "--json",
+            "--envelope",
+            "json",
             "get",
+            "--inline-content",
+            "always",
             &site.url("/storage-protected"),
             "--session",
             "storage",
-            "--format",
+            "--content-format",
             "text",
         ])
         .assert()
@@ -157,7 +169,16 @@ fn mock_site_covers_unauthenticated_expired_and_logout_states() {
         .unwrap()
         .env("AGET_HOME", &aget_home)
         .env("AGET_CRAWL4AI_COMMAND", &fake_backend)
-        .args(["--json", "get", &site.url("/protected"), "--format", "text"])
+        .args([
+            "--envelope",
+            "json",
+            "get",
+            "--inline-content",
+            "always",
+            &site.url("/protected"),
+            "--content-format",
+            "text",
+        ])
         .assert()
         .success()
         .get_output()
@@ -179,12 +200,15 @@ fn mock_site_covers_unauthenticated_expired_and_logout_states() {
         .env("AGET_HOME", &aget_home)
         .env("AGET_CRAWL4AI_COMMAND", &fake_backend)
         .args([
-            "--json",
+            "--envelope",
+            "json",
             "get",
+            "--inline-content",
+            "always",
             &site.url("/protected"),
             "--session",
             "expired",
-            "--format",
+            "--content-format",
             "text",
         ])
         .assert()
@@ -203,12 +227,15 @@ fn mock_site_covers_unauthenticated_expired_and_logout_states() {
         .env("AGET_HOME", &aget_home)
         .env("AGET_CRAWL4AI_COMMAND", &fake_backend)
         .args([
-            "--json",
+            "--envelope",
+            "json",
             "get",
+            "--inline-content",
+            "always",
             &site.url("/logout"),
             "--session",
             "app",
-            "--format",
+            "--content-format",
             "text",
         ])
         .assert()
@@ -236,15 +263,16 @@ fn mock_site_imported_chrome_session_can_fetch_protected_page() {
         .env("AGET_HOME", &aget_home)
         .env("AGET_AGENT_BROWSER_COMMAND", &fake_agent_browser)
         .args([
-            "--json",
+            "--envelope",
+            "json",
             "session",
             "import",
             "chrome",
-            "--profile",
+            "--chrome-profile",
             "Default",
             "--name",
             "imported",
-            "--domain",
+            "--allow-domain",
             &site.host(),
         ])
         .assert()
@@ -261,12 +289,15 @@ fn mock_site_imported_chrome_session_can_fetch_protected_page() {
         .env("AGET_HOME", &aget_home)
         .env("AGET_CRAWL4AI_COMMAND", &fake_backend)
         .args([
-            "--json",
+            "--envelope",
+            "json",
             "get",
+            "--inline-content",
+            "always",
             &site.url("/protected"),
             "--session",
             "imported",
-            "--format",
+            "--content-format",
             "text",
         ])
         .assert()
@@ -301,7 +332,8 @@ fn documents_session_compose_replay_and_scope_rejection_contract() {
         .unwrap()
         .env("AGET_HOME", &aget_home)
         .args([
-            "--json",
+            "--envelope",
+            "json",
             "session",
             "compose",
             "combined",
@@ -323,12 +355,15 @@ fn documents_session_compose_replay_and_scope_rejection_contract() {
         .env("AGET_HOME", &aget_home)
         .env("AGET_CRAWL4AI_COMMAND", &fake_backend)
         .args([
-            "--json",
+            "--envelope",
+            "json",
             "get",
+            "--inline-content",
+            "always",
             &site.url("/requires-two"),
             "--session",
             "combined",
-            "--format",
+            "--content-format",
             "text",
         ])
         .assert()
@@ -351,8 +386,11 @@ fn documents_session_compose_replay_and_scope_rejection_contract() {
         .env("AGET_HOME", &aget_home)
         .env("AGET_CRAWL4AI_COMMAND", &fake_backend)
         .args([
-            "--json",
+            "--envelope",
+            "json",
             "get",
+            "--inline-content",
+            "always",
             &site.url("/protected"),
             "--session",
             "mixed",
@@ -381,7 +419,8 @@ fn mock_site_login_bootstrap_can_fetch_protected_page_without_manual_action() {
         .env("AGET_HOME", &aget_home)
         .env("AGET_AGENT_BROWSER_COMMAND", &fake_agent_browser)
         .args([
-            "--json",
+            "--envelope",
+            "json",
             "session",
             "login",
             "start",
@@ -396,7 +435,14 @@ fn mock_site_login_bootstrap_can_fetch_protected_page_without_manual_action() {
         .unwrap()
         .env("AGET_HOME", &aget_home)
         .env("AGET_AGENT_BROWSER_COMMAND", &fake_agent_browser)
-        .args(["--json", "session", "login", "finish", "mock-app"])
+        .args([
+            "--envelope",
+            "json",
+            "session",
+            "login",
+            "finish",
+            "mock-app",
+        ])
         .assert()
         .success()
         .get_output()
@@ -410,12 +456,15 @@ fn mock_site_login_bootstrap_can_fetch_protected_page_without_manual_action() {
         .env("AGET_HOME", &aget_home)
         .env("AGET_CRAWL4AI_COMMAND", &fake_backend)
         .args([
-            "--json",
+            "--envelope",
+            "json",
             "get",
+            "--inline-content",
+            "always",
             &site.url("/protected"),
             "--session",
             "mock-app",
-            "--format",
+            "--content-format",
             "text",
         ])
         .assert()
@@ -439,7 +488,7 @@ fn documents_public_get_json_contract_for_agents() {
 
     let result = aget(&aget_home, &fake_backend)
         .get(site.url("/public"))
-        .format(OutputFormat::Text)
+        .content_format(OutputFormat::Text)
         .selector("main")
         .exclude_selector("nav")
         .run()
@@ -447,7 +496,7 @@ fn documents_public_get_json_contract_for_agents() {
 
     assert_eq!(result.url, site.url("/public"));
     assert_eq!(result.final_url, site.url("/public"));
-    assert_eq!(result.format, "text");
+    assert_eq!(result.content_format, "text");
     assert_eq!(result.extractor, "crawl4ai");
     assert_eq!(result.content, "Public Main Visible public article.");
     assert!(result.sessions.is_empty());
@@ -456,13 +505,13 @@ fn documents_public_get_json_contract_for_agents() {
     assert!(result.timing_ms.total > 0);
     assert_eq!(result.limits.max_chars, None);
     assert!(!result.limits.truncated);
-    assert_eq!(result.output_options.format, OutputFormat::Text);
+    assert_eq!(result.output_options.content_format, OutputFormat::Text);
     assert_eq!(result.output_options.selector.as_deref(), Some("main"));
     assert_eq!(
         result.output_options.exclude_selector.as_deref(),
         Some("nav")
     );
-    assert!(result.output_options.extractor_options.is_empty());
+    assert!(result.output_options.backend_options.is_empty());
 
     let content_path = PathBuf::from(&result.artifacts.content);
     let metadata_path = PathBuf::from(&result.artifacts.metadata);
@@ -476,7 +525,7 @@ fn documents_public_get_json_contract_for_agents() {
     let metadata: serde_json::Value =
         serde_json::from_str(&fs::read_to_string(metadata_path).unwrap()).unwrap();
     assert_eq!(metadata["url"], site.url("/public"));
-    assert_eq!(metadata["format"], "text");
+    assert_eq!(metadata["content_format"], "text");
     assert_eq!(metadata["sensitive"], false);
 }
 
@@ -490,8 +539,8 @@ fn documents_output_limits_out_file_and_warning_contract() {
 
     let result = aget(&aget_home, &fake_backend)
         .get(site.url("/warning"))
-        .format(OutputFormat::Text)
-        .out(&out_path)
+        .content_format(OutputFormat::Text)
+        .output(&out_path)
         .max_chars(12)
         .run()
         .unwrap();
@@ -535,7 +584,7 @@ fn documents_custom_site_routes_for_extraction_features() {
 
     let result = aget(&aget_home, &fake_backend)
         .get(site.url("/guide/latest"))
-        .format(OutputFormat::Text)
+        .content_format(OutputFormat::Text)
         .selector("main")
         .run()
         .unwrap();
@@ -560,7 +609,8 @@ fn documents_session_lifecycle_contract_for_agents() {
         .env("AGET_HOME", &aget_home)
         .env("AGET_AGENT_BROWSER_COMMAND", &fake_agent_browser)
         .args([
-            "--json",
+            "--envelope",
+            "json",
             "session",
             "login",
             "start",
@@ -589,7 +639,14 @@ fn documents_session_lifecycle_contract_for_agents() {
         .unwrap()
         .env("AGET_HOME", &aget_home)
         .env("AGET_AGENT_BROWSER_COMMAND", &fake_agent_browser)
-        .args(["--json", "session", "login", "finish", "mock-app"])
+        .args([
+            "--envelope",
+            "json",
+            "session",
+            "login",
+            "finish",
+            "mock-app",
+        ])
         .assert()
         .success()
         .get_output()
@@ -603,7 +660,7 @@ fn documents_session_lifecycle_contract_for_agents() {
     let list = Command::cargo_bin("aget")
         .unwrap()
         .env("AGET_HOME", &aget_home)
-        .args(["--json", "session", "list"])
+        .args(["--envelope", "json", "session", "list"])
         .assert()
         .success()
         .get_output()
@@ -615,7 +672,7 @@ fn documents_session_lifecycle_contract_for_agents() {
     let inspect = Command::cargo_bin("aget")
         .unwrap()
         .env("AGET_HOME", &aget_home)
-        .args(["--json", "session", "inspect", "mock-app"])
+        .args(["--envelope", "json", "session", "inspect", "mock-app"])
         .assert()
         .success()
         .get_output()
@@ -630,7 +687,7 @@ fn documents_session_lifecycle_contract_for_agents() {
     let fetch = aget(&aget_home, &fake_backend)
         .get(site.url("/protected"))
         .session("mock-app")
-        .format(OutputFormat::Text)
+        .content_format(OutputFormat::Text)
         .run()
         .unwrap();
     assert_eq!(fetch.sessions, vec!["mock-app"]);
@@ -640,7 +697,7 @@ fn documents_session_lifecycle_contract_for_agents() {
     let delete = Command::cargo_bin("aget")
         .unwrap()
         .env("AGET_HOME", &aget_home)
-        .args(["--json", "session", "delete", "mock-app"])
+        .args(["--envelope", "json", "session", "delete", "mock-app"])
         .assert()
         .success()
         .get_output()
@@ -652,7 +709,7 @@ fn documents_session_lifecycle_contract_for_agents() {
     let post_delete_list = Command::cargo_bin("aget")
         .unwrap()
         .env("AGET_HOME", &aget_home)
-        .args(["--json", "session", "list"])
+        .args(["--envelope", "json", "session", "list"])
         .assert()
         .success()
         .get_output()

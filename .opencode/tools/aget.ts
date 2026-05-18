@@ -13,7 +13,7 @@ function agetBinary(): string {
 
 async function runAget(args: string[], context: ToolContext): Promise<string> {
   try {
-    const proc = Bun.spawn([agetBinary(), "--json", ...args], {
+    const proc = Bun.spawn([agetBinary(), "--envelope", "json", ...args], {
       cwd: context.worktree || context.directory || process.cwd(),
       stdout: "pipe",
       stderr: "pipe",
@@ -31,6 +31,7 @@ async function runAget(args: string[], context: ToolContext): Promise<string> {
 
     return JSON.stringify({
       ok: false,
+      schema_version: "aget.envelope.v1",
       command: "opencode",
       error: {
         code: "backend_unavailable",
@@ -40,6 +41,7 @@ async function runAget(args: string[], context: ToolContext): Promise<string> {
   } catch (error) {
     return JSON.stringify({
       ok: false,
+      schema_version: "aget.envelope.v1",
       command: "opencode",
       error: {
         code: "backend_unavailable",
@@ -64,19 +66,23 @@ export const fetch = tool({
       .array(tool.schema.string())
       .optional()
       .describe("Optional local aget session names to replay, in order."),
-    format: tool.schema
+    content_format: tool.schema
       .enum(["markdown", "html", "text", "json"])
       .optional()
       .describe("Requested page content format. Defaults to markdown."),
+    inline_content: tool.schema
+      .enum(["auto", "always", "never"])
+      .optional()
+      .describe("Whether to include extracted content inline in the JSON envelope. Defaults to auto."),
     selector: tool.schema.string().optional().describe("Optional CSS selector to include."),
     exclude_selector: tool.schema
       .string()
       .optional()
       .describe("Optional CSS selector to exclude."),
-    wait_for: tool.schema
+    wait_for_selector: tool.schema
       .string()
       .optional()
-      .describe("Optional CSS wait condition. JavaScript waits are rejected by aget."),
+      .describe("Optional CSS selector to wait for. JavaScript waits are rejected by aget."),
     max_chars: tool.schema
       .number()
       .int()
@@ -89,14 +95,14 @@ export const fetch = tool({
       .positive()
       .optional()
       .describe("Optional timeout in seconds."),
-    out: tool.schema
+    output: tool.schema
       .string()
       .optional()
       .describe("Optional local path for extracted content. The envelope still reports artifacts."),
-    extractor_options: tool.schema
+    backend_options: tool.schema
       .array(tool.schema.string())
       .optional()
-      .describe("Optional aget extractor options as backend.key=value strings."),
+      .describe("Optional unstable aget backend options as backend.key=value strings."),
   },
   async execute(args, context) {
     const cliArgs: string[] = []
@@ -106,14 +112,15 @@ export const fetch = tool({
     for (const session of args.sessions || []) {
       cliArgs.push("--session", session)
     }
-    cliArgs.push("--format", args.format || "markdown")
+    cliArgs.push("--content-format", args.content_format || "markdown")
+    addOptional(cliArgs, "--inline-content", args.inline_content)
     addOptional(cliArgs, "--selector", args.selector)
     addOptional(cliArgs, "--exclude-selector", args.exclude_selector)
-    addOptional(cliArgs, "--wait-for", args.wait_for)
+    addOptional(cliArgs, "--wait-for-selector", args.wait_for_selector)
     addOptional(cliArgs, "--max-chars", args.max_chars)
-    addOptional(cliArgs, "--out", args.out)
-    for (const option of args.extractor_options || []) {
-      cliArgs.push("--extractor-option", option)
+    addOptional(cliArgs, "--output", args.output)
+    for (const option of args.backend_options || []) {
+      cliArgs.push("--backend-option", option)
     }
 
     return runAget(cliArgs, context)
@@ -162,9 +169,9 @@ export const session_import_chrome = tool({
   async execute(args, context) {
     const cliArgs: string[] = []
     addOptional(cliArgs, "--timeout", args.timeout)
-    cliArgs.push("session", "import", "chrome", "--profile", args.profile, "--name", args.name)
+    cliArgs.push("session", "import", "chrome", "--chrome-profile", args.profile, "--name", args.name)
     for (const domain of args.domains) {
-      cliArgs.push("--domain", domain)
+      cliArgs.push("--allow-domain", domain)
     }
 
     return runAget(cliArgs, context)

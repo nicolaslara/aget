@@ -221,15 +221,15 @@ where
             options: GetOptions {
                 url: url.into(),
                 sessions: Vec::new(),
-                out: None,
+                output: None,
                 home: Some(self.session_store.home().to_path_buf()),
                 timeout: self.timeout,
-                format: OutputFormat::Markdown,
+                content_format: OutputFormat::Markdown,
                 selector: None,
                 exclude_selector: None,
-                wait_for: None,
+                wait_for_selector: None,
                 max_chars: None,
-                extractor_options: Vec::new(),
+                backend_options: Vec::new(),
             },
         }
     }
@@ -361,13 +361,13 @@ where
         self
     }
 
-    pub fn out(mut self, path: impl Into<PathBuf>) -> Self {
-        self.options.out = Some(path.into());
+    pub fn output(mut self, path: impl Into<PathBuf>) -> Self {
+        self.options.output = Some(path.into());
         self
     }
 
-    pub fn format(mut self, format: OutputFormat) -> Self {
-        self.options.format = format;
+    pub fn content_format(mut self, format: OutputFormat) -> Self {
+        self.options.content_format = format;
         self
     }
 
@@ -381,8 +381,8 @@ where
         self
     }
 
-    pub fn wait_for(mut self, wait_for: impl Into<String>) -> Self {
-        self.options.wait_for = Some(wait_for.into());
+    pub fn wait_for_selector(mut self, wait_for: impl Into<String>) -> Self {
+        self.options.wait_for_selector = Some(wait_for.into());
         self
     }
 
@@ -391,8 +391,8 @@ where
         self
     }
 
-    pub fn extractor_option(mut self, key: impl Into<String>, value: impl Into<String>) -> Self {
-        self.options.extractor_options.push(ExtractorOption {
+    pub fn backend_option(mut self, key: impl Into<String>, value: impl Into<String>) -> Self {
+        self.options.backend_options.push(ExtractorOption {
             key: key.into(),
             value: value.into(),
         });

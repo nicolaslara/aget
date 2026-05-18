@@ -34,7 +34,7 @@ fn get_json_success_writes_run_artifacts_with_empty_state() {
     let output = cmd
         .env("AGET_HOME", &aget_home)
         .env("AGET_CRAWL4AI_COMMAND", &fake_backend)
-        .args(["--json", "get", &local_url])
+        .args(["--envelope", "json", "get", &local_url])
         .assert()
         .success()
         .get_output()
@@ -48,7 +48,7 @@ fn get_json_success_writes_run_artifacts_with_empty_state() {
         json["final_url"].as_str().unwrap(),
         format!("{local_url}/final")
     );
-    assert_eq!(json["format"], "markdown");
+    assert_eq!(json["content_format"], "markdown");
     assert_eq!(json["extractor"], "crawl4ai");
     assert_eq!(json["content"], "# Example\n\nFetched locally.");
     assert_eq!(json["sessions"], serde_json::json!([]));
@@ -91,10 +91,11 @@ fn get_out_writes_markdown_to_requested_path_and_metadata_to_run_dir() {
         .env("AGET_HOME", &aget_home)
         .env("AGET_CRAWL4AI_COMMAND", &fake_backend)
         .args([
-            "--json",
+            "--envelope",
+            "json",
             "get",
             "https://example.com/out",
-            "--out",
+            "--output",
             out_path.to_str().unwrap(),
         ])
         .assert()
@@ -144,7 +145,8 @@ fn get_session_uses_named_session_state_and_marks_sensitive() {
         .env("AGET_HOME", &aget_home)
         .env("AGET_CRAWL4AI_COMMAND", &fake_backend)
         .args([
-            "--json",
+            "--envelope",
+            "json",
             "get",
             "http://127.0.0.1/session",
             "--session",
@@ -159,12 +161,53 @@ fn get_session_uses_named_session_state_and_marks_sensitive() {
     let json = success_data(&output, "get");
     assert_eq!(json["sessions"], serde_json::json!(["local"]));
     assert_eq!(json["sensitive"], true);
+    assert!(!json.as_object().unwrap().contains_key("content"));
 
     let metadata_path = PathBuf::from(json["artifacts"]["metadata"].as_str().unwrap());
     let metadata: serde_json::Value =
         serde_json::from_str(&fs::read_to_string(metadata_path).unwrap()).unwrap();
     assert_eq!(metadata["sessions"], serde_json::json!(["local"]));
     assert_eq!(metadata["sensitive"], true);
+}
+
+#[test]
+fn get_inline_content_never_omits_content_for_public_fetches() {
+    let temp = tempfile::tempdir().unwrap();
+    let aget_home = temp.path().join("aget-home");
+    let fake_backend = mock_backend_command(
+        temp.path(),
+        json!({
+            "behavior": "success",
+            "content": "# Public But Artifact Only"
+        }),
+    );
+
+    let mut cmd = Command::cargo_bin("aget").unwrap();
+    let output = cmd
+        .env("AGET_HOME", &aget_home)
+        .env("AGET_CRAWL4AI_COMMAND", &fake_backend)
+        .args([
+            "--envelope",
+            "json",
+            "get",
+            "https://example.com/artifact-only",
+            "--inline-content",
+            "never",
+        ])
+        .assert()
+        .success()
+        .get_output()
+        .stdout
+        .clone();
+
+    let json = success_data(&output, "get");
+    assert_eq!(json["sensitive"], false);
+    assert!(!json.as_object().unwrap().contains_key("content"));
+    let content_path = PathBuf::from(json["artifacts"]["content"].as_str().unwrap());
+    assert_eq!(
+        fs::read_to_string(content_path).unwrap(),
+        "# Public But Artifact Only\n"
+    );
 }
 
 #[test]
@@ -185,7 +228,8 @@ fn get_rejects_session_replay_outside_saved_scope() {
         .env("AGET_HOME", &aget_home)
         .env("AGET_CRAWL4AI_COMMAND", &fake_backend)
         .args([
-            "--json",
+            "--envelope",
+            "json",
             "get",
             "https://unrelated.example/page",
             "--session",
@@ -224,7 +268,7 @@ fn get_backend_does_not_inherit_unneeded_parent_environment() {
         .env("AGET_HOME", &aget_home)
         .env("AGET_CRAWL4AI_COMMAND", &fake_backend)
         .env("SECRET_TOKEN", "do-not-pass")
-        .args(["--json", "get", "https://example.com/env"])
+        .args(["--envelope", "json", "get", "https://example.com/env"])
         .assert()
         .success()
         .get_output()
@@ -261,13 +305,16 @@ fn get_repeated_sessions_compose_request_state_in_order_for_command_and_alias() 
         .env("AGET_HOME", &command_home)
         .env("AGET_CRAWL4AI_COMMAND", &fake_backend)
         .args([
-            "--json",
+            "--envelope",
+            "json",
             "get",
             "http://127.0.0.1/multi",
             "--session",
             "provider",
             "--session",
             "app",
+            "--inline-content",
+            "always",
         ])
         .assert()
         .success()
@@ -295,12 +342,15 @@ fn get_repeated_sessions_compose_request_state_in_order_for_command_and_alias() 
         .env("AGET_HOME", &alias_home)
         .env("AGET_CRAWL4AI_COMMAND", &fake_backend)
         .args([
-            "--json",
+            "--envelope",
+            "json",
             "http://127.0.0.1/multi-alias",
             "--session",
             "provider",
             "--session",
             "app",
+            "--inline-content",
+            "always",
         ])
         .assert()
         .success()
@@ -341,13 +391,16 @@ fn get_repeated_sessions_satisfy_local_app_provider_cookie_flow() {
         .env("AGET_HOME", &aget_home)
         .env("AGET_CRAWL4AI_COMMAND", &fake_backend)
         .args([
-            "--json",
+            "--envelope",
+            "json",
             "get",
             &local_url,
             "--session",
             "provider",
             "--session",
             "app",
+            "--inline-content",
+            "always",
         ])
         .assert()
         .success()
@@ -380,7 +433,8 @@ fn get_session_marks_output_sensitive_even_if_session_metadata_is_false() {
         .env("AGET_HOME", &aget_home)
         .env("AGET_CRAWL4AI_COMMAND", &fake_backend)
         .args([
-            "--json",
+            "--envelope",
+            "json",
             "get",
             "http://127.0.0.1/session",
             "--session",
@@ -420,22 +474,23 @@ fn get_forwards_supported_output_options_and_records_limits() {
         .env("AGET_HOME", &aget_home)
         .env("AGET_CRAWL4AI_COMMAND", &fake_backend)
         .args([
-            "--json",
+            "--envelope",
+            "json",
             "get",
             "https://example.com/options",
-            "--format",
+            "--content-format",
             "text",
             "--selector",
             "main.article",
             "--exclude-selector",
             "nav,.ad",
-            "--wait-for",
+            "--wait-for-selector",
             "css:.ready",
             "--max-chars",
             "3",
-            "--extractor-option",
+            "--backend-option",
             "crawl4ai.cache=bypass",
-            "--extractor-option",
+            "--backend-option",
             "crawl4ai.magic=value",
         ])
         .assert()
@@ -445,7 +500,7 @@ fn get_forwards_supported_output_options_and_records_limits() {
         .clone();
 
     let json = success_data(&output, "get");
-    assert_eq!(json["format"], "text");
+    assert_eq!(json["content_format"], "text");
     assert_eq!(json["content"], "aé💡");
     assert_eq!(json["final_url"], "https://example.com/options#done");
     assert_eq!(json["limits"]["max_chars"], 3);
@@ -453,12 +508,12 @@ fn get_forwards_supported_output_options_and_records_limits() {
     assert_eq!(json["limits"]["truncated_by"], "max_chars");
     assert_eq!(json["limits"]["content_chars_before_truncation"], 5);
     assert_eq!(json["limits"]["content_chars_after_truncation"], 3);
-    assert_eq!(json["output_options"]["format"], "text");
+    assert_eq!(json["output_options"]["content_format"], "text");
     assert_eq!(json["output_options"]["selector"], "main.article");
     assert_eq!(json["output_options"]["exclude_selector"], "nav,.ad");
-    assert_eq!(json["output_options"]["wait_for"], "css:.ready");
+    assert_eq!(json["output_options"]["wait_for_selector"], "css:.ready");
     assert_eq!(
-        json["output_options"]["extractor_options"],
+        json["output_options"]["backend_options"],
         serde_json::json!({"crawl4ai.cache": "bypass", "crawl4ai.magic": "value"})
     );
 
@@ -486,7 +541,8 @@ fn get_max_chars_success_sanitizes_backend_stdout_artifact() {
         .env("AGET_HOME", &aget_home)
         .env("AGET_CRAWL4AI_COMMAND", &fake_backend)
         .args([
-            "--json",
+            "--envelope",
+            "json",
             "get",
             "https://example.com/secret",
             "--max-chars",
@@ -536,7 +592,8 @@ fn get_session_backend_failure_redacts_state_secrets_from_errors_metadata_and_ar
         .env("AGET_HOME", &aget_home)
         .env("AGET_CRAWL4AI_COMMAND", &fake_backend)
         .args([
-            "--json",
+            "--envelope",
+            "json",
             "get",
             "http://127.0.0.1/sensitive-fail",
             "--session",
@@ -618,13 +675,16 @@ fn get_session_backend_failure_uses_agent_browser_fallback_with_composed_state()
         .env("AGET_AGENT_BROWSER_COMMAND", &fake_agent_browser)
         .env("AGENT_BROWSER_LOG", &agent_log)
         .args([
-            "--json",
+            "--envelope",
+            "json",
             "get",
             "http://127.0.0.1/fallback",
             "--session",
             "local",
-            "--format",
+            "--content-format",
             "markdown",
+            "--inline-content",
+            "always",
         ])
         .assert()
         .success()
@@ -688,7 +748,12 @@ fn get_unauthenticated_backend_failure_does_not_use_agent_browser_fallback() {
         .env("AGET_CRAWL4AI_COMMAND", &fake_backend)
         .env("AGET_AGENT_BROWSER_COMMAND", &fake_agent_browser)
         .env("AGENT_BROWSER_LOG", &agent_log)
-        .args(["--json", "get", "http://127.0.0.1/public-failure"])
+        .args([
+            "--envelope",
+            "json",
+            "get",
+            "http://127.0.0.1/public-failure",
+        ])
         .assert()
         .failure()
         .get_output()
@@ -731,7 +796,8 @@ fn get_session_fallback_close_failure_preserves_original_sanitized_crawl4ai_erro
         .env("AGET_CRAWL4AI_COMMAND", &fake_backend)
         .env("AGET_AGENT_BROWSER_COMMAND", &fake_agent_browser)
         .args([
-            "--json",
+            "--envelope",
+            "json",
             "get",
             "http://127.0.0.1/fallback-close-fails",
             "--session",
@@ -774,10 +840,11 @@ fn get_real_helper_rejects_unsupported_extractor_option_before_crawl4ai_import()
         .env("AGET_HOME", &aget_home)
         .env("AGET_CRAWL4AI_COMMAND", &fake_backend)
         .args([
-            "--json",
+            "--envelope",
+            "json",
             "get",
             "https://example.com/unsupported-option",
-            "--extractor-option",
+            "--backend-option",
             "crawl4ai.js_code=alert(1)",
         ])
         .assert()
@@ -818,10 +885,11 @@ fn get_real_helper_rejects_javascript_wait_before_crawl4ai_import() {
         .env("AGET_HOME", &aget_home)
         .env("AGET_CRAWL4AI_COMMAND", &fake_backend)
         .args([
-            "--json",
+            "--envelope",
+            "json",
             "get",
             "https://example.com/js-wait",
-            "--wait-for",
+            "--wait-for-selector",
             "js:() => true",
         ])
         .assert()
@@ -835,7 +903,7 @@ fn get_real_helper_rejects_javascript_wait_before_crawl4ai_import() {
     assert!(json["error"]["message"]
         .as_str()
         .unwrap()
-        .contains("--wait-for only supports CSS selectors in v1"));
+        .contains("--wait-for-selector only supports CSS selectors in v1"));
 
     let metadata_files = metadata_files(&aget_home);
     assert_eq!(metadata_files.len(), 1);
@@ -866,10 +934,11 @@ fn get_json_format_truncates_only_content_not_response_envelope() {
         .env("AGET_HOME", &aget_home)
         .env("AGET_CRAWL4AI_COMMAND", &fake_backend)
         .args([
-            "--json",
+            "--envelope",
+            "json",
             "get",
             "https://example.com/json",
-            "--format",
+            "--content-format",
             "json",
             "--max-chars",
             "12",
@@ -882,7 +951,7 @@ fn get_json_format_truncates_only_content_not_response_envelope() {
 
     let envelope = success_envelope(&output, "get");
     let json = &envelope["data"];
-    assert_eq!(json["format"], "json");
+    assert_eq!(json["content_format"], "json");
     assert_eq!(json["content"], "{\"title\":\"Ex");
     assert_eq!(json["limits"]["truncated"], true);
     assert!(!json["artifacts"]["metadata"].as_str().unwrap().is_empty());
@@ -899,7 +968,7 @@ fn real_crawl4ai_replays_named_session_cookie() {
     let mut empty_cmd = Command::cargo_bin("aget").unwrap();
     let empty_output = empty_cmd
         .env("AGET_HOME", &empty_home)
-        .args(["--json", "get", &empty_url, "--timeout", "60"])
+        .args(["--envelope", "json", "get", &empty_url, "--timeout", "60"])
         .assert()
         .success()
         .get_output()
@@ -922,7 +991,8 @@ fn real_crawl4ai_replays_named_session_cookie() {
     let session_output = session_cmd
         .env("AGET_HOME", &session_home)
         .args([
-            "--json",
+            "--envelope",
+            "json",
             "get",
             &session_url,
             "--session",
@@ -959,7 +1029,8 @@ fn get_timeout_returns_stable_error_and_error_metadata() {
         .args([
             "--timeout",
             "1",
-            "--json",
+            "--envelope",
+            "json",
             "get",
             "https://example.com/slow",
         ])
@@ -999,7 +1070,8 @@ fn get_noisy_backend_output_does_not_deadlock() {
         .args([
             "--timeout",
             "2",
-            "--json",
+            "--envelope",
+            "json",
             "get",
             "https://example.com/noisy",
         ])
@@ -1031,7 +1103,12 @@ fn get_backend_stdout_logs_before_json_succeeds() {
     let output = cmd
         .env("AGET_HOME", &aget_home)
         .env("AGET_CRAWL4AI_COMMAND", &fake_backend)
-        .args(["--json", "get", "https://example.com/stdout-logs"])
+        .args([
+            "--envelope",
+            "json",
+            "get",
+            "https://example.com/stdout-logs",
+        ])
         .assert()
         .success()
         .get_output()
@@ -1065,7 +1142,8 @@ fn get_timeout_terminates_backend_descendants() {
         .args([
             "--timeout",
             "1",
-            "--json",
+            "--envelope",
+            "json",
             "get",
             "https://example.com/slow",
         ])
@@ -1094,7 +1172,7 @@ fn get_nonzero_and_malformed_backend_results_are_extraction_failed() {
     let nonzero_output = nonzero
         .env("AGET_HOME", &nonzero_home)
         .env("AGET_CRAWL4AI_COMMAND", &nonzero_backend)
-        .args(["--json", "get", "https://example.com/error"])
+        .args(["--envelope", "json", "get", "https://example.com/error"])
         .assert()
         .failure()
         .get_output()
@@ -1113,7 +1191,7 @@ fn get_nonzero_and_malformed_backend_results_are_extraction_failed() {
     let malformed_output = malformed
         .env("AGET_HOME", &malformed_home)
         .env("AGET_CRAWL4AI_COMMAND", &malformed_backend)
-        .args(["--json", "get", "https://example.com/malformed"])
+        .args(["--envelope", "json", "get", "https://example.com/malformed"])
         .assert()
         .failure()
         .get_output()
@@ -1136,7 +1214,12 @@ fn get_nonzero_backend_preserves_structured_failure_but_not_structured_success()
     let structured_failure_output = structured_failure
         .env("AGET_HOME", &structured_failure_home)
         .env("AGET_CRAWL4AI_COMMAND", &structured_failure_backend)
-        .args(["--json", "get", "https://example.com/structured-failure"])
+        .args([
+            "--envelope",
+            "json",
+            "get",
+            "https://example.com/structured-failure",
+        ])
         .assert()
         .failure()
         .get_output()
@@ -1168,7 +1251,12 @@ fn get_nonzero_backend_preserves_structured_failure_but_not_structured_success()
     let structured_success_output = structured_success
         .env("AGET_HOME", &structured_success_home)
         .env("AGET_CRAWL4AI_COMMAND", &structured_success_backend)
-        .args(["--json", "get", "https://example.com/structured-success"])
+        .args([
+            "--envelope",
+            "json",
+            "get",
+            "https://example.com/structured-success",
+        ])
         .assert()
         .failure()
         .get_output()
@@ -1192,7 +1280,7 @@ fn missing_backend_returns_backend_unavailable() {
     let output = cmd
         .env("AGET_HOME", &aget_home)
         .env("AGET_CRAWL4AI_COMMAND", "definitely_missing_aget_backend")
-        .args(["--json", "get", "https://example.com/missing"])
+        .args(["--envelope", "json", "get", "https://example.com/missing"])
         .assert()
         .failure()
         .get_output()

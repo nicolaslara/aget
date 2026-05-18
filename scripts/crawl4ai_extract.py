@@ -145,7 +145,7 @@ def parse_extractor_options(values: list[str]) -> dict[str, dict[str, object]]:
 def validate_wait_for(value: str) -> None:
     normalized = value.strip().lower()
     if normalized.startswith("js:") or any(marker in normalized for marker in JS_WAIT_MARKERS):
-        raise ValueError("--wait-for only supports CSS selectors in v1; JavaScript wait conditions are not allowed")
+        raise ValueError("--wait-for-selector only supports CSS selectors in v1; JavaScript wait conditions are not allowed")
 
 
 def parse_extractor_value(key: str, value: str, value_type: str):

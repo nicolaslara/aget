@@ -740,6 +740,16 @@ Manual release testing against Hello Interview showed three distinct auth behavi
 
 Do not treat a custom browser profile as the default login design until it has a proven persistence/import path. The safer product flow is: first detect/import usable existing browser auth, then if auth is missing warn the user that OAuth/user login is needed, suggest importing an existing OAuth session from the user's real browser/profile whenever possible, open the chosen real browser/profile only when user action is required, and verify persisted scoped auth before claiming login success. Dedicated `aget` profiles remain attractive for isolation, but need targeted research around browser choice, OAuth redirects, profile paths, lock handling, and state export before becoming the default.
 
+### D50: API cleanup makes envelope, content format, and inline content explicit
+
+The public CLI/API now separates three concepts that were previously overloaded:
+
+- `--envelope <json|none>` controls the response envelope. `--json` is no longer part of the public API.
+- `--content-format <markdown|html|text|json>` controls extracted page content format.
+- `--inline-content <auto|always|never>` controls whether the extracted content is embedded in the JSON envelope.
+
+The envelope includes `schema_version: "aget.envelope.v1"`, and `get` data now reports `content_format` instead of `format`. The default `inline-content=auto` omits `data.content` for session-backed/sensitive fetches while still writing local content artifacts, so agents have a safer default for authenticated pages. README now states clearly that `aget` is a proof of concept and that current backend dependencies are part of validating the workflow.
+
 ## Open Questions
 
 - Can pure Rust browser automation provide reliable persistent profiles and CDP attach, or do we need a small Node/Playwright sidecar?

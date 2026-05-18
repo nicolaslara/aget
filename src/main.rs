@@ -3,20 +3,19 @@ use std::process::ExitCode;
 use std::time::Instant;
 
 use aget::{
-    Aget, Cli, Command, ErrorCode, ErrorResponse, ImportSessionSource, LoginSessionSubcommand,
-    Session, SessionCookie, SessionSubcommand, TimingMs,
+    Aget, Cli, Command, EnvelopeFormat, ErrorCode, ErrorResponse, GetSuccess, ImportSessionSource,
+    InlineContent, LoginSessionSubcommand, Session, SessionCookie, SessionSubcommand, TimingMs,
+    ENVELOPE_SCHEMA_VERSION,
 };
 use clap::error::ErrorKind;
 use serde::Serialize;
 use serde_json::Value;
 
-const OAUTH_LOGIN_WARNING: &str = "OAuth providers may reject automation-controlled login browsers. If this site uses OAuth, prefer signing in with your real browser and importing a scoped session, for example: aget session import chrome --profile <profile> --name <name> --domain <domain>.";
+const OAUTH_LOGIN_WARNING: &str = "OAuth providers may reject automation-controlled login browsers. If this site uses OAuth, prefer signing in with your real browser and importing a scoped session, for example: aget session import chrome --chrome-profile <profile> --name <name> --allow-domain <domain>.";
 
 fn main() -> ExitCode {
     let args = std::env::args_os().collect::<Vec<_>>();
-    let structured_output = args
-        .iter()
-        .any(|arg| arg == "--json" || arg == "--envelope");
+    let structured_output = args_request_json_envelope(&args);
     let cli = match Cli::parse_from_aliasing_get(args.clone()) {
         Ok(cli) => cli,
         Err(error)
@@ -91,19 +90,33 @@ fn command_name_from_args(args: &[OsString]) -> &'static str {
     "cli"
 }
 
+fn args_request_json_envelope(args: &[OsString]) -> bool {
+    let mut iter = args.iter().filter_map(|arg| arg.to_str());
+    while let Some(arg) = iter.next() {
+        if arg == "--envelope" {
+            return matches!(iter.next(), Some("json"));
+        }
+        if arg == "--envelope=json" {
+            return true;
+        }
+    }
+    false
+}
+
 fn run(cli: Cli) -> Result<(), ErrorResponse> {
-    let structured_output = cli.global.json || cli.global.envelope;
+    let structured_output = matches!(cli.global.envelope, EnvelopeFormat::Json);
     match cli.command {
         Command::Get(get) => (|| {
             let aget = Aget::from_env()
                 .map_err(io_error)?
                 .with_timeout_opt(cli.global.timeout);
-            let mut request = aget.get(get.url).format(get.format);
+            let inline_content = get.inline_content;
+            let mut request = aget.get(get.url).content_format(get.content_format);
             for session in get.session {
                 request = request.session(session);
             }
-            if let Some(out) = get.out {
-                request = request.out(out);
+            if let Some(output) = get.output {
+                request = request.output(output);
             }
             if let Some(selector) = get.selector {
                 request = request.selector(selector);
@@ -111,20 +124,20 @@ fn run(cli: Cli) -> Result<(), ErrorResponse> {
             if let Some(exclude_selector) = get.exclude_selector {
                 request = request.exclude_selector(exclude_selector);
             }
-            if let Some(wait_for) = get.wait_for {
-                request = request.wait_for(wait_for);
+            if let Some(wait_for_selector) = get.wait_for_selector {
+                request = request.wait_for_selector(wait_for_selector);
             }
             if let Some(max_chars) = get.max_chars {
                 request = request.max_chars(max_chars);
             }
-            for extractor_option in get.extractor_options {
-                request = request.extractor_option(extractor_option.key, extractor_option.value);
+            for backend_option in get.backend_options {
+                request = request.backend_option(backend_option.key, backend_option.value);
             }
             let success = request.run().map_err(error_response)?;
             if structured_output {
                 print_success_envelope(
                     "get",
-                    envelope_data(&success, &["ok", "warnings", "timing_ms"])?,
+                    get_envelope_data(&success, inline_content)?,
                     success.warnings,
                     success.timing_ms,
                 )?;
@@ -232,7 +245,7 @@ fn run_session(command: SessionSubcommand, json: bool) -> Result<(), ErrorRespon
         SessionSubcommand::Import(import) => match import.source {
             ImportSessionSource::Cmux(cmux) => {
                 let session = aget
-                    .import_cmux_session(cmux.surface, cmux.name, cmux.domain)
+                    .import_cmux_session(cmux.surface, cmux.name, cmux.allow_domain)
                     .map_err(error_response)?;
                 if json {
                     print_success_envelope(
@@ -256,7 +269,11 @@ fn run_session(command: SessionSubcommand, json: bool) -> Result<(), ErrorRespon
             }
             ImportSessionSource::Chrome(chrome) => {
                 let session = aget
-                    .import_chrome_session(chrome.profile, chrome.name, chrome.domain)
+                    .import_chrome_session(
+                        chrome.chrome_profile,
+                        chrome.name,
+                        chrome.allow_domain,
+                    )
                     .map_err(error_response)?;
                 if json {
                     print_success_envelope(
@@ -409,6 +426,7 @@ fn print_success_envelope(
 ) -> Result<(), ErrorResponse> {
     let envelope = serde_json::json!({
         "ok": true,
+        "schema_version": ENVELOPE_SCHEMA_VERSION,
         "command": command,
         "data": data,
         "warnings": warnings,
@@ -416,6 +434,24 @@ fn print_success_envelope(
     });
     println!("{}", serde_json::to_string(&envelope).map_err(io_error)?);
     Ok(())
+}
+
+fn get_envelope_data(
+    success: &GetSuccess,
+    inline_content: InlineContent,
+) -> Result<Value, ErrorResponse> {
+    let mut data = envelope_data(success, &["ok", "warnings", "timing_ms"])?;
+    if let Value::Object(object) = &mut data {
+        let include_content = match inline_content {
+            InlineContent::Always => true,
+            InlineContent::Never => false,
+            InlineContent::Auto => !success.sensitive,
+        };
+        if !include_content {
+            object.remove("content");
+        }
+    }
+    Ok(data)
 }
 
 fn envelope_data<T: Serialize>(value: &T, remove_keys: &[&str]) -> Result<Value, ErrorResponse> {

@@ -74,7 +74,7 @@ fn session_list_json_has_stable_shape() {
     let mut cmd = Command::cargo_bin("aget").unwrap();
     let output = cmd
         .env("AGET_HOME", &aget_home)
-        .args(["--json", "session", "list"])
+        .args(["--envelope", "json", "session", "list"])
         .assert()
         .success()
         .get_output()
@@ -96,7 +96,8 @@ fn session_import_cmux_saves_filtered_cookies() {
         .env("AGET_HOME", &aget_home)
         .env("AGET_CMUX_COMMAND", &fake_cmux)
         .args([
-            "--json",
+            "--envelope",
+            "json",
             "session",
             "import",
             "cmux",
@@ -104,9 +105,9 @@ fn session_import_cmux_saves_filtered_cookies() {
             "surface:1",
             "--name",
             "imported",
-            "--domain",
+            "--allow-domain",
             "example.com",
-            "--domain",
+            "--allow-domain",
             "docs.example.com",
         ])
         .assert()
@@ -177,7 +178,8 @@ fn session_import_cmux_missing_backend_returns_backend_unavailable() {
         .env("AGET_HOME", &aget_home)
         .env("AGET_CMUX_COMMAND", "definitely_missing_aget_cmux")
         .args([
-            "--json",
+            "--envelope",
+            "json",
             "session",
             "import",
             "cmux",
@@ -185,7 +187,7 @@ fn session_import_cmux_missing_backend_returns_backend_unavailable() {
             "surface:1",
             "--name",
             "imported",
-            "--domain",
+            "--allow-domain",
             "example.com",
         ])
         .assert()
@@ -217,15 +219,16 @@ fn session_import_chrome_saves_filtered_state_and_cleans_raw_file() {
         .env("AGET_AGENT_BROWSER_COMMAND", &fake_agent_browser)
         .env("AGET_FAKE_AGENT_BROWSER_LOG", &log_path)
         .args([
-            "--json",
+            "--envelope",
+            "json",
             "session",
             "import",
             "chrome",
-            "--profile",
+            "--chrome-profile",
             "Default",
             "--name",
             "chrome-imported",
-            "--domain",
+            "--allow-domain",
             "example.com",
         ])
         .assert()
@@ -294,7 +297,13 @@ fn session_import_chrome_saves_filtered_state_and_cleans_raw_file() {
     let mut inspect = Command::cargo_bin("aget").unwrap();
     let inspect_output = inspect
         .env("AGET_HOME", &aget_home)
-        .args(["--json", "session", "inspect", "chrome-imported"])
+        .args([
+            "--envelope",
+            "json",
+            "session",
+            "inspect",
+            "chrome-imported",
+        ])
         .assert()
         .success()
         .get_output()
@@ -311,7 +320,8 @@ fn session_import_chrome_saves_filtered_state_and_cleans_raw_file() {
     inspect_secrets
         .env("AGET_HOME", &aget_home)
         .args([
-            "--json",
+            "--envelope",
+            "json",
             "session",
             "inspect",
             "chrome-imported",
@@ -351,15 +361,16 @@ fn session_import_chrome_missing_backend_returns_backend_unavailable() {
             "definitely_missing_aget_agent_browser",
         )
         .args([
-            "--json",
+            "--envelope",
+            "json",
             "session",
             "import",
             "chrome",
-            "--profile",
+            "--chrome-profile",
             "Default",
             "--name",
             "imported",
-            "--domain",
+            "--allow-domain",
             "example.com",
         ])
         .assert()
@@ -387,15 +398,16 @@ fn session_import_chrome_requires_user_action_for_profile_lock() {
         .env("AGET_AGENT_BROWSER_COMMAND", &fake_agent_browser)
         .env("AGET_FAKE_AGENT_BROWSER_LOG", &log_path)
         .args([
-            "--json",
+            "--envelope",
+            "json",
             "session",
             "import",
             "chrome",
-            "--profile",
+            "--chrome-profile",
             "Default",
             "--name",
             "imported",
-            "--domain",
+            "--allow-domain",
             "example.com",
         ])
         .assert()
@@ -426,15 +438,16 @@ fn session_import_chrome_closes_and_cleans_raw_state_on_malformed_state() {
         .env("AGET_AGENT_BROWSER_COMMAND", &fake_agent_browser)
         .env("AGET_FAKE_AGENT_BROWSER_LOG", &log_path)
         .args([
-            "--json",
+            "--envelope",
+            "json",
             "session",
             "import",
             "chrome",
-            "--profile",
+            "--chrome-profile",
             "Default",
             "--name",
             "imported",
-            "--domain",
+            "--allow-domain",
             "example.com",
         ])
         .assert()
@@ -473,7 +486,14 @@ fn session_login_start_opens_aget_owned_browser_and_records_pending_flow() {
         .env("AGET_AGENT_BROWSER_COMMAND", &fake_agent_browser)
         .env("AGET_FAKE_AGENT_BROWSER_LOG", &log_path)
         .args([
-            "--json", "session", "login", "start", "news", "--url", target_url,
+            "--envelope",
+            "json",
+            "session",
+            "login",
+            "start",
+            "news",
+            "--url",
+            target_url,
         ])
         .assert()
         .success()
@@ -526,7 +546,8 @@ fn session_login_start_rejects_http_url_before_agent_browser() {
         .env("AGET_AGENT_BROWSER_COMMAND", &fake_agent_browser)
         .env("AGET_FAKE_AGENT_BROWSER_LOG", &log_path)
         .args([
-            "--json",
+            "--envelope",
+            "json",
             "session",
             "login",
             "start",
@@ -564,7 +585,8 @@ fn session_login_start_uses_exact_non_www_url_host_scope() {
         .env("AGET_AGENT_BROWSER_COMMAND", &fake_agent_browser)
         .env("AGET_FAKE_AGENT_BROWSER_LOG", &log_path)
         .args([
-            "--json",
+            "--envelope",
+            "json",
             "session",
             "login",
             "start",
@@ -624,7 +646,8 @@ fn session_login_start_rejects_duplicate_pending_flow_without_overwriting() {
         .env("AGET_AGENT_BROWSER_COMMAND", &fake_agent_browser)
         .env("AGET_FAKE_AGENT_BROWSER_LOG", &log_path)
         .args([
-            "--json",
+            "--envelope",
+            "json",
             "session",
             "login",
             "start",
@@ -685,7 +708,7 @@ fn session_login_finish_saves_only_url_scoped_state_and_cleans_temp_files() {
         .env("AGET_HOME", &aget_home)
         .env("AGET_AGENT_BROWSER_COMMAND", &fake_agent_browser)
         .env("AGET_FAKE_AGENT_BROWSER_LOG", &log_path)
-        .args(["--json", "session", "login", "finish", "news"])
+        .args(["--envelope", "json", "session", "login", "finish", "news"])
         .assert()
         .success()
         .get_output()
@@ -871,7 +894,7 @@ fn session_login_finish_reports_close_failure_and_keeps_pending_metadata() {
         .env("AGET_HOME", &aget_home)
         .env("AGET_AGENT_BROWSER_COMMAND", &fake_agent_browser)
         .env("AGET_FAKE_AGENT_BROWSER_LOG", &log_path)
-        .args(["--json", "session", "login", "finish", "news"])
+        .args(["--envelope", "json", "session", "login", "finish", "news"])
         .assert()
         .failure()
         .get_output()
@@ -968,7 +991,14 @@ fn session_login_cancel_closes_only_pending_agent_browser_session() {
         .env("AGET_HOME", &aget_home)
         .env("AGET_AGENT_BROWSER_COMMAND", &fake_agent_browser)
         .env("AGET_FAKE_AGENT_BROWSER_LOG", &log_path)
-        .args(["--json", "session", "login", "cancel", "hellointerview"])
+        .args([
+            "--envelope",
+            "json",
+            "session",
+            "login",
+            "cancel",
+            "hellointerview",
+        ])
         .assert()
         .success()
         .get_output()
@@ -1019,7 +1049,7 @@ fn session_login_cancel_cleans_profile_and_pending_when_close_fails() {
         .env("AGET_HOME", &aget_home)
         .env("AGET_AGENT_BROWSER_COMMAND", &fake_agent_browser)
         .env("AGET_FAKE_AGENT_BROWSER_LOG", &log_path)
-        .args(["--json", "session", "login", "cancel", "news"])
+        .args(["--envelope", "json", "session", "login", "cancel", "news"])
         .assert()
         .failure()
         .get_output()
@@ -1064,7 +1094,14 @@ fn session_login_finish_rejects_provider_only_state_without_saving_session() {
         .env("AGET_HOME", &aget_home)
         .env("AGET_AGENT_BROWSER_COMMAND", &fake_agent_browser)
         .env("AGET_FAKE_AGENT_BROWSER_LOG", &log_path)
-        .args(["--json", "session", "login", "finish", "hellointerview"])
+        .args([
+            "--envelope",
+            "json",
+            "session",
+            "login",
+            "finish",
+            "hellointerview",
+        ])
         .assert()
         .failure()
         .get_output()
@@ -1093,7 +1130,8 @@ fn real_hellointerview_login_flow_fetches_paywalled_markdown() {
     start
         .env("AGET_HOME", &aget_home)
         .args([
-            "--json",
+            "--envelope",
+            "json",
             "session",
             "login",
             "start",
@@ -1113,7 +1151,14 @@ fn real_hellointerview_login_flow_fetches_paywalled_markdown() {
     let mut finish = Command::cargo_bin("aget").unwrap();
     finish
         .env("AGET_HOME", &aget_home)
-        .args(["--json", "session", "login", "finish", "hellointerview"])
+        .args([
+            "--envelope",
+            "json",
+            "session",
+            "login",
+            "finish",
+            "hellointerview",
+        ])
         .assert()
         .success();
 
@@ -1121,12 +1166,13 @@ fn real_hellointerview_login_flow_fetches_paywalled_markdown() {
     let output = get
         .env("AGET_HOME", &aget_home)
         .args([
-            "--json",
+            "--envelope",
+            "json",
             "get",
             &target,
             "--session",
             "hellointerview",
-            "--format",
+            "--content-format",
             "markdown",
             "--timeout",
             "90",
@@ -1171,7 +1217,8 @@ fn session_compose_persists_composed_session_with_provenance_and_preserves_sourc
     let output = cmd
         .env("AGET_HOME", &aget_home)
         .args([
-            "--json",
+            "--envelope",
+            "json",
             "session",
             "compose",
             "combined",
@@ -1242,7 +1289,8 @@ fn session_compose_rejects_source_name_target_without_mutating_sources() {
     let output = cmd
         .env("AGET_HOME", &aget_home)
         .args([
-            "--json",
+            "--envelope",
+            "json",
             "session",
             "compose",
             "provider",
@@ -1288,7 +1336,8 @@ fn session_compose_rejects_existing_target_without_mutating_existing_session() {
     let output = cmd
         .env("AGET_HOME", &aget_home)
         .args([
-            "--json",
+            "--envelope",
+            "json",
             "session",
             "compose",
             "combined",
@@ -1354,7 +1403,7 @@ fn session_compose_inspect_reports_cookie_source_session_and_redacts_values() {
     let mut inspect = Command::cargo_bin("aget").unwrap();
     let inspect_output = inspect
         .env("AGET_HOME", &aget_home)
-        .args(["--json", "session", "inspect", "combined"])
+        .args(["--envelope", "json", "session", "inspect", "combined"])
         .assert()
         .success()
         .get_output()
@@ -1458,7 +1507,8 @@ fn session_compose_rejects_conflicts_with_redacted_error_and_does_not_save() {
     let output = cmd
         .env("AGET_HOME", &aget_home)
         .args([
-            "--json",
+            "--envelope",
+            "json",
             "session",
             "compose",
             "combined",
@@ -1515,7 +1565,7 @@ fn real_cmux_imports_loopback_cookie() {
             &surface,
             "--name",
             "cmux-loopback",
-            "--domain",
+            "--allow-domain",
             "127.0.0.1",
         ])
         .assert()
@@ -1585,7 +1635,7 @@ fn real_cmux_import_replays_loopback_cookie_through_crawl4ai() {
             &surface,
             "--name",
             "cmux-loopback",
-            "--domain",
+            "--allow-domain",
             "127.0.0.1",
         ])
         .assert()
@@ -1596,7 +1646,8 @@ fn real_cmux_import_replays_loopback_cookie_through_crawl4ai() {
     replay
         .env("AGET_HOME", &aget_home)
         .args([
-            "--json",
+            "--envelope",
+            "json",
             "get",
             &echo_url,
             "--session",

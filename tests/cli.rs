@@ -13,8 +13,7 @@ fn top_level_help_includes_global_flags() {
     let mut cmd = Command::cargo_bin("aget").unwrap();
 
     cmd.arg("--help").assert().success().stdout(
-        predicate::str::contains("--json")
-            .and(predicate::str::contains("--envelope"))
+        predicate::str::contains("--envelope")
             .and(predicate::str::contains("--timeout"))
             .and(predicate::str::contains("get")),
     );
@@ -27,12 +26,13 @@ fn get_help_is_available() {
     cmd.args(["get", "--help"]).assert().success().stdout(
         predicate::str::contains("Usage: aget get")
             .and(predicate::str::contains("<URL>"))
-            .and(predicate::str::contains("--format"))
+            .and(predicate::str::contains("--content-format"))
+            .and(predicate::str::contains("--inline-content"))
             .and(predicate::str::contains("--selector"))
             .and(predicate::str::contains("--exclude-selector"))
-            .and(predicate::str::contains("--wait-for"))
+            .and(predicate::str::contains("--wait-for-selector"))
             .and(predicate::str::contains("--max-chars"))
-            .and(predicate::str::contains("--extractor-option")),
+            .and(predicate::str::contains("--backend-option")),
     );
 }
 
@@ -40,7 +40,7 @@ fn get_help_is_available() {
 fn get_rejects_invalid_format() {
     let mut cmd = Command::cargo_bin("aget").unwrap();
 
-    cmd.args(["get", "https://example.com", "--format", "pdf"])
+    cmd.args(["get", "https://example.com", "--content-format", "pdf"])
         .assert()
         .failure()
         .stderr(predicate::str::contains("invalid value"));
@@ -51,7 +51,14 @@ fn get_json_parse_error_uses_structured_envelope() {
     let mut cmd = Command::cargo_bin("aget").unwrap();
 
     let output = cmd
-        .args(["--json", "get", "https://example.com", "--format", "pdf"])
+        .args([
+            "--envelope",
+            "json",
+            "get",
+            "https://example.com",
+            "--content-format",
+            "pdf",
+        ])
         .assert()
         .failure()
         .get_output()
@@ -75,7 +82,7 @@ fn get_rejects_malformed_extractor_option() {
     cmd.args([
         "get",
         "https://example.com",
-        "--extractor-option",
+        "--backend-option",
         "missing-equals",
     ])
     .assert()
@@ -90,7 +97,7 @@ fn get_rejects_unnamespaced_extractor_option() {
     cmd.args([
         "get",
         "https://example.com",
-        "--extractor-option",
+        "--backend-option",
         "wait_until=networkidle",
     ])
     .assert()
@@ -122,7 +129,7 @@ fn top_level_url_alias_preserves_get_output_flags() {
     let output = cmd
         .env("AGET_HOME", temp.path().join("aget-home"))
         .env("AGET_CRAWL4AI_COMMAND", mock_backend_command())
-        .args(["--json", &url, "--format", "html"])
+        .args(["--envelope", "json", &url, "--content-format", "html"])
         .assert()
         .success()
         .get_output()
@@ -132,7 +139,7 @@ fn top_level_url_alias_preserves_get_output_flags() {
     let json: serde_json::Value = serde_json::from_slice(&output).unwrap();
     assert_eq!(json["ok"], true);
     assert_eq!(json["command"], "get");
-    assert_eq!(json["data"]["format"], "html");
+    assert_eq!(json["data"]["content_format"], "html");
     assert_eq!(json["data"]["content"], "<main>Example</main>");
     server.join().unwrap();
 }
@@ -146,7 +153,7 @@ fn envelope_global_flag_emits_structured_output() {
     let output = cmd
         .env("AGET_HOME", temp.path().join("aget-home"))
         .env("AGET_CRAWL4AI_COMMAND", mock_backend_command())
-        .args(["--envelope", "get", &url])
+        .args(["--envelope", "json", "get", &url])
         .assert()
         .success()
         .get_output()

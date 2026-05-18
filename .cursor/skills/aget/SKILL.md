@@ -16,38 +16,38 @@ Use `aget` as a generic local fetcher. It returns page content and extraction ou
 - Do not use ambient browser auth silently. Authenticated fetches require an explicit named session.
 - For OAuth-backed sites, prefer importing a user-authorized real browser session over opening an automation-controlled login browser.
 - Treat session files, storage-state temp files, screenshots, authenticated markdown, and envelope content as private local data.
-- Prefer `--out <path>` for large or sensitive content so the agent can read only the needed artifact.
+- Prefer `--output <path>` for large or sensitive content so the agent can read only the needed artifact.
 
 ## Structured Output
 
-Prefer `--envelope`; `--json` is a compatibility alias.
+Use `--envelope json` for stable agent/tool output.
 
 Success shape:
 
 ```json
-{"ok": true, "command": "get", "data": {}, "warnings": [], "timing_ms": {"total": 0}}
+{"ok": true, "schema_version": "aget.envelope.v1", "command": "get", "data": {}, "warnings": [], "timing_ms": {"total": 0}}
 ```
 
 Error shape:
 
 ```json
-{"ok": false, "command": "get", "error": {"code": "requires_user_action", "message": "..."}}
+{"ok": false, "schema_version": "aget.envelope.v1", "command": "get", "error": {"code": "requires_user_action", "message": "..."}}
 ```
 
-For `get`, extracted page content is in `data.content`, artifact paths are in `data.artifacts`, and selected sessions are in `data.sessions`.
+For `get`, artifact paths are in `data.artifacts`, selected sessions are in `data.sessions`, and extracted page content is in `data.content` only when `--inline-content` includes it. The default `--inline-content auto` omits `data.content` for session-backed/sensitive fetches; read the local artifact path instead, or use `--inline-content always` only when the user explicitly wants authenticated content embedded in the envelope.
 
 ## Basic Fetch
 
 Use an empty session first unless the user already chose a named session:
 
 ```bash
-aget --envelope get "https://example.com/docs" --format markdown
+aget --envelope json get "https://example.com/docs" --content-format markdown
 ```
 
 For long output:
 
 ```bash
-aget --envelope get "https://example.com/docs" --format markdown --out /tmp/aget-page.md --max-chars 12000
+aget --envelope json get "https://example.com/docs" --content-format markdown --output /tmp/aget-page.md --max-chars 12000
 ```
 
 ## Gated Page Flow
@@ -55,26 +55,26 @@ aget --envelope get "https://example.com/docs" --format markdown --out /tmp/aget
 Example starting point with HelloInterview as a user-authorized representative gated site:
 
 ```bash
-aget --envelope get "https://www.hellointerview.com/learn/behavioral/course/adapting-to-big-tech-behaviorals" --format markdown --out /tmp/hi.md
+aget --envelope json get "https://www.hellointerview.com/learn/behavioral/course/adapting-to-big-tech-behaviorals" --content-format markdown --output /tmp/hi.md
 ```
 
 If the returned content looks like a login/subscription wall, tell the user what you observed and ask whether they want to create a local session. If they agree:
 
 ```bash
-aget --envelope session import chrome --profile Default --name hellointerview --domain hellointerview.com --domain www.hellointerview.com
+aget --envelope json session import chrome --chrome-profile Default --name hellointerview --allow-domain hellointerview.com --allow-domain www.hellointerview.com
 ```
 
 Then verify the imported session unlocks the page:
 
 ```bash
-aget --envelope get "https://www.hellointerview.com/learn/behavioral/course/adapting-to-big-tech-behaviorals" --session hellointerview --format markdown --out /tmp/hi-auth.md
+aget --envelope json get "https://www.hellointerview.com/learn/behavioral/course/adapting-to-big-tech-behaviorals" --session hellointerview --content-format markdown --output /tmp/hi-auth.md
 ```
 
 Generalize the same pattern to any user-authorized gated site, such as `ft.com`, `nytimes.com`, private docs, dashboards, or account pages. Session names are caller-chosen labels, not built-in site handlers. For OAuth-backed sites, ask the user whether they are already logged in through a real browser and prefer importing that browser profile:
 
 ```bash
-aget --envelope session import chrome --profile Default --name news --domain nytimes.com --domain www.nytimes.com
-aget --envelope get "https://www.nytimes.com/account" --session news --out /tmp/news-account.md
+aget --envelope json session import chrome --chrome-profile Default --name news --allow-domain nytimes.com --allow-domain www.nytimes.com
+aget --envelope json get "https://www.nytimes.com/account" --session news --output /tmp/news-account.md
 ```
 
 If import returns `requires_user_action` because the profile is locked, ask the user to quit the relevant browser/profile and retry. If import succeeds but the follow-up fetch still shows a login wall, explain that the existing browser profile is not logged in for the target site; ask the user to sign in through their normal browser, then import again.
@@ -86,14 +86,14 @@ Some sites require provider cookies during login but not later fetches. Keep pro
 During fetch:
 
 ```bash
-aget --envelope get "https://docs.example.com/account" --session provider --session app --out /tmp/account.md
+aget --envelope json get "https://docs.example.com/account" --session provider --session app --output /tmp/account.md
 ```
 
 Persist a reusable composition:
 
 ```bash
-aget --envelope session compose workdocs --session provider --session app
-aget --envelope get "https://docs.example.com/account" --session workdocs --out /tmp/account.md
+aget --envelope json session compose workdocs --session provider --session app
+aget --envelope json get "https://docs.example.com/account" --session workdocs --output /tmp/account.md
 ```
 
 If session composition reports a conflict, do not guess which secret wins. Ask the user which session should be replaced, deleted, or retried.
@@ -116,13 +116,13 @@ If a login flow appears to require provider cookies beyond the relying-party ses
 cmux cookie import is explicit and domain-scoped:
 
 ```bash
-aget --envelope session import cmux --surface "surface:1" --name workdocs --domain docs.example.com
+aget --envelope json session import cmux --surface "surface:1" --name workdocs --allow-domain docs.example.com
 ```
 
 Chrome import uses `agent-browser` as a scoped acquisition backend:
 
 ```bash
-aget --envelope session import chrome --profile Default --name workdocs --domain docs.example.com
+aget --envelope json session import chrome --chrome-profile Default --name workdocs --allow-domain docs.example.com
 ```
 
 Before running either import command, ask the user to approve the specific local surface/profile and domains. These commands can read credential-equivalent local browser state.

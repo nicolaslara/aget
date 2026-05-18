@@ -362,7 +362,7 @@ Acceptance criteria:
 - Cover negative/privacy contracts with explicit assertions on structured error codes and no credential replay.
 - Keep tests deterministic, local-only, credential-free, and generic; do not add site-specific login/paywall assumptions.
 
-### 🚧 Task I16: Remove inline script-based test doubles
+### ✅ Task I16: Remove inline script-based test doubles
 
 Acceptance criteria:
 
@@ -407,7 +407,7 @@ Acceptance criteria:
 - Add e2e tests using the existing `MockSite` fixture that prove public fetch, authenticated replay, login finish, import, fallback extraction, output formats, selectors/exclusions, and waits work without Crawl4AI or `agent-browser`.
 - Record any dependency choices and license implications before adding browser automation or markdown/readability crates.
 
-### 🚧 Task I20: Design OAuth-safe browser login and profile import flow
+### 📋 Task I20: Design OAuth-safe browser login and profile import flow
 
 Acceptance criteria:
 
@@ -428,7 +428,7 @@ Acceptance criteria:
 - Add deterministic mocked-site tests for the decision tree and a documented manual smoke-test recipe for real OAuth sites.
 - Record lock-handling behavior and error messages for open profile directories, including "quit this browser/profile before import."
 
-### 📋 Task I17: Redesign public CLI/API and README around coherent concepts
+### 🚧 Task I17: Redesign public CLI/API and README around coherent concepts
 
 Acceptance criteria:
 

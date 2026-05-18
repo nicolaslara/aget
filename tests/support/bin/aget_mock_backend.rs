@@ -361,7 +361,7 @@ fn validate_crawl4ai_options(args: &Args) -> Result<(), String> {
         {
             return structured_validation_error(
                 args,
-                "--wait-for only supports CSS selectors in v1; JavaScript wait conditions are not allowed".to_string(),
+                "--wait-for-selector only supports CSS selectors in v1; JavaScript wait conditions are not allowed".to_string(),
             );
         }
     }

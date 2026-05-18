@@ -32,7 +32,7 @@ fn aget_with_static_backends_uses_custom_session_store_and_extractor() {
         .with_browser_automation_backend(TestBrowserBackend::default())
         .get("https://example.com/private")
         .session("auth")
-        .format(OutputFormat::Text)
+        .content_format(OutputFormat::Text)
         .selector("main")
         .run()
         .unwrap();

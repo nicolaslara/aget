@@ -32,55 +32,84 @@ impl Cli {
 
 #[derive(Debug, Args, PartialEq, Eq)]
 pub struct GlobalOptions {
-    #[arg(long, global = true)]
-    pub json: bool,
+    /// Response envelope format. Use `json` for stable agent/tool output.
+    #[arg(long, value_enum, default_value_t = EnvelopeFormat::None, global = true)]
+    pub envelope: EnvelopeFormat,
 
-    #[arg(long, global = true)]
-    pub envelope: bool,
-
+    /// Request timeout in seconds for backend extraction or browser/session actions.
     #[arg(long, value_parser = parse_duration_secs, global = true)]
     pub timeout: Option<Duration>,
 
+    /// Reserve extra diagnostic output for future human-mode debugging.
     #[arg(long, global = true)]
     pub verbose: bool,
 
+    /// Suppress normal human output. Errors and JSON envelopes are still emitted.
     #[arg(long, global = true)]
     pub quiet: bool,
 }
 
 #[derive(Debug, Subcommand, PartialEq, Eq)]
 pub enum Command {
+    /// Extract one HTTP(S) URL into agent-ready content.
     Get(GetCommand),
+    /// Manage local auth/session state.
     Session(SessionCommand),
 }
 
 #[derive(Debug, Args, PartialEq, Eq)]
 pub struct GetCommand {
+    /// HTTP(S) URL to extract.
     pub url: String,
 
+    /// Local session name to replay. Repeat to compose sessions for this request.
     #[arg(long)]
     pub session: Vec<String>,
 
+    /// Write extracted page content to this path.
     #[arg(long)]
-    pub out: Option<PathBuf>,
+    pub output: Option<PathBuf>,
 
-    #[arg(long, value_enum, default_value_t = OutputFormat::Markdown)]
-    pub format: OutputFormat,
+    /// Extracted page content format. This is separate from `--envelope`.
+    #[arg(long = "content-format", value_enum, default_value_t = OutputFormat::Markdown)]
+    pub content_format: OutputFormat,
 
+    /// Whether JSON envelopes include `data.content`.
+    #[arg(long = "inline-content", value_enum, default_value_t = InlineContent::Auto)]
+    pub inline_content: InlineContent,
+
+    /// CSS selector used to keep only matching page content.
     #[arg(long)]
     pub selector: Option<String>,
 
+    /// CSS selector used to remove matching page content.
     #[arg(long)]
     pub exclude_selector: Option<String>,
 
+    /// CSS selector to wait for before extraction.
     #[arg(long)]
-    pub wait_for: Option<String>,
+    pub wait_for_selector: Option<String>,
 
+    /// Deterministically truncate extracted content to this many Unicode scalar values.
     #[arg(long)]
     pub max_chars: Option<usize>,
 
-    #[arg(long = "extractor-option", value_parser = parse_extractor_option)]
-    pub extractor_options: Vec<ExtractorOption>,
+    /// Advanced unstable backend escape hatch, e.g. `crawl4ai.page_timeout=90000`.
+    #[arg(long = "backend-option", value_parser = parse_backend_option)]
+    pub backend_options: Vec<ExtractorOption>,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, ValueEnum)]
+pub enum EnvelopeFormat {
+    Json,
+    None,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, ValueEnum)]
+pub enum InlineContent {
+    Auto,
+    Always,
+    Never,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, ValueEnum, serde::Serialize, serde::Deserialize)]
@@ -117,11 +146,17 @@ pub struct SessionCommand {
 
 #[derive(Debug, Subcommand, PartialEq, Eq)]
 pub enum SessionSubcommand {
+    /// List local session names.
     List,
+    /// Inspect one local session with secrets redacted by default.
     Inspect(InspectSessionCommand),
+    /// Delete one local session.
     Delete(DeleteSessionCommand),
+    /// Import browser/session state from an explicit local source.
     Import(ImportSessionCommand),
+    /// Save a deterministic composition of existing sessions.
     Compose(ComposeSessionCommand),
+    /// Start, finish, or cancel an experimental user-driven login flow.
     Login(LoginSessionCommand),
 }
 
@@ -133,18 +168,24 @@ pub struct LoginSessionCommand {
 
 #[derive(Debug, Subcommand, PartialEq, Eq)]
 pub enum LoginSessionSubcommand {
+    /// Open a user-driven login browser flow.
     Start(LoginStartCommand),
+    /// Save scoped browser state from a pending login flow.
     Finish(LoginFinishCommand),
+    /// Cancel a pending login flow and clean up local temp state.
     Cancel(LoginCancelCommand),
 }
 
 #[derive(Debug, Args, PartialEq, Eq)]
 pub struct LoginStartCommand {
+    /// Local session name to create when login is finished.
     pub name: String,
 
+    /// Login or target URL to open in the controlled browser profile.
     #[arg(long)]
     pub url: String,
 
+    /// Agent-browser profile name for this experimental login flow.
     #[arg(long)]
     pub profile: Option<String>,
 }
@@ -161,8 +202,10 @@ pub struct LoginCancelCommand {
 
 #[derive(Debug, Args, PartialEq, Eq)]
 pub struct ComposeSessionCommand {
+    /// New local session name to save.
     pub name: String,
 
+    /// Source session name. Repeat to compose several sessions in order.
     #[arg(long, required = true)]
     pub session: Vec<String>,
 }
@@ -175,44 +218,55 @@ pub struct ImportSessionCommand {
 
 #[derive(Debug, Subcommand, PartialEq, Eq)]
 pub enum ImportSessionSource {
+    /// Import cookies from a local cmux browser surface.
     Cmux(ImportCmuxSessionCommand),
+    /// Import scoped cookies/storage from a Chrome profile snapshot.
     Chrome(ImportChromeSessionCommand),
 }
 
 #[derive(Debug, Args, PartialEq, Eq)]
 pub struct ImportCmuxSessionCommand {
+    /// cmux browser surface to read cookies from.
     #[arg(long)]
     pub surface: String,
 
+    /// Local session name to create.
     #[arg(long)]
     pub name: String,
 
+    /// Explicit allowed cookie domain to import. Repeat for each trusted domain.
     #[arg(long, required = true)]
-    pub domain: Vec<String>,
+    pub allow_domain: Vec<String>,
 }
 
 #[derive(Debug, Args, PartialEq, Eq)]
 pub struct ImportChromeSessionCommand {
-    #[arg(long)]
-    pub profile: String,
+    /// Chrome profile name or path to snapshot through agent-browser.
+    #[arg(long = "chrome-profile")]
+    pub chrome_profile: String,
 
+    /// Local session name to create.
     #[arg(long)]
     pub name: String,
 
+    /// Explicit allowed cookie/storage domain to import. Repeat for each trusted domain.
     #[arg(long, required = true)]
-    pub domain: Vec<String>,
+    pub allow_domain: Vec<String>,
 }
 
 #[derive(Debug, Args, PartialEq, Eq)]
 pub struct InspectSessionCommand {
+    /// Local session name to inspect.
     pub name: String,
 
+    /// Print secret cookie/storage values instead of redactions.
     #[arg(long)]
     pub show_secrets: bool,
 }
 
 #[derive(Debug, Args, PartialEq, Eq)]
 pub struct DeleteSessionCommand {
+    /// Local session name to delete.
     pub name: String,
 }
 
@@ -244,20 +298,18 @@ fn parse_duration_secs(value: &str) -> Result<Duration, String> {
     Ok(Duration::from_secs(secs))
 }
 
-fn parse_extractor_option(value: &str) -> Result<ExtractorOption, String> {
+fn parse_backend_option(value: &str) -> Result<ExtractorOption, String> {
     let (key, option_value) = value
         .split_once('=')
-        .ok_or_else(|| "expected extractor option in key=value form".to_string())?;
+        .ok_or_else(|| "expected backend option in key=value form".to_string())?;
     if key.is_empty() {
-        return Err("extractor option key must not be empty".to_string());
+        return Err("backend option key must not be empty".to_string());
     }
     if !key.starts_with("crawl4ai.") {
-        return Err(
-            "extractor option key must be namespaced, e.g. crawl4ai.wait_until".to_string(),
-        );
+        return Err("backend option key must be namespaced, e.g. crawl4ai.wait_until".to_string());
     }
     if key.trim_start_matches("crawl4ai.").is_empty() {
-        return Err("extractor option key must include a crawl4ai option name".to_string());
+        return Err("backend option key must include a crawl4ai option name".to_string());
     }
     Ok(ExtractorOption {
         key: key.to_string(),
@@ -278,13 +330,14 @@ mod tests {
             Command::Get(GetCommand {
                 url: "https://example.com".to_string(),
                 session: Vec::new(),
-                out: None,
-                format: OutputFormat::Markdown,
+                output: None,
+                content_format: OutputFormat::Markdown,
+                inline_content: InlineContent::Auto,
                 selector: None,
                 exclude_selector: None,
-                wait_for: None,
+                wait_for_selector: None,
                 max_chars: None,
-                extractor_options: Vec::new(),
+                backend_options: Vec::new(),
             })
         );
     }
@@ -298,13 +351,14 @@ mod tests {
             Command::Get(GetCommand {
                 url: "https://example.com".to_string(),
                 session: Vec::new(),
-                out: None,
-                format: OutputFormat::Markdown,
+                output: None,
+                content_format: OutputFormat::Markdown,
+                inline_content: InlineContent::Auto,
                 selector: None,
                 exclude_selector: None,
-                wait_for: None,
+                wait_for_selector: None,
                 max_chars: None,
-                extractor_options: Vec::new(),
+                backend_options: Vec::new(),
             })
         );
     }
@@ -313,7 +367,8 @@ mod tests {
     fn parses_global_flags_before_subcommand() {
         let cli = Cli::try_parse_from([
             "aget",
-            "--json",
+            "--envelope",
+            "json",
             "--timeout",
             "30",
             "get",
@@ -321,44 +376,53 @@ mod tests {
         ])
         .unwrap();
 
-        assert!(cli.global.json);
+        assert_eq!(cli.global.envelope, EnvelopeFormat::Json);
         assert_eq!(cli.global.timeout, Some(Duration::from_secs(30)));
     }
 
     #[test]
-    fn parses_envelope_alias_for_structured_output() {
-        let cli =
-            Cli::try_parse_from(["aget", "get", "https://example.com", "--envelope"]).unwrap();
+    fn parses_envelope_for_structured_output() {
+        let cli = Cli::try_parse_from(["aget", "get", "https://example.com", "--envelope", "json"])
+            .unwrap();
 
-        assert!(cli.global.envelope);
+        assert_eq!(cli.global.envelope, EnvelopeFormat::Json);
     }
 
     #[test]
     fn parses_global_flags_after_subcommand() {
-        let cli = Cli::try_parse_from(["aget", "get", "https://example.com", "--json", "--quiet"])
-            .unwrap();
+        let cli = Cli::try_parse_from([
+            "aget",
+            "get",
+            "https://example.com",
+            "--envelope",
+            "json",
+            "--quiet",
+        ])
+        .unwrap();
 
-        assert!(cli.global.json);
+        assert_eq!(cli.global.envelope, EnvelopeFormat::Json);
         assert!(cli.global.quiet);
     }
 
     #[test]
-    fn parses_get_out_path() {
-        let cli = Cli::try_parse_from(["aget", "get", "https://example.com", "--out", "page.md"])
-            .unwrap();
+    fn parses_get_output_path() {
+        let cli =
+            Cli::try_parse_from(["aget", "get", "https://example.com", "--output", "page.md"])
+                .unwrap();
 
         assert_eq!(
             cli.command,
             Command::Get(GetCommand {
                 url: "https://example.com".to_string(),
                 session: Vec::new(),
-                out: Some(PathBuf::from("page.md")),
-                format: OutputFormat::Markdown,
+                output: Some(PathBuf::from("page.md")),
+                content_format: OutputFormat::Markdown,
+                inline_content: InlineContent::Auto,
                 selector: None,
                 exclude_selector: None,
-                wait_for: None,
+                wait_for_selector: None,
                 max_chars: None,
-                extractor_options: Vec::new(),
+                backend_options: Vec::new(),
             })
         );
     }
@@ -381,13 +445,14 @@ mod tests {
             Command::Get(GetCommand {
                 url: "https://example.com".to_string(),
                 session: vec!["provider".to_string(), "app".to_string()],
-                out: None,
-                format: OutputFormat::Markdown,
+                output: None,
+                content_format: OutputFormat::Markdown,
+                inline_content: InlineContent::Auto,
                 selector: None,
                 exclude_selector: None,
-                wait_for: None,
+                wait_for_selector: None,
                 max_chars: None,
-                extractor_options: Vec::new(),
+                backend_options: Vec::new(),
             })
         );
     }
@@ -398,17 +463,19 @@ mod tests {
             "aget",
             "get",
             "https://example.com",
-            "--format",
+            "--content-format",
             "json",
+            "--inline-content",
+            "never",
             "--selector",
             "main",
             "--exclude-selector",
             "nav",
-            "--wait-for",
+            "--wait-for-selector",
             "css:.ready",
             "--max-chars",
             "123",
-            "--extractor-option",
+            "--backend-option",
             "crawl4ai.cache=bypass",
         ])
         .unwrap();
@@ -418,13 +485,14 @@ mod tests {
             Command::Get(GetCommand {
                 url: "https://example.com".to_string(),
                 session: Vec::new(),
-                out: None,
-                format: OutputFormat::Json,
+                output: None,
+                content_format: OutputFormat::Json,
+                inline_content: InlineContent::Never,
                 selector: Some("main".to_string()),
                 exclude_selector: Some("nav".to_string()),
-                wait_for: Some("css:.ready".to_string()),
+                wait_for_selector: Some("css:.ready".to_string()),
                 max_chars: Some(123),
-                extractor_options: vec![ExtractorOption {
+                backend_options: vec![ExtractorOption {
                     key: "crawl4ai.cache".to_string(),
                     value: "bypass".to_string(),
                 }],
@@ -458,9 +526,9 @@ mod tests {
             "surface:1",
             "--name",
             "demo",
-            "--domain",
+            "--allow-domain",
             "example.com",
-            "--domain",
+            "--allow-domain",
             "docs.example.com",
         ])
         .unwrap();
@@ -472,7 +540,10 @@ mod tests {
                     source: ImportSessionSource::Cmux(ImportCmuxSessionCommand {
                         surface: "surface:1".to_string(),
                         name: "demo".to_string(),
-                        domain: vec!["example.com".to_string(), "docs.example.com".to_string()],
+                        allow_domain: vec![
+                            "example.com".to_string(),
+                            "docs.example.com".to_string()
+                        ],
                     })
                 })
             })
@@ -567,13 +638,13 @@ mod tests {
             "session",
             "import",
             "chrome",
-            "--profile",
+            "--chrome-profile",
             "Default",
             "--name",
             "demo",
-            "--domain",
+            "--allow-domain",
             "example.com",
-            "--domain",
+            "--allow-domain",
             "docs.example.com",
         ])
         .unwrap();
@@ -583,9 +654,12 @@ mod tests {
             Command::Session(SessionCommand {
                 command: SessionSubcommand::Import(ImportSessionCommand {
                     source: ImportSessionSource::Chrome(ImportChromeSessionCommand {
-                        profile: "Default".to_string(),
+                        chrome_profile: "Default".to_string(),
                         name: "demo".to_string(),
-                        domain: vec!["example.com".to_string(), "docs.example.com".to_string()],
+                        allow_domain: vec![
+                            "example.com".to_string(),
+                            "docs.example.com".to_string()
+                        ],
                     })
                 })
             })
