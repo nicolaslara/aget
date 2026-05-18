@@ -18,6 +18,8 @@ pub enum ErrorCode {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ErrorResponse {
     pub ok: bool,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub command: Option<String>,
     pub error: ErrorBody,
 }
 
@@ -33,12 +35,20 @@ impl ErrorResponse {
     pub fn new(code: ErrorCode, message: impl Into<String>) -> Self {
         Self {
             ok: false,
+            command: None,
             error: ErrorBody {
                 code,
                 message: message.into(),
                 retry: None,
             },
         }
+    }
+
+    pub fn with_command(mut self, command: impl Into<String>) -> Self {
+        if self.command.is_none() {
+            self.command = Some(command.into());
+        }
+        self
     }
 }
 

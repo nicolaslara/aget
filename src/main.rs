@@ -1,4 +1,6 @@
+use std::ffi::OsString;
 use std::process::ExitCode;
+use std::time::Instant;
 
 use aget::session::SessionStore;
 use aget::{
@@ -6,12 +8,39 @@ use aget::{
     import_chrome_session, import_cmux_session, merge_login_session, start_login_session,
     ChromeImportOptions, Cli, CmuxImportOptions, Command, ErrorCode, ErrorResponse, GetOptions,
     ImportSessionSource, LoginCancelOptions, LoginCompleteOptions, LoginFinishOptions,
-    LoginSessionSubcommand, LoginStartOptions, Session, SessionCookie, SessionSubcommand,
+    LoginSessionSubcommand, LoginStartOptions, Session, SessionCookie, SessionSubcommand, TimingMs,
 };
+use clap::error::ErrorKind;
+use serde::Serialize;
+use serde_json::Value;
 
 fn main() -> ExitCode {
-    let cli =
-        Cli::parse_from_aliasing_get(std::env::args_os()).unwrap_or_else(|error| error.exit());
+    let args = std::env::args_os().collect::<Vec<_>>();
+    let structured_output = args
+        .iter()
+        .any(|arg| arg == "--json" || arg == "--envelope");
+    let cli = match Cli::parse_from_aliasing_get(args.clone()) {
+        Ok(cli) => cli,
+        Err(error)
+            if matches!(
+                error.kind(),
+                ErrorKind::DisplayHelp | ErrorKind::DisplayVersion
+            ) =>
+        {
+            error.exit()
+        }
+        Err(error) if structured_output => {
+            let command = command_name_from_args(&args);
+            let response =
+                ErrorResponse::new(ErrorCode::UsageError, error.to_string()).with_command(command);
+            eprintln!(
+                "{}",
+                serde_json::to_string(&response).unwrap_or_else(|_| "error".to_string())
+            );
+            return ExitCode::from(error.exit_code() as u8);
+        }
+        Err(error) => error.exit(),
+    };
 
     match run(cli) {
         Ok(()) => ExitCode::SUCCESS,
@@ -25,10 +54,49 @@ fn main() -> ExitCode {
     }
 }
 
+fn command_name_from_args(args: &[OsString]) -> &'static str {
+    let tokens = args
+        .iter()
+        .skip(1)
+        .filter_map(|arg| arg.to_str())
+        .collect::<Vec<_>>();
+
+    if let Some(index) = tokens.iter().position(|token| *token == "session") {
+        return match tokens.get(index + 1).copied() {
+            Some("list") => "session.list",
+            Some("inspect") => "session.inspect",
+            Some("delete") => "session.delete",
+            Some("compose") => "session.compose",
+            Some("import") => match tokens.get(index + 2).copied() {
+                Some("cmux") => "session.import.cmux",
+                Some("chrome") => "session.import.chrome",
+                _ => "session.import",
+            },
+            Some("login") => match tokens.get(index + 2).copied() {
+                Some("start") => "session.login.start",
+                Some("finish") => "session.login.finish",
+                Some("cancel") => "session.login.cancel",
+                _ => "session.login",
+            },
+            _ => "session",
+        };
+    }
+
+    if tokens.iter().any(|token| *token == "get")
+        || tokens
+            .iter()
+            .any(|token| token.starts_with("http://") || token.starts_with("https://"))
+    {
+        return "get";
+    }
+
+    "cli"
+}
+
 fn run(cli: Cli) -> Result<(), ErrorResponse> {
     let structured_output = cli.global.json || cli.global.envelope;
     match cli.command {
-        Command::Get(get) => {
+        Command::Get(get) => (|| {
             let success = get_url(GetOptions {
                 url: get.url,
                 sessions: get.session,
@@ -43,24 +111,39 @@ fn run(cli: Cli) -> Result<(), ErrorResponse> {
             })
             .map_err(error_response)?;
             if structured_output {
-                println!("{}", serde_json::to_string(&success).map_err(io_error)?);
+                print_success_envelope(
+                    "get",
+                    envelope_data(&success, &["ok", "warnings", "timing_ms"])?,
+                    success.warnings,
+                    success.timing_ms,
+                )?;
             } else if !cli.global.quiet {
                 println!("{}", success.content);
             }
-            Ok(())
-        }
+            Ok::<(), ErrorResponse>(())
+        })()
+        .map_err(|error| error.with_command("get")),
         Command::Session(session) => run_session(session.command, structured_output),
     }
 }
 
 fn run_session(command: SessionSubcommand, json: bool) -> Result<(), ErrorResponse> {
-    let store = SessionStore::from_env().map_err(io_error)?;
+    let command_name = session_command_name(&command);
+    let started = Instant::now();
 
-    match command {
+    (|| {
+        let store = SessionStore::from_env().map_err(io_error)?;
+
+        match command {
         SessionSubcommand::List => {
             let names = store.list().map_err(io_error)?;
             if json {
-                println!("{}", serde_json::json!({ "ok": true, "sessions": names }));
+                print_success_envelope(
+                    command_name,
+                    serde_json::json!({ "sessions": names }),
+                    Vec::<String>::new(),
+                    elapsed_timing(started),
+                )?;
             } else if names.is_empty() {
                 println!("No sessions found");
             } else {
@@ -74,7 +157,12 @@ fn run_session(command: SessionSubcommand, json: bool) -> Result<(), ErrorRespon
             let session = store.load(&inspect.name).map_err(io_error)?;
             let view = session_view(&session, inspect.show_secrets);
             if json {
-                println!("{}", serde_json::to_string_pretty(&view).map_err(io_error)?);
+                print_success_envelope(
+                    command_name,
+                    envelope_data(&view, &["ok"])?,
+                    Vec::<String>::new(),
+                    elapsed_timing(started),
+                )?;
             } else {
                 println!("Session: {}", session.name);
                 println!("Sensitive: {}", session.sensitive);
@@ -113,7 +201,12 @@ fn run_session(command: SessionSubcommand, json: bool) -> Result<(), ErrorRespon
         SessionSubcommand::Delete(delete) => {
             let deleted = store.delete(&delete.name).map_err(io_error)?;
             if json {
-                println!("{}", serde_json::json!({ "ok": true, "deleted": deleted }));
+                print_success_envelope(
+                    command_name,
+                    serde_json::json!({ "deleted": deleted }),
+                    Vec::<String>::new(),
+                    elapsed_timing(started),
+                )?;
             } else if deleted {
                 println!("Deleted session {}", delete.name);
             } else {
@@ -131,15 +224,16 @@ fn run_session(command: SessionSubcommand, json: bool) -> Result<(), ErrorRespon
                 .map_err(error_response)?;
                 store.save(&session).map_err(io_error)?;
                 if json {
-                    println!(
-                        "{}",
+                    print_success_envelope(
+                        command_name,
                         serde_json::json!({
-                            "ok": true,
                             "source": "cmux",
                             "name": session.name,
                             "cookie_count": session.cookies.len(),
-                        })
-                    );
+                        }),
+                        Vec::<String>::new(),
+                        elapsed_timing(started),
+                    )?;
                 } else {
                     println!(
                         "Imported cmux session {} with {} cookies",
@@ -159,16 +253,17 @@ fn run_session(command: SessionSubcommand, json: bool) -> Result<(), ErrorRespon
                 .map_err(error_response)?;
                 store.save(&session).map_err(io_error)?;
                 if json {
-                    println!(
-                        "{}",
+                    print_success_envelope(
+                        command_name,
                         serde_json::json!({
-                            "ok": true,
                             "source": "chrome",
                             "name": session.name,
                             "cookie_count": session.cookies.len(),
                             "origin_count": session.origins.len(),
-                        })
-                    );
+                        }),
+                        Vec::<String>::new(),
+                        elapsed_timing(started),
+                    )?;
                 } else {
                     println!(
                         "Imported chrome session {} with {} cookies and {} origins",
@@ -191,16 +286,17 @@ fn run_session(command: SessionSubcommand, json: bool) -> Result<(), ErrorRespon
                 compose_session(&compose.name, &source_sessions).map_err(error_response)?;
             store.save(&session).map_err(io_error)?;
             if json {
-                println!(
-                    "{}",
+                print_success_envelope(
+                    command_name,
                     serde_json::json!({
-                        "ok": true,
                         "name": session.name,
                         "source_sessions": compose.session,
                         "cookie_count": session.cookies.len(),
                         "origin_count": session.origins.len(),
-                    })
-                );
+                    }),
+                    Vec::<String>::new(),
+                    elapsed_timing(started),
+                )?;
             } else {
                 println!(
                     "Composed session {} from {} source sessions with {} cookies and {} origins",
@@ -222,10 +318,9 @@ fn run_session(command: SessionSubcommand, json: bool) -> Result<(), ErrorRespon
                 })
                 .map_err(error_response)?;
                 if json {
-                    println!(
-                        "{}",
+                    print_success_envelope(
+                        command_name,
                         serde_json::json!({
-                            "ok": true,
                             "state": "login_started",
                             "name": result.pending.name,
                             "profile": result.pending.profile,
@@ -239,8 +334,10 @@ fn run_session(command: SessionSubcommand, json: bool) -> Result<(), ErrorRespon
                                 "finish",
                                 result.pending.name,
                             ],
-                        })
-                    );
+                        }),
+                        Vec::<String>::new(),
+                        elapsed_timing(started),
+                    )?;
                 } else {
                     println!(
                         "Opened login bucket {} in profile {}. After completing login, run: aget session login finish {}",
@@ -269,17 +366,18 @@ fn run_session(command: SessionSubcommand, json: bool) -> Result<(), ErrorRespon
                 })
                 .map_err(error_response)?;
                 if json {
-                    println!(
-                        "{}",
+                    print_success_envelope(
+                        command_name,
                         serde_json::json!({
-                            "ok": true,
                             "state": "login_finished",
                             "name": session.name,
                             "source": "agent_browser",
                             "cookie_count": session.cookies.len(),
                             "origin_count": session.origins.len(),
-                        })
-                    );
+                        }),
+                        Vec::<String>::new(),
+                        elapsed_timing(started),
+                    )?;
                 } else {
                     println!(
                         "Saved session {} with {} cookies and {} origins",
@@ -297,20 +395,74 @@ fn run_session(command: SessionSubcommand, json: bool) -> Result<(), ErrorRespon
                 })
                 .map_err(error_response)?;
                 if json {
-                    println!(
-                        "{}",
+                    print_success_envelope(
+                        command_name,
                         serde_json::json!({
-                            "ok": true,
                             "state": "login_cancelled",
                             "name": result.pending.name,
                             "agent_session": result.pending.agent_session,
-                        })
-                    );
+                        }),
+                        Vec::<String>::new(),
+                        elapsed_timing(started),
+                    )?;
                 } else {
                     println!("Cancelled login flow {}", result.pending.name);
                 }
                 Ok(())
             }
+        },
+        }
+    })()
+    .map_err(|error| error.with_command(command_name))
+}
+
+fn print_success_envelope(
+    command: &str,
+    data: Value,
+    warnings: Vec<String>,
+    timing_ms: TimingMs,
+) -> Result<(), ErrorResponse> {
+    let envelope = serde_json::json!({
+        "ok": true,
+        "command": command,
+        "data": data,
+        "warnings": warnings,
+        "timing_ms": timing_ms,
+    });
+    println!("{}", serde_json::to_string(&envelope).map_err(io_error)?);
+    Ok(())
+}
+
+fn envelope_data<T: Serialize>(value: &T, remove_keys: &[&str]) -> Result<Value, ErrorResponse> {
+    let mut data = serde_json::to_value(value).map_err(io_error)?;
+    if let Value::Object(object) = &mut data {
+        for key in remove_keys {
+            object.remove(*key);
+        }
+    }
+    Ok(data)
+}
+
+fn elapsed_timing(started: Instant) -> TimingMs {
+    TimingMs {
+        total: started.elapsed().as_millis(),
+    }
+}
+
+fn session_command_name(command: &SessionSubcommand) -> &'static str {
+    match command {
+        SessionSubcommand::List => "session.list",
+        SessionSubcommand::Inspect(_) => "session.inspect",
+        SessionSubcommand::Delete(_) => "session.delete",
+        SessionSubcommand::Import(import) => match &import.source {
+            ImportSessionSource::Cmux(_) => "session.import.cmux",
+            ImportSessionSource::Chrome(_) => "session.import.chrome",
+        },
+        SessionSubcommand::Compose(_) => "session.compose",
+        SessionSubcommand::Login(login) => match &login.command {
+            LoginSessionSubcommand::Start(_) => "session.login.start",
+            LoginSessionSubcommand::Finish(_) => "session.login.finish",
+            LoginSessionSubcommand::Cancel(_) => "session.login.cancel",
         },
     }
 }

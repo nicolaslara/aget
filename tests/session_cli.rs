@@ -76,8 +76,7 @@ fn session_list_json_has_stable_shape() {
         .stdout
         .clone();
 
-    let json: serde_json::Value = serde_json::from_slice(&output).unwrap();
-    assert_eq!(json["ok"], true);
+    let json = success_data(&output, "session.list");
     assert_eq!(json["sessions"], serde_json::json!(["demo"]));
 }
 
@@ -127,8 +126,7 @@ print(json.dumps({'cookies': cookies}))
         .stdout
         .clone();
 
-    let json: serde_json::Value = serde_json::from_slice(&output).unwrap();
-    assert_eq!(json["ok"], true);
+    let json = success_data(&output, "session.import.cmux");
     assert_eq!(json["name"], "imported");
     assert_eq!(json["source"], "cmux");
     assert_eq!(json["cookie_count"], 4);
@@ -209,6 +207,7 @@ fn session_import_cmux_missing_backend_returns_backend_unavailable() {
 
     let json: serde_json::Value = serde_json::from_slice(&output).unwrap();
     assert_eq!(json["ok"], false);
+    assert_eq!(json["command"], "session.import.cmux");
     assert_eq!(json["error"]["code"], "backend_unavailable");
 }
 
@@ -275,8 +274,7 @@ raise SystemExit(2)
         .stdout
         .clone();
 
-    let json: serde_json::Value = serde_json::from_slice(&output).unwrap();
-    assert_eq!(json["ok"], true);
+    let json = success_data(&output, "session.import.chrome");
     assert_eq!(json["source"], "chrome");
     assert_eq!(json["name"], "chrome-imported");
     assert_eq!(json["cookie_count"], 2);
@@ -342,7 +340,7 @@ raise SystemExit(2)
         .get_output()
         .stdout
         .clone();
-    let inspect_json: serde_json::Value = serde_json::from_slice(&inspect_output).unwrap();
+    let inspect_json = success_data(&inspect_output, "session.inspect");
     assert_eq!(
         inspect_json["origins"][0]["local_storage"][0]["value"],
         "<redacted>"
@@ -559,8 +557,7 @@ raise SystemExit(2)
         .stdout
         .clone();
 
-    let json: serde_json::Value = serde_json::from_slice(&output).unwrap();
-    assert_eq!(json["ok"], true);
+    let json = success_data(&output, "session.login.start");
     assert_eq!(json["state"], "login_started");
     assert!(json.get("site").is_none());
     assert_eq!(json["name"], "news");
@@ -625,6 +622,7 @@ raise SystemExit(0)
         .clone();
 
     let json: serde_json::Value = serde_json::from_slice(&output).unwrap();
+    assert_eq!(json["command"], "session.login.start");
     assert_eq!(json["error"]["code"], "usage_error");
     assert!(json["error"]["message"]
         .as_str()
@@ -673,7 +671,7 @@ raise SystemExit(2)
         .stdout
         .clone();
 
-    let json: serde_json::Value = serde_json::from_slice(&output).unwrap();
+    let json = success_data(&output, "session.login.start");
     assert_eq!(json["name"], "docs");
     assert_eq!(
         json["allowed_domains"],
@@ -829,8 +827,7 @@ raise SystemExit(2)
         .stdout
         .clone();
 
-    let json: serde_json::Value = serde_json::from_slice(&output).unwrap();
-    assert_eq!(json["ok"], true);
+    let json = success_data(&output, "session.login.finish");
     assert_eq!(json["state"], "login_finished");
     assert_eq!(json["name"], "news");
     assert_eq!(json["cookie_count"], 1);
@@ -1188,8 +1185,7 @@ raise SystemExit(2)
         .stdout
         .clone();
 
-    let json: serde_json::Value = serde_json::from_slice(&output).unwrap();
-    assert_eq!(json["ok"], true);
+    let json = success_data(&output, "session.login.cancel");
     assert_eq!(json["state"], "login_cancelled");
     assert_eq!(json["name"], "hellointerview");
     assert_eq!(json["agent_session"], "aget-login-hellointerview");
@@ -1317,8 +1313,7 @@ fn real_hellointerview_login_flow_fetches_paywalled_markdown() {
         .stdout
         .clone();
 
-    let json: serde_json::Value = serde_json::from_slice(&output).unwrap();
-    assert_eq!(json["ok"], true);
+    let json = success_data(&output, "get");
     let content = json["content"].as_str().unwrap();
     assert!(!content.contains("Purchase Premium to Keep Reading"));
     assert!(!content.contains("Premium users can view this video once signed in"));
@@ -1367,8 +1362,7 @@ fn session_compose_persists_composed_session_with_provenance_and_preserves_sourc
         .stdout
         .clone();
 
-    let json: serde_json::Value = serde_json::from_slice(&output).unwrap();
-    assert_eq!(json["ok"], true);
+    let json = success_data(&output, "session.compose");
     assert_eq!(json["name"], "combined");
     assert_eq!(
         json["source_sessions"],
@@ -1542,7 +1536,7 @@ fn session_compose_inspect_reports_cookie_source_session_and_redacts_values() {
         .get_output()
         .stdout
         .clone();
-    let inspect_json: serde_json::Value = serde_json::from_slice(&inspect_output).unwrap();
+    let inspect_json = success_data(&inspect_output, "session.inspect");
     assert_eq!(inspect_json["cookies"][0]["value"], "<redacted>");
     assert!(inspect_json["cookies"]
         .as_array()
@@ -1817,6 +1811,18 @@ fn real_cmux_import_replays_loopback_cookie_through_crawl4ai() {
     assert!(cookies
         .try_iter()
         .any(|cookie| cookie.contains("aget_cmux_e2e=loopback-secret")));
+}
+
+fn success_envelope(output: &[u8], command: &str) -> serde_json::Value {
+    let json: serde_json::Value = serde_json::from_slice(output).unwrap();
+    assert_eq!(json["ok"], true);
+    assert_eq!(json["command"], command);
+    assert!(json["timing_ms"]["total"].as_u64().is_some());
+    json
+}
+
+fn success_data(output: &[u8], command: &str) -> serde_json::Value {
+    success_envelope(output, command)["data"].clone()
 }
 
 fn demo_session() -> Session {

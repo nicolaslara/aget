@@ -40,6 +40,28 @@ fn get_rejects_invalid_format() {
 }
 
 #[test]
+fn get_json_parse_error_uses_structured_envelope() {
+    let mut cmd = Command::cargo_bin("aget").unwrap();
+
+    let output = cmd
+        .args(["--json", "get", "https://example.com", "--format", "pdf"])
+        .assert()
+        .failure()
+        .get_output()
+        .stderr
+        .clone();
+
+    let json: serde_json::Value = serde_json::from_slice(&output).unwrap();
+    assert_eq!(json["ok"], false);
+    assert_eq!(json["command"], "get");
+    assert_eq!(json["error"]["code"], "usage_error");
+    assert!(json["error"]["message"]
+        .as_str()
+        .unwrap()
+        .contains("invalid value"));
+}
+
+#[test]
 fn get_rejects_malformed_extractor_option() {
     let mut cmd = Command::cargo_bin("aget").unwrap();
 
@@ -140,8 +162,9 @@ print(json.dumps({'ok': True, 'final_url': args.url, 'content': content, 'warnin
 
     let json: serde_json::Value = serde_json::from_slice(&output).unwrap();
     assert_eq!(json["ok"], true);
-    assert_eq!(json["format"], "html");
-    assert_eq!(json["content"], "<main>Example</main>");
+    assert_eq!(json["command"], "get");
+    assert_eq!(json["data"]["format"], "html");
+    assert_eq!(json["data"]["content"], "<main>Example</main>");
 }
 
 #[test]
@@ -181,7 +204,8 @@ print(json.dumps({'ok': True, 'final_url': args.url, 'content': content, 'warnin
 
     let json: serde_json::Value = serde_json::from_slice(&output).unwrap();
     assert_eq!(json["ok"], true);
-    assert_eq!(json["content"], "# Example\n");
+    assert_eq!(json["command"], "get");
+    assert_eq!(json["data"]["content"], "# Example\n");
 }
 
 fn shell_quote(value: &str) -> String {

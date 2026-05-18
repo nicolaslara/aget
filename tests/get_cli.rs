@@ -47,8 +47,8 @@ print(json.dumps({'ok': True, 'final_url': args.url + '/final', 'content': conte
         .stdout
         .clone();
 
-    let json: serde_json::Value = serde_json::from_slice(&output).unwrap();
-    assert_eq!(json["ok"], true);
+    let envelope = success_envelope(&output, "get");
+    let json = &envelope["data"];
     assert_eq!(json["url"].as_str().unwrap(), local_url);
     assert_eq!(
         json["final_url"].as_str().unwrap(),
@@ -59,10 +59,9 @@ print(json.dumps({'ok': True, 'final_url': args.url + '/final', 'content': conte
     assert_eq!(json["content"], "# Example\n\nFetched locally.");
     assert_eq!(json["sessions"], serde_json::json!([]));
     assert_eq!(json["sensitive"], false);
-    assert_eq!(json["warnings"], serde_json::json!(["fake warning"]));
+    assert_eq!(envelope["warnings"], serde_json::json!(["fake warning"]));
     assert_eq!(json["limits"]["max_chars"], serde_json::Value::Null);
     assert_eq!(json["limits"]["truncated"], false);
-    assert!(json["timing_ms"]["total"].as_u64().is_some());
 
     let content_path = PathBuf::from(json["artifacts"]["content"].as_str().unwrap());
     let metadata_path = PathBuf::from(json["artifacts"]["metadata"].as_str().unwrap());
@@ -111,7 +110,7 @@ fn get_out_writes_markdown_to_requested_path_and_metadata_to_run_dir() {
         .stdout
         .clone();
 
-    let json: serde_json::Value = serde_json::from_slice(&output).unwrap();
+    let json = success_data(&output, "get");
     assert_eq!(json["extractor"], "crawl4ai");
     assert_eq!(
         json["artifacts"]["content"].as_str().unwrap(),
@@ -171,8 +170,7 @@ print(json.dumps({'ok': True, 'final_url': args.url, 'content': content, 'warnin
         .stdout
         .clone();
 
-    let json: serde_json::Value = serde_json::from_slice(&output).unwrap();
-    assert_eq!(json["ok"], true);
+    let json = success_data(&output, "get");
     assert_eq!(json["sessions"], serde_json::json!(["local"]));
     assert_eq!(json["sensitive"], true);
 
@@ -233,7 +231,7 @@ print(json.dumps({'ok': True, 'final_url': args.url, 'content': content, 'warnin
         .get_output()
         .stdout
         .clone();
-    let command_json: serde_json::Value = serde_json::from_slice(&command_output).unwrap();
+    let command_json = success_data(&command_output, "get");
     assert_eq!(
         command_json["sessions"],
         serde_json::json!(["provider", "app"])
@@ -266,7 +264,7 @@ print(json.dumps({'ok': True, 'final_url': args.url, 'content': content, 'warnin
         .get_output()
         .stdout
         .clone();
-    let alias_json: serde_json::Value = serde_json::from_slice(&alias_output).unwrap();
+    let alias_json = success_data(&alias_output, "get");
     assert_eq!(
         alias_json["sessions"],
         serde_json::json!(["provider", "app"])
@@ -330,8 +328,7 @@ print(json.dumps({'ok': True, 'final_url': args.url, 'content': content, 'warnin
         .clone();
     server.join().unwrap();
 
-    let json: serde_json::Value = serde_json::from_slice(&output).unwrap();
-    assert_eq!(json["ok"], true);
+    let json = success_data(&output, "get");
     assert_eq!(
         json["content"],
         "# App Provider OK\n\nboth cookies accepted"
@@ -373,7 +370,7 @@ fn get_session_marks_output_sensitive_even_if_session_metadata_is_false() {
         .stdout
         .clone();
 
-    let json: serde_json::Value = serde_json::from_slice(&output).unwrap();
+    let json = success_data(&output, "get");
     assert_eq!(json["sessions"], serde_json::json!(["local"]));
     assert_eq!(json["sensitive"], true);
 }
@@ -438,8 +435,7 @@ print(json.dumps({'ok': True, 'final_url': args.url + '#done', 'content': conten
         .stdout
         .clone();
 
-    let json: serde_json::Value = serde_json::from_slice(&output).unwrap();
-    assert_eq!(json["ok"], true);
+    let json = success_data(&output, "get");
     assert_eq!(json["format"], "text");
     assert_eq!(json["content"], "aé💡");
     assert_eq!(json["final_url"], "https://example.com/options#done");
@@ -504,7 +500,7 @@ print(json.dumps({'ok': True, 'final_url': args.url, 'content': content, 'warnin
         .stdout
         .clone();
 
-    let json: serde_json::Value = serde_json::from_slice(&output).unwrap();
+    let json = success_data(&output, "get");
     assert_eq!(json["content"], "SECRET");
     assert_eq!(json["limits"]["truncated"], true);
 
@@ -568,6 +564,7 @@ print(json.dumps({'ok': False, 'error': 'backend returned ' + cookie_secret + ' 
     assert!(!stderr.contains("storage-secret-value"));
     let json: serde_json::Value = serde_json::from_slice(&output).unwrap();
     assert_eq!(json["error"]["code"], "extraction_failed");
+    assert_eq!(json["command"], "get");
     assert_eq!(
         json["error"]["message"],
         "Crawl4AI extraction failed for session-backed request"
@@ -670,13 +667,13 @@ sys.exit(0)
         .stdout
         .clone();
 
-    let json: serde_json::Value = serde_json::from_slice(&output).unwrap();
-    assert_eq!(json["ok"], true);
+    let envelope = success_envelope(&output, "get");
+    let json = &envelope["data"];
     assert_eq!(json["extractor"], "agent-browser-fallback");
     assert_eq!(json["sessions"], serde_json::json!(["local"]));
     assert_eq!(json["sensitive"], true);
     assert_eq!(
-        json["warnings"],
+        envelope["warnings"],
         serde_json::json!(["agent-browser fallback used after Crawl4AI failed"])
     );
     assert_eq!(json["content"], "Fallback Title\n\nUseful & local content");
@@ -951,8 +948,8 @@ print(json.dumps({'ok': True, 'final_url': args.url, 'content': content, 'warnin
         .stdout
         .clone();
 
-    let json: serde_json::Value = serde_json::from_slice(&output).unwrap();
-    assert_eq!(json["ok"], true);
+    let envelope = success_envelope(&output, "get");
+    let json = &envelope["data"];
     assert_eq!(json["format"], "json");
     assert_eq!(json["content"], "{\"title\":\"Ex");
     assert_eq!(json["limits"]["truncated"], true);
@@ -960,7 +957,7 @@ print(json.dumps({'ok': True, 'final_url': args.url, 'content': content, 'warnin
         json["artifacts"]["metadata"].as_str().unwrap().is_empty(),
         false
     );
-    assert!(json["timing_ms"]["total"].as_u64().is_some());
+    assert!(envelope["timing_ms"]["total"].as_u64().is_some());
 }
 
 #[test]
@@ -981,7 +978,7 @@ fn real_crawl4ai_replays_named_session_cookie() {
         .clone();
     empty_server.join().unwrap();
 
-    let empty_json: serde_json::Value = serde_json::from_slice(&empty_output).unwrap();
+    let empty_json = success_data(&empty_output, "get");
     assert_eq!(empty_json["sessions"], serde_json::json!([]));
     assert_eq!(empty_json["sensitive"], false);
     assert!(empty_cookie
@@ -1011,7 +1008,7 @@ fn real_crawl4ai_replays_named_session_cookie() {
         .clone();
     session_server.join().unwrap();
 
-    let session_json: serde_json::Value = serde_json::from_slice(&session_output).unwrap();
+    let session_json = success_data(&session_output, "get");
     assert_eq!(session_json["sessions"], serde_json::json!(["local"]));
     assert_eq!(session_json["sensitive"], true);
     assert!(session_cookie
@@ -1050,6 +1047,7 @@ time.sleep(3)
 
     let json: serde_json::Value = serde_json::from_slice(&output).unwrap();
     assert_eq!(json["ok"], false);
+    assert_eq!(json["command"], "get");
     assert_eq!(json["error"]["code"], "timeout");
 
     let metadata_files = metadata_files(&aget_home);
@@ -1100,8 +1098,7 @@ print(json.dumps({'ok': True, 'final_url': args.url, 'content': content, 'warnin
         .stdout
         .clone();
 
-    let json: serde_json::Value = serde_json::from_slice(&output).unwrap();
-    assert_eq!(json["ok"], true);
+    let json = success_data(&output, "get");
     assert_eq!(json["extractor"], "crawl4ai");
     assert_eq!(json["content"], "# Noisy");
 }
@@ -1140,8 +1137,7 @@ print(json.dumps({'ok': True, 'final_url': args.url, 'content': content, 'warnin
         .stdout
         .clone();
 
-    let json: serde_json::Value = serde_json::from_slice(&output).unwrap();
-    assert_eq!(json["ok"], true);
+    let json = success_data(&output, "get");
     assert_eq!(json["extractor"], "crawl4ai");
     assert_eq!(json["content"], "# Logged stdout");
 }
@@ -1349,6 +1345,18 @@ pathlib.Path(args.output).write_text(content, encoding='utf-8')
 print(json.dumps({'ok': True, 'final_url': args.url, 'content': content, 'warnings': []}))
 "#,
     )
+}
+
+fn success_envelope(output: &[u8], command: &str) -> serde_json::Value {
+    let json: serde_json::Value = serde_json::from_slice(output).unwrap();
+    assert_eq!(json["ok"], true);
+    assert_eq!(json["command"], command);
+    assert!(json["timing_ms"]["total"].as_u64().is_some());
+    json
+}
+
+fn success_data(output: &[u8], command: &str) -> serde_json::Value {
+    success_envelope(output, command)["data"].clone()
 }
 
 fn local_server(path: &str) -> (String, JoinHandle<()>) {

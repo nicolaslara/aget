@@ -113,7 +113,7 @@ Notes:
 
 - `aget get <url>` is the primary command.
 - `aget <url>` is an alias for the same fetch path.
-- `--envelope` prints the agent control-plane response envelope: status, errors, artifact paths, sessions, sensitivity, warnings, and timing. It does not change the fetched page content format. `--json` is kept as a compatibility alias for the same structured response mode.
+- `--envelope` prints the agent control-plane response envelope: `{ "ok": true, "command": "...", "data": {...}, "warnings": [], "timing_ms": {...} }` for success or `{ "ok": false, "command": "...", "error": {...} }` for failure. It does not change the fetched page content format. `--json` is kept as a compatibility alias for the same structured response mode.
 - `--out` writes the extracted markdown to a file.
 - `--format` requests `markdown`, `html`, `text`, or `json` page content from the extractor; markdown remains the default. For `text`, the Crawl4AI helper prefers extracted content and otherwise derives plain text from cleaned/raw HTML before falling back to markdown as a last resort.
 - `--selector`, `--exclude-selector`, `--wait-for`, and repeated `--extractor-option backend.key=value` are forwarded to the Crawl4AI helper when supported. `--wait-for` is CSS-only in v1 for authenticated-session safety: use `css:<selector>` or a plain CSS selector; JavaScript waits are rejected. Supported Crawl4AI option keys use the `crawl4ai.` namespace: `crawl4ai.target_elements`, `crawl4ai.excluded_tags`, `crawl4ai.only_text`, `crawl4ai.word_count_threshold`, `crawl4ai.wait_until`, `crawl4ai.page_timeout`, `crawl4ai.wait_for_timeout`, `crawl4ai.delay_before_return_html`, and `crawl4ai.wait_for_images`; unsupported keys fail instead of being ignored. List values are comma-separated, booleans accept `true`/`false`, and numeric fields use integer or decimal values as appropriate.
@@ -127,41 +127,57 @@ Notes:
 - cmux import reads raw cookie values from the selected local cmux surface. Use only disposable or user-authorized surfaces and domains.
 - `aget session import chrome` uses `agent-browser` to snapshot a Chrome profile into a temporary local state file, filters cookies and storage by explicit `--domain` allowlists, stores only the scoped result, then deletes the raw temp state. Chrome may need to be quit manually if the profile is locked.
 
-## JSON Output
+## Envelope Output
 
-Example:
+Success example:
 
 ```json
 {
   "ok": true,
-  "url": "https://example.com",
-  "final_url": "https://example.com/",
-  "format": "markdown",
-  "extractor": "crawl4ai",
-  "content": "# Example\n...",
-  "artifacts": {
-    "content": "/Users/me/.aget/runs/abc123/output.md",
-    "metadata": "/Users/me/.aget/runs/abc123/metadata.json"
+  "command": "get",
+  "data": {
+    "url": "https://example.com",
+    "final_url": "https://example.com/",
+    "format": "markdown",
+    "extractor": "crawl4ai",
+    "content": "# Example\n...",
+    "artifacts": {
+      "content": "/Users/me/.aget/runs/abc123/output.md",
+      "metadata": "/Users/me/.aget/runs/abc123/metadata.json"
+    },
+    "sessions": [],
+    "sensitive": false,
+    "limits": {
+      "max_chars": null,
+      "truncated": false,
+      "truncated_by": null,
+      "content_chars_before_truncation": 13,
+      "content_chars_after_truncation": 13
+    },
+    "output_options": {
+      "format": "markdown",
+      "selector": null,
+      "exclude_selector": null,
+      "wait_for": null,
+      "extractor_options": {}
+    }
   },
-  "sessions": [],
-  "sensitive": false,
   "warnings": [],
   "timing_ms": {
     "total": 482
-  },
-  "limits": {
-    "max_chars": null,
-    "truncated": false,
-    "truncated_by": null,
-    "content_chars_before_truncation": 13,
-    "content_chars_after_truncation": 13
-  },
-  "output_options": {
-    "format": "markdown",
-    "selector": null,
-    "exclude_selector": null,
-    "wait_for": null,
-    "extractor_options": {}
+  }
+}
+```
+
+Error example:
+
+```json
+{
+  "ok": false,
+  "command": "get",
+  "error": {
+    "code": "extraction_failed",
+    "message": "Crawl4AI extraction failed"
   }
 }
 ```

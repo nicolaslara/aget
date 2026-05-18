@@ -584,6 +584,26 @@ Decision: `aget` returns fetched content and generic extraction outcomes. It doe
 
 Task tracking was updated to keep the partially implemented login bootstrap visible as `I8b`, add `I8b-followup` for removing site-specific coupling, add `I8a-followup` for response API stabilization before OpenCode integration, and add `I8d` for extractor/session-glue consolidation before `I9`.
 
+### D34: I8a-followup stabilizes structured CLI output around one envelope
+
+`--envelope` is now the preferred structured-output flag and `--json` remains a compatibility alias. All successful structured command output uses one agent-facing shape:
+
+```json
+{"ok": true, "command": "get", "data": {}, "warnings": [], "timing_ms": {"total": 0}}
+```
+
+Errors use the matching command-bearing shape:
+
+```json
+{"ok": false, "command": "get", "error": {"code": "extraction_failed", "message": "..."}}
+```
+
+Per-command payloads now live under `data`; cross-command control-plane fields stay at the top level. For `get`, backend/extraction warnings are promoted to top-level `warnings`, and the fetched page content plus artifacts, sessions, sensitivity, limits, and output options are under `data`. The on-disk run `metadata.json` format is unchanged for now because it is a run artifact rather than the CLI control-plane API.
+
+Focused review found that parse-time errors were still Clap-formatted under `--json`/`--envelope`, and that command-bearing error output needed stronger tests. The fix now emits structured `usage_error` envelopes for parse/validation failures when structured output is requested, while preserving normal Clap help/version output and human-mode parse errors.
+
+Verification updated CLI, get, and session tests to assert the envelope shape before OpenCode integration depends on it. Confidence: high for the CLI contract change, with the remaining product risk deferred to I10 around whether sensitive `get` content should be embedded inline in structured output by default.
+
 ## Open Questions
 
 - Can pure Rust browser automation provide reliable persistent profiles and CDP attach, or do we need a small Node/Playwright sidecar?

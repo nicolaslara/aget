@@ -249,7 +249,7 @@ Acceptance criteria:
 - Preserve an agent-friendly structured mode that exposes status, errors, artifact paths, sensitivity, sessions, and warnings.
 - Document the chosen CLI/API design before implementing OpenCode integration.
 
-### 🚧 Task I8a-followup: Stabilize response API before OpenCode integration
+### ✅ Task I8a-followup: Stabilize response API before OpenCode integration
 
 Acceptance criteria:
 
