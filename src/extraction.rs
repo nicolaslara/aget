@@ -117,111 +117,38 @@ pub fn get_url(options: GetOptions) -> Result<GetSuccess, AgetError> {
     }
     let metadata_path = run_dir.join("metadata.json");
 
-    let backend = match run_backend(
-        &options.url,
-        temp_state.path(),
-        &content_path,
-        &metadata_path,
-        &options,
-        options.timeout.unwrap_or(DEFAULT_TIMEOUT),
-    ) {
-        Ok(backend) => backend,
-        Err(error) => {
-            if sensitive {
-                sanitize_backend_artifacts(&metadata_path, &sensitive_values);
-                if let Ok(fallback) = run_agent_browser_fallback(
+    let extraction =
+        match run_primary_extractor(&options, temp_state.path(), &content_path, &metadata_path) {
+            Ok(extraction) => extraction,
+            Err(error) => {
+                if let Some(fallback) = try_session_fallback(
                     &store.home().join("tmp"),
-                    &options.url,
-                    temp_state.path(),
                     &options,
-                    options.timeout.unwrap_or(DEFAULT_TIMEOUT),
+                    temp_state.path(),
+                    sensitive,
+                    &metadata_path,
+                    &sensitive_values,
                 ) {
-                    return finalize_success(
+                    fallback
+                } else {
+                    return finalize_error(
                         &options,
                         &content_path,
                         &metadata_path,
-                        selected_session_names,
+                        &selected_session_names,
                         sensitive,
-                        output_options,
-                        fallback,
+                        &output_options,
+                        error,
                         started,
                     );
                 }
             }
-            let error = sanitize_backend_error(error, sensitive);
-            let _ = write_error_metadata(
-                &metadata_path,
-                &options.url,
-                &content_path,
-                &selected_session_names,
-                sensitive,
-                &output_options,
-                &options,
-                &error,
-                started,
-            );
-            return Err(error);
-        }
-    };
+        };
 
     if sensitive {
         sanitize_backend_artifacts(&metadata_path, &sensitive_values);
     }
 
-    if !backend.ok {
-        let error = sanitize_backend_error(
-            AgetError::Stable {
-                code: ErrorCode::ExtractionFailed,
-                message: backend
-                    .error
-                    .unwrap_or_else(|| "Crawl4AI extraction failed".to_string()),
-            },
-            sensitive,
-        );
-        if sensitive {
-            sanitize_backend_artifacts(&metadata_path, &sensitive_values);
-            if let Ok(fallback) = run_agent_browser_fallback(
-                &store.home().join("tmp"),
-                &options.url,
-                temp_state.path(),
-                &options,
-                options.timeout.unwrap_or(DEFAULT_TIMEOUT),
-            ) {
-                return finalize_success(
-                    &options,
-                    &content_path,
-                    &metadata_path,
-                    selected_session_names,
-                    sensitive,
-                    output_options,
-                    fallback,
-                    started,
-                );
-            }
-        }
-        let _ = write_error_metadata(
-            &metadata_path,
-            &options.url,
-            &content_path,
-            &selected_session_names,
-            sensitive,
-            &output_options,
-            &options,
-            &error,
-            started,
-        );
-        return Err(error);
-    }
-
-    let content = match backend.content {
-        Some(content) => content,
-        None => fs::read_to_string(&content_path).map_err(|error| AgetError::Stable {
-            code: ErrorCode::ExtractionFailed,
-            message: format!(
-                "backend did not return content and content artifact could not be read: {error}"
-            ),
-        })?,
-    };
     finalize_success(
         &options,
         &content_path,
@@ -229,12 +156,7 @@ pub fn get_url(options: GetOptions) -> Result<GetSuccess, AgetError> {
         selected_session_names,
         sensitive,
         output_options,
-        SuccessfulExtraction {
-            final_url: backend.final_url.unwrap_or_else(|| options.url.clone()),
-            content,
-            warnings: backend.warnings,
-            extractor: EXTRACTOR.to_string(),
-        },
+        extraction,
         started,
     )
 }
@@ -244,6 +166,97 @@ struct SuccessfulExtraction {
     content: String,
     warnings: Vec<String>,
     extractor: String,
+}
+
+fn run_primary_extractor(
+    options: &GetOptions,
+    state_path: &Path,
+    content_path: &Path,
+    metadata_path: &Path,
+) -> Result<SuccessfulExtraction, AgetError> {
+    let backend = run_backend(
+        &options.url,
+        state_path,
+        content_path,
+        metadata_path,
+        options,
+        options.timeout.unwrap_or(DEFAULT_TIMEOUT),
+    )?;
+
+    if !backend.ok {
+        return Err(AgetError::Stable {
+            code: ErrorCode::ExtractionFailed,
+            message: backend
+                .error
+                .unwrap_or_else(|| "Crawl4AI extraction failed".to_string()),
+        });
+    }
+
+    let content = match backend.content {
+        Some(content) => content,
+        None => fs::read_to_string(content_path).map_err(|error| AgetError::Stable {
+            code: ErrorCode::ExtractionFailed,
+            message: format!(
+                "backend did not return content and content artifact could not be read: {error}"
+            ),
+        })?,
+    };
+
+    Ok(SuccessfulExtraction {
+        final_url: backend.final_url.unwrap_or_else(|| options.url.clone()),
+        content,
+        warnings: backend.warnings,
+        extractor: EXTRACTOR.to_string(),
+    })
+}
+
+fn try_session_fallback(
+    tmp_dir: &Path,
+    options: &GetOptions,
+    state_path: &Path,
+    sensitive: bool,
+    metadata_path: &Path,
+    sensitive_values: &[String],
+) -> Option<SuccessfulExtraction> {
+    if !sensitive {
+        return None;
+    }
+
+    sanitize_backend_artifacts(metadata_path, sensitive_values);
+    run_agent_browser_fallback(
+        tmp_dir,
+        &options.url,
+        state_path,
+        options,
+        options.timeout.unwrap_or(DEFAULT_TIMEOUT),
+    )
+    .ok()
+}
+
+#[allow(clippy::too_many_arguments)]
+fn finalize_error(
+    options: &GetOptions,
+    content_path: &Path,
+    metadata_path: &Path,
+    selected_session_names: &[String],
+    sensitive: bool,
+    output_options: &OutputOptions,
+    error: AgetError,
+    started: Instant,
+) -> Result<GetSuccess, AgetError> {
+    let error = sanitize_backend_error(error, sensitive);
+    let _ = write_error_metadata(
+        metadata_path,
+        &options.url,
+        content_path,
+        selected_session_names,
+        sensitive,
+        output_options,
+        options,
+        &error,
+        started,
+    );
+    Err(error)
 }
 
 fn finalize_success(

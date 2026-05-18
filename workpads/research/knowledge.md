@@ -632,6 +632,14 @@ Verification for this pass:
 - `cargo test`
 - `git diff --check`
 
+### D37: I8d consolidates extractor and agent-browser glue
+
+I8d introduces `src/session/agent_browser.rs` as the shared home for agent-browser state JSON parsing, process execution, failure classification, domain/origin filtering, raw-state temp files, and private raw-state permissions. Chrome import and login finish now call the same filtering and process helpers instead of maintaining parallel implementations.
+
+`aget get` now has a smaller extraction boundary: `run_primary_extractor` converts Crawl4AI backend output into a `SuccessfulExtraction`, `try_session_fallback` owns the session-backed agent-browser fallback, `finalize_success` owns content limits/artifact metadata, and `finalize_error` owns error metadata. This removes the previous duplicated success/failure/fallback finalization branches inside `get_url`.
+
+Cookie identity now normalizes cookie name whitespace, leading-dot/lowercase/trailing-dot domains, and empty paths consistently for both request-time Playwright state composition and persisted `session compose`. Composed cookie output uses the same canonical name/domain/path fields, and regression tests cover normalized cookie deduplication in both paths.
+
 ## Open Questions
 
 - Can pure Rust browser automation provide reliable persistent profiles and CDP attach, or do we need a small Node/Playwright sidecar?

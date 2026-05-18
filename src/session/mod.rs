@@ -1,3 +1,4 @@
+pub(crate) mod agent_browser;
 pub mod chrome;
 pub mod cmux;
 pub mod login;

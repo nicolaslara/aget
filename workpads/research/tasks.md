@@ -294,7 +294,7 @@ Acceptance criteria:
 - Make clear that agents never collect credentials, bypass access controls, or use ambient browser auth without explicit user action.
 - Keep advanced token-saving, crawling, and extraction-tuning guidance for later expansion.
 
-### 📋 Task I8d: Consolidate extractor and session-glue duplication
+### ✅ Task I8d: Consolidate extractor and session-glue duplication
 
 Acceptance criteria:
 

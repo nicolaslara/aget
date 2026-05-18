@@ -69,7 +69,7 @@ pub fn compose_playwright_state(sessions: &[Session]) -> Result<PlaywrightState,
 
     for session in sessions {
         for cookie in &session.cookies {
-            let playwright_cookie = PlaywrightCookie {
+            let playwright_cookie = normalize_playwright_cookie(PlaywrightCookie {
                 name: cookie.name.clone(),
                 value: cookie.value.clone(),
                 domain: cookie.domain.clone(),
@@ -78,11 +78,11 @@ pub fn compose_playwright_state(sessions: &[Session]) -> Result<PlaywrightState,
                 http_only: cookie.http_only,
                 secure: cookie.secure,
                 same_site: cookie.same_site.clone(),
-            };
+            });
             let key = CookieKey::from(&playwright_cookie);
 
             match cookies_by_key.get(&key) {
-                Some(existing) if existing != &playwright_cookie => {
+                Some(existing) if !same_playwright_cookie(existing, &playwright_cookie) => {
                     return Err(AgetError::Stable {
                         code: ErrorCode::SessionConflict,
                         message: format!(
@@ -131,7 +131,7 @@ pub fn compose_session(name: &str, sessions: &[Session]) -> Result<Session, Aget
         allowed_storage_origins.extend(session.allowed_storage_origins.iter().cloned());
 
         for cookie in &session.cookies {
-            let mut composed_cookie = cookie.clone();
+            let mut composed_cookie = normalize_session_cookie(cookie.clone());
             if composed_cookie.source_session.is_none() {
                 composed_cookie.source_session = Some(session.name.clone());
             }
@@ -242,10 +242,21 @@ fn merge_storage_entries(
 }
 
 fn same_cookie_for_composition(left: &SessionCookie, right: &SessionCookie) -> bool {
-    left.name == right.name
+    normalize_cookie_name(&left.name) == normalize_cookie_name(&right.name)
         && left.value == right.value
-        && left.domain == right.domain
-        && left.path == right.path
+        && normalize_cookie_domain(&left.domain) == normalize_cookie_domain(&right.domain)
+        && normalize_cookie_path(&left.path) == normalize_cookie_path(&right.path)
+        && left.expires == right.expires
+        && left.http_only == right.http_only
+        && left.secure == right.secure
+        && left.same_site == right.same_site
+}
+
+fn same_playwright_cookie(left: &PlaywrightCookie, right: &PlaywrightCookie) -> bool {
+    normalize_cookie_name(&left.name) == normalize_cookie_name(&right.name)
+        && left.value == right.value
+        && normalize_cookie_domain(&left.domain) == normalize_cookie_domain(&right.domain)
+        && normalize_cookie_path(&left.path) == normalize_cookie_path(&right.path)
         && left.expires == right.expires
         && left.http_only == right.http_only
         && left.secure == right.secure
@@ -262,9 +273,9 @@ struct CookieKey {
 impl From<&PlaywrightCookie> for CookieKey {
     fn from(cookie: &PlaywrightCookie) -> Self {
         Self {
-            name: cookie.name.clone(),
-            domain: cookie.domain.clone(),
-            path: cookie.path.clone(),
+            name: normalize_cookie_name(&cookie.name),
+            domain: normalize_cookie_domain(&cookie.domain),
+            path: normalize_cookie_path(&cookie.path),
         }
     }
 }
@@ -272,11 +283,46 @@ impl From<&PlaywrightCookie> for CookieKey {
 impl From<&SessionCookie> for CookieKey {
     fn from(cookie: &SessionCookie) -> Self {
         Self {
-            name: cookie.name.clone(),
-            domain: cookie.domain.clone(),
-            path: cookie.path.clone(),
+            name: normalize_cookie_name(&cookie.name),
+            domain: normalize_cookie_domain(&cookie.domain),
+            path: normalize_cookie_path(&cookie.path),
         }
     }
+}
+
+fn normalize_cookie_name(name: &str) -> String {
+    name.trim().to_string()
+}
+
+fn normalize_cookie_domain(domain: &str) -> String {
+    domain
+        .trim()
+        .trim_start_matches('.')
+        .trim_end_matches('.')
+        .to_ascii_lowercase()
+}
+
+fn normalize_cookie_path(path: &str) -> String {
+    let path = path.trim();
+    if path.is_empty() {
+        "/".to_string()
+    } else {
+        path.to_string()
+    }
+}
+
+fn normalize_playwright_cookie(mut cookie: PlaywrightCookie) -> PlaywrightCookie {
+    cookie.name = normalize_cookie_name(&cookie.name);
+    cookie.domain = normalize_cookie_domain(&cookie.domain);
+    cookie.path = normalize_cookie_path(&cookie.path);
+    cookie
+}
+
+fn normalize_session_cookie(mut cookie: SessionCookie) -> SessionCookie {
+    cookie.name = normalize_cookie_name(&cookie.name);
+    cookie.domain = normalize_cookie_domain(&cookie.domain);
+    cookie.path = normalize_cookie_path(&cookie.path);
+    cookie
 }
 
 fn unique_state_path(dir: &Path) -> PathBuf {
@@ -348,6 +394,23 @@ mod tests {
     fn deduplicates_identical_cookies() {
         let session_a = session_with_cookie("a", "sid", "same");
         let session_b = session_with_cookie("b", "sid", "same");
+        let state = compose_playwright_state(&[session_a, session_b]).unwrap();
+
+        assert_eq!(state.cookies.len(), 1);
+        assert_eq!(state.cookies[0].name, "sid");
+        assert_eq!(state.cookies[0].domain, "example.com");
+        assert_eq!(state.cookies[0].path, "/");
+    }
+
+    #[test]
+    fn deduplicates_cookies_with_normalized_identity() {
+        let mut session_a = session_with_cookie("a", " sid ", "same");
+        session_a.cookies[0].domain = ".Example.COM".to_string();
+        session_a.cookies[0].path = String::new();
+        let mut session_b = session_with_cookie("b", "sid", "same");
+        session_b.cookies[0].domain = "example.com".to_string();
+        session_b.cookies[0].path = "/".to_string();
+
         let state = compose_playwright_state(&[session_a, session_b]).unwrap();
 
         assert_eq!(state.cookies.len(), 1);
@@ -529,6 +592,23 @@ mod tests {
                 "https://z.example.com".to_string()
             ]
         );
+    }
+
+    #[test]
+    fn composed_session_deduplicates_cookies_with_normalized_identity() {
+        let mut session_a = session_with_cookie("a", " sid ", "same");
+        session_a.cookies[0].domain = ".Example.COM".to_string();
+        session_a.cookies[0].path = String::new();
+        let mut session_b = session_with_cookie("b", "sid", "same");
+        session_b.cookies[0].domain = "example.com".to_string();
+        session_b.cookies[0].path = "/".to_string();
+
+        let composed = compose_session("combined", &[session_a, session_b]).unwrap();
+
+        assert_eq!(composed.cookies.len(), 1);
+        assert_eq!(composed.cookies[0].name, "sid");
+        assert_eq!(composed.cookies[0].domain, "example.com");
+        assert_eq!(composed.cookies[0].path, "/");
     }
 
     #[test]
