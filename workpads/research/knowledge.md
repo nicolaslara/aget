@@ -640,6 +640,12 @@ I8d introduces `src/session/agent_browser.rs` as the shared home for agent-brows
 
 Cookie identity now normalizes cookie name whitespace, leading-dot/lowercase/trailing-dot domains, and empty paths consistently for both request-time Playwright state composition and persisted `session compose`. Composed cookie output uses the same canonical name/domain/path fields, and regression tests cover normalized cookie deduplication in both paths.
 
+### D38: I9 starts as project-local OpenCode custom tools
+
+OpenCode supports project-local custom tools in `.opencode/tools/` using TypeScript definitions from `@opencode-ai/plugin`. I9 uses that path instead of a packaged npm plugin because the MVP only needs a thin local wrapper around the `aget` CLI and should keep Rust CLI behavior as the source of truth.
+
+The initial OpenCode tools are `aget_fetch`, `aget_session_list`, and `aget_session_inspect`, exported from `.opencode/tools/aget.ts`. They call `aget --json` and return the structured envelope unchanged. `aget_fetch` exposes sessions and output-shaping arguments, including `max_chars: 0` for callers that want no inline page content, but does not infer ambient browser auth. `aget_session_list` returns local session names. `aget_session_inspect` intentionally omits `--show-secrets`, so tool output remains redacted unless a future explicit sensitive-inspection flow is designed.
+
 ## Open Questions
 
 - Can pure Rust browser automation provide reliable persistent profiles and CDP attach, or do we need a small Node/Playwright sidecar?

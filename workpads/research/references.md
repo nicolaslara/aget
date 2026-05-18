@@ -9,6 +9,8 @@ Record primary sources, notes, and quality assessments here.
 | curl.md repo | https://github.com/wevm/curl.md | MIT. Research CLI, API server, OpenCode plugin, markdown pipeline. |
 | curl.md OpenCode docs | https://curl.md/docs/plugins/opencode | Plugin registers `curl_md`, optional `webfetch` override, auth/status commands. |
 | curl.md API docs | https://curl.md/docs/guide/api | Objective, keywords, mode, fresh, token/cost headers. |
+| OpenCode custom tools docs | https://opencode.ai/docs/custom-tools | Project-local tools live under `.opencode/tools/`; TypeScript definitions use `tool()` from `@opencode-ai/plugin`, and files/exports determine tool names. |
+| OpenCode plugins docs | https://opencode.ai/docs/plugins/ | Plugins can add custom tools and hooks; local plugins live under `.opencode/plugins/`, but I9 uses custom tools because the MVP only needs CLI-backed tool schemas. |
 | Firecrawl repo | https://github.com/firecrawl/firecrawl | AGPL-3.0 core. Self-hostable service, scrape/crawl/search/interact. |
 | Firecrawl self-host docs | https://github.com/firecrawl/firecrawl/blob/main/SELF_HOST.md | Docker-based local service with API, worker, Redis, Playwright service. |
 | Firecrawl docs | https://docs.firecrawl.dev | Search, scrape, interact, crawl, map, parse, SDKs, MCP. |

@@ -22,6 +22,7 @@ What works today:
 - optional cmux cookie import for explicitly allowed domains
 - optional Chrome profile import through `agent-browser` for explicitly allowed domains
 - project skill guidance at `.cursor/skills/aget/SKILL.md`
+- project-local OpenCode tools for CLI-backed fetch/session workflows
 - the real demo script
 
 See [`project.md`](./project.md) for the original product goal, [`AGENTS.md`](./AGENTS.md) for agent instructions, [`WORKING.md`](./WORKING.md) for the living workflow, and [`workpads/`](./workpads/) for active project notes.
@@ -192,6 +193,31 @@ Error example:
 - Imported Chrome sessions and localStorage values are credential-equivalent bearer material. `session inspect` redacts values by default; use `--show-secrets` only when explicitly needed.
 - Only process content you are authorized to access.
 - Do not use `aget` to bypass access controls, paywalls, or site policies.
+
+## OpenCode Integration
+
+This repo includes project-local OpenCode custom tools in `.opencode/tools/aget.ts`. They call the local `aget` CLI with `--json` and return the same structured envelopes as terminal usage.
+
+Available tools:
+
+- `aget_fetch`: fetch a URL, optionally with local sessions and output-shaping options.
+- `aget_session_list`: list local session names.
+- `aget_session_inspect`: inspect one local session with secret values redacted.
+
+Install or build `aget` before starting OpenCode:
+
+```bash
+cargo install --path .
+# or for development:
+cargo build
+AGET_OPENCODE_BIN="$PWD/target/debug/aget" opencode
+```
+
+Privacy notes:
+
+- The tools do not read ambient browser auth. Authenticated fetches require explicit `sessions`.
+- `aget_session_inspect` does not expose `--show-secrets`; inspect output stays redacted.
+- Fetched authenticated content can still be sensitive in the returned envelope or artifact paths. `out` writes a local copy but does not suppress inline `data.content`; use `max_chars` to bound inline content until a future explicit content-mode flag exists.
 
 ## Development
 

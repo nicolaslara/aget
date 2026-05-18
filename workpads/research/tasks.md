@@ -304,7 +304,7 @@ Acceptance criteria:
 - Break `get_url` into smaller units for session loading, extraction invocation, output finalization, and error metadata writing.
 - Add regression tests for cross-importer cookie deduplication and any moved shared agent-browser helpers.
 
-### 📋 Task I9: Add OpenCode CLI-backed integration
+### ✅ Task I9: Add OpenCode CLI-backed integration
 
 Acceptance criteria:
 
