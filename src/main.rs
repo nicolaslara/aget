@@ -220,6 +220,7 @@ fn run_session(command: SessionSubcommand, json: bool) -> Result<(), ErrorRespon
                     surface: cmux.surface,
                     name: cmux.name,
                     domains: cmux.domain,
+                    tmp_dir: store.home().join("tmp"),
                 })
                 .map_err(error_response)?;
                 store.save(&session).map_err(io_error)?;

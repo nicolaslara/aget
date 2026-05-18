@@ -3,12 +3,16 @@ use std::env;
 use std::fs::{self, File, OpenOptions};
 use std::io;
 use std::path::{Path, PathBuf};
-use std::process::Command;
+use std::process::{Command, Stdio};
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use serde::Deserialize;
 
 use crate::error::{AgetError, ErrorCode};
+use crate::process::{
+    configure_local_command, create_private_file as create_private_output_file, wait_for_child,
+    TempOutputFile, DEFAULT_SUBPROCESS_TIMEOUT,
+};
 use crate::session::{Session, SessionCookie, SessionOrigin, SessionSource, StorageEntry};
 
 #[derive(Debug, Deserialize)]
@@ -76,18 +80,37 @@ pub(crate) struct AgentBrowserSessionFilter {
     pub(crate) source_session: String,
 }
 
-pub(crate) fn run_agent_browser(args: &[&str]) -> Result<AgentBrowserOutput, AgetError> {
+pub(crate) fn run_agent_browser(
+    tmp_dir: &Path,
+    args: &[&str],
+) -> Result<AgentBrowserOutput, AgetError> {
     let command =
         env::var("AGET_AGENT_BROWSER_COMMAND").unwrap_or_else(|_| "agent-browser".to_string());
-    let output = Command::new(&command)
+    let stdout_file =
+        TempOutputFile::new(tmp_dir, "agent-browser-stdout").map_err(io_aget_error)?;
+    let stderr_file =
+        TempOutputFile::new(tmp_dir, "agent-browser-stderr").map_err(io_aget_error)?;
+    let stdout = create_private_output_file(stdout_file.path()).map_err(io_aget_error)?;
+    let stderr = create_private_output_file(stderr_file.path()).map_err(io_aget_error)?;
+    let mut command_builder = Command::new(&command);
+    command_builder
         .args(args)
-        .output()
+        .stdout(Stdio::from(stdout))
+        .stderr(Stdio::from(stderr));
+    configure_local_command(&mut command_builder);
+    let mut child = command_builder
+        .spawn()
         .map_err(|error| backend_unavailable(&command, error))?;
-
+    let status = wait_for_child(&mut child, DEFAULT_SUBPROCESS_TIMEOUT, || {
+        format!(
+            "agent-browser timed out after {} seconds",
+            DEFAULT_SUBPROCESS_TIMEOUT.as_secs()
+        )
+    })?;
     Ok(AgentBrowserOutput {
-        status: output.status,
-        stdout: String::from_utf8_lossy(&output.stdout).into_owned(),
-        stderr: String::from_utf8_lossy(&output.stderr).into_owned(),
+        status,
+        stdout: stdout_file.read_to_string().map_err(io_aget_error)?,
+        stderr: stderr_file.read_to_string().map_err(io_aget_error)?,
     })
 }
 
@@ -129,9 +152,11 @@ fn indicates_user_action(output: &str) -> bool {
         "profile in use",
         "already running",
         "login needed",
-        "log in",
+        "please log in",
+        "login required",
         "not logged in",
-        "sign in",
+        "please sign in",
+        "sign in required",
         "no auth state",
         "no authentication state",
     ]
@@ -367,6 +392,13 @@ fn backend_unavailable(command: &str, error: io::Error) -> AgetError {
     AgetError::Stable {
         code: ErrorCode::BackendUnavailable,
         message: format!("agent-browser backend is unavailable for command '{command}': {error}"),
+    }
+}
+
+fn io_aget_error(error: impl std::fmt::Display) -> AgetError {
+    AgetError::Stable {
+        code: ErrorCode::IoError,
+        message: error.to_string(),
     }
 }
 

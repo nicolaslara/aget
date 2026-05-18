@@ -182,6 +182,87 @@ print(json.dumps({'ok': True, 'final_url': args.url, 'content': content, 'warnin
 }
 
 #[test]
+fn get_rejects_session_replay_outside_saved_scope() {
+    let temp = tempfile::tempdir().unwrap();
+    let aget_home = temp.path().join("aget-home");
+    save_cookie_session(
+        &aget_home,
+        "private-docs",
+        "private.example.com",
+        "sid",
+        "secret-cookie",
+    );
+    let fake_backend = write_fake_backend(
+        temp.path(),
+        r#"#!/usr/bin/env python3
+raise SystemExit('backend should not run for out-of-scope session replay')
+"#,
+    );
+
+    let mut cmd = Command::cargo_bin("aget").unwrap();
+    let output = cmd
+        .env("AGET_HOME", &aget_home)
+        .env("AGET_CRAWL4AI_COMMAND", python_command(&fake_backend))
+        .args([
+            "--json",
+            "get",
+            "https://unrelated.example/page",
+            "--session",
+            "private-docs",
+        ])
+        .assert()
+        .failure()
+        .get_output()
+        .stderr
+        .clone();
+
+    let json: serde_json::Value = serde_json::from_slice(&output).unwrap();
+    assert_eq!(json["command"], "get");
+    assert_eq!(json["error"]["code"], "privacy_policy_blocked");
+    assert!(json["error"]["message"]
+        .as_str()
+        .unwrap()
+        .contains("outside request host"));
+}
+
+#[test]
+fn get_backend_does_not_inherit_unneeded_parent_environment() {
+    let temp = tempfile::tempdir().unwrap();
+    let aget_home = temp.path().join("aget-home");
+    let fake_backend = write_fake_backend(
+        temp.path(),
+        r#"#!/usr/bin/env python3
+import argparse, json, os, pathlib
+assert 'SECRET_TOKEN' not in os.environ
+assert 'AGET_HOME' not in os.environ
+parser = argparse.ArgumentParser()
+parser.add_argument('--url', required=True)
+parser.add_argument('--output', required=True)
+parser.add_argument('--metadata', required=True)
+args, _unknown = parser.parse_known_args()
+content = '# Env Scrubbed'
+pathlib.Path(args.output).write_text(content, encoding='utf-8')
+print(json.dumps({'ok': True, 'final_url': args.url, 'content': content, 'warnings': []}))
+"#,
+    );
+
+    let mut cmd = Command::cargo_bin("aget").unwrap();
+    let output = cmd
+        .env("AGET_HOME", &aget_home)
+        .env("AGET_CRAWL4AI_COMMAND", python_command(&fake_backend))
+        .env("SECRET_TOKEN", "do-not-pass")
+        .args(["--json", "get", "https://example.com/env"])
+        .assert()
+        .success()
+        .get_output()
+        .stdout
+        .clone();
+
+    let json = success_data(&output, "get");
+    assert_eq!(json["content"], "# Env Scrubbed");
+}
+
+#[test]
 fn get_repeated_sessions_compose_request_state_in_order_for_command_and_alias() {
     let temp = tempfile::tempdir().unwrap();
     let command_home = temp.path().join("command-home");

@@ -14,6 +14,7 @@ What works today:
 - `--out <path>`
 - output shaping with `--format`, CSS selectors, wait conditions, and deterministic character limits
 - repeated `--session <name>` flags for explicit named-session replay and composition
+- replay-time checks that reject sessions outside the requested URL's saved scope
 - empty-session default
 - local run artifacts
 - session list, inspect, and delete commands
@@ -188,9 +189,11 @@ Error example:
 
 - `aget` starts with an empty session by default.
 - Auth/session replay is opt-in per request with `--session <name>`.
+- Session replay is rejected when the selected session is not scoped to the requested host.
 - Run artifacts live under `~/.aget/runs`.
-- Temporary browser/session state is local and should be cleaned up when no longer needed.
+- Temporary browser/session state is local. `aget` removes normal temp state on success/failure, sweeps old orphaned raw-state files on startup, and removes tool-owned login profiles after successful completion or cancel.
 - Imported Chrome sessions and localStorage values are credential-equivalent bearer material. `session inspect` redacts values by default; use `--show-secrets` only when explicitly needed.
+- Backend subprocesses run with a minimal environment instead of inheriting the full parent shell environment.
 - Only process content you are authorized to access.
 - Do not use `aget` to bypass access controls, paywalls, or site policies.
 

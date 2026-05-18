@@ -313,7 +313,7 @@ Acceptance criteria:
 - Use `aget --json` as the behavior source of truth.
 - Document install/setup and privacy warnings.
 
-### 📋 Task I10: Security/privacy hardening pass
+### ✅ Task I10: Security/privacy hardening pass
 
 Acceptance criteria:
 

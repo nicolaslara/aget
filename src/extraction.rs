@@ -4,14 +4,17 @@ use std::fs::{self, File, OpenOptions};
 use std::io::{self, Read, Write};
 use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
-use std::thread;
 use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 
 use serde::{Deserialize, Serialize};
 
 use crate::cli::{ExtractorOption, OutputFormat};
 use crate::error::{AgetError, ErrorCode};
-use crate::session::{compose_playwright_state, PlaywrightState, SessionStore, TempStateFile};
+use crate::process::{configure_local_command, wait_for_child};
+use crate::session::agent_browser::origin_host;
+use crate::session::{
+    compose_playwright_state, PlaywrightState, Session, SessionStore, TempStateFile,
+};
 
 const DEFAULT_TIMEOUT: Duration = Duration::from_secs(60);
 const EXTRACTOR: &str = "crawl4ai";
@@ -95,6 +98,7 @@ pub fn get_url(options: GetOptions) -> Result<GetSuccess, AgetError> {
     let started = Instant::now();
     let store = SessionStore::from_env().map_err(io_aget_error)?;
     let sessions = load_selected_sessions(&store, &options.sessions)?;
+    enforce_replay_scope(&options.url, &sessions)?;
     let selected_session_names = sessions
         .iter()
         .map(|session| session.name.clone())
@@ -301,11 +305,98 @@ fn finalize_success(
 fn load_selected_sessions(
     store: &SessionStore,
     session_names: &[String],
-) -> Result<Vec<crate::session::Session>, AgetError> {
+) -> Result<Vec<Session>, AgetError> {
     session_names
         .iter()
         .map(|name| store.load(name).map_err(io_aget_error))
         .collect()
+}
+
+fn enforce_replay_scope(url: &str, sessions: &[Session]) -> Result<(), AgetError> {
+    if sessions.is_empty() {
+        return Ok(());
+    }
+
+    let target_host = origin_host(url).ok_or_else(|| AgetError::Stable {
+        code: ErrorCode::UsageError,
+        message: format!("invalid request URL '{url}'"),
+    })?;
+
+    for session in sessions {
+        if let Some(scope_error) = session_replay_scope_error(session, &target_host) {
+            return Err(AgetError::Stable {
+                code: ErrorCode::PrivacyPolicyBlocked,
+                message: scope_error,
+            });
+        }
+    }
+
+    Ok(())
+}
+
+fn session_replay_scope_error(session: &Session, target_host: &str) -> Option<String> {
+    let mut has_matching_scope = session
+        .allowed_cookie_domains
+        .iter()
+        .any(|domain| domain_matches_host(target_host, domain));
+
+    for cookie in &session.cookies {
+        if domain_matches_host(target_host, &cookie.domain) {
+            has_matching_scope = true;
+        } else {
+            return Some(format!(
+                "session '{}' contains cookie state for '{}' outside request host '{}'",
+                session.name,
+                normalize_domain(&cookie.domain),
+                target_host
+            ));
+        }
+    }
+
+    for origin in &session.allowed_storage_origins {
+        if let Some(host) = origin_host(origin) {
+            has_matching_scope |= domain_matches_host(target_host, &host);
+        }
+    }
+
+    for origin in &session.origins {
+        let host = origin_host(&origin.origin).unwrap_or_else(|| origin.origin.clone());
+        if domain_matches_host(target_host, &host) {
+            has_matching_scope = true;
+        } else {
+            return Some(format!(
+                "session '{}' contains storage state for '{}' outside request host '{}'",
+                session.name, origin.origin, target_host
+            ));
+        }
+    }
+
+    if has_matching_scope {
+        None
+    } else {
+        Some(format!(
+            "session '{}' is not scoped for request host '{}'",
+            session.name, target_host
+        ))
+    }
+}
+
+fn domain_matches_host(host: &str, allowed_domain: &str) -> bool {
+    let host = normalize_domain(host);
+    let allowed = normalize_domain(allowed_domain);
+    if host.is_empty() || allowed.is_empty() {
+        return false;
+    }
+
+    host == allowed || host.ends_with(&format!(".{allowed}"))
+}
+
+fn normalize_domain(domain: &str) -> String {
+    domain
+        .trim()
+        .trim_start_matches('.')
+        .trim_end_matches('.')
+        .to_ascii_lowercase()
 }
 
 struct LimitApplication {
@@ -394,10 +485,58 @@ fn sanitize_backend_artifacts(metadata_path: &Path, sensitive_values: &[String])
 
 fn redact_values(text: &str, sensitive_values: &[String]) -> String {
     let mut redacted = text.to_string();
-    for value in sensitive_values {
-        redacted = redacted.replace(value, "<redacted>");
+    let mut patterns = sensitive_values
+        .iter()
+        .flat_map(|value| redaction_patterns(value))
+        .collect::<Vec<_>>();
+    patterns.sort_by_key(|pattern| std::cmp::Reverse(pattern.len()));
+    patterns.dedup();
+    for pattern in patterns {
+        redacted = redacted.replace(&pattern, "<redacted>");
     }
     redacted
+}
+
+fn redaction_patterns(value: &str) -> Vec<String> {
+    let mut patterns = vec![
+        value.to_string(),
+        percent_encode(value, PercentEncoding::Upper),
+        percent_encode(value, PercentEncoding::Lower),
+        form_encode(value, PercentEncoding::Upper),
+        form_encode(value, PercentEncoding::Lower),
+    ];
+    if let Ok(encoded) = serde_json::to_string(value) {
+        patterns.push(encoded.trim_matches('"').to_string());
+    }
+    patterns.sort_by_key(|pattern| std::cmp::Reverse(pattern.len()));
+    patterns.dedup();
+    patterns.retain(|pattern| !pattern.is_empty());
+    patterns
+}
+
+#[derive(Clone, Copy)]
+enum PercentEncoding {
+    Upper,
+    Lower,
+}
+
+fn percent_encode(value: &str, case: PercentEncoding) -> String {
+    let mut encoded = String::new();
+    for byte in value.bytes() {
+        if byte.is_ascii_alphanumeric() || matches!(byte, b'-' | b'_' | b'.' | b'~') {
+            encoded.push(byte as char);
+        } else {
+            match case {
+                PercentEncoding::Upper => encoded.push_str(&format!("%{byte:02X}")),
+                PercentEncoding::Lower => encoded.push_str(&format!("%{byte:02x}")),
+            }
+        }
+    }
+    encoded
+}
+
+fn form_encode(value: &str, case: PercentEncoding) -> String {
+    percent_encode(value, case).replace("%20", "+")
 }
 
 fn run_backend(
@@ -453,32 +592,17 @@ fn run_backend(
         .args(&args)
         .stdout(Stdio::from(backend_stdout))
         .stderr(Stdio::from(backend_stderr));
-    configure_backend_command(&mut command);
+    configure_local_command(&mut command);
     let mut child = command
         .spawn()
         .map_err(|error| backend_unavailable(&command_string, error))?;
 
-    let deadline = Instant::now() + timeout;
-    loop {
-        match child.try_wait() {
-            Ok(Some(_)) => break,
-            Ok(None) if Instant::now() >= deadline => {
-                terminate_backend(&mut child);
-                let _ = child.wait();
-                return Err(AgetError::Stable {
-                    code: ErrorCode::Timeout,
-                    message: format!(
-                        "Crawl4AI backend timed out after {} seconds",
-                        timeout.as_secs()
-                    ),
-                });
-            }
-            Ok(None) => thread::sleep(Duration::from_millis(10)),
-            Err(error) => return Err(io_aget_error(error)),
-        }
-    }
-
-    let status = child.wait().map_err(io_aget_error)?;
+    let status = wait_for_child(&mut child, timeout, || {
+        format!(
+            "Crawl4AI backend timed out after {} seconds",
+            timeout.as_secs()
+        )
+    })?;
     if !status.success() {
         if let Ok(stdout) = read_output_file(&backend_stdout_path) {
             if let Ok(result) = parse_backend_stdout(&stdout) {
@@ -698,33 +822,18 @@ fn run_agent_browser(
         .args(args)
         .stdout(Stdio::from(stdout))
         .stderr(Stdio::from(stderr));
-    configure_backend_command(&mut command_builder);
+    configure_local_command(&mut command_builder);
     let mut child = command_builder.spawn().map_err(|error| AgetError::Stable {
         code: ErrorCode::BackendUnavailable,
         message: format!("agent-browser backend is unavailable for command '{command}': {error}"),
     })?;
 
-    let deadline = Instant::now() + timeout;
-    loop {
-        match child.try_wait() {
-            Ok(Some(_)) => break,
-            Ok(None) if Instant::now() >= deadline => {
-                terminate_backend(&mut child);
-                let _ = child.wait();
-                return Err(AgetError::Stable {
-                    code: ErrorCode::Timeout,
-                    message: format!(
-                        "agent-browser fallback timed out after {} seconds",
-                        timeout.as_secs()
-                    ),
-                });
-            }
-            Ok(None) => thread::sleep(Duration::from_millis(10)),
-            Err(error) => return Err(io_aget_error(error)),
-        }
-    }
-
-    let status = child.wait().map_err(io_aget_error)?;
+    let status = wait_for_child(&mut child, timeout, || {
+        format!(
+            "agent-browser fallback timed out after {} seconds",
+            timeout.as_secs()
+        )
+    })?;
 
     Ok(AgentBrowserOutput {
         status,
@@ -913,37 +1022,6 @@ fn read_output_file(path: &Path) -> io::Result<String> {
     Ok(output)
 }
 
-#[cfg(unix)]
-fn configure_backend_command(command: &mut Command) {
-    use std::os::unix::process::CommandExt;
-
-    command.process_group(0);
-}
-
-#[cfg(not(unix))]
-fn configure_backend_command(_command: &mut Command) {}
-
-#[cfg(unix)]
-fn terminate_backend(child: &mut std::process::Child) {
-    let process_group = format!("-{}", child.id());
-    let _ = Command::new("kill")
-        .args(["-TERM", &process_group])
-        .stdout(Stdio::null())
-        .stderr(Stdio::null())
-        .status();
-    thread::sleep(Duration::from_millis(50));
-    let _ = Command::new("kill")
-        .args(["-KILL", &process_group])
-        .stdout(Stdio::null())
-        .stderr(Stdio::null())
-        .status();
-}
-
-#[cfg(not(unix))]
-fn terminate_backend(child: &mut std::process::Child) {
-    let _ = child.kill();
-}
-
 fn write_error_metadata(
     path: &Path,
     url: &str,
@@ -1093,4 +1171,83 @@ fn set_private_file_permissions(path: &Path) -> io::Result<()> {
 #[cfg(not(unix))]
 fn set_private_file_permissions(_path: &Path) -> io::Result<()> {
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn redacts_literal_percent_encoded_and_json_escaped_values() {
+        let value = "secret value \"quoted\"";
+        let text = r#"literal=secret value "quoted" encoded=secret%20value%20%22quoted%22 lower=secret%20value%20%22quoted%22 form=secret+value+%22quoted%22 json=secret value \"quoted\""#;
+
+        let redacted = redact_values(text, &[value.to_string()]);
+
+        assert!(!redacted.contains("secret value \"quoted\""));
+        assert!(!redacted.contains("secret%20value%20%22quoted%22"));
+        assert!(!redacted.contains("secret+value+%22quoted%22"));
+        assert!(!redacted.contains(r#"secret value \"quoted\""#));
+
+        let newline_redacted = redact_values(
+            "upper=line+one%0Abreak lower=line+one%0abreak",
+            &["line one\nbreak".to_string()],
+        );
+        assert!(!newline_redacted.contains("line+one%0Abreak"));
+        assert!(!newline_redacted.contains("line+one%0abreak"));
+    }
+
+    #[test]
+    fn redacts_overlapping_values_longest_first() {
+        let redacted = redact_values(
+            "token=abcdef short=abc",
+            &["abc".to_string(), "abcdef".to_string()],
+        );
+
+        assert!(!redacted.contains("abcdef"));
+        assert!(!redacted.contains("abc"));
+        assert!(!redacted.contains("<redacted>def"));
+    }
+
+    #[test]
+    fn replay_scope_allows_subdomains_and_rejects_unrelated_hosts() {
+        let mut session = Session::new("docs");
+        session
+            .allowed_cookie_domains
+            .push("example.com".to_string());
+
+        assert!(session_replay_scope_error(&session, "docs.example.com").is_none());
+        assert!(session_replay_scope_error(&session, "example.com.evil").is_some());
+    }
+
+    #[test]
+    fn replay_scope_rejects_mixed_domain_session_state() {
+        let mut session = Session::new("mixed");
+        session.cookies.push(crate::session::SessionCookie {
+            name: "app".to_string(),
+            value: "app-secret".to_string(),
+            domain: "app.example.com".to_string(),
+            path: "/".to_string(),
+            expires: None,
+            http_only: true,
+            secure: true,
+            same_site: None,
+            source_session: None,
+        });
+        session.cookies.push(crate::session::SessionCookie {
+            name: "provider".to_string(),
+            value: "provider-secret".to_string(),
+            domain: "provider.example.com".to_string(),
+            path: "/".to_string(),
+            expires: None,
+            http_only: true,
+            secure: true,
+            same_site: None,
+            source_session: None,
+        });
+
+        let error = session_replay_scope_error(&session, "app.example.com").unwrap();
+
+        assert!(error.contains("provider.example.com"));
+    }
 }

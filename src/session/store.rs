@@ -2,6 +2,7 @@ use std::env;
 use std::fs::{self, File, OpenOptions};
 use std::io::{self, Write};
 use std::path::{Path, PathBuf};
+use std::time::{Duration, SystemTime};
 
 use crate::session::Session;
 
@@ -41,6 +42,7 @@ impl SessionStore {
         for dir in ["sessions", "runs", "cache", "tmp"] {
             create_private_dir(&self.home.join(dir))?;
         }
+        sweep_orphaned_tmp(&self.home.join("tmp"), Duration::from_secs(60 * 60))?;
         Ok(())
     }
 
@@ -129,6 +131,66 @@ fn create_private_file(path: &Path) -> io::Result<File> {
     let file = options.open(path)?;
     set_private_file_permissions(path)?;
     Ok(file)
+}
+
+fn sweep_orphaned_tmp(tmp_dir: &Path, min_age: Duration) -> io::Result<()> {
+    let now = SystemTime::now();
+    for entry in fs::read_dir(tmp_dir)? {
+        let entry = entry?;
+        let path = entry.path();
+        let file_name = path
+            .file_name()
+            .and_then(|name| name.to_str())
+            .unwrap_or("");
+        if file_name == "agent-browser" {
+            sweep_orphaned_agent_browser_profiles(&path, min_age, now)?;
+            continue;
+        }
+        if is_orphanable_tmp_file(file_name) && is_older_than(&path, min_age, now) {
+            let _ = fs::remove_file(path);
+        }
+    }
+    Ok(())
+}
+
+fn sweep_orphaned_agent_browser_profiles(
+    dir: &Path,
+    min_age: Duration,
+    now: SystemTime,
+) -> io::Result<()> {
+    if !dir.exists() {
+        return Ok(());
+    }
+    for entry in fs::read_dir(dir)? {
+        let entry = entry?;
+        let path = entry.path();
+        let file_name = path
+            .file_name()
+            .and_then(|name| name.to_str())
+            .unwrap_or("");
+        if file_name.starts_with("aget-fallback-") && is_older_than(&path, min_age, now) {
+            let _ = fs::remove_dir_all(path);
+        }
+    }
+    Ok(())
+}
+
+fn is_orphanable_tmp_file(file_name: &str) -> bool {
+    (file_name.starts_with("playwright-state-") && file_name.ends_with(".json"))
+        || (file_name.starts_with("agent-browser-raw-state-") && file_name.ends_with(".json"))
+        || (file_name.starts_with("login-raw-state-") && file_name.ends_with(".json"))
+        || (file_name.starts_with("agent-browser-stdout-") && file_name.ends_with(".txt"))
+        || (file_name.starts_with("agent-browser-stderr-") && file_name.ends_with(".txt"))
+        || (file_name.starts_with("cmux-stdout-") && file_name.ends_with(".txt"))
+        || (file_name.starts_with("cmux-stderr-") && file_name.ends_with(".txt"))
+}
+
+fn is_older_than(path: &Path, min_age: Duration, now: SystemTime) -> bool {
+    fs::metadata(path)
+        .and_then(|metadata| metadata.modified())
+        .ok()
+        .and_then(|modified| now.duration_since(modified).ok())
+        .is_some_and(|age| age >= min_age)
 }
 
 #[cfg(unix)]
@@ -240,5 +302,13 @@ mod tests {
                 io::ErrorKind::InvalidInput
             );
         }
+    }
+
+    #[test]
+    fn orphan_sweep_recognizes_import_and_extractor_temp_files() {
+        assert!(is_orphanable_tmp_file("agent-browser-raw-state-123.json"));
+        assert!(is_orphanable_tmp_file("login-raw-state-123.json"));
+        assert!(is_orphanable_tmp_file("playwright-state-123.json"));
+        assert!(!is_orphanable_tmp_file("login-active.json"));
     }
 }

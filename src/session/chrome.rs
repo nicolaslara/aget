@@ -25,22 +25,27 @@ pub fn import_chrome_session(options: ChromeImportOptions) -> Result<Session, Ag
     let mut opened = false;
 
     let result = (|| {
-        let open = run_agent_browser(&[
-            "--profile",
-            &options.profile,
-            "--session",
-            &temp_session,
-            "open",
-            "about:blank",
-        ])?;
+        let open = run_agent_browser(
+            &options.tmp_dir,
+            &[
+                "--profile",
+                &options.profile,
+                "--session",
+                &temp_session,
+                "open",
+                "about:blank",
+            ],
+        )?;
         if !open.status.success() {
             return Err(classify_agent_browser_failure("open", &open));
         }
         opened = true;
 
         let raw_state_path = raw_state.path().to_string_lossy().into_owned();
-        let save =
-            run_agent_browser(&["--session", &temp_session, "state", "save", &raw_state_path])?;
+        let save = run_agent_browser(
+            &options.tmp_dir,
+            &["--session", &temp_session, "state", "save", &raw_state_path],
+        )?;
         if !save.status.success() {
             return Err(classify_agent_browser_failure("state save", &save));
         }
@@ -73,7 +78,7 @@ pub fn import_chrome_session(options: ChromeImportOptions) -> Result<Session, Ag
     })();
 
     let close_result = if opened {
-        let close = run_agent_browser(&["--session", &temp_session, "close"]);
+        let close = run_agent_browser(&options.tmp_dir, &["--session", &temp_session, "close"]);
         match close {
             Ok(output) if output.status.success() => Ok(()),
             Ok(output) => Err(classify_agent_browser_failure("close", &output)),

@@ -646,6 +646,14 @@ OpenCode supports project-local custom tools in `.opencode/tools/` using TypeScr
 
 The initial OpenCode tools are `aget_fetch`, `aget_session_list`, and `aget_session_inspect`, exported from `.opencode/tools/aget.ts`. They call `aget --json` and return the structured envelope unchanged. `aget_fetch` exposes sessions and output-shaping arguments, including `max_chars: 0` for callers that want no inline page content, but does not infer ambient browser auth. `aget_session_list` returns local session names. `aget_session_inspect` intentionally omits `--show-secrets`, so tool output remains redacted unless a future explicit sensitive-inspection flow is designed.
 
+### D39: I10 hardens session replay and subprocess boundaries
+
+I10 adds replay-time scope checks before selected sessions are converted into Playwright state. A request with `--session <name>` now fails with `privacy_policy_blocked` if that session has no scope matching the requested host, or if it contains stored cookie/storage state for any unrelated host. This prevents accidentally loading credential-equivalent browser state from a broad or composed session into unrelated request targets. There is no override flag yet; cross-site/provider workflows must use sessions whose saved stored state matches the target URL or wait for a deliberately designed override.
+
+Backend subprocesses now run with a minimal allowlist environment and bounded waits. Crawl4AI, agent-browser fallback, session import/login agent-browser calls, and cmux cookie import no longer inherit the full parent shell environment. Timeout termination uses a bounded post-termination wait instead of an unbounded `wait`, and agent-browser/cmux stdout/stderr are written to private temp files instead of un-drained pipes.
+
+Sensitive artifact cleanup is tighter: backend stderr/stdout redaction now covers literal, upper/lowercase percent-encoded, form-encoded, and JSON-escaped cookie/storage values, replacing longer overlapping values first. Cookie and storage names remain visible because they are treated as provenance/debug metadata rather than bearer secrets. `SessionStore` startup sweeps old orphaned raw-state/temp output files and fallback profiles, and successful/cancelled login flows remove the default tool-owned agent-browser login profile even when cancel close fails. The structured envelope still embeds `data.content`; for sensitive fetches, callers should use `--max-chars 0` or `--out` with awareness that `--out` does not currently suppress inline content.
+
 ## Open Questions
 
 - Can pure Rust browser automation provide reliable persistent profiles and CDP attach, or do we need a small Node/Playwright sidecar?

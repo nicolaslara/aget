@@ -81,14 +81,17 @@ pub fn start_login_session(options: LoginStartOptions) -> Result<LoginStartResul
 
     fs::create_dir_all(&options.tmp_dir).map_err(io_aget_error)?;
     write_pending_login(&options.tmp_dir, &pending)?;
-    let open = run_agent_browser(&[
-        "--profile",
-        &pending.profile,
-        "--session",
-        &pending.agent_session,
-        "open",
-        &pending.url,
-    ])?;
+    let open = run_agent_browser(
+        &options.tmp_dir,
+        &[
+            "--profile",
+            &pending.profile,
+            "--session",
+            &pending.agent_session,
+            "open",
+            &pending.url,
+        ],
+    )?;
     if !open.status.success() {
         let _ = remove_pending_login(&options.tmp_dir, &pending.name);
         return Err(classify_agent_browser_failure("open", &open));
@@ -102,13 +105,16 @@ pub fn finish_login_session(options: LoginFinishOptions) -> Result<LoginFinishRe
     let raw_state =
         RawStateFile::new(&options.tmp_dir, "login-raw-state").map_err(io_aget_error)?;
     let raw_state_path = raw_state.path().to_string_lossy().into_owned();
-    let save = run_agent_browser(&[
-        "--session",
-        &pending.agent_session,
-        "state",
-        "save",
-        &raw_state_path,
-    ])?;
+    let save = run_agent_browser(
+        &options.tmp_dir,
+        &[
+            "--session",
+            &pending.agent_session,
+            "state",
+            "save",
+            &raw_state_path,
+        ],
+    )?;
     if !save.status.success() {
         return Err(classify_agent_browser_failure("state save", &save));
     }
@@ -135,7 +141,10 @@ pub fn finish_login_session(options: LoginFinishOptions) -> Result<LoginFinishRe
             ),
         });
     }
-    let close = run_agent_browser(&["--session", &pending.agent_session, "close"])?;
+    let close = run_agent_browser(
+        &options.tmp_dir,
+        &["--session", &pending.agent_session, "close"],
+    )?;
     if !close.status.success() {
         return Err(classify_agent_browser_failure("close", &close));
     }
@@ -144,6 +153,7 @@ pub fn finish_login_session(options: LoginFinishOptions) -> Result<LoginFinishRe
 
 pub fn complete_login_session(options: LoginCompleteOptions) -> Result<(), AgetError> {
     validate_login_name(&options.pending.name)?;
+    remove_tool_owned_login_profile(&options.tmp_dir, &options.pending).map_err(io_aget_error)?;
     remove_pending_login(&options.tmp_dir, &options.pending.name).map_err(io_aget_error)?;
     Ok(())
 }
@@ -189,11 +199,31 @@ pub fn merge_login_session(mut existing: Session, mut fresh: Session) -> Session
 pub fn cancel_login_session(options: LoginCancelOptions) -> Result<LoginCancelResult, AgetError> {
     validate_login_name(&options.name)?;
     let pending = read_pending_login(&options.tmp_dir, &options.name)?;
-    let close = run_agent_browser(&["--session", &pending.agent_session, "close"])?;
-    if !close.status.success() {
-        return Err(classify_agent_browser_failure("close", &close));
+    let close = run_agent_browser(
+        &options.tmp_dir,
+        &["--session", &pending.agent_session, "close"],
+    );
+    let cleanup_result = (|| {
+        remove_tool_owned_login_profile(&options.tmp_dir, &pending)?;
+        remove_pending_login(&options.tmp_dir, &pending.name)
+    })();
+    match close {
+        Ok(output) if output.status.success() => cleanup_result.map_err(io_aget_error)?,
+        Ok(output) => {
+            let cleanup_error = cleanup_result.err();
+            let mut error = classify_agent_browser_failure("close", &output);
+            if let (AgetError::Stable { message, .. }, Some(cleanup_error)) =
+                (&mut error, cleanup_error)
+            {
+                message.push_str(&format!("; cleanup also failed: {cleanup_error}"));
+            }
+            return Err(error);
+        }
+        Err(error) => {
+            cleanup_result.map_err(io_aget_error)?;
+            return Err(error);
+        }
     }
-    remove_pending_login(&options.tmp_dir, &pending.name).map_err(io_aget_error)?;
     Ok(LoginCancelResult { pending })
 }
 
@@ -298,6 +328,19 @@ fn read_pending_login(tmp_dir: &Path, name: &str) -> Result<PendingLogin, AgetEr
 
 fn remove_pending_login(tmp_dir: &Path, name: &str) -> io::Result<()> {
     match fs::remove_file(pending_login_path(tmp_dir, name)) {
+        Ok(()) => Ok(()),
+        Err(error) if error.kind() == io::ErrorKind::NotFound => Ok(()),
+        Err(error) => Err(error),
+    }
+}
+
+fn remove_tool_owned_login_profile(tmp_dir: &Path, pending: &PendingLogin) -> io::Result<()> {
+    let profile = PathBuf::from(&pending.profile);
+    if profile != default_login_profile_path(tmp_dir, &pending.name) {
+        return Ok(());
+    }
+
+    match fs::remove_dir_all(profile) {
         Ok(()) => Ok(()),
         Err(error) if error.kind() == io::ErrorKind::NotFound => Ok(()),
         Err(error) => Err(error),

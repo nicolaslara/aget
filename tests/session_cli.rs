@@ -1120,6 +1120,8 @@ raise SystemExit(2)
         PathBuf::from(&start_result.pending.profile),
         tmp_dir.join("agent-browser/aget-hi")
     );
+    let profile_dir = PathBuf::from(&start_result.pending.profile);
+    fs::create_dir_all(&profile_dir).unwrap();
 
     let finish_result = finish_login_session(LoginFinishOptions {
         name: "hi".to_string(),
@@ -1137,6 +1139,7 @@ raise SystemExit(2)
     .unwrap();
 
     assert!(!aget_home.join("tmp/login-hi.json").exists());
+    assert!(!profile_dir.exists());
 }
 
 #[test]
@@ -1193,6 +1196,64 @@ raise SystemExit(2)
     let log = fs::read_to_string(&log_path).unwrap();
     assert!(log.contains(r#""open""#));
     assert!(log.contains(r#"["--session", "aget-login-hellointerview", "close"]"#));
+}
+
+#[test]
+fn session_login_cancel_cleans_profile_and_pending_when_close_fails() {
+    let temp = tempfile::tempdir().unwrap();
+    let aget_home = temp.path().join("aget-home");
+    let log_path = temp.path().join("agent-browser.log");
+    let fake_agent_browser = write_fake_agent_browser(
+        temp.path(),
+        r#"#!/usr/bin/env python3
+import json, os, pathlib, sys
+args = sys.argv[1:]
+with pathlib.Path(os.environ['AGET_FAKE_AGENT_BROWSER_LOG']).open('a', encoding='utf-8') as handle:
+    handle.write(json.dumps(args) + '\n')
+if args[-2:-1] == ['open']:
+    raise SystemExit(0)
+if args[-1:] == ['close']:
+    print('close failed', file=sys.stderr)
+    raise SystemExit(2)
+raise SystemExit(2)
+"#,
+    );
+
+    let mut start = Command::cargo_bin("aget").unwrap();
+    start
+        .env("AGET_HOME", &aget_home)
+        .env("AGET_AGENT_BROWSER_COMMAND", &fake_agent_browser)
+        .env("AGET_FAKE_AGENT_BROWSER_LOG", &log_path)
+        .args([
+            "session",
+            "login",
+            "start",
+            "news",
+            "--url",
+            "https://www.nytimes.com/login",
+        ])
+        .assert()
+        .success();
+    let profile = aget_home.join("tmp/agent-browser/aget-news");
+    fs::create_dir_all(&profile).unwrap();
+
+    let mut cancel = Command::cargo_bin("aget").unwrap();
+    let output = cancel
+        .env("AGET_HOME", &aget_home)
+        .env("AGET_AGENT_BROWSER_COMMAND", &fake_agent_browser)
+        .env("AGET_FAKE_AGENT_BROWSER_LOG", &log_path)
+        .args(["--json", "session", "login", "cancel", "news"])
+        .assert()
+        .failure()
+        .get_output()
+        .stderr
+        .clone();
+
+    let json: serde_json::Value = serde_json::from_slice(&output).unwrap();
+    assert_eq!(json["command"], "session.login.cancel");
+    assert_eq!(json["error"]["code"], "extraction_failed");
+    assert!(!aget_home.join("tmp/login-news.json").exists());
+    assert!(!profile.exists());
 }
 
 #[test]

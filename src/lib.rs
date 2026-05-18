@@ -1,6 +1,7 @@
 pub mod cli;
 pub mod error;
 pub mod extraction;
+pub(crate) mod process;
 pub mod session;
 
 pub use cli::{
