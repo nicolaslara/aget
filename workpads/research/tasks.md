@@ -284,7 +284,7 @@ Acceptance criteria:
 - Preserve generic login/session tests while removing tests that encode HelloInterview paywall heuristics in extraction.
 - Verify with focused get/session tests plus the full standard check set.
 
-### 📋 Task I8c: Write agent skill for core aget fetch/auth flows
+### ✅ Task I8c: Write agent skill for core aget fetch/auth flows
 
 Acceptance criteria:
 

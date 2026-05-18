@@ -21,6 +21,7 @@ What works today:
 - experimental login start/finish/cancel for user-driven session bootstrap with caller-chosen session names
 - optional cmux cookie import for explicitly allowed domains
 - optional Chrome profile import through `agent-browser` for explicitly allowed domains
+- project skill guidance at `.cursor/skills/aget/SKILL.md`
 - the real demo script
 
 See [`project.md`](./project.md) for the original product goal, [`AGENTS.md`](./AGENTS.md) for agent instructions, [`WORKING.md`](./WORKING.md) for the living workflow, and [`workpads/`](./workpads/) for active project notes.

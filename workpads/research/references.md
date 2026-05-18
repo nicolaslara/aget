@@ -82,6 +82,7 @@ Reproducibility notes for the positive auth bridge:
 | Session wrapper PoC spec | `workpads/research/session-wrapper-poc-spec.md` | Product and v1/v2 implementation spec for the thin-wrapper direction. |
 | Session wrapper implementation plan | `workpads/research/session-wrapper-implementation-plan.md` | Milestone plan and test strategy for building the v1 wrapper. |
 | MVP architecture proposal | `workpads/research/knowledge.md` §MVP Architecture Proposal (R12) | Consolidated architecture gate before implementation. |
+| aget agent skill | `.cursor/skills/aget/SKILL.md` | Project-local agent-facing guide for safe `aget` fetch/auth flows, structured envelopes, explicit session login, session composition, and scoped cmux/Chrome import. |
 
 ## Browser Automation
 

@@ -617,6 +617,21 @@ Verification for this pass:
 - `cargo fmt --check`
 - `git diff --check`
 
+### D36: I8c adds a project-local agent skill for safe aget flows
+
+I8c adds `.cursor/skills/aget/SKILL.md` as the project-local agent guide for using `aget`. The skill covers the current core flows: empty-session fetch, large/sensitive output to artifacts, user-driven login start/finish, retrying a gated page with a caller-chosen session, multi-session request-time replay, persisted session composition, cmux cookie import, and Chrome import through `agent-browser`.
+
+The guide intentionally keeps site reasoning outside the binary. It uses HelloInterview as the first representative authorized gated-site example, then generalizes the same pattern to `ft.com`, `nytimes.com`, private docs, dashboards, and account pages. It tells agents to interpret returned content themselves, ask for explicit user action before login, never handle credentials, and avoid bypassing access controls or site policy.
+
+Focused review tightened the skill in three places: existing-browser auth imports now require explicit approval for the surface/profile and domains, login-time session composition is documented as not directly supported by `session login start`, and extraction-tuning advice is kept as a pointer to the README rather than expanded in the skill.
+
+Verification for this pass:
+
+- Read `.cursor/skills/aget/SKILL.md` and checked it is under 500 lines.
+- `rg "credentials|bypass|HelloInterview|ft\\.com|nytimes\\.com|session login start|session compose|import cmux|import chrome|--envelope" .cursor/skills/aget/SKILL.md`
+- `cargo test`
+- `git diff --check`
+
 ## Open Questions
 
 - Can pure Rust browser automation provide reliable persistent profiles and CDP attach, or do we need a small Node/Playwright sidecar?
