@@ -329,3 +329,37 @@ Acceptance criteria:
 - Decide whether storage-origin consent needs explicit `--origin` support or an inspect/confirm step separate from cookie-domain consent.
 - Remove full agent-browser login profiles after successful login completion, not only pending metadata.
 - Run a focused security/privacy review before marking MVP implementation complete.
+
+### 📋 Task I11: Add mocked e2e site server for deterministic integration tests
+
+Acceptance criteria:
+
+- Add a reusable local test server fixture that behaves like a small multi-page site rather than one-off test handlers.
+- Cover public pages, login-required pages, cookie-backed auth, localStorage-backed auth, redirects, JavaScript-rendered content, delayed content for wait behavior, noisy nav/main content, and explicit logout/expired-session states.
+- Support multi-domain or host-scoped scenarios where feasible, so replay-time session scope checks and provider/app session composition can be tested without real sites.
+- Expose deterministic endpoints and helper APIs for tests to create users/sessions, issue cookies/storage state, inspect received cookies/headers, and assert no unrelated credentials were replayed.
+- Use the fixture in e2e-style CLI tests for `aget get`, `session login start|finish`, session compose/replay, output shaping, scope rejection, and sensitive artifact handling.
+- Keep the fixture local-only, credential-free, and generic; it must not encode real site names, paywall heuristics, or bypass behavior.
+- Document when to use this fixture versus smaller unit/fake-backend tests and ignored/manual real-site checks.
+
+### 📋 Task I12: Add agent integrations beyond OpenCode
+
+Acceptance criteria:
+
+- Inventory the practical integration surfaces for Cursor, Claude, Codex, and other likely agent hosts, distinguishing native custom tools, MCP tools, shell/CLI wrappers, project skills, slash commands, and documentation-only guidance.
+- Decide which integrations should be first-class in this repo versus deferred to MCP or external packages.
+- For each recommended first-class integration, define the tool names, schemas, install/setup steps, and privacy warnings.
+- Preserve the Rust CLI and structured envelope as the behavior source of truth unless a host integration has a strong reason to call a server/API directly.
+- Ensure any authenticated/session-backed integration keeps explicit session selection and does not read ambient browser auth by default.
+- Document unsupported hosts and the recommended fallback path, such as using the CLI directly or waiting for MCP support.
+
+### 📋 Task I13: Review default fetch replacement and signature compatibility
+
+Acceptance criteria:
+
+- Evaluate whether `aget` should replace default fetch/webfetch tools in OpenCode or other agent hosts, remain an explicit `aget_fetch` tool, or support both modes.
+- Compare existing fetch/webfetch signatures across OpenCode, Cursor, Claude/MCP conventions, Codex-style agent environments, and curl.md's OpenCode plugin where primary docs are available.
+- Decide whether `aget_fetch` should use a host-compatible signature, an aget-specific signature, or a compatibility wrapper that maps default fetch arguments onto `aget get`.
+- Record privacy and product risks of transparent replacement, especially for authenticated content, inline `data.content`, local artifact paths, session selection, and consent boundaries.
+- If replacement is recommended, define the minimal safe behavior: unauthenticated default, explicit `sessions`, content limits, error shape, and whether sensitive output should default to path-only or bounded inline content.
+- Update README/agent guidance with the chosen recommendation before implementing a replacement tool name such as `webfetch`.

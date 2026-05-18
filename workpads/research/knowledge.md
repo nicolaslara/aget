@@ -654,6 +654,12 @@ Backend subprocesses now run with a minimal allowlist environment and bounded wa
 
 Sensitive artifact cleanup is tighter: backend stderr/stdout redaction now covers literal, upper/lowercase percent-encoded, form-encoded, and JSON-escaped cookie/storage values, replacing longer overlapping values first. Cookie and storage names remain visible because they are treated as provenance/debug metadata rather than bearer secrets. `SessionStore` startup sweeps old orphaned raw-state/temp output files and fallback profiles, and successful/cancelled login flows remove the default tool-owned agent-browser login profile even when cancel close fails. The structured envelope still embeds `data.content`; for sensitive fetches, callers should use `--max-chars 0` or `--out` with awareness that `--out` does not currently suppress inline content.
 
+### D40: Mocked e2e site server is worth adding
+
+The project has many focused fake-backend and small local-server tests, but it still lacks a reusable site-shaped fixture that exercises the end-to-end product behavior across login state, browser storage, redirects, JavaScript rendering, wait conditions, noisy page chrome, output shaping, and replay-scope privacy checks. A mocked e2e site server is worth adding because it can make most auth/session regressions deterministic without relying on HelloInterview, FT, NYT, cmux, Chrome profile state, or live network conditions.
+
+The fixture should be generic and local-only: a small Rust test support server with deterministic routes such as public content, login form/callback, protected account/docs pages, localStorage-token pages, delayed JS content, redirect chains, expired-session responses, logout, and multi-host/provider-style scenarios where feasible. Tests should be able to seed sessions, inspect received cookies/headers, and assert that unrelated credentials were not replayed. This fixture should complement, not replace, lower-level fake-backend unit tests and ignored/manual real-site verification.
+
 ## Open Questions
 
 - Can pure Rust browser automation provide reliable persistent profiles and CDP attach, or do we need a small Node/Playwright sidecar?
