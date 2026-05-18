@@ -21,11 +21,12 @@ const EXTRACTOR: &str = "crawl4ai";
 const FALLBACK_EXTRACTOR: &str = "agent-browser-fallback";
 const FALLBACK_WARNING: &str = "agent-browser fallback used after Crawl4AI failed";
 
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 pub struct GetOptions {
     pub url: String,
     pub sessions: Vec<String>,
     pub out: Option<PathBuf>,
+    pub home: Option<PathBuf>,
     pub timeout: Option<Duration>,
     pub format: OutputFormat,
     pub selector: Option<String>,
@@ -81,23 +82,152 @@ pub struct OutputOptions {
     pub extractor_options: BTreeMap<String, String>,
 }
 
-#[derive(Debug, Deserialize)]
-struct BackendResult {
-    ok: bool,
+pub struct ExtractorRequest<'a> {
+    pub url: &'a str,
+    pub state_path: &'a Path,
+    pub content_path: &'a Path,
+    pub metadata_path: &'a Path,
+    pub options: &'a GetOptions,
+    pub timeout: Duration,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+pub struct ExtractorBackendResult {
+    pub ok: bool,
     #[serde(default)]
-    final_url: Option<String>,
+    pub final_url: Option<String>,
     #[serde(default)]
-    content: Option<String>,
+    pub content: Option<String>,
     #[serde(default)]
-    warnings: Vec<String>,
+    pub warnings: Vec<String>,
     #[serde(default)]
-    error: Option<String>,
+    pub error: Option<String>,
+}
+
+pub trait ExtractorBackend {
+    // Extraction is the "URL plus session state to content" capability. The
+    // default implementation is command-backed, but the rest of the pipeline
+    // should not know whether the content came from Crawl4AI or in-process Rust.
+    fn name(&self) -> &'static str;
+    fn extract(&self, request: ExtractorRequest<'_>) -> Result<ExtractorBackendResult, AgetError>;
+}
+
+pub struct BrowserFallbackRequest<'a> {
+    pub tmp_dir: &'a Path,
+    pub url: &'a str,
+    pub state_path: &'a Path,
+    pub options: &'a GetOptions,
+    pub timeout: Duration,
+}
+
+#[derive(Debug, Clone)]
+pub struct BrowserFallbackResult {
+    pub final_url: String,
+    pub content: String,
+    pub warnings: Vec<String>,
+    pub extractor: String,
+}
+
+pub trait BrowserFallbackBackend {
+    // Fallback browser extraction handles authenticated pages when the primary
+    // extractor cannot consume the composed session state directly.
+    fn extract_with_state(
+        &self,
+        request: BrowserFallbackRequest<'_>,
+    ) -> Result<BrowserFallbackResult, AgetError>;
+}
+
+pub trait ExtractionSessionStore {
+    // `aget get` only needs scoped session lookup plus a local home for private
+    // run artifacts. Keeping this separate lets `AgetWith` use non-filesystem
+    // stores without changing the extraction pipeline.
+    fn home(&self) -> &Path;
+    fn load(&self, name: &str) -> io::Result<Session>;
+}
+
+impl ExtractionSessionStore for SessionStore {
+    fn home(&self) -> &Path {
+        self.home()
+    }
+
+    fn load(&self, name: &str) -> io::Result<Session> {
+        self.load(name)
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct CommandBrowserFallbackBackend;
+
+impl BrowserFallbackBackend for CommandBrowserFallbackBackend {
+    fn extract_with_state(
+        &self,
+        request: BrowserFallbackRequest<'_>,
+    ) -> Result<BrowserFallbackResult, AgetError> {
+        run_agent_browser_fallback(
+            request.tmp_dir,
+            request.url,
+            request.state_path,
+            request.options,
+            request.timeout,
+        )
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct CommandExtractorBackend {
+    command: Option<String>,
+}
+
+impl CommandExtractorBackend {
+    pub fn new(command: Option<String>) -> Self {
+        Self { command }
+    }
+}
+
+impl ExtractorBackend for CommandExtractorBackend {
+    fn name(&self) -> &'static str {
+        EXTRACTOR
+    }
+
+    fn extract(&self, request: ExtractorRequest<'_>) -> Result<ExtractorBackendResult, AgetError> {
+        run_command_extractor_backend(self.command.clone(), request)
+    }
 }
 
 pub fn get_url(options: GetOptions) -> Result<GetSuccess, AgetError> {
+    let extractor = CommandExtractorBackend::new(None);
+    let browser_fallback = CommandBrowserFallbackBackend;
+    get_url_with_backends(options, &extractor, &browser_fallback)
+}
+
+pub fn get_url_with_backend(
+    options: GetOptions,
+    extractor_backend: &impl ExtractorBackend,
+) -> Result<GetSuccess, AgetError> {
+    let browser_fallback = CommandBrowserFallbackBackend;
+    get_url_with_backends(options, extractor_backend, &browser_fallback)
+}
+
+pub fn get_url_with_backends(
+    options: GetOptions,
+    extractor_backend: &impl ExtractorBackend,
+    browser_fallback_backend: &impl BrowserFallbackBackend,
+) -> Result<GetSuccess, AgetError> {
+    let store = match &options.home {
+        Some(home) => SessionStore::new(home).map_err(io_aget_error)?,
+        None => SessionStore::from_env().map_err(io_aget_error)?,
+    };
+    get_url_with_session_store(options, &store, extractor_backend, browser_fallback_backend)
+}
+
+pub fn get_url_with_session_store(
+    options: GetOptions,
+    store: &impl ExtractionSessionStore,
+    extractor_backend: &impl ExtractorBackend,
+    browser_fallback_backend: &impl BrowserFallbackBackend,
+) -> Result<GetSuccess, AgetError> {
     let started = Instant::now();
-    let store = SessionStore::from_env().map_err(io_aget_error)?;
-    let sessions = load_selected_sessions(&store, &options.sessions)?;
+    let sessions = load_selected_sessions(store, &options.sessions)?;
     enforce_replay_scope(&options.url, &sessions)?;
     let selected_session_names = sessions
         .iter()
@@ -121,33 +251,39 @@ pub fn get_url(options: GetOptions) -> Result<GetSuccess, AgetError> {
     }
     let metadata_path = run_dir.join("metadata.json");
 
-    let extraction =
-        match run_primary_extractor(&options, temp_state.path(), &content_path, &metadata_path) {
-            Ok(extraction) => extraction,
-            Err(error) => {
-                if let Some(fallback) = try_session_fallback(
-                    &store.home().join("tmp"),
+    let extraction = match run_primary_extractor(
+        &options,
+        temp_state.path(),
+        &content_path,
+        &metadata_path,
+        extractor_backend,
+    ) {
+        Ok(extraction) => extraction,
+        Err(error) => {
+            if let Some(fallback) = try_session_fallback(
+                browser_fallback_backend,
+                &store.home().join("tmp"),
+                &options,
+                temp_state.path(),
+                sensitive,
+                &metadata_path,
+                &sensitive_values,
+            ) {
+                fallback
+            } else {
+                return finalize_error(
                     &options,
-                    temp_state.path(),
-                    sensitive,
+                    &content_path,
                     &metadata_path,
-                    &sensitive_values,
-                ) {
-                    fallback
-                } else {
-                    return finalize_error(
-                        &options,
-                        &content_path,
-                        &metadata_path,
-                        &selected_session_names,
-                        sensitive,
-                        &output_options,
-                        error,
-                        started,
-                    );
-                }
+                    &selected_session_names,
+                    sensitive,
+                    &output_options,
+                    error,
+                    started,
+                );
             }
-        };
+        }
+    };
 
     if sensitive {
         sanitize_backend_artifacts(&metadata_path, &sensitive_values);
@@ -177,15 +313,16 @@ fn run_primary_extractor(
     state_path: &Path,
     content_path: &Path,
     metadata_path: &Path,
+    extractor_backend: &impl ExtractorBackend,
 ) -> Result<SuccessfulExtraction, AgetError> {
-    let backend = run_backend(
-        &options.url,
+    let backend = extractor_backend.extract(ExtractorRequest {
+        url: &options.url,
         state_path,
         content_path,
         metadata_path,
         options,
-        options.timeout.unwrap_or(DEFAULT_TIMEOUT),
-    )?;
+        timeout: options.timeout.unwrap_or(DEFAULT_TIMEOUT),
+    })?;
 
     if !backend.ok {
         return Err(AgetError::Stable {
@@ -210,11 +347,12 @@ fn run_primary_extractor(
         final_url: backend.final_url.unwrap_or_else(|| options.url.clone()),
         content,
         warnings: backend.warnings,
-        extractor: EXTRACTOR.to_string(),
+        extractor: extractor_backend.name().to_string(),
     })
 }
 
 fn try_session_fallback(
+    browser_fallback_backend: &impl BrowserFallbackBackend,
     tmp_dir: &Path,
     options: &GetOptions,
     state_path: &Path,
@@ -227,14 +365,21 @@ fn try_session_fallback(
     }
 
     sanitize_backend_artifacts(metadata_path, sensitive_values);
-    run_agent_browser_fallback(
-        tmp_dir,
-        &options.url,
-        state_path,
-        options,
-        options.timeout.unwrap_or(DEFAULT_TIMEOUT),
-    )
-    .ok()
+    browser_fallback_backend
+        .extract_with_state(BrowserFallbackRequest {
+            tmp_dir,
+            url: &options.url,
+            state_path,
+            options,
+            timeout: options.timeout.unwrap_or(DEFAULT_TIMEOUT),
+        })
+        .ok()
+        .map(|fallback| SuccessfulExtraction {
+            final_url: fallback.final_url,
+            content: fallback.content,
+            warnings: fallback.warnings,
+            extractor: fallback.extractor,
+        })
 }
 
 #[allow(clippy::too_many_arguments)]
@@ -263,6 +408,7 @@ fn finalize_error(
     Err(error)
 }
 
+#[allow(clippy::too_many_arguments)]
 fn finalize_success(
     options: &GetOptions,
     content_path: &Path,
@@ -303,7 +449,7 @@ fn finalize_success(
 }
 
 fn load_selected_sessions(
-    store: &SessionStore,
+    store: &impl ExtractionSessionStore,
     session_names: &[String],
 ) -> Result<Vec<Session>, AgetError> {
     session_names
@@ -539,39 +685,35 @@ fn form_encode(value: &str, case: PercentEncoding) -> String {
     percent_encode(value, case).replace("%20", "+")
 }
 
-fn run_backend(
-    url: &str,
-    state_path: &Path,
-    content_path: &Path,
-    metadata_path: &Path,
-    options: &GetOptions,
-    timeout: Duration,
-) -> Result<BackendResult, AgetError> {
+fn run_command_extractor_backend(
+    command_override: Option<String>,
+    request: ExtractorRequest<'_>,
+) -> Result<ExtractorBackendResult, AgetError> {
     let mut args = vec![
         "--url".to_string(),
-        url.to_string(),
+        request.url.to_string(),
         "--state".to_string(),
-        state_path.to_string_lossy().into_owned(),
+        request.state_path.to_string_lossy().into_owned(),
         "--output".to_string(),
-        content_path.to_string_lossy().into_owned(),
+        request.content_path.to_string_lossy().into_owned(),
         "--metadata".to_string(),
-        metadata_path.to_string_lossy().into_owned(),
+        request.metadata_path.to_string_lossy().into_owned(),
         "--format".to_string(),
-        options.format.to_string(),
+        request.options.format.to_string(),
     ];
-    if let Some(selector) = &options.selector {
+    if let Some(selector) = &request.options.selector {
         args.push("--selector".to_string());
         args.push(selector.clone());
     }
-    if let Some(exclude_selector) = &options.exclude_selector {
+    if let Some(exclude_selector) = &request.options.exclude_selector {
         args.push("--exclude-selector".to_string());
         args.push(exclude_selector.clone());
     }
-    if let Some(wait_for) = &options.wait_for {
+    if let Some(wait_for) = &request.options.wait_for {
         args.push("--wait-for".to_string());
         args.push(wait_for.clone());
     }
-    for extractor_option in &options.extractor_options {
+    for extractor_option in &request.options.extractor_options {
         args.push("--extractor-option".to_string());
         args.push(format!(
             "{}={}",
@@ -579,9 +721,13 @@ fn run_backend(
         ));
     }
 
-    let command_string = env::var("AGET_CRAWL4AI_COMMAND").unwrap_or_else(|_| default_command());
-    let backend_stdout_path = metadata_path.with_file_name("backend-stdout.json");
-    let backend_stderr_path = metadata_path.with_file_name("backend-stderr.txt");
+    // Current extractor backend adapter: spawn a Crawl4AI-compatible command.
+    // A future in-process Rust extractor should satisfy the same contract without shelling out.
+    let command_string = command_override
+        .or_else(|| env::var("AGET_CRAWL4AI_COMMAND").ok())
+        .unwrap_or_else(default_command);
+    let backend_stdout_path = request.metadata_path.with_file_name("backend-stdout.json");
+    let backend_stderr_path = request.metadata_path.with_file_name("backend-stderr.txt");
     let backend_stdout = create_private_file(&backend_stdout_path).map_err(io_aget_error)?;
     let backend_stderr = create_private_file(&backend_stderr_path).map_err(io_aget_error)?;
     let mut command = Command::new("sh");
@@ -597,10 +743,10 @@ fn run_backend(
         .spawn()
         .map_err(|error| backend_unavailable(&command_string, error))?;
 
-    let status = wait_for_child(&mut child, timeout, || {
+    let status = wait_for_child(&mut child, request.timeout, || {
         format!(
             "Crawl4AI backend timed out after {} seconds",
-            timeout.as_secs()
+            request.timeout.as_secs()
         )
     })?;
     if !status.success() {
@@ -638,10 +784,10 @@ fn run_backend(
     Ok(result)
 }
 
-fn parse_backend_stdout(stdout: &str) -> Result<BackendResult, AgetError> {
+fn parse_backend_stdout(stdout: &str) -> Result<ExtractorBackendResult, AgetError> {
     let trimmed = stdout.trim();
     match serde_json::from_str(trimmed) {
-        Ok(result) => return Ok(result),
+        Ok(result) => Ok(result),
         Err(full_error) => {
             for line in stdout
                 .lines()
@@ -678,7 +824,7 @@ fn run_agent_browser_fallback(
     state_path: &Path,
     options: &GetOptions,
     timeout: Duration,
-) -> Result<SuccessfulExtraction, AgetError> {
+) -> Result<BrowserFallbackResult, AgetError> {
     let profile = TempAgentBrowserProfile::new(tmp_dir)?;
     let session = unique_agent_browser_session_name();
     let profile_path = profile.path().to_string_lossy().into_owned();
@@ -738,7 +884,7 @@ fn run_agent_browser_fallback(
     }
 
     let content = content_result?;
-    Ok(SuccessfulExtraction {
+    Ok(BrowserFallbackResult {
         final_url: url.to_string(),
         content,
         warnings: vec![FALLBACK_WARNING.to_string()],
@@ -1022,6 +1168,7 @@ fn read_output_file(path: &Path) -> io::Result<String> {
     Ok(output)
 }
 
+#[allow(clippy::too_many_arguments)]
 fn write_error_metadata(
     path: &Path,
     url: &str,

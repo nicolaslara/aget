@@ -670,6 +670,42 @@ Use this fixture for deterministic auth/session integration coverage where manua
 
 Review follow-up: the fake-backend mocked-site tests now assert exclusion against in-main noise, simulate localStorage through a page-script-style API fetch, verify mixed-scope rejection does not reach the server, and exercise unauthenticated, expired, and logout states. They still do not prove real Crawl4AI/Playwright JavaScript execution semantics; Task I14 tracks an opt-in real-backend smoke test against the same local fixture.
 
+### D42: Documentation-style e2e tests should be declarative and Rust-owned
+
+I15 improves the mocked-site e2e direction by removing generated inline backend scripts from `tests/mock_site_cli.rs`. Test backend behavior now lives in checked-in Rust helper binaries, `aget-mock-backend` and `aget-mock-agent-browser`, owned by the dev-only fixture crate at `tests/fixtures/mock-tools`. The e2e test file can focus on product behavior instead of embedding a second implementation as a string, and the helper tools no longer appear as product-visible root Cargo binaries.
+
+The first documentation-style layer uses a small `GetSpec` harness so tests can read as route/config/result scenarios: choose a mock-site path, configure output options such as format/selectors/out/max-chars, run the real `aget` binary, and assert the structured JSON envelope. The helper tools are strict about supported argv shapes so they exercise the external backend and agent-browser process boundary without accepting accidental drift. This better matches the desired API-documentation feel while preserving process-level coverage of the CLI, state files, artifacts, session storage, and backend command boundary.
+
+Follow-up: `MockSite` now supports test-defined routes through `MockSite::builder().route(path, MockResponse::html(...)).start()`, so extraction-oriented tests can declare custom pages directly in Rust and let the site stop on drop. Legacy tests in `tests/get_cli.rs`, `tests/session_cli.rs`, and `tests/cli.rs` still contain generated inline Python shims; Task I16 tracks removing those in favor of declarative Rust fixtures and checked-in dev-only helper tools.
+
+### D43: `Aget` is the library facade for API-style tests and CLI reuse
+
+The e2e-style API tests now use a production `Aget` facade instead of a test-only `GetSpec`: `Aget::new(home).with_backend_command(...).get(url).format(...).selector(...).run()`. This keeps tests close to the API agents should eventually call, avoids global `AGET_HOME`/backend env mutation in library-level tests, and still exercises the real extraction pipeline, session store, artifact writing, and backend process boundary.
+
+The CLI `get` path now constructs `Aget` internally rather than calling `get_url` directly. `get_url(GetOptions)` remains available as the lower-level compatibility function, but the intended higher-level API surface is `Aget`.
+
+### D44: Comments should clarify project vocabulary and boundaries
+
+Project workflow now calls for short comments when local naming is not enough to explain a concept, boundary, or invariant. This applies especially to `backend`, `extractor`, `session`, `profile`, `artifact`, and `envelope`, because those terms can refer to local subprocesses, browser state, persisted auth data, files, or public API shapes depending on context. Comments should explain the boundary or contract, not restate the code.
+
+### D45: `Aget` should depend on pluggable capability backends
+
+The current `backend_command` field is a PoC leak: Crawl4AI happens to be reached through an external command today, but the real `Aget` boundary should be "extract this URL with these sessions/options," not "run this command." Future refactoring should introduce pluggable internal backends for extraction, browser automation, and session persistence. The command-backed Crawl4AI and `agent-browser` integrations should become adapters behind those boundaries, so they can later be replaced by in-process Rust implementations without changing the public `Aget` API or CLI concepts.
+
+The same pattern should apply to session handling: the filesystem `SessionStore` remains the default local-first implementation, but `Aget` should depend on a session-store capability so tests, alternate storage, encryption-at-rest, or future profile/session implementations can be swapped in deliberately.
+
+### D46: `Aget` backend pluggability uses static dispatch by default
+
+`Aget` now aliases `AgetWith<CommandExtractorBackend, FilesystemSessionStoreBackend, CommandBrowserAutomationBackend>`. The generic form keeps extractor, session-store, and browser-automation/fallback capabilities swappable without `Arc<dyn ...>` or runtime dispatch in the normal path. Tests and future implementations can replace one backend at a time through typed builder methods while the CLI keeps using the default `Aget` alias.
+
+The current command-backed adapters remain explicit PoC boundaries: Crawl4AI-compatible extraction lives behind `ExtractorBackend`, `agent-browser` login/import and authenticated fallback extraction live behind browser backend capabilities, and filesystem persistence lives behind `SessionStoreBackend`. This preserves the API shape while making later in-process Rust replacements a backend swap rather than a CLI rewrite.
+
+### D47: Static backend contracts need API-level integration tests
+
+The e2e/CLI suite covers current command-backed behavior well, but the new generic `AgetWith` contract also needs direct API tests. `tests/aget_api.rs` now verifies that a custom session store is used by `Aget::get`, a custom extractor receives composed session state and output options, a custom browser fallback handles authenticated extraction after primary extractor failure, and a custom browser automation backend can finish login into a custom store.
+
+This found an important architectural gap: `Aget::get` was still reopening the filesystem `SessionStore` through `GetOptions.home`, so replacing the session-store backend did not affect session-backed fetches. The extraction pipeline now accepts an `ExtractionSessionStore` capability for `AgetWith`, while the lower-level compatibility entry points still construct the filesystem store from `AGET_HOME` or `GetOptions.home`.
+
 ## Open Questions
 
 - Can pure Rust browser automation provide reliable persistent profiles and CDP attach, or do we need a small Node/Playwright sidecar?

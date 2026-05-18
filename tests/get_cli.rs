@@ -1034,10 +1034,7 @@ print(json.dumps({'ok': True, 'final_url': args.url, 'content': content, 'warnin
     assert_eq!(json["format"], "json");
     assert_eq!(json["content"], "{\"title\":\"Ex");
     assert_eq!(json["limits"]["truncated"], true);
-    assert_eq!(
-        json["artifacts"]["metadata"].as_str().unwrap().is_empty(),
-        false
-    );
+    assert!(!json["artifacts"]["metadata"].as_str().unwrap().is_empty());
     assert!(envelope["timing_ms"]["total"].as_u64().is_some());
 }
 

@@ -2,23 +2,24 @@ mod support;
 
 use std::fs;
 use std::path::{Path, PathBuf};
-use std::time::{SystemTime, UNIX_EPOCH};
+use std::process::Command as StdCommand;
+use std::sync::OnceLock;
 
-use aget::{Session, SessionCookie, SessionOrigin, SessionStore, StorageEntry};
+use aget::{Aget, OutputFormat, Session, SessionCookie, SessionOrigin, SessionStore, StorageEntry};
 use assert_cmd::Command;
-use support::mock_site::MockSite;
+use support::mock_site::{MockResponse, MockSite};
 
 #[test]
 fn mock_site_fetch_handles_redirect_output_shaping_and_waits() {
     let temp = tempfile::tempdir().unwrap();
     let aget_home = temp.path().join("aget-home");
     let site = MockSite::start();
-    let fake_backend = write_mock_site_backend(temp.path());
+    let fake_backend = mock_backend_command();
 
     let output = Command::cargo_bin("aget")
         .unwrap()
         .env("AGET_HOME", &aget_home)
-        .env("AGET_CRAWL4AI_COMMAND", python_command(&fake_backend))
+        .env("AGET_CRAWL4AI_COMMAND", &fake_backend)
         .args([
             "--json",
             "get",
@@ -47,7 +48,7 @@ fn mock_site_fetch_handles_redirect_output_shaping_and_waits() {
     let delayed = Command::cargo_bin("aget")
         .unwrap()
         .env("AGET_HOME", &aget_home)
-        .env("AGET_CRAWL4AI_COMMAND", python_command(&fake_backend))
+        .env("AGET_CRAWL4AI_COMMAND", &fake_backend)
         .args([
             "--json",
             "get",
@@ -74,7 +75,7 @@ fn mock_site_replays_cookie_and_storage_sessions() {
     let temp = tempfile::tempdir().unwrap();
     let aget_home = temp.path().join("aget-home");
     let site = MockSite::start();
-    let fake_backend = write_mock_site_backend(temp.path());
+    let fake_backend = mock_backend_command();
     save_cookie_session(&aget_home, "app", &site.host(), "app_session", "valid-app");
     save_storage_session(
         &aget_home,
@@ -87,7 +88,7 @@ fn mock_site_replays_cookie_and_storage_sessions() {
     let protected = Command::cargo_bin("aget")
         .unwrap()
         .env("AGET_HOME", &aget_home)
-        .env("AGET_CRAWL4AI_COMMAND", python_command(&fake_backend))
+        .env("AGET_CRAWL4AI_COMMAND", &fake_backend)
         .args([
             "--json",
             "get",
@@ -114,7 +115,7 @@ fn mock_site_replays_cookie_and_storage_sessions() {
     let storage = Command::cargo_bin("aget")
         .unwrap()
         .env("AGET_HOME", &aget_home)
-        .env("AGET_CRAWL4AI_COMMAND", python_command(&fake_backend))
+        .env("AGET_CRAWL4AI_COMMAND", &fake_backend)
         .args([
             "--json",
             "get",
@@ -142,7 +143,7 @@ fn mock_site_covers_unauthenticated_expired_and_logout_states() {
     let temp = tempfile::tempdir().unwrap();
     let aget_home = temp.path().join("aget-home");
     let site = MockSite::start();
-    let fake_backend = write_mock_site_backend(temp.path());
+    let fake_backend = mock_backend_command();
     save_cookie_session(
         &aget_home,
         "expired",
@@ -155,7 +156,7 @@ fn mock_site_covers_unauthenticated_expired_and_logout_states() {
     let unauthenticated = Command::cargo_bin("aget")
         .unwrap()
         .env("AGET_HOME", &aget_home)
-        .env("AGET_CRAWL4AI_COMMAND", python_command(&fake_backend))
+        .env("AGET_CRAWL4AI_COMMAND", &fake_backend)
         .args(["--json", "get", &site.url("/protected"), "--format", "text"])
         .assert()
         .success()
@@ -176,7 +177,7 @@ fn mock_site_covers_unauthenticated_expired_and_logout_states() {
     let expired = Command::cargo_bin("aget")
         .unwrap()
         .env("AGET_HOME", &aget_home)
-        .env("AGET_CRAWL4AI_COMMAND", python_command(&fake_backend))
+        .env("AGET_CRAWL4AI_COMMAND", &fake_backend)
         .args([
             "--json",
             "get",
@@ -200,7 +201,7 @@ fn mock_site_covers_unauthenticated_expired_and_logout_states() {
     let logout = Command::cargo_bin("aget")
         .unwrap()
         .env("AGET_HOME", &aget_home)
-        .env("AGET_CRAWL4AI_COMMAND", python_command(&fake_backend))
+        .env("AGET_CRAWL4AI_COMMAND", &fake_backend)
         .args([
             "--json",
             "get",
@@ -223,11 +224,70 @@ fn mock_site_covers_unauthenticated_expired_and_logout_states() {
 }
 
 #[test]
-fn mock_site_composes_sessions_and_rejects_mixed_scope_replay() {
+fn mock_site_imported_chrome_session_can_fetch_protected_page() {
     let temp = tempfile::tempdir().unwrap();
     let aget_home = temp.path().join("aget-home");
     let site = MockSite::start();
-    let fake_backend = write_mock_site_backend(temp.path());
+    let fake_backend = mock_backend_command();
+    let fake_agent_browser = mock_agent_browser_command();
+
+    let imported = Command::cargo_bin("aget")
+        .unwrap()
+        .env("AGET_HOME", &aget_home)
+        .env("AGET_AGENT_BROWSER_COMMAND", &fake_agent_browser)
+        .args([
+            "--json",
+            "session",
+            "import",
+            "chrome",
+            "--profile",
+            "Default",
+            "--name",
+            "imported",
+            "--domain",
+            &site.host(),
+        ])
+        .assert()
+        .success()
+        .get_output()
+        .stdout
+        .clone();
+    let import_json = success_data(&imported, "session.import.chrome");
+    assert_eq!(import_json["name"], "imported");
+    assert_eq!(import_json["cookie_count"], 1);
+
+    let protected = Command::cargo_bin("aget")
+        .unwrap()
+        .env("AGET_HOME", &aget_home)
+        .env("AGET_CRAWL4AI_COMMAND", &fake_backend)
+        .args([
+            "--json",
+            "get",
+            &site.url("/protected"),
+            "--session",
+            "imported",
+            "--format",
+            "text",
+        ])
+        .assert()
+        .success()
+        .get_output()
+        .stdout
+        .clone();
+    let protected_json = success_data(&protected, "get");
+    assert!(protected_json["content"]
+        .as_str()
+        .unwrap()
+        .contains("Protected Account"));
+    assert!(site.received_cookie("/protected", "app_session", "valid-app"));
+}
+
+#[test]
+fn documents_session_compose_replay_and_scope_rejection_contract() {
+    let temp = tempfile::tempdir().unwrap();
+    let aget_home = temp.path().join("aget-home");
+    let site = MockSite::start();
+    let fake_backend = mock_backend_command();
     save_cookie_session(
         &aget_home,
         "provider",
@@ -261,7 +321,7 @@ fn mock_site_composes_sessions_and_rejects_mixed_scope_replay() {
     let composed_fetch = Command::cargo_bin("aget")
         .unwrap()
         .env("AGET_HOME", &aget_home)
-        .env("AGET_CRAWL4AI_COMMAND", python_command(&fake_backend))
+        .env("AGET_CRAWL4AI_COMMAND", &fake_backend)
         .args([
             "--json",
             "get",
@@ -289,7 +349,7 @@ fn mock_site_composes_sessions_and_rejects_mixed_scope_replay() {
     let rejected = Command::cargo_bin("aget")
         .unwrap()
         .env("AGET_HOME", &aget_home)
-        .env("AGET_CRAWL4AI_COMMAND", python_command(&fake_backend))
+        .env("AGET_CRAWL4AI_COMMAND", &fake_backend)
         .args([
             "--json",
             "get",
@@ -313,8 +373,8 @@ fn mock_site_login_bootstrap_can_fetch_protected_page_without_manual_action() {
     let temp = tempfile::tempdir().unwrap();
     let aget_home = temp.path().join("aget-home");
     let site = MockSite::start();
-    let fake_backend = write_mock_site_backend(temp.path());
-    let fake_agent_browser = write_fake_agent_browser(temp.path(), &site.host());
+    let fake_backend = mock_backend_command();
+    let fake_agent_browser = mock_agent_browser_command();
 
     Command::cargo_bin("aget")
         .unwrap()
@@ -348,7 +408,7 @@ fn mock_site_login_bootstrap_can_fetch_protected_page_without_manual_action() {
     let protected = Command::cargo_bin("aget")
         .unwrap()
         .env("AGET_HOME", &aget_home)
-        .env("AGET_CRAWL4AI_COMMAND", python_command(&fake_backend))
+        .env("AGET_CRAWL4AI_COMMAND", &fake_backend)
         .args([
             "--json",
             "get",
@@ -370,147 +430,294 @@ fn mock_site_login_bootstrap_can_fetch_protected_page_without_manual_action() {
         .contains("Protected Account"));
 }
 
-fn write_mock_site_backend(dir: &Path) -> PathBuf {
-    write_script(
-        dir,
-        "mock-site-backend",
-        r#"#!/usr/bin/env python3
-import argparse, html, json, pathlib, re, urllib.error, urllib.parse, urllib.request
+#[test]
+fn documents_public_get_json_contract_for_agents() {
+    let temp = tempfile::tempdir().unwrap();
+    let aget_home = temp.path().join("aget-home");
+    let site = MockSite::start();
+    let fake_backend = mock_backend_command();
 
-parser = argparse.ArgumentParser()
-parser.add_argument('--url', required=True)
-parser.add_argument('--state', required=True)
-parser.add_argument('--output', required=True)
-parser.add_argument('--metadata', required=True)
-parser.add_argument('--format', default='markdown')
-parser.add_argument('--selector')
-parser.add_argument('--exclude-selector')
-parser.add_argument('--wait-for')
-args, _unknown = parser.parse_known_args()
+    let result = aget(&aget_home, &fake_backend)
+        .get(site.url("/public"))
+        .format(OutputFormat::Text)
+        .selector("main")
+        .exclude_selector("nav")
+        .run()
+        .unwrap();
 
-state = json.loads(pathlib.Path(args.state).read_text(encoding='utf-8'))
-parsed = urllib.parse.urlparse(args.url)
-host = parsed.hostname or ''
-origin = f"{parsed.scheme}://{parsed.netloc}"
+    assert_eq!(result.url, site.url("/public"));
+    assert_eq!(result.final_url, site.url("/public"));
+    assert_eq!(result.format, "text");
+    assert_eq!(result.extractor, "crawl4ai");
+    assert_eq!(result.content, "Public Main Visible public article.");
+    assert!(result.sessions.is_empty());
+    assert!(!result.sensitive);
+    assert!(result.warnings.is_empty());
+    assert!(result.timing_ms.total > 0);
+    assert_eq!(result.limits.max_chars, None);
+    assert!(!result.limits.truncated);
+    assert_eq!(result.output_options.format, OutputFormat::Text);
+    assert_eq!(result.output_options.selector.as_deref(), Some("main"));
+    assert_eq!(
+        result.output_options.exclude_selector.as_deref(),
+        Some("nav")
+    );
+    assert!(result.output_options.extractor_options.is_empty());
 
-cookies = []
-for cookie in state.get('cookies', []):
-    domain = cookie.get('domain', '').strip('.').lower()
-    if host == domain or host.endswith('.' + domain):
-        cookies.append(f"{cookie.get('name')}={cookie.get('value')}")
+    let content_path = PathBuf::from(&result.artifacts.content);
+    let metadata_path = PathBuf::from(&result.artifacts.metadata);
+    assert!(content_path.starts_with(aget_home.join("runs")));
+    assert!(metadata_path.starts_with(aget_home.join("runs")));
+    assert_eq!(
+        fs::read_to_string(content_path).unwrap(),
+        "Public Main Visible public article.\n"
+    );
 
-headers = {}
-if cookies:
-    headers['Cookie'] = '; '.join(cookies)
+    let metadata: serde_json::Value =
+        serde_json::from_str(&fs::read_to_string(metadata_path).unwrap()).unwrap();
+    assert_eq!(metadata["url"], site.url("/public"));
+    assert_eq!(metadata["format"], "text");
+    assert_eq!(metadata["sensitive"], false);
+}
 
-for item in state.get('origins', []):
-    if item.get('origin') == origin:
-        for entry in item.get('localStorage', []):
-            if entry.get('name') == 'local_token':
-                headers['X-Local-Token'] = entry.get('value', '')
+#[test]
+fn documents_output_limits_out_file_and_warning_contract() {
+    let temp = tempfile::tempdir().unwrap();
+    let aget_home = temp.path().join("aget-home");
+    let site = MockSite::start();
+    let fake_backend = mock_backend_command();
+    let out_path = temp.path().join("agent-context.txt");
 
-def fetch(url, headers):
-    request = urllib.request.Request(url, headers=headers)
-    try:
-        with urllib.request.urlopen(request, timeout=5) as response:
-            return response.geturl(), response.read().decode('utf-8')
-    except urllib.error.HTTPError as error:
-        return error.geturl(), error.read().decode('utf-8')
+    let result = aget(&aget_home, &fake_backend)
+        .get(site.url("/warning"))
+        .format(OutputFormat::Text)
+        .out(&out_path)
+        .max_chars(12)
+        .run()
+        .unwrap();
 
-final_url, body = fetch(args.url, headers)
+    assert_eq!(result.warnings, vec!["mock warning"]);
+    assert_eq!(result.content, "Warning Page");
+    assert_eq!(result.artifacts.content, out_path.to_string_lossy());
+    assert_eq!(fs::read_to_string(&out_path).unwrap(), "Warning Page\n");
+    assert_eq!(result.limits.max_chars, Some(12));
+    assert!(result.limits.truncated);
+    assert_eq!(result.limits.truncated_by.as_deref(), Some("max_chars"));
+    assert!(result.limits.content_chars_before_truncation > 12);
+    assert_eq!(result.limits.content_chars_after_truncation, 12);
+}
 
-if parsed.path == '/storage-protected' and 'X-Local-Token' in headers:
-    api_url = urllib.parse.urljoin(args.url, '/storage-api')
-    _api_final_url, body = fetch(api_url, {'X-Local-Token': headers['X-Local-Token']})
-
-if args.wait_for == '#ready' and '/delayed' in parsed.path:
-    body += '<div id="ready">Delayed Ready</div>'
-
-if args.exclude_selector == 'nav':
-    body = re.sub(r'<nav\b[^>]*>.*?</nav>', '', body, flags=re.S | re.I)
-if args.selector == 'main':
-    match = re.search(r'<main\b[^>]*>(.*?)</main>', body, flags=re.S | re.I)
-    if match:
-        body = match.group(1)
-
-def textify(value):
-    value = re.sub(r'<script\b[^>]*>.*?</script>', '', value, flags=re.S | re.I)
-    value = re.sub(r'<style\b[^>]*>.*?</style>', '', value, flags=re.S | re.I)
-    value = re.sub(r'<[^>]+>', ' ', value)
-    return ' '.join(html.unescape(value).split())
-
-if args.format == 'html':
-    content = body
-elif args.format == 'json':
-    content = json.dumps({'url': final_url, 'content': textify(body)})
-else:
-    content = textify(body)
-
-pathlib.Path(args.output).write_text(content, encoding='utf-8')
-pathlib.Path(args.metadata).write_text(json.dumps({'mock_site': True, 'url': args.url}), encoding='utf-8')
-print(json.dumps({'ok': True, 'final_url': final_url, 'content': content, 'warnings': []}))
+#[test]
+fn documents_custom_site_routes_for_extraction_features() {
+    let temp = tempfile::tempdir().unwrap();
+    let aget_home = temp.path().join("aget-home");
+    let fake_backend = mock_backend_command();
+    let site = MockSite::builder()
+        .route(
+            "/guide",
+            MockResponse::html(
+                r#"
+<html>
+  <body>
+    <main>
+      <h1>Custom Guide</h1>
+      <p>Feature-specific extraction fixture.</p>
+      <aside>Remove this sidebar</aside>
+    </main>
+  </body>
+</html>
 "#,
-    )
+            )
+            .header("X-Fixture", "custom-guide"),
+        )
+        .route("/guide/latest", MockResponse::redirect("/guide"))
+        .start();
+
+    let result = aget(&aget_home, &fake_backend)
+        .get(site.url("/guide/latest"))
+        .format(OutputFormat::Text)
+        .selector("main")
+        .run()
+        .unwrap();
+
+    assert_eq!(result.final_url, site.url("/guide"));
+    assert_eq!(
+        result.content,
+        "Custom Guide Feature-specific extraction fixture. Remove this sidebar"
+    );
 }
 
-fn write_fake_agent_browser(dir: &Path, host: &str) -> PathBuf {
-    write_script(
-        dir,
-        "mock-agent-browser",
-        &format!(
-            r#"#!/usr/bin/env python3
-import json, pathlib, sys
-args = sys.argv[1:]
-if args[-2:-1] == ['open']:
-    raise SystemExit(0)
-if len(args) == 5 and args[:1] == ['--session'] and args[2:4] == ['state', 'save']:
-    state_path = pathlib.Path(args[4])
-    state = {{
-        'cookies': [
-            {{'name': 'app_session', 'value': 'valid-app', 'domain': '{host}', 'path': '/', 'httpOnly': True, 'secure': False, 'sameSite': 'Lax'}},
-        ],
-        'origins': [],
-    }}
-    state_path.write_text(json.dumps(state), encoding='utf-8')
-    raise SystemExit(0)
-if args[-1:] == ['close']:
-    raise SystemExit(0)
-print('unexpected args: ' + repr(args), file=sys.stderr)
-raise SystemExit(2)
-"#
-        ),
-    )
-}
+#[test]
+fn documents_session_lifecycle_contract_for_agents() {
+    let temp = tempfile::tempdir().unwrap();
+    let aget_home = temp.path().join("aget-home");
+    let site = MockSite::start();
+    let fake_backend = mock_backend_command();
+    let fake_agent_browser = mock_agent_browser_command();
 
-fn write_script(dir: &Path, prefix: &str, content: &str) -> PathBuf {
-    let nanos = SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .map(|duration| duration.as_nanos())
-        .unwrap_or_default();
-    let path = dir.join(format!("{prefix}-{nanos}.py"));
-    fs::write(&path, content).unwrap();
-    make_executable(&path);
-    path
-}
+    let start = Command::cargo_bin("aget")
+        .unwrap()
+        .env("AGET_HOME", &aget_home)
+        .env("AGET_AGENT_BROWSER_COMMAND", &fake_agent_browser)
+        .args([
+            "--json",
+            "session",
+            "login",
+            "start",
+            "mock-app",
+            "--url",
+            &site.https_url("/login"),
+        ])
+        .assert()
+        .success()
+        .get_output()
+        .stdout
+        .clone();
+    let start_data = success_data(&start, "session.login.start");
+    assert_eq!(start_data["state"], "login_started");
+    assert_eq!(start_data["name"], "mock-app");
+    assert_eq!(
+        start_data["allowed_domains"],
+        serde_json::json!([site.host()])
+    );
+    assert_eq!(
+        start_data["next_command"],
+        serde_json::json!(["aget", "session", "login", "finish", "mock-app"])
+    );
 
-#[cfg(unix)]
-fn make_executable(path: &Path) {
-    use std::os::unix::fs::PermissionsExt;
+    let finish = Command::cargo_bin("aget")
+        .unwrap()
+        .env("AGET_HOME", &aget_home)
+        .env("AGET_AGENT_BROWSER_COMMAND", &fake_agent_browser)
+        .args(["--json", "session", "login", "finish", "mock-app"])
+        .assert()
+        .success()
+        .get_output()
+        .stdout
+        .clone();
+    let finish_data = success_data(&finish, "session.login.finish");
+    assert_eq!(finish_data["state"], "login_finished");
+    assert_eq!(finish_data["source"], "agent_browser");
+    assert_eq!(finish_data["cookie_count"], 1);
 
-    let mut permissions = fs::metadata(path).unwrap().permissions();
-    permissions.set_mode(0o700);
-    fs::set_permissions(path, permissions).unwrap();
-}
+    let list = Command::cargo_bin("aget")
+        .unwrap()
+        .env("AGET_HOME", &aget_home)
+        .args(["--json", "session", "list"])
+        .assert()
+        .success()
+        .get_output()
+        .stdout
+        .clone();
+    let list_data = success_data(&list, "session.list");
+    assert_eq!(list_data["sessions"], serde_json::json!(["mock-app"]));
 
-#[cfg(not(unix))]
-fn make_executable(_path: &Path) {}
+    let inspect = Command::cargo_bin("aget")
+        .unwrap()
+        .env("AGET_HOME", &aget_home)
+        .args(["--json", "session", "inspect", "mock-app"])
+        .assert()
+        .success()
+        .get_output()
+        .stdout
+        .clone();
+    let inspect_data = success_data(&inspect, "session.inspect");
+    assert_eq!(inspect_data["name"], "mock-app");
+    assert_eq!(inspect_data["sensitive"], true);
+    assert_eq!(inspect_data["cookies"][0]["name"], "app_session");
+    assert_eq!(inspect_data["cookies"][0]["value"], "<redacted>");
 
-fn python_command(path: &Path) -> String {
-    format!("python3 {}", shell_quote(&path.to_string_lossy()))
+    let fetch = aget(&aget_home, &fake_backend)
+        .get(site.url("/protected"))
+        .session("mock-app")
+        .format(OutputFormat::Text)
+        .run()
+        .unwrap();
+    assert_eq!(fetch.sessions, vec!["mock-app"]);
+    assert!(fetch.sensitive);
+    assert!(fetch.content.contains("Protected Account"));
+
+    let delete = Command::cargo_bin("aget")
+        .unwrap()
+        .env("AGET_HOME", &aget_home)
+        .args(["--json", "session", "delete", "mock-app"])
+        .assert()
+        .success()
+        .get_output()
+        .stdout
+        .clone();
+    let delete_data = success_data(&delete, "session.delete");
+    assert_eq!(delete_data["deleted"], true);
+
+    let post_delete_list = Command::cargo_bin("aget")
+        .unwrap()
+        .env("AGET_HOME", &aget_home)
+        .args(["--json", "session", "list"])
+        .assert()
+        .success()
+        .get_output()
+        .stdout
+        .clone();
+    let post_delete_data = success_data(&post_delete_list, "session.list");
+    assert_eq!(post_delete_data["sessions"], serde_json::json!([]));
+
+    let post_delete_fetch = aget(&aget_home, &fake_backend)
+        .get(site.url("/protected"))
+        .session("mock-app")
+        .run()
+        .unwrap_err();
+    assert_eq!(post_delete_fetch.code(), aget::ErrorCode::IoError);
 }
 
 fn shell_quote(value: &str) -> String {
     format!("'{}'", value.replace('\'', "'\\''"))
+}
+
+fn mock_backend_command() -> String {
+    shell_quote(&mock_tool_path("aget-mock-backend").to_string_lossy())
+}
+
+fn mock_agent_browser_command() -> PathBuf {
+    mock_tool_path("aget-mock-agent-browser")
+}
+
+fn mock_tool_path(name: &str) -> PathBuf {
+    let tools = MOCK_TOOLS.get_or_init(build_mock_tools);
+    let binary = if cfg!(windows) {
+        format!("{name}.exe")
+    } else {
+        name.to_string()
+    };
+    tools.target_dir.join("debug").join(binary)
+}
+
+struct MockTools {
+    target_dir: PathBuf,
+}
+
+static MOCK_TOOLS: OnceLock<MockTools> = OnceLock::new();
+
+fn build_mock_tools() -> MockTools {
+    let root = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+    let manifest = root.join("tests/fixtures/mock-tools/Cargo.toml");
+    let target_dir = root.join("target/aget-mock-tools");
+    let status = StdCommand::new("cargo")
+        .args([
+            "build",
+            "--quiet",
+            "--manifest-path",
+            manifest.to_str().unwrap(),
+            "--target-dir",
+            target_dir.to_str().unwrap(),
+        ])
+        .status()
+        .unwrap();
+    assert!(status.success(), "failed to build mocked e2e helper tools");
+    MockTools { target_dir }
+}
+
+fn aget(home: &Path, backend: &str) -> Aget {
+    Aget::new(home).with_backend_command(backend.to_string())
 }
 
 fn success_data(output: &[u8], command: &str) -> serde_json::Value {

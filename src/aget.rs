@@ -1,0 +1,437 @@
+use std::io;
+use std::path::{Path, PathBuf};
+use std::time::Duration;
+
+use crate::cli::{ExtractorOption, OutputFormat};
+use crate::error::{AgetError, ErrorCode};
+use crate::extraction::{
+    BrowserFallbackBackend, BrowserFallbackRequest, BrowserFallbackResult,
+    CommandBrowserFallbackBackend, CommandExtractorBackend, ExtractionSessionStore,
+    ExtractorBackend, GetOptions, GetSuccess,
+};
+use crate::session::{
+    cancel_login_session as cancel_login_flow, complete_login_session, compose_session,
+    finish_login_session as finish_login_flow, import_chrome_session as import_chrome_state,
+    import_cmux_session as import_cmux_state, merge_login_session,
+    start_login_session as start_login_flow, ChromeImportOptions, CmuxImportOptions,
+    LoginCancelOptions, LoginCancelResult, LoginCompleteOptions, LoginFinishOptions,
+    LoginFinishResult, LoginStartOptions, LoginStartResult, Session, SessionStore,
+};
+
+pub type Aget = AgetWith<
+    CommandExtractorBackend,
+    FilesystemSessionStoreBackend,
+    CommandBrowserAutomationBackend,
+>;
+
+#[derive(Clone)]
+pub struct AgetWith<E, S, B> {
+    // Session storage owns persisted local auth state. It is separate from browser
+    // automation so future encrypted or test stores can reuse the same `Aget` flow.
+    session_store: S,
+    // Browser automation covers login/profile import flows. Today the adapter shells
+    // out to `agent-browser`; future implementations can satisfy this capability
+    // without changing CLI command handlers or API-style tests.
+    browser_backend: B,
+    // Pluggable URL extraction capability. The default adapter shells out to Crawl4AI,
+    // but callers should depend on the capability rather than the command transport.
+    extractor_backend: E,
+    timeout: Option<Duration>,
+}
+
+impl Aget {
+    pub fn new(home: impl Into<PathBuf>) -> Self {
+        Self {
+            session_store: FilesystemSessionStoreBackend::new(home),
+            browser_backend: CommandBrowserAutomationBackend,
+            extractor_backend: CommandExtractorBackend::new(None),
+            timeout: None,
+        }
+    }
+
+    pub fn from_env() -> io::Result<Self> {
+        let store = SessionStore::from_env()?;
+        Ok(Self::new(store.home().to_path_buf()))
+    }
+}
+
+impl<S, B> AgetWith<CommandExtractorBackend, S, B> {
+    pub fn with_backend_command(mut self, command: impl Into<String>) -> Self {
+        self.extractor_backend = CommandExtractorBackend::new(Some(command.into()));
+        self
+    }
+}
+
+impl<E, S, B> AgetWith<E, S, B> {
+    pub fn with_extractor_backend<NextE>(self, backend: NextE) -> AgetWith<NextE, S, B> {
+        AgetWith {
+            session_store: self.session_store,
+            browser_backend: self.browser_backend,
+            extractor_backend: backend,
+            timeout: self.timeout,
+        }
+    }
+
+    pub fn with_session_store_backend<NextS>(self, backend: NextS) -> AgetWith<E, NextS, B> {
+        AgetWith {
+            session_store: backend,
+            browser_backend: self.browser_backend,
+            extractor_backend: self.extractor_backend,
+            timeout: self.timeout,
+        }
+    }
+
+    pub fn with_browser_automation_backend<NextB>(self, backend: NextB) -> AgetWith<E, S, NextB> {
+        AgetWith {
+            session_store: self.session_store,
+            browser_backend: backend,
+            extractor_backend: self.extractor_backend,
+            timeout: self.timeout,
+        }
+    }
+}
+
+impl<E, S, B> AgetWith<E, S, B>
+where
+    E: ExtractorBackend + Clone,
+    S: SessionStoreBackend + Clone,
+    B: BrowserAutomationBackend + BrowserFallbackBackend + Clone,
+{
+    pub fn with_timeout(mut self, timeout: Duration) -> Self {
+        self.timeout = Some(timeout);
+        self
+    }
+
+    pub fn with_timeout_opt(mut self, timeout: Option<Duration>) -> Self {
+        self.timeout = timeout;
+        self
+    }
+
+    pub fn home(&self) -> &Path {
+        self.session_store.home()
+    }
+
+    pub fn list_sessions(&self) -> Result<Vec<String>, AgetError> {
+        self.session_store.list().map_err(io_aget_error)
+    }
+
+    pub fn load_session(&self, name: &str) -> Result<Session, AgetError> {
+        self.session_store.load(name).map_err(io_aget_error)
+    }
+
+    pub fn delete_session(&self, name: &str) -> Result<bool, AgetError> {
+        self.session_store.delete(name).map_err(io_aget_error)
+    }
+
+    pub fn import_cmux_session(
+        &self,
+        surface: impl Into<String>,
+        name: impl Into<String>,
+        domains: Vec<String>,
+    ) -> Result<Session, AgetError> {
+        let session = import_cmux_state(CmuxImportOptions {
+            surface: surface.into(),
+            name: name.into(),
+            domains,
+            tmp_dir: self.tmp_dir(),
+        })?;
+        self.session_store.save(&session).map_err(io_aget_error)?;
+        Ok(session)
+    }
+
+    pub fn import_chrome_session(
+        &self,
+        profile: impl Into<String>,
+        name: impl Into<String>,
+        domains: Vec<String>,
+    ) -> Result<Session, AgetError> {
+        let session = self.browser_backend.import_chrome(ChromeImportOptions {
+            profile: profile.into(),
+            name: name.into(),
+            domains,
+            tmp_dir: self.tmp_dir(),
+        })?;
+        self.session_store.save(&session).map_err(io_aget_error)?;
+        Ok(session)
+    }
+
+    pub fn compose_sessions(
+        &self,
+        name: impl Into<String>,
+        source_names: Vec<String>,
+    ) -> Result<Session, AgetError> {
+        let name = name.into();
+        validate_compose_target(&self.session_store, &name, &source_names)?;
+        let source_sessions = source_names
+            .iter()
+            .map(|source| self.session_store.load(source).map_err(io_aget_error))
+            .collect::<Result<Vec<_>, _>>()?;
+        let session = compose_session(&name, &source_sessions)?;
+        self.session_store.save(&session).map_err(io_aget_error)?;
+        Ok(session)
+    }
+
+    pub fn start_login_session(
+        &self,
+        name: impl Into<String>,
+        profile: Option<String>,
+        url: impl Into<String>,
+    ) -> Result<LoginStartResult, AgetError> {
+        self.browser_backend.start_login(LoginStartOptions {
+            name: name.into(),
+            profile,
+            url: url.into(),
+            tmp_dir: self.tmp_dir(),
+        })
+    }
+
+    pub fn finish_login_session(&self, name: impl Into<String>) -> Result<Session, AgetError> {
+        let result = self.browser_backend.finish_login(LoginFinishOptions {
+            name: name.into(),
+            tmp_dir: self.tmp_dir(),
+        })?;
+        let session = match self.session_store.load(&result.session.name) {
+            Ok(existing) => merge_login_session(existing, result.session),
+            Err(error) if error.kind() == io::ErrorKind::NotFound => result.session,
+            Err(error) => return Err(io_aget_error(error)),
+        };
+        self.session_store.save(&session).map_err(io_aget_error)?;
+        complete_login_session(LoginCompleteOptions {
+            pending: result.pending,
+            tmp_dir: self.tmp_dir(),
+        })?;
+        Ok(session)
+    }
+
+    pub fn cancel_login_session(
+        &self,
+        name: impl Into<String>,
+    ) -> Result<LoginCancelResult, AgetError> {
+        self.browser_backend.cancel_login(LoginCancelOptions {
+            name: name.into(),
+            tmp_dir: self.tmp_dir(),
+        })
+    }
+
+    pub fn get(&self, url: impl Into<String>) -> GetRequest<E, B, S> {
+        GetRequest {
+            extractor_backend: self.extractor_backend.clone(),
+            browser_fallback_backend: self.browser_backend.clone(),
+            session_store: self.session_store.clone(),
+            options: GetOptions {
+                url: url.into(),
+                sessions: Vec::new(),
+                out: None,
+                home: Some(self.session_store.home().to_path_buf()),
+                timeout: self.timeout,
+                format: OutputFormat::Markdown,
+                selector: None,
+                exclude_selector: None,
+                wait_for: None,
+                max_chars: None,
+                extractor_options: Vec::new(),
+            },
+        }
+    }
+
+    fn tmp_dir(&self) -> PathBuf {
+        self.session_store.home().join("tmp")
+    }
+}
+
+pub trait BrowserAutomationBackend {
+    // Browser-backed session capture is modeled as a capability instead of as
+    // `agent-browser` argv so callers do not couple to the current subprocess adapter.
+    fn import_chrome(&self, options: ChromeImportOptions) -> Result<Session, AgetError>;
+    fn start_login(&self, options: LoginStartOptions) -> Result<LoginStartResult, AgetError>;
+    fn finish_login(&self, options: LoginFinishOptions) -> Result<LoginFinishResult, AgetError>;
+    fn cancel_login(&self, options: LoginCancelOptions) -> Result<LoginCancelResult, AgetError>;
+}
+
+#[derive(Clone)]
+pub struct CommandBrowserAutomationBackend;
+
+impl BrowserAutomationBackend for CommandBrowserAutomationBackend {
+    fn import_chrome(&self, options: ChromeImportOptions) -> Result<Session, AgetError> {
+        import_chrome_state(options)
+    }
+
+    fn start_login(&self, options: LoginStartOptions) -> Result<LoginStartResult, AgetError> {
+        start_login_flow(options)
+    }
+
+    fn finish_login(&self, options: LoginFinishOptions) -> Result<LoginFinishResult, AgetError> {
+        finish_login_flow(options)
+    }
+
+    fn cancel_login(&self, options: LoginCancelOptions) -> Result<LoginCancelResult, AgetError> {
+        cancel_login_flow(options)
+    }
+}
+
+impl BrowserFallbackBackend for CommandBrowserAutomationBackend {
+    fn extract_with_state(
+        &self,
+        request: BrowserFallbackRequest<'_>,
+    ) -> Result<BrowserFallbackResult, AgetError> {
+        CommandBrowserFallbackBackend.extract_with_state(request)
+    }
+}
+
+pub trait SessionStoreBackend {
+    // The default implementation is filesystem-backed and local-first, but `Aget`
+    // only needs this persistence contract.
+    fn home(&self) -> &Path;
+    fn list(&self) -> io::Result<Vec<String>>;
+    fn load(&self, name: &str) -> io::Result<Session>;
+    fn save(&self, session: &Session) -> io::Result<()>;
+    fn delete(&self, name: &str) -> io::Result<bool>;
+    fn exists(&self, name: &str) -> io::Result<bool>;
+}
+
+#[derive(Clone)]
+pub struct FilesystemSessionStoreBackend {
+    home: PathBuf,
+}
+
+impl FilesystemSessionStoreBackend {
+    pub fn new(home: impl Into<PathBuf>) -> Self {
+        Self { home: home.into() }
+    }
+
+    fn store(&self) -> io::Result<SessionStore> {
+        SessionStore::new(&self.home)
+    }
+}
+
+impl SessionStoreBackend for FilesystemSessionStoreBackend {
+    fn home(&self) -> &Path {
+        &self.home
+    }
+
+    fn list(&self) -> io::Result<Vec<String>> {
+        self.store()?.list()
+    }
+
+    fn load(&self, name: &str) -> io::Result<Session> {
+        self.store()?.load(name)
+    }
+
+    fn save(&self, session: &Session) -> io::Result<()> {
+        self.store()?.save(session)
+    }
+
+    fn delete(&self, name: &str) -> io::Result<bool> {
+        self.store()?.delete(name)
+    }
+
+    fn exists(&self, name: &str) -> io::Result<bool> {
+        self.store()?.exists(name)
+    }
+}
+
+impl<T> ExtractionSessionStore for T
+where
+    T: SessionStoreBackend,
+{
+    fn home(&self) -> &Path {
+        SessionStoreBackend::home(self)
+    }
+
+    fn load(&self, name: &str) -> io::Result<Session> {
+        SessionStoreBackend::load(self, name)
+    }
+}
+
+pub struct GetRequest<E, B, S> {
+    extractor_backend: E,
+    browser_fallback_backend: B,
+    session_store: S,
+    options: GetOptions,
+}
+
+impl<E, B, S> GetRequest<E, B, S>
+where
+    E: ExtractorBackend,
+    B: BrowserFallbackBackend,
+    S: ExtractionSessionStore,
+{
+    pub fn session(mut self, name: impl Into<String>) -> Self {
+        self.options.sessions.push(name.into());
+        self
+    }
+
+    pub fn out(mut self, path: impl Into<PathBuf>) -> Self {
+        self.options.out = Some(path.into());
+        self
+    }
+
+    pub fn format(mut self, format: OutputFormat) -> Self {
+        self.options.format = format;
+        self
+    }
+
+    pub fn selector(mut self, selector: impl Into<String>) -> Self {
+        self.options.selector = Some(selector.into());
+        self
+    }
+
+    pub fn exclude_selector(mut self, exclude_selector: impl Into<String>) -> Self {
+        self.options.exclude_selector = Some(exclude_selector.into());
+        self
+    }
+
+    pub fn wait_for(mut self, wait_for: impl Into<String>) -> Self {
+        self.options.wait_for = Some(wait_for.into());
+        self
+    }
+
+    pub fn max_chars(mut self, max_chars: usize) -> Self {
+        self.options.max_chars = Some(max_chars);
+        self
+    }
+
+    pub fn extractor_option(mut self, key: impl Into<String>, value: impl Into<String>) -> Self {
+        self.options.extractor_options.push(ExtractorOption {
+            key: key.into(),
+            value: value.into(),
+        });
+        self
+    }
+
+    pub fn run(self) -> Result<GetSuccess, AgetError> {
+        crate::extraction::get_url_with_session_store(
+            self.options,
+            &self.session_store,
+            &self.extractor_backend,
+            &self.browser_fallback_backend,
+        )
+    }
+}
+
+fn validate_compose_target(
+    store: &impl SessionStoreBackend,
+    target: &str,
+    sources: &[String],
+) -> Result<(), AgetError> {
+    if sources.iter().any(|source| source == target) {
+        return Err(AgetError::Stable {
+            code: ErrorCode::UsageError,
+            message: format!("compose target '{target}' must not match a source session"),
+        });
+    }
+    if store.exists(target).map_err(io_aget_error)? {
+        return Err(AgetError::Stable {
+            code: ErrorCode::UsageError,
+            message: format!("session '{target}' already exists"),
+        });
+    }
+    Ok(())
+}
+
+fn io_aget_error(error: impl std::fmt::Display) -> AgetError {
+    AgetError::Stable {
+        code: ErrorCode::IoError,
+        message: error.to_string(),
+    }
+}

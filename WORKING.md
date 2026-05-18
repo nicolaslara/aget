@@ -79,6 +79,12 @@ When tests are added or changed:
 - Review whether mocks and fixtures still exercise the real integration boundary we care about.
 - For substantial test edits, request a test adequacy review before completion.
 
+## Code Documentation
+
+Prefer clear names first, but add short comments when a concept, boundary, or invariant is not obvious from local code. This is especially important for project vocabulary such as `backend`, `extractor`, `session`, `profile`, `artifact`, and `envelope`, where a reader may not know whether the term refers to a local process, a browser concept, or the public API.
+
+Good comments should explain why a boundary exists or what contract it protects. Avoid comments that merely repeat the code.
+
 ## Project-Level Knowledge
 
 Use workpad files for active project execution. Use project-level docs for practices and decisions that apply across workpads.

@@ -1,0 +1,16 @@
+[package]
+name = "aget-mock-tools"
+version = "0.0.0"
+edition = "2021"
+publish = false
+
+[dependencies]
+serde_json = "1.0"
+
+[[bin]]
+name = "aget-mock-backend"
+path = "../../support/bin/aget_mock_backend.rs"
+
+[[bin]]
+name = "aget-mock-agent-browser"
+path = "../../support/bin/aget_mock_agent_browser.rs"

@@ -351,6 +351,116 @@ Acceptance criteria:
 - Keep the tests opt-in when they require local browser/Playwright/Crawl4AI setup, with clear skip/ignore messaging.
 - Use these tests to validate backend integration semantics that fake-backend CLI tests can only simulate.
 
+### ✅ Task I15: Add documentation-style e2e API tests
+
+Acceptance criteria:
+
+- Add mocked-site CLI tests whose names and assertions read like API documentation for common agent workflows.
+- Add or use a production `Aget` API facade so docs-style tests can call library behavior directly instead of shelling out through the CLI.
+- Cover the public `aget get --json` envelope fields, output formats, selectors/exclusions, `--max-chars`, `--out`, artifacts, warnings, and sensitive/session metadata.
+- Cover session lifecycle commands as a user-facing API: login start/finish, list, inspect with redaction, compose, replay, delete, and post-delete failure.
+- Cover negative/privacy contracts with explicit assertions on structured error codes and no credential replay.
+- Keep tests deterministic, local-only, credential-free, and generic; do not add site-specific login/paywall assumptions.
+
+### 🚧 Task I16: Remove inline script-based test doubles
+
+Acceptance criteria:
+
+- Remove inline Python and generated ad hoc test scripts from CLI/integration tests.
+- Replace them with checked-in Rust fixture binaries, Rust mock-site routes, or declarative test fixture configs.
+- Keep tests able to define custom URLs, responses, redirects, headers, backend failures, backend timeouts, stdout/stderr noise, and agent-browser/cmux responses directly from Rust test code.
+- Preserve coverage for subprocess boundaries, environment scrubbing, redaction, timeout/descendant termination, fallback behavior, import flows, and login lifecycle.
+- Ensure test fixtures are dev-only and do not appear as product binaries or require Python.
+
+### ✅ Task I18: Introduce pluggable implementation backends behind `Aget`
+
+Acceptance criteria:
+
+- Define stable internal traits or equivalent interfaces for the capabilities `Aget` needs, separate from the current implementation choices:
+  - **Extractor backend**: fetch/render/narrow a URL into content plus metadata, artifacts, warnings, and timing.
+  - **Browser automation backend**: open login/import/fallback browser sessions, export browser state, extract page content, and close sessions.
+  - **Session store backend**: persist/list/load/delete/compose local auth/session state.
+- Move current Crawl4AI command execution behind an extractor backend adapter, not an `Aget` field named around commands.
+- Move current `agent-browser` command execution behind a browser automation backend adapter.
+- Keep the filesystem `SessionStore` as the default session-store backend, but make `Aget` depend on the store capability rather than reaching into storage directly.
+- Preserve process-boundary tests for the command-backed adapters while allowing future in-process Rust implementations to be tested without shelling out.
+- Keep the public `Aget` API stable enough that CLI and tests call capabilities, not implementation-specific commands.
+- Add comments around each backend boundary explaining what is abstracted and why the current adapter is command-backed.
+
+### 📋 Task I17: Redesign public CLI/API and README around coherent concepts
+
+Acceptance criteria:
+
+- Redesign the public CLI/API around four clear concepts:
+  - **Session/auth**: explicit local session creation, import, composition, inspection, deletion, and replay.
+  - **Extraction**: which URL is fetched and how page content is narrowed or waited for.
+  - **Parsing/content format**: how extracted page content is represented.
+  - **Presentation/envelope**: how command results are returned to a human or agent.
+- Adopt this target `get` API shape:
+
+```bash
+aget get <url> \
+  --session <session-name> \
+  --envelope json \
+  --content-format markdown \
+  --inline-content auto \
+  --output /tmp/page.md \
+  --selector main \
+  --exclude-selector nav \
+  --wait-for-selector main \
+  --max-chars 12000
+```
+
+- Use these names for the public API:
+  - `--envelope <json|none>` controls the command response presentation. `json` returns the structured agent envelope; `none` means human/default output.
+  - `--content-format <markdown|html|text|json>` controls the extracted page content format. Keep `json` as a valid content format, but document that it is page content, not the response envelope.
+  - `--inline-content <auto|always|never>` only applies when `--envelope json` is used. It controls whether extracted page content appears inline as `data.content` in the JSON envelope.
+  - `--output <path>` writes the extracted page content artifact.
+  - `--selector <css>` narrows extracted page content. Keep this name; do not rename it to `--include-selector`.
+  - `--exclude-selector <css>` removes matching content before output.
+  - `--wait-for-selector <css>` waits for a CSS selector. Do not expose generic JavaScript wait wording in the v1 public API.
+  - `--allow-domain <domain>` is the explicit import/session scope allowlist for browser-derived session material.
+  - `--chrome-profile <profile>` names a Chrome profile for Chrome import, avoiding the overloaded generic `--profile`.
+  - `--backend-option <backend.key=value>` is the advanced backend-specific escape hatch; document it as unstable PoC surface.
+- Define `--inline-content` behavior precisely:
+  - It has no effect in normal human output mode unless `--envelope json` is also selected.
+  - `auto` should inline content for non-sensitive fetches and avoid inlining session-backed/sensitive content by default.
+  - `always` explicitly includes extracted content in `data.content`, even for sensitive/session-backed fetches.
+  - `never` omits `data.content` and returns metadata plus artifact paths only.
+  - README must explain that `--inline-content` is separate from `--content-format`: content format controls what the content is; inline content controls whether it is embedded in the JSON envelope.
+- Remove or rename ambiguous current names:
+  - Replace public `--json` usage with `--envelope json`.
+  - Replace `--format` with `--content-format`.
+  - Replace `--out` with `--output`.
+  - Replace `--wait-for` with `--wait-for-selector`.
+  - Replace import `--domain` with `--allow-domain`.
+  - Replace Chrome import `--profile` with `--chrome-profile`.
+  - Replace `--extractor-option` with `--backend-option`.
+- Do not preserve pre-1.0 compatibility aliases unless they are needed temporarily to complete the change. This is still PoC, so breaking API cleanup is acceptable.
+- Add serious generated help text for every public command, argument, and flag. The `aget --help`, `aget get --help`, and session subcommand help output should explain the concepts without requiring README context.
+- Update structured output naming:
+  - Add a schema/version marker such as `schema_version: "aget.envelope.v1"`.
+  - Use `data.content_format` rather than `data.format`.
+  - Preserve stable error codes and the existing command-bearing success/error envelope shape.
+  - Ensure sensitive/session-backed structured output does not embed private page content by default.
+- Update OpenCode tool schemas and calls after the CLI names are settled:
+  - Use `--envelope json`.
+  - Expose `content_format`, `inline_content`, `output`, `selector`, `exclude_selector`, `wait_for_selector`, `sessions`, and backend options with clear descriptions.
+  - Do not expose ambient browser auth or secret inspection.
+- Rewrite README as a serious open-source-facing README:
+  - Start with the product promise: local, auth-aware URL extraction for agents.
+  - State clearly that `aget` is still a PoC.
+  - Explain that installation currently requires backend dependencies because the project is proving the workflow before bundling or rewriting those pieces.
+  - Document current runtime dependencies and their roles: Rust binary, `uv`/Crawl4AI/Playwright for extraction, `agent-browser` for login/Chrome import/fallback browser flows, and optional `cmux` for cmux import.
+  - Explain the later installation direction: either bundle dependencies or replace PoC backends once the API/workflow is validated.
+  - Present concepts in this order: sessions/auth, extraction, content format, envelope/presentation, artifacts/inline content, privacy.
+  - Show clear recipes for public fetch, JSON envelope output, saved artifacts, authenticated/session-backed fetches, login start/finish, Chrome import, and cmux import.
+  - Move internal project/workpad notes out of the main quick-start path.
+  - Add a license note and follow-up if a standalone `LICENSE` file is still missing.
+- Add or split a follow-up task for install tooling if it is too large for this pass:
+  - `aget doctor` should check the Rust binary, `uv`, Crawl4AI import, Playwright/browser setup, `agent-browser`, optional `cmux`, `AGET_HOME`, and private storage permissions.
+  - `aget setup` or another setup helper can be considered after the README/API cleanup lands.
+
 ### 📋 Task I12: Add agent integrations beyond OpenCode
 
 Acceptance criteria:

@@ -2,13 +2,9 @@ use std::ffi::OsString;
 use std::process::ExitCode;
 use std::time::Instant;
 
-use aget::session::SessionStore;
 use aget::{
-    cancel_login_session, complete_login_session, compose_session, finish_login_session, get_url,
-    import_chrome_session, import_cmux_session, merge_login_session, start_login_session,
-    ChromeImportOptions, Cli, CmuxImportOptions, Command, ErrorCode, ErrorResponse, GetOptions,
-    ImportSessionSource, LoginCancelOptions, LoginCompleteOptions, LoginFinishOptions,
-    LoginSessionSubcommand, LoginStartOptions, Session, SessionCookie, SessionSubcommand, TimingMs,
+    Aget, Cli, Command, ErrorCode, ErrorResponse, ImportSessionSource, LoginSessionSubcommand,
+    Session, SessionCookie, SessionSubcommand, TimingMs,
 };
 use clap::error::ErrorKind;
 use serde::Serialize;
@@ -82,7 +78,7 @@ fn command_name_from_args(args: &[OsString]) -> &'static str {
         };
     }
 
-    if tokens.iter().any(|token| *token == "get")
+    if tokens.contains(&"get")
         || tokens
             .iter()
             .any(|token| token.starts_with("http://") || token.starts_with("https://"))
@@ -97,19 +93,32 @@ fn run(cli: Cli) -> Result<(), ErrorResponse> {
     let structured_output = cli.global.json || cli.global.envelope;
     match cli.command {
         Command::Get(get) => (|| {
-            let success = get_url(GetOptions {
-                url: get.url,
-                sessions: get.session,
-                out: get.out,
-                timeout: cli.global.timeout,
-                format: get.format,
-                selector: get.selector,
-                exclude_selector: get.exclude_selector,
-                wait_for: get.wait_for,
-                max_chars: get.max_chars,
-                extractor_options: get.extractor_options,
-            })
-            .map_err(error_response)?;
+            let aget = Aget::from_env()
+                .map_err(io_error)?
+                .with_timeout_opt(cli.global.timeout);
+            let mut request = aget.get(get.url).format(get.format);
+            for session in get.session {
+                request = request.session(session);
+            }
+            if let Some(out) = get.out {
+                request = request.out(out);
+            }
+            if let Some(selector) = get.selector {
+                request = request.selector(selector);
+            }
+            if let Some(exclude_selector) = get.exclude_selector {
+                request = request.exclude_selector(exclude_selector);
+            }
+            if let Some(wait_for) = get.wait_for {
+                request = request.wait_for(wait_for);
+            }
+            if let Some(max_chars) = get.max_chars {
+                request = request.max_chars(max_chars);
+            }
+            for extractor_option in get.extractor_options {
+                request = request.extractor_option(extractor_option.key, extractor_option.value);
+            }
+            let success = request.run().map_err(error_response)?;
             if structured_output {
                 print_success_envelope(
                     "get",
@@ -132,11 +141,11 @@ fn run_session(command: SessionSubcommand, json: bool) -> Result<(), ErrorRespon
     let started = Instant::now();
 
     (|| {
-        let store = SessionStore::from_env().map_err(io_error)?;
+        let aget = Aget::from_env().map_err(io_error)?;
 
         match command {
         SessionSubcommand::List => {
-            let names = store.list().map_err(io_error)?;
+            let names = aget.list_sessions().map_err(error_response)?;
             if json {
                 print_success_envelope(
                     command_name,
@@ -154,7 +163,9 @@ fn run_session(command: SessionSubcommand, json: bool) -> Result<(), ErrorRespon
             Ok(())
         }
         SessionSubcommand::Inspect(inspect) => {
-            let session = store.load(&inspect.name).map_err(io_error)?;
+            let session = aget
+                .load_session(&inspect.name)
+                .map_err(error_response)?;
             let view = session_view(&session, inspect.show_secrets);
             if json {
                 print_success_envelope(
@@ -199,7 +210,9 @@ fn run_session(command: SessionSubcommand, json: bool) -> Result<(), ErrorRespon
             Ok(())
         }
         SessionSubcommand::Delete(delete) => {
-            let deleted = store.delete(&delete.name).map_err(io_error)?;
+            let deleted = aget
+                .delete_session(&delete.name)
+                .map_err(error_response)?;
             if json {
                 print_success_envelope(
                     command_name,
@@ -216,14 +229,9 @@ fn run_session(command: SessionSubcommand, json: bool) -> Result<(), ErrorRespon
         }
         SessionSubcommand::Import(import) => match import.source {
             ImportSessionSource::Cmux(cmux) => {
-                let session = import_cmux_session(CmuxImportOptions {
-                    surface: cmux.surface,
-                    name: cmux.name,
-                    domains: cmux.domain,
-                    tmp_dir: store.home().join("tmp"),
-                })
-                .map_err(error_response)?;
-                store.save(&session).map_err(io_error)?;
+                let session = aget
+                    .import_cmux_session(cmux.surface, cmux.name, cmux.domain)
+                    .map_err(error_response)?;
                 if json {
                     print_success_envelope(
                         command_name,
@@ -245,14 +253,9 @@ fn run_session(command: SessionSubcommand, json: bool) -> Result<(), ErrorRespon
                 Ok(())
             }
             ImportSessionSource::Chrome(chrome) => {
-                let session = import_chrome_session(ChromeImportOptions {
-                    profile: chrome.profile,
-                    name: chrome.name,
-                    domains: chrome.domain,
-                    tmp_dir: store.home().join("tmp"),
-                })
-                .map_err(error_response)?;
-                store.save(&session).map_err(io_error)?;
+                let session = aget
+                    .import_chrome_session(chrome.profile, chrome.name, chrome.domain)
+                    .map_err(error_response)?;
                 if json {
                     print_success_envelope(
                         command_name,
@@ -277,21 +280,17 @@ fn run_session(command: SessionSubcommand, json: bool) -> Result<(), ErrorRespon
             }
         },
         SessionSubcommand::Compose(compose) => {
-            validate_compose_target(&store, &compose.name, &compose.session)?;
-            let source_sessions = compose
-                .session
-                .iter()
-                .map(|name| store.load(name).map_err(io_error))
-                .collect::<Result<Vec<_>, _>>()?;
-            let session =
-                compose_session(&compose.name, &source_sessions).map_err(error_response)?;
-            store.save(&session).map_err(io_error)?;
+            let source_count = compose.session.len();
+            let source_sessions = compose.session.clone();
+            let session = aget
+                .compose_sessions(compose.name, compose.session)
+                .map_err(error_response)?;
             if json {
                 print_success_envelope(
                     command_name,
                     serde_json::json!({
                         "name": session.name,
-                        "source_sessions": compose.session,
+                        "source_sessions": source_sessions,
                         "cookie_count": session.cookies.len(),
                         "origin_count": session.origins.len(),
                     }),
@@ -302,7 +301,7 @@ fn run_session(command: SessionSubcommand, json: bool) -> Result<(), ErrorRespon
                 println!(
                     "Composed session {} from {} source sessions with {} cookies and {} origins",
                     session.name,
-                    compose.session.len(),
+                    source_count,
                     session.cookies.len(),
                     session.origins.len()
                 );
@@ -311,13 +310,9 @@ fn run_session(command: SessionSubcommand, json: bool) -> Result<(), ErrorRespon
         }
         SessionSubcommand::Login(login) => match login.command {
             LoginSessionSubcommand::Start(start) => {
-                let result = start_login_session(LoginStartOptions {
-                    name: start.name,
-                    profile: start.profile,
-                    url: start.url,
-                    tmp_dir: store.home().join("tmp"),
-                })
-                .map_err(error_response)?;
+                let result = aget
+                    .start_login_session(start.name, start.profile, start.url)
+                    .map_err(error_response)?;
                 if json {
                     print_success_envelope(
                         command_name,
@@ -350,22 +345,9 @@ fn run_session(command: SessionSubcommand, json: bool) -> Result<(), ErrorRespon
                 Ok(())
             }
             LoginSessionSubcommand::Finish(finish) => {
-                let result = finish_login_session(LoginFinishOptions {
-                    name: finish.name,
-                    tmp_dir: store.home().join("tmp"),
-                })
-                .map_err(error_response)?;
-                let session = match store.load(&result.session.name) {
-                    Ok(existing) => merge_login_session(existing, result.session),
-                    Err(error) if error.kind() == std::io::ErrorKind::NotFound => result.session,
-                    Err(error) => return Err(io_error(error)),
-                };
-                store.save(&session).map_err(io_error)?;
-                complete_login_session(LoginCompleteOptions {
-                    pending: result.pending,
-                    tmp_dir: store.home().join("tmp"),
-                })
-                .map_err(error_response)?;
+                let session = aget
+                    .finish_login_session(finish.name)
+                    .map_err(error_response)?;
                 if json {
                     print_success_envelope(
                         command_name,
@@ -390,11 +372,9 @@ fn run_session(command: SessionSubcommand, json: bool) -> Result<(), ErrorRespon
                 Ok(())
             }
             LoginSessionSubcommand::Cancel(cancel) => {
-                let result = cancel_login_session(LoginCancelOptions {
-                    name: cancel.name,
-                    tmp_dir: store.home().join("tmp"),
-                })
-                .map_err(error_response)?;
+                let result = aget
+                    .cancel_login_session(cancel.name)
+                    .map_err(error_response)?;
                 if json {
                     print_success_envelope(
                         command_name,
@@ -414,7 +394,7 @@ fn run_session(command: SessionSubcommand, json: bool) -> Result<(), ErrorRespon
         },
         }
     })()
-    .map_err(|error| error.with_command(command_name))
+    .map_err(|error: ErrorResponse| error.with_command(command_name))
 }
 
 fn print_success_envelope(
@@ -523,26 +503,6 @@ fn session_view(session: &Session, show_secrets: bool) -> SessionView<'_> {
             .map(|origin| origin_view(origin, show_secrets))
             .collect(),
     }
-}
-
-fn validate_compose_target(
-    store: &SessionStore,
-    target: &str,
-    sources: &[String],
-) -> Result<(), ErrorResponse> {
-    if sources.iter().any(|source| source == target) {
-        return Err(ErrorResponse::new(
-            ErrorCode::UsageError,
-            format!("compose target '{target}' must not match a source session"),
-        ));
-    }
-    if store.exists(target).map_err(io_error)? {
-        return Err(ErrorResponse::new(
-            ErrorCode::UsageError,
-            format!("session '{target}' already exists"),
-        ));
-    }
-    Ok(())
 }
 
 fn cookie_view(cookie: &SessionCookie, show_secrets: bool) -> CookieView<'_> {

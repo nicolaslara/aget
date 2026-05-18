@@ -31,6 +31,10 @@ Before doing task work:
 8. Assess confidence and use review subagents as described in `WORKING.md` when work is substantial, risky, or settling.
 9. Mark the task `✅ completed` only after acceptance criteria and required review follow-up are handled.
 
+## Code Documentation
+
+Use succinct comments when repository-specific terms or boundaries are not self-evident. Comments are especially helpful around terms like `backend`, `extractor`, `session`, `profile`, `artifact`, and `envelope`, where the code may otherwise hide whether it is talking about local processes, browser state, persisted data, or the public API.
+
 ## Git Rules
 
 - Do not commit or push without explicit user confirmation.
