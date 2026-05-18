@@ -660,6 +660,16 @@ The project has many focused fake-backend and small local-server tests, but it s
 
 The fixture should be generic and local-only: a small Rust test support server with deterministic routes such as public content, login form/callback, protected account/docs pages, localStorage-token pages, delayed JS content, redirect chains, expired-session responses, logout, and multi-host/provider-style scenarios where feasible. Tests should be able to seed sessions, inspect received cookies/headers, and assert that unrelated credentials were not replayed. This fixture should complement, not replace, lower-level fake-backend unit tests and ignored/manual real-site verification.
 
+### D41: I11 adds deterministic mocked-site CLI coverage
+
+I11 adds `tests/support/mock_site.rs` as a reusable local site fixture and `tests/mock_site_cli.rs` as the first e2e-style test suite using it. The fixture exposes generic routes for public content, protected cookie-backed content, simulated localStorage-token content, two-cookie same-site composition, redirects, delayed JavaScript-like readiness, login/callback, logout, and expired sessions. It records received requests so tests can assert which cookies and headers were replayed.
+
+The mocked-site tests still call the real `aget` binary. A fake Crawl4AI-compatible backend reads the temporary Playwright state file, replays matching cookies to the mock site, simulates a page script reading localStorage before fetching a protected API route, applies simple selector/exclusion/wait behavior, writes artifacts, and returns the normal backend JSON. A fake `agent-browser` backend lets `session login start|finish` complete without manual interaction, then the saved session is used against the protected mock page.
+
+Use this fixture for deterministic auth/session integration coverage where manual real-site tests would be flaky or require credentials. Keep small fake-backend/unit tests for narrow edge cases, and keep ignored/manual live-site checks only as local confidence tests for real external backends.
+
+Review follow-up: the fake-backend mocked-site tests now assert exclusion against in-main noise, simulate localStorage through a page-script-style API fetch, verify mixed-scope rejection does not reach the server, and exercise unauthenticated, expired, and logout states. They still do not prove real Crawl4AI/Playwright JavaScript execution semantics; Task I14 tracks an opt-in real-backend smoke test against the same local fixture.
+
 ## Open Questions
 
 - Can pure Rust browser automation provide reliable persistent profiles and CDP attach, or do we need a small Node/Playwright sidecar?

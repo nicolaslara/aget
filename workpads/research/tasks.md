@@ -330,7 +330,7 @@ Acceptance criteria:
 - Remove full agent-browser login profiles after successful login completion, not only pending metadata.
 - Run a focused security/privacy review before marking MVP implementation complete.
 
-### 📋 Task I11: Add mocked e2e site server for deterministic integration tests
+### ✅ Task I11: Add mocked e2e site server for deterministic integration tests
 
 Acceptance criteria:
 
@@ -341,6 +341,15 @@ Acceptance criteria:
 - Use the fixture in e2e-style CLI tests for `aget get`, `session login start|finish`, session compose/replay, output shaping, scope rejection, and sensitive artifact handling.
 - Keep the fixture local-only, credential-free, and generic; it must not encode real site names, paywall heuristics, or bypass behavior.
 - Document when to use this fixture versus smaller unit/fake-backend tests and ignored/manual real-site checks.
+
+### 📋 Task I14: Add real-browser mocked-site smoke tests
+
+Acceptance criteria:
+
+- Reuse the local mocked-site fixture for ignored or environment-gated tests that run through the real browser/Crawl4AI backend instead of the fake backend.
+- Cover JavaScript wait behavior and localStorage-driven page behavior against the local fixture without real credentials or external sites.
+- Keep the tests opt-in when they require local browser/Playwright/Crawl4AI setup, with clear skip/ignore messaging.
+- Use these tests to validate backend integration semantics that fake-backend CLI tests can only simulate.
 
 ### 📋 Task I12: Add agent integrations beyond OpenCode
 

@@ -231,6 +231,12 @@ git diff --check
 bash -n scripts/demo_real_cli.sh
 ```
 
+Testing layers:
+
+- Use focused unit and fake-backend tests for narrow parser, envelope, subprocess, and redaction behavior.
+- Use `tests/mock_site_cli.rs` and `tests/support/mock_site.rs` for deterministic e2e-style auth/session coverage without real credentials, real sites, or manual login.
+- Keep ignored/manual real-site checks only for confidence that local backends still work against user-authorized live pages.
+
 ## Roadmap
 
 The current MVP focuses on known-URL fetches, local browser-backed extraction, session inspection, and compact output. Future work may expand into broader crawling, tab-aware flows, and richer auth/session handling, but those are not part of the current README scope.

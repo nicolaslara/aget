@@ -85,6 +85,7 @@ Reproducibility notes for the positive auth bridge:
 | Session wrapper implementation plan | `workpads/research/session-wrapper-implementation-plan.md` | Milestone plan and test strategy for building the v1 wrapper. |
 | MVP architecture proposal | `workpads/research/knowledge.md` §MVP Architecture Proposal (R12) | Consolidated architecture gate before implementation. |
 | aget agent skill | `.cursor/skills/aget/SKILL.md` | Project-local agent-facing guide for safe `aget` fetch/auth flows, structured envelopes, explicit session login, session composition, and scoped cmux/Chrome import. |
+| Mocked e2e site fixture | `tests/support/mock_site.rs`, `tests/mock_site_cli.rs` | Local-only deterministic site and CLI e2e tests for public/protected pages, cookie and localStorage auth, redirects, delayed content, session composition, scope rejection, and login bootstrap without manual credentials. |
 
 ## Browser Automation
 
