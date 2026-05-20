@@ -18,6 +18,7 @@ use crate::session::{PlaywrightCookie, PlaywrightOrigin, PlaywrightState, Storag
 
 const CDP_READ_POLL: Duration = Duration::from_millis(100);
 const CHROME_SHUTDOWN_WAIT: Duration = Duration::from_secs(1);
+const RENDER_SETTLE_DELAY: Duration = Duration::from_millis(100);
 
 pub(crate) struct BrowserRenderRequest<'a> {
     pub(crate) tmp_dir: &'a Path,
@@ -74,6 +75,7 @@ pub(crate) fn render_page(request: BrowserRenderRequest<'_>) -> Result<RenderedP
     if let Some(selector) = request.wait_for_selector {
         client.wait_for_selector(&page.session_id, selector, request.timeout)?;
     }
+    thread::sleep(RENDER_SETTLE_DELAY);
     let final_url = client.evaluate_string(&page.session_id, "location.href", request.timeout)?;
     let html = client.evaluate_string(
         &page.session_id,

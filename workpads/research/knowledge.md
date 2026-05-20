@@ -1238,6 +1238,24 @@ Validation:
 
 Confidence: Medium-high. This closes another deterministic option-parity gap. It intentionally does not port `only_text`, `word_count_threshold`, or timing/load-control options yet.
 
+### D72: I19d renders script-bearing pages through owned CDP by default
+
+Before this slice, the owned extractor rendered through Chrome only for localStorage-backed session state or when a CSS wait selector was missing from the static HTML. That still left a major Crawl4AI parity gap: ordinary JavaScript-rendered pages without an explicit wait selector could return a static app shell successfully and never reach the owned CDP renderer.
+
+Before changing the policy, I19d inspected Crawl4AI's render timing in `references/repos/crawl4ai/crawl4ai/async_crawler_strategy.py` and `references/repos/crawl4ai/crawl4ai/async_configs.py`. Crawl4AI navigates in a browser, applies any configured `wait_for`, then waits `delay_before_return_html` before reading final HTML; the default delay is 0.1 seconds.
+
+The owned extractor now validates owned options first, performs the fast Rust HTTP fetch, and escalates to the owned CDP renderer when the static response contains executable script tags. The CDP renderer now also waits 100 ms after navigation and any CSS wait before reading `document.documentElement.outerHTML`, matching Crawl4AI's default pre-return delay at a narrow level. This keeps static pages on the fast path while covering a concrete class of client-rendered pages without requiring callers to guess a wait selector.
+
+This is still not full smart load detection. It does not wait for network idle, long async chains, virtual scrolling, image readiness, or app-specific readiness signals. Pages with scripts now require local Chrome/Chromium when using the owned backend, which is acceptable before I19f but needs to be reflected in default-runtime docs before the switch.
+
+Validation:
+
+- `cargo test --test mock_site_cli homegrown_extractor_backend_covers_static_http_parity_slice`
+- `cargo test --test mock_site_cli owned_extractor_backend_renders_scripted_page_without_wait_with_chrome -- --ignored`
+- `cargo test --test mock_site_cli owned_extractor_backend_renders_waited_javascript_page_with_chrome -- --ignored`
+
+Confidence: Medium. The local Chrome smoke proves the new no-wait script rendering path, but the readiness heuristic remains intentionally simple and should be expanded or documented before making the owned backend the default.
+
 ## Open Questions
 
 - Can pure Rust browser automation provide reliable persistent profiles and CDP attach, or do we need a small Node/Playwright sidecar?

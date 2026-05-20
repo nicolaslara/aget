@@ -788,6 +788,7 @@ fn extract_owned_static_or_rendered(
     timeout: Duration,
     fallback_selector: Option<&str>,
 ) -> Result<OwnedPageExtraction, AgetError> {
+    let owned_options = validate_owned_extraction_options(options)?;
     if !state.origins.is_empty() {
         return extract_owned_rendered_page(
             tmp_dir,
@@ -796,13 +797,35 @@ fn extract_owned_static_or_rendered(
             options,
             timeout,
             fallback_selector,
+            &owned_options,
         );
     }
 
-    match extract_owned_page(url, state, options, timeout, fallback_selector) {
+    let response = owned_fetch(url, state, timeout)?;
+    if should_render_scripted_response(&response.body) {
+        return extract_owned_rendered_page(
+            tmp_dir,
+            url,
+            state,
+            options,
+            timeout,
+            fallback_selector,
+            &owned_options,
+        );
+    }
+
+    match extract_owned_page_response(response, options, fallback_selector, &owned_options) {
         Ok(extraction) => Ok(extraction),
         Err(error) if should_retry_with_rendered_wait(&error, options) => {
-            extract_owned_rendered_page(tmp_dir, url, state, options, timeout, fallback_selector)
+            extract_owned_rendered_page(
+                tmp_dir,
+                url,
+                state,
+                options,
+                timeout,
+                fallback_selector,
+                &owned_options,
+            )
         }
         Err(error) => Err(error),
     }
@@ -815,8 +838,8 @@ fn extract_owned_rendered_page(
     options: &GetOptions,
     timeout: Duration,
     fallback_selector: Option<&str>,
+    owned_options: &OwnedExtractorOptions,
 ) -> Result<OwnedPageExtraction, AgetError> {
-    let owned_options = validate_owned_extraction_options(options)?;
     let rendered = crate::browser_cdp::render_page(crate::browser_cdp::BrowserRenderRequest {
         tmp_dir,
         url,
@@ -829,7 +852,7 @@ fn extract_owned_rendered_page(
         rendered.html,
         options,
         fallback_selector,
-        &owned_options,
+        owned_options,
     )
 }
 
@@ -857,22 +880,29 @@ struct OwnedExtractorOptions {
     target_elements: Vec<String>,
 }
 
-fn extract_owned_page(
-    url: &str,
-    state: &PlaywrightState,
+fn extract_owned_page_response(
+    response: OwnedHttpResponse,
     options: &GetOptions,
-    timeout: Duration,
     fallback_selector: Option<&str>,
+    owned_options: &OwnedExtractorOptions,
 ) -> Result<OwnedPageExtraction, AgetError> {
-    let owned_options = validate_owned_extraction_options(options)?;
-    let response = owned_fetch(url, state, timeout)?;
     extract_owned_html(
         response.final_url,
         response.body,
         options,
         fallback_selector,
-        &owned_options,
+        owned_options,
     )
+}
+
+fn should_render_scripted_response(body: &str) -> bool {
+    let document = Html::parse_document(body);
+    let Ok(selector) = Selector::parse(
+        "script[src],script:not([type]),script[type=\"text/javascript\"],script[type=\"module\"]",
+    ) else {
+        return false;
+    };
+    document.select(&selector).next().is_some()
 }
 
 fn extract_owned_html(

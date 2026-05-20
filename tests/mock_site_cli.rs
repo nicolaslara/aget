@@ -523,6 +523,45 @@ fn owned_extractor_backend_renders_waited_javascript_page_with_chrome() {
 }
 
 #[test]
+#[ignore = "requires local Chrome/Chromium; set AGET_CHROME_COMMAND if auto-discovery fails"]
+fn owned_extractor_backend_renders_scripted_page_without_wait_with_chrome() {
+    let temp = tempfile::tempdir().unwrap();
+    let aget_home = temp.path().join("aget-home");
+    let site = MockSite::builder()
+        .route(
+            "/client-rendered",
+            MockResponse::html(
+                r##"
+<html>
+  <body>
+    <main>
+      <h1>Client Shell</h1>
+      <div id="client-result">Loading</div>
+    </main>
+    <script>
+      setTimeout(() => {
+        document.querySelector("#client-result").innerHTML = "<p>Client Rendered</p>"
+      }, 25)
+    </script>
+  </body>
+</html>
+"##,
+            ),
+        )
+        .start();
+
+    let extraction = Aget::new(&aget_home)
+        .with_extractor_backend(OwnedExtractorBackend)
+        .get(site.url("/client-rendered"))
+        .content_format(OutputFormat::Text)
+        .run()
+        .unwrap();
+
+    assert_eq!(extraction.extractor, "aget-owned-extractor");
+    assert_eq!(extraction.content, "Client Shell Client Rendered");
+}
+
+#[test]
 fn mock_site_replays_cookie_and_storage_sessions() {
     let temp = tempfile::tempdir().unwrap();
     let aget_home = temp.path().join("aget-home");
