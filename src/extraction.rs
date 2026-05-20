@@ -118,8 +118,9 @@ pub struct ExtractorBackendResult {
 
 pub trait ExtractorBackend {
     // Extraction is the "URL plus session state to content" capability. The
-    // default implementation is command-backed, but the rest of the pipeline
-    // should not know whether the content came from Crawl4AI or in-process Rust.
+    // default implementation is owned Rust extraction, but the rest of the
+    // pipeline should not know whether content came from an owned or compatibility
+    // backend.
     fn name(&self) -> &'static str;
     fn extract(&self, request: ExtractorRequest<'_>) -> Result<ExtractorBackendResult, AgetError>;
 }
@@ -1809,11 +1810,14 @@ fn run_command_extractor_backend(
         ));
     }
 
-    // Current extractor backend adapter: spawn a Crawl4AI-compatible command.
-    // A future in-process Rust extractor should satisfy the same contract without shelling out.
     let command_string = command_override
         .or_else(|| env::var("AGET_CRAWL4AI_COMMAND").ok())
-        .unwrap_or_else(default_command);
+        .ok_or_else(|| AgetError::Stable {
+            code: ErrorCode::BackendUnavailable,
+            message:
+                "Crawl4AI compatibility backend requires AGET_CRAWL4AI_COMMAND or an explicit command"
+                    .to_string(),
+        })?;
     let backend_stdout_path = request.metadata_path.with_file_name("backend-stdout.json");
     let backend_stderr_path = request.metadata_path.with_file_name("backend-stderr.txt");
     let backend_stdout = create_private_file(&backend_stdout_path).map_err(io_aget_error)?;
@@ -2045,8 +2049,11 @@ fn run_agent_browser(
     args: &[&str],
     timeout: Duration,
 ) -> Result<AgentBrowserOutput, AgetError> {
-    let command =
-        env::var("AGET_AGENT_BROWSER_COMMAND").unwrap_or_else(|_| "agent-browser".to_string());
+    let command = env::var("AGET_AGENT_BROWSER_COMMAND").map_err(|_| AgetError::Stable {
+        code: ErrorCode::BackendUnavailable,
+        message: "agent-browser compatibility backend requires AGET_AGENT_BROWSER_COMMAND"
+            .to_string(),
+    })?;
     let stdout_file = TempOutputFile::new(tmp_dir, "agent-browser-stdout")?;
     let stderr_file = TempOutputFile::new(tmp_dir, "agent-browser-stderr")?;
     let stdout = create_private_file(stdout_file.path()).map_err(io_aget_error)?;
@@ -2323,14 +2330,6 @@ fn write_metadata(path: &Path, success: &GetSuccess) -> Result<(), AgetError> {
     write_private_file(path, &bytes).map_err(io_aget_error)
 }
 
-fn default_command() -> String {
-    let helper = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("scripts/crawl4ai_extract.py");
-    format!(
-        "uv run --with crawl4ai {}",
-        shell_quote(&helper.to_string_lossy())
-    )
-}
-
 fn run_id() -> String {
     let nanos = SystemTime::now()
         .duration_since(UNIX_EPOCH)
@@ -2372,10 +2371,6 @@ fn create_private_file(path: &Path) -> io::Result<File> {
     let file = options.open(path)?;
     set_private_file_permissions(path)?;
     Ok(file)
-}
-
-fn shell_quote(value: &str) -> String {
-    format!("'{}'", value.replace('\'', "'\\''"))
 }
 
 #[cfg(unix)]

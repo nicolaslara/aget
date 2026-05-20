@@ -241,7 +241,7 @@ pub struct ImportCmuxSessionCommand {
 
 #[derive(Debug, Args, PartialEq, Eq)]
 pub struct ImportChromeSessionCommand {
-    /// Chrome profile name or path to snapshot through agent-browser.
+    /// Chrome profile name or path to snapshot through local Chrome/CDP.
     #[arg(long = "chrome-profile")]
     pub chrome_profile: String,
 

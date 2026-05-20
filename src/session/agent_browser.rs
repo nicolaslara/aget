@@ -86,8 +86,11 @@ pub(crate) fn run_agent_browser(
     tmp_dir: &Path,
     args: &[&str],
 ) -> Result<AgentBrowserOutput, AgetError> {
-    let command =
-        env::var("AGET_AGENT_BROWSER_COMMAND").unwrap_or_else(|_| "agent-browser".to_string());
+    let command = env::var("AGET_AGENT_BROWSER_COMMAND").map_err(|_| AgetError::Stable {
+        code: ErrorCode::BackendUnavailable,
+        message: "agent-browser compatibility backend requires AGET_AGENT_BROWSER_COMMAND"
+            .to_string(),
+    })?;
     let stdout_file =
         TempOutputFile::new(tmp_dir, "agent-browser-stdout").map_err(io_aget_error)?;
     let stderr_file =

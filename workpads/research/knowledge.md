@@ -1296,6 +1296,34 @@ Validation:
 
 Confidence: Medium-high. This is the first default-runtime switch, but full standard validation passed and the no-command-path smoke proves the default public fetch path does not need Crawl4AI or `agent-browser` on PATH. Remaining dependency cleanup is tracked by I19g because compatibility adapters, old temp-file naming, and historical research notes still intentionally mention the PoC tools.
 
+### D75: I19g demotes command adapters by removing implicit PATH defaults
+
+After I19f made owned backends the default facade, the remaining production-shaped leak was inside the compatibility adapters themselves: constructing a command-backed extractor or browser adapter could still fall back to repo/PATH defaults (`scripts/crawl4ai_extract.py` via `uv run --with crawl4ai`, or `agent-browser`) when no explicit command was provided.
+
+I19g removes those implicit defaults. The command-backed extractor now requires either an API-provided command or `AGET_CRAWL4AI_COMMAND`. The command-backed browser/session adapter and command-backed browser fallback now require `AGET_AGENT_BROWSER_COMMAND`. This keeps fake-command and explicit developer compatibility coverage available, while preventing the old PoC wrappers from being selected accidentally.
+
+The public docs were tightened around that boundary:
+
+- README now says optional command compatibility requires `AGET_CRAWL4AI_COMMAND` or `AGET_AGENT_BROWSER_COMMAND`.
+- The project aget skill says `backend_unavailable` may refer to an explicitly configured compatibility backend.
+- The CLI help for Chrome import now describes the owned local Chrome/CDP path, not `agent-browser`.
+
+Repository hygiene check: `.gitignore` still covers `target/`, `.env*`, `references/repos/`, `.aget/`, logs, local Firecrawl output, and benchmark/private-output folders. No dependency clone, run artifact, raw browser state, or authenticated benchmark output was added in this slice. `AGET_BACKEND_COMMAND` is not present in current source.
+
+Validation:
+
+- `cargo check`
+- `cargo test --test get_cli get_noisy_backend_output_does_not_deadlock`
+- `cargo test --test get_cli`
+- `cargo test --test session_cli`
+- `cargo test --test mock_site_cli`
+- `cargo test`
+- `cargo fmt --check`
+- `git diff --check`
+- `! rg -n 'default_command|scripts/crawl4ai_extract.py|uv run --with crawl4ai|unwrap_or_else\(\|_\| "agent-browser"|AGET_BACKEND_COMMAND' src README.md .cursor/skills/aget/SKILL.md .opencode/tools/aget.ts`
+
+Confidence: High for the demotion slice. The source audit confirms the implicit command defaults are gone from live code, focused command-adapter suites still pass with explicit env configuration, and the full standard suite passes with owned defaults intact.
+
 ## Open Questions
 
 - Can pure Rust browser automation provide reliable persistent profiles and CDP attach, or do we need a small Node/Playwright sidecar?

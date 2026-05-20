@@ -475,7 +475,7 @@ Status note:
 
 - Completed with `knowledge.md` D74. `Aget::new`, `Aget::from_env`, `get_url`, and CLI fetch/session flows now default to owned extractor/browser automation backends unless explicit compatibility environment variables select command adapters. README, OpenCode tool descriptions, and the project aget skill no longer describe Crawl4AI or `agent-browser` as required default dependencies. Full standard-suite validation passed, and a no-command-path smoke passed with compatibility env vars removed and PATH restricted away from optional command tools. There is no implemented `aget doctor` command in this snapshot, so no doctor code surface required an update.
 
-### 📋 Task I19g: Remove or demote PoC dependency surfaces
+### ✅ Task I19g: Remove or demote PoC dependency surfaces
 
 Acceptance criteria:
 
@@ -483,6 +483,10 @@ Acceptance criteria:
 - Keep only deliberately supported compatibility/test hooks, with names and docs that make their non-default status clear.
 - Delete obsolete docs, recipes, or warnings that describe the PoC wrappers as required runtime dependencies.
 - Verify `.gitignore`, artifact retention, temp cleanup, and sensitive-output rules still cover the new implementation.
+
+Status note:
+
+- Completed with `knowledge.md` D75. Implicit command defaults were removed from compatibility adapters: Crawl4AI-compatible extraction now requires an API-provided command or `AGET_CRAWL4AI_COMMAND`, and `agent-browser` compatibility paths require `AGET_AGENT_BROWSER_COMMAND`. README, CLI help, and the project skill now describe these as explicit compatibility surfaces. Full `cargo test`, formatting, diff hygiene, live-source default audit, and `.gitignore` review passed.
 
 ### 📋 Task I19h: Final migration review and cleanup
 

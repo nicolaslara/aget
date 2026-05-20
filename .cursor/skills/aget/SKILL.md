@@ -132,6 +132,6 @@ If Chrome import returns `requires_user_action`, do not close the user's browser
 ## Interpreting Results
 
 - `ok: true` with login-wall-looking content is still a successful generic fetch. Decide next action from the content and user goal.
-- `backend_unavailable` means an optional local dependency or compatibility backend such as Chrome, cmux, Crawl4AI, or agent-browser is missing.
+- `backend_unavailable` means an optional local dependency or explicitly configured compatibility backend such as Chrome, cmux, Crawl4AI, or agent-browser is missing.
 - `requires_user_action` means the user must do something local, such as complete login or unlock/quit a profile.
 - For extraction tuning beyond the core flows above, inspect the project README instead of inventing flags or site-specific workarounds.

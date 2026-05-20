@@ -35,7 +35,7 @@ See [`project.md`](./project.md) for the original product goal, [`AGENTS.md`](./
 - Rust and Cargo
 - local Chrome/Chromium for JavaScript-rendered pages, Chrome import, and login flows
 - optional: `cmux` for `aget session import cmux`
-- optional compatibility: `uv`/Crawl4AI and `agent-browser` only when explicitly using command-backed adapters in development or tests
+- optional compatibility: `uv`/Crawl4AI and `agent-browser` only when explicitly using command-backed adapters in development or tests through `AGET_CRAWL4AI_COMMAND` or `AGET_AGENT_BROWSER_COMMAND`
 
 ## Quick Start
 
