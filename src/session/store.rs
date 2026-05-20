@@ -154,6 +154,10 @@ fn sweep_orphaned_tmp(tmp_dir: &Path, min_age: Duration) -> io::Result<()> {
             sweep_orphaned_owned_chrome_import_profiles(&path, min_age, now)?;
             continue;
         }
+        if file_name == "owned-login" {
+            sweep_orphaned_owned_login_profiles(tmp_dir, &path, min_age, now)?;
+            continue;
+        }
         if is_orphanable_tmp_file(file_name) && is_older_than(&path, min_age, now) {
             let _ = fs::remove_file(path);
         }
@@ -221,6 +225,33 @@ fn sweep_orphaned_owned_chrome_import_profiles(
             .and_then(|name| name.to_str())
             .unwrap_or("");
         if file_name.starts_with("aget-profile-") && is_older_than(&path, min_age, now) {
+            let _ = fs::remove_dir_all(path);
+        }
+    }
+    Ok(())
+}
+
+fn sweep_orphaned_owned_login_profiles(
+    tmp_dir: &Path,
+    dir: &Path,
+    min_age: Duration,
+    now: SystemTime,
+) -> io::Result<()> {
+    if !dir.exists() {
+        return Ok(());
+    }
+    for entry in fs::read_dir(dir)? {
+        let entry = entry?;
+        let path = entry.path();
+        let file_name = path
+            .file_name()
+            .and_then(|name| name.to_str())
+            .unwrap_or("");
+        let Some(name) = file_name.strip_prefix("aget-") else {
+            continue;
+        };
+        let pending_path = tmp_dir.join(format!("login-{name}.json"));
+        if !pending_path.exists() && is_older_than(&path, min_age, now) {
             let _ = fs::remove_dir_all(path);
         }
     }
@@ -403,6 +434,32 @@ mod tests {
         .unwrap();
 
         assert!(!profile.exists());
+        assert!(unrelated.exists());
+    }
+
+    #[test]
+    fn orphan_sweep_removes_only_unreferenced_owned_login_profiles() {
+        let temp = tempfile::tempdir().unwrap();
+        let tmp_dir = temp.path();
+        let owned_login = tmp_dir.join("owned-login");
+        let orphaned = owned_login.join("aget-orphaned");
+        let active = owned_login.join("aget-active");
+        let unrelated = owned_login.join("keep-me");
+        fs::create_dir_all(&orphaned).unwrap();
+        fs::create_dir_all(&active).unwrap();
+        fs::create_dir_all(&unrelated).unwrap();
+        fs::write(tmp_dir.join("login-active.json"), "{}").unwrap();
+
+        sweep_orphaned_owned_login_profiles(
+            tmp_dir,
+            &owned_login,
+            Duration::from_secs(0),
+            SystemTime::now() + Duration::from_secs(1),
+        )
+        .unwrap();
+
+        assert!(!orphaned.exists());
+        assert!(active.exists());
         assert!(unrelated.exists());
     }
 }

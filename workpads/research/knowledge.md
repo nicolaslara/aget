@@ -1159,6 +1159,20 @@ Validation:
 
 Confidence: Medium. The deterministic tests cover ownership boundaries, cleanup, public backend wiring, CDP payload helpers, and the ignored headed Chrome smoke test is checked in for manual/local verification. The visible real-login path itself has not been run against a user-authorized site in this slice.
 
+### D67: I19e sweeps stale owned-login profiles without deleting pending flows
+
+The D66 lifecycle introduced `tmp/owned-login/aget-<name>` profile directories for owned dedicated login sessions. Startup orphan sweeping now includes this root, but only removes an `aget-<name>` profile when the matching `tmp/login-<name>.json` pending metadata file is absent and the profile is older than the sweep threshold. This keeps active or paused user login flows intact while still cleaning stale profiles left by crashes, manual file deletion, or failed handoffs.
+
+Validation:
+
+- `cargo test session::store::tests::orphan_sweep`
+- `cargo test session::login::tests`
+- `cargo test`
+- `cargo fmt --check`
+- `git diff --check`
+
+Confidence: High for this cleanup slice. The behavior is narrow and deterministic; broader lifecycle/process parity remains covered by D66's open gaps.
+
 ## Open Questions
 
 - Can pure Rust browser automation provide reliable persistent profiles and CDP attach, or do we need a small Node/Playwright sidecar?
