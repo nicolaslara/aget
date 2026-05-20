@@ -119,17 +119,22 @@ fn aget_with_static_browser_backend_imports_chrome_session_to_custom_store() {
 }
 
 #[test]
-fn owned_browser_backend_reports_named_profile_import_gap() {
+fn owned_browser_backend_does_not_save_failed_profile_path_import() {
     let temp = tempfile::tempdir().unwrap();
     let home = temp.path().join("aget-home");
+    let missing_profile = temp.path().join("missing-profile");
 
     let error = Aget::new(&home)
         .with_browser_automation_backend(OwnedBrowserAutomationBackend)
-        .import_chrome_session("Default", "chrome", vec!["example.com".to_string()])
+        .import_chrome_session(
+            missing_profile.to_string_lossy().to_string(),
+            "chrome",
+            vec!["example.com".to_string()],
+        )
         .unwrap_err();
 
-    assert_eq!(error.code(), ErrorCode::BackendUnavailable);
-    assert!(error.to_string().contains("explicit user-data-dir paths"));
+    assert_eq!(error.code(), ErrorCode::RequiresUserAction);
+    assert!(error.to_string().contains("does not exist"));
     assert!(!home.join("sessions/chrome.json").exists());
 }
 

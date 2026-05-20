@@ -1116,6 +1116,24 @@ Validation:
 
 Confidence: Medium. The explicit profile-path slice is now owned and tested, but full `agent-browser` import parity remains open until named real-profile copy/keychain/lock behavior is ported.
 
+### D65: I19e ports named Chrome profile resolution and copy setup
+
+The next I19e Chrome-import slice ports the named-profile setup that `agent-browser --profile Default` depends on. The relevant source remains `references/repos/agent-browser/cli/src/native/cdp/chrome.rs`, especially `get_chrome_user_data_dirs`, `find_chrome_user_data_dir`, `list_chrome_profiles`, `resolve_chrome_profile`, `copy_chrome_profile`, and `copy_dir_recursive`.
+
+`OwnedBrowserAutomationBackend::import_chrome` now treats profile arguments without path separators as Chrome profile names. It finds a Chrome user-data directory with `Local State` (or `AGET_CHROME_USER_DATA_DIR` for deterministic tests), resolves the requested profile by exact directory, display name, or case-insensitive directory, copies `Local State` plus the selected profile subdirectory into a private temporary user-data-dir, skips large/cache/lock directories and files, launches Chrome with `--profile-directory=<resolved>`, exports scoped cookies/localStorage through CDP, and removes the temporary profile copy on drop. The copied-profile launch avoids the mock keychain flags so real Chrome profile imports have the same keychain shape as the upstream command adapter. Orphan sweeping now also removes stale `tmp/owned-chrome-import/aget-profile-*` copies.
+
+This still needs a real logged-in profile smoke before claiming full parity with user Chrome `Default` imports. The deterministic tests cover profile resolution, ambiguous/missing profile errors, copy exclusions, private temp directory permissions, failure-to-save behavior, and a local Chrome smoke for the `--profile-directory` CDP export path. They do not prove macOS/OS keychain cookie decryption against the user's real Chrome profile or profile-lock classification for an actively running browser.
+
+Validation:
+
+- `cargo test session::chrome`
+- `cargo test browser_cdp`
+- `cargo test session::store::tests::orphan_sweep`
+- `cargo test --test aget_api owned_browser_backend_does_not_save_failed_profile_path_import`
+- `cargo test browser_cdp::tests::owned_chrome_import_exports_cookie_and_local_storage_from_profile_directory -- --ignored` passed locally with system Chrome, proving the CDP export path works when Chrome is launched with a selected profile directory.
+
+Confidence: Medium. The named-profile setup is now owned and deterministically covered, but real-profile auth/keychain and lock/error classification remain higher-risk I19e follow-ups.
+
 ## Open Questions
 
 - Can pure Rust browser automation provide reliable persistent profiles and CDP attach, or do we need a small Node/Playwright sidecar?

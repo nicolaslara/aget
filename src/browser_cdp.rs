@@ -29,6 +29,8 @@ pub(crate) struct BrowserRenderRequest<'a> {
 
 pub(crate) struct BrowserStateExportRequest<'a> {
     pub(crate) profile_dir: &'a Path,
+    pub(crate) profile_directory: Option<&'a str>,
+    pub(crate) use_real_keychain: bool,
     pub(crate) allowed_domains: &'a [String],
     pub(crate) timeout: Duration,
 }
@@ -69,8 +71,13 @@ pub(crate) fn render_page(request: BrowserRenderRequest<'_>) -> Result<RenderedP
 pub(crate) fn export_browser_state(
     request: BrowserStateExportRequest<'_>,
 ) -> Result<PlaywrightState, AgetError> {
-    let mut chrome =
-        ChromeProcess::launch_profile(request.profile_dir, request.timeout, "owned Chrome import")?;
+    let mut chrome = ChromeProcess::launch_profile(
+        request.profile_dir,
+        request.profile_directory,
+        request.use_real_keychain,
+        request.timeout,
+        "owned Chrome import",
+    )?;
     let mut client = CdpClient::connect(&chrome.ws_url, request.timeout)?;
     let page = client.create_page(request.timeout)?;
     client.enable_page_domains(&page.session_id, request.timeout)?;
@@ -101,20 +108,31 @@ impl ChromeProcess {
         operation: &'static str,
     ) -> Result<Self, AgetError> {
         let user_data_dir = unique_profile_dir(tmp_dir)?;
-        Self::launch_with_user_data_dir(user_data_dir, true, timeout, operation)
+        Self::launch_with_user_data_dir(user_data_dir, true, None, false, timeout, operation)
     }
 
     fn launch_profile(
         user_data_dir: &Path,
+        profile_directory: Option<&str>,
+        use_real_keychain: bool,
         timeout: Duration,
         operation: &'static str,
     ) -> Result<Self, AgetError> {
-        Self::launch_with_user_data_dir(user_data_dir.to_path_buf(), false, timeout, operation)
+        Self::launch_with_user_data_dir(
+            user_data_dir.to_path_buf(),
+            false,
+            profile_directory,
+            use_real_keychain,
+            timeout,
+            operation,
+        )
     }
 
     fn launch_with_user_data_dir(
         user_data_dir: PathBuf,
         remove_user_data_dir: bool,
+        profile_directory: Option<&str>,
+        use_real_keychain: bool,
         timeout: Duration,
         operation: &'static str,
     ) -> Result<Self, AgetError> {
@@ -138,13 +156,19 @@ impl ChromeProcess {
             .arg("--disable-features=Translate")
             .arg("--headless=new")
             .arg("--enable-unsafe-swiftshader")
-            .arg("--password-store=basic")
-            .arg("--use-mock-keychain")
             .arg("--window-size=1280,720")
             .arg(format!("--user-data-dir={}", user_data_dir.display()))
             .stdin(Stdio::null())
             .stdout(Stdio::null())
             .stderr(Stdio::null());
+        if !use_real_keychain {
+            command
+                .arg("--password-store=basic")
+                .arg("--use-mock-keychain");
+        }
+        if let Some(profile_directory) = profile_directory {
+            command.arg(format!("--profile-directory={profile_directory}"));
+        }
         if cfg!(target_os = "linux") {
             command.arg("--no-sandbox").arg("--disable-dev-shm-usage");
         }
@@ -1171,10 +1195,11 @@ mod tests {
 
     #[test]
     #[ignore = "requires local Chrome/Chromium; set AGET_CHROME_COMMAND if auto-discovery fails"]
-    fn owned_chrome_import_exports_cookie_and_local_storage_from_profile() {
+    fn owned_chrome_import_exports_cookie_and_local_storage_from_profile_directory() {
         let temp = tempfile::tempdir().unwrap();
         let profile = temp.path().join("profile");
         fs::create_dir_all(&profile).unwrap();
+        let profile_directory = "Profile 1";
         let timeout = Duration::from_secs(20);
         let expires = SystemTime::now()
             .duration_since(UNIX_EPOCH)
@@ -1183,8 +1208,14 @@ mod tests {
             + 3600;
 
         {
-            let mut chrome = ChromeProcess::launch_profile(&profile, timeout, "owned Chrome test")
-                .expect("Chrome should launch for test profile");
+            let mut chrome = ChromeProcess::launch_profile(
+                &profile,
+                Some(profile_directory),
+                false,
+                timeout,
+                "owned Chrome test",
+            )
+            .expect("Chrome should launch for test profile");
             let mut client = CdpClient::connect(&chrome.ws_url, timeout).unwrap();
             let page = client.create_page(timeout).unwrap();
             client
@@ -1235,6 +1266,8 @@ mod tests {
 
         let exported = export_browser_state(BrowserStateExportRequest {
             profile_dir: &profile,
+            profile_directory: Some(profile_directory),
+            use_real_keychain: false,
             allowed_domains: &["example.com".to_string()],
             timeout,
         })

@@ -150,6 +150,10 @@ fn sweep_orphaned_tmp(tmp_dir: &Path, min_age: Duration) -> io::Result<()> {
             sweep_orphaned_owned_chrome_profiles(&path, min_age, now)?;
             continue;
         }
+        if file_name == "owned-chrome-import" {
+            sweep_orphaned_owned_chrome_import_profiles(&path, min_age, now)?;
+            continue;
+        }
         if is_orphanable_tmp_file(file_name) && is_older_than(&path, min_age, now) {
             let _ = fs::remove_file(path);
         }
@@ -195,6 +199,28 @@ fn sweep_orphaned_owned_chrome_profiles(
             .and_then(|name| name.to_str())
             .unwrap_or("");
         if file_name.starts_with("aget-chrome-") && is_older_than(&path, min_age, now) {
+            let _ = fs::remove_dir_all(path);
+        }
+    }
+    Ok(())
+}
+
+fn sweep_orphaned_owned_chrome_import_profiles(
+    dir: &Path,
+    min_age: Duration,
+    now: SystemTime,
+) -> io::Result<()> {
+    if !dir.exists() {
+        return Ok(());
+    }
+    for entry in fs::read_dir(dir)? {
+        let entry = entry?;
+        let path = entry.path();
+        let file_name = path
+            .file_name()
+            .and_then(|name| name.to_str())
+            .unwrap_or("");
+        if file_name.starts_with("aget-profile-") && is_older_than(&path, min_age, now) {
             let _ = fs::remove_dir_all(path);
         }
     }
@@ -351,6 +377,26 @@ mod tests {
 
         sweep_orphaned_owned_chrome_profiles(
             &owned_chrome,
+            Duration::from_secs(0),
+            SystemTime::now() + Duration::from_secs(1),
+        )
+        .unwrap();
+
+        assert!(!profile.exists());
+        assert!(unrelated.exists());
+    }
+
+    #[test]
+    fn orphan_sweep_removes_owned_chrome_import_profiles() {
+        let temp = tempfile::tempdir().unwrap();
+        let owned_chrome_import = temp.path().join("owned-chrome-import");
+        let profile = owned_chrome_import.join("aget-profile-123");
+        let unrelated = owned_chrome_import.join("keep-me");
+        fs::create_dir_all(&profile).unwrap();
+        fs::create_dir_all(&unrelated).unwrap();
+
+        sweep_orphaned_owned_chrome_import_profiles(
+            &owned_chrome_import,
             Duration::from_secs(0),
             SystemTime::now() + Duration::from_secs(1),
         )
