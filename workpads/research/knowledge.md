@@ -1222,7 +1222,7 @@ Validation:
 
 - `cargo test --test mock_site_cli homegrown_extractor_backend_covers_static_http_parity_slice`
 
-Confidence: Medium-high. This closes one safe backend-option parity gap with deterministic coverage. Other Crawl4AI options such as `only_text`, `word_count_threshold`, and timing/load controls remain unsupported until they have clear owned semantics.
+Confidence: Medium-high. This closes one safe backend-option parity gap with deterministic coverage. Other Crawl4AI options such as `only_text`, `word_count_threshold`, `wait_until`, `page_timeout`, `wait_for_timeout`, and `wait_for_images` remain unsupported until they have clear owned semantics.
 
 ### D71: I19d supports safe `crawl4ai.target_elements` in the owned extractor
 
@@ -1230,13 +1230,13 @@ The next safe backend-option slice ports `crawl4ai.target_elements`, again witho
 
 The owned backend now accepts `crawl4ai.target_elements` as a comma-separated CSS selector list. Selectors are parsed before fetching or rendering so invalid CSS fails early. If a normal `--selector` is also present, target selectors are evaluated inside that selected source; otherwise they are evaluated against the parsed document root. Markdown rendering now includes the selected element itself rather than only its children, so targeting a heading preserves heading syntax instead of flattening it to plain text.
 
-Unsupported backend options still fail explicitly. The owned backend now supports only `crawl4ai.excluded_tags` and `crawl4ai.target_elements` from the Crawl4AI namespace.
+Unsupported backend options still fail explicitly. At this slice, the owned backend supports `crawl4ai.excluded_tags` and `crawl4ai.target_elements` from the Crawl4AI namespace.
 
 Validation:
 
 - `cargo test --test mock_site_cli homegrown_extractor_backend_covers_static_http_parity_slice`
 
-Confidence: Medium-high. This closes another deterministic option-parity gap. It intentionally does not port `only_text`, `word_count_threshold`, or timing/load-control options yet.
+Confidence: Medium-high. This closes another deterministic option-parity gap. It intentionally does not port `only_text`, `word_count_threshold`, `wait_until`, `page_timeout`, `wait_for_timeout`, or `wait_for_images` yet.
 
 ### D72: I19d renders script-bearing pages through owned CDP by default
 
@@ -1255,6 +1255,19 @@ Validation:
 - `cargo test --test mock_site_cli owned_extractor_backend_renders_waited_javascript_page_with_chrome -- --ignored`
 
 Confidence: Medium. The local Chrome smoke proves the new no-wait script rendering path, but the readiness heuristic remains intentionally simple and should be expanded or documented before making the owned backend the default.
+
+### D73: I19d ports `crawl4ai.delay_before_return_html` to owned CDP rendering
+
+D72 hard-coded Crawl4AI's default 0.1 second pre-return delay in the owned CDP renderer. The next small parity step makes the public `crawl4ai.delay_before_return_html` backend option work on the owned backend as well. The source behavior remains `references/repos/crawl4ai/crawl4ai/async_crawler_strategy.py`, where Crawl4AI sleeps after `wait_for` and before retrieving final HTML, and `references/repos/crawl4ai/crawl4ai/async_configs.py`, where the default is 0.1 seconds.
+
+The owned extractor now parses `crawl4ai.delay_before_return_html` as a non-negative finite number of seconds, defaults to 0.1 seconds, and passes the resulting duration into `browser_cdp::render_page`. The delay is applied after navigation and any CSS wait selector, immediately before reading `document.documentElement.outerHTML`. Unsupported backend options still fail explicitly; the supported owned Crawl4AI namespace is now `excluded_tags`, `target_elements`, and `delay_before_return_html`.
+
+Validation:
+
+- `cargo test --test mock_site_cli homegrown_extractor_backend_covers_static_http_parity_slice`
+- `cargo test --test mock_site_cli owned_extractor_backend_honors_render_delay_option_with_chrome -- --ignored`
+
+Confidence: Medium-high. The option is narrow, typed, and covered by an ignored Chrome smoke with a delayed client render; broader smart readiness remains open.
 
 ## Open Questions
 

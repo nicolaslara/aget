@@ -28,6 +28,7 @@ const OWNED_BROWSER_FALLBACK: &str = "aget-owned-browser-fallback";
 const FALLBACK_EXTRACTOR: &str = "agent-browser-fallback";
 const FALLBACK_WARNING: &str = "agent-browser fallback used after Crawl4AI failed";
 const OWNED_FALLBACK_WARNING: &str = "aget-owned fallback used after primary extractor failed";
+const DEFAULT_RENDER_SETTLE_DELAY: Duration = Duration::from_millis(100);
 
 #[derive(Clone)]
 pub struct GetOptions {
@@ -845,6 +846,7 @@ fn extract_owned_rendered_page(
         url,
         state,
         wait_for_selector: options.wait_for_selector.as_deref(),
+        settle_delay: owned_options.render_settle_delay,
         timeout,
     })?;
     extract_owned_html(
@@ -874,10 +876,21 @@ struct OwnedPageExtraction {
     content: String,
 }
 
-#[derive(Debug, Default)]
+#[derive(Debug)]
 struct OwnedExtractorOptions {
     excluded_tags: Vec<String>,
     target_elements: Vec<String>,
+    render_settle_delay: Duration,
+}
+
+impl Default for OwnedExtractorOptions {
+    fn default() -> Self {
+        Self {
+            excluded_tags: Vec::new(),
+            target_elements: Vec::new(),
+            render_settle_delay: DEFAULT_RENDER_SETTLE_DELAY,
+        }
+    }
 }
 
 fn extract_owned_page_response(
@@ -983,9 +996,12 @@ fn validate_owned_extraction_options(
                     .target_elements
                     .extend(parse_owned_target_elements(&option.value)?);
             }
+            "delay_before_return_html" => {
+                owned_options.render_settle_delay = parse_owned_render_delay(&option.value)?;
+            }
             _ => {
                 return Err(extraction_failed(format!(
-                    "owned extractor does not support backend option '{}'; supported options: crawl4ai.excluded_tags, crawl4ai.target_elements",
+                    "owned extractor does not support backend option '{}'; supported options: crawl4ai.delay_before_return_html, crawl4ai.excluded_tags, crawl4ai.target_elements",
                     option.key
                 )));
             }
@@ -1031,6 +1047,20 @@ fn parse_owned_target_elements(value: &str) -> Result<Vec<String>, AgetError> {
             Ok(selector.to_string())
         })
         .collect()
+}
+
+fn parse_owned_render_delay(value: &str) -> Result<Duration, AgetError> {
+    let seconds = value.trim().parse::<f64>().map_err(|_| {
+        extraction_failed(format!(
+            "crawl4ai.delay_before_return_html expects a non-negative number of seconds, got '{value}'"
+        ))
+    })?;
+    if !seconds.is_finite() || seconds < 0.0 {
+        return Err(extraction_failed(format!(
+            "crawl4ai.delay_before_return_html expects a non-negative finite number of seconds, got '{value}'"
+        )));
+    }
+    Ok(Duration::from_secs_f64(seconds))
 }
 
 fn validate_css_only_wait(value: &str) -> Result<(), AgetError> {
