@@ -371,6 +371,18 @@ fn homegrown_extractor_backend_covers_static_http_parity_slice() {
         .unwrap();
     assert_eq!(excluded_tags.content, "Tag Filtering Kept article body.");
 
+    let target_elements = Aget::new(&aget_home)
+        .with_extractor_backend(OwnedExtractorBackend)
+        .get(site.url("/excluded-tags"))
+        .content_format(OutputFormat::Markdown)
+        .backend_option("crawl4ai.target_elements", "h1,p")
+        .run()
+        .unwrap();
+    assert_eq!(
+        target_elements.content,
+        "# Tag Filtering\n\nKept article body."
+    );
+
     let unsupported_option = Aget::new(&aget_home)
         .with_extractor_backend(OwnedExtractorBackend)
         .get(site.url("/formats"))
@@ -380,7 +392,7 @@ fn homegrown_extractor_backend_covers_static_http_parity_slice() {
     assert_eq!(unsupported_option.code(), ErrorCode::ExtractionFailed);
     assert!(unsupported_option
         .to_string()
-        .contains("supported option: crawl4ai.excluded_tags"));
+        .contains("supported options: crawl4ai.excluded_tags, crawl4ai.target_elements"));
 
     let redirect = Aget::new(&aget_home)
         .with_extractor_backend(OwnedExtractorBackend)

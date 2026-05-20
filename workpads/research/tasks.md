@@ -445,7 +445,7 @@ Acceptance criteria:
 
 Status note:
 
-- First owned extractor slices are implemented behind `ExtractorBackend` and documented in `knowledge.md` D55-D57, D59, D61-D63, and D69-D70. The owned backend now has Rust HTTP(S) transport, CSS selector parsing, structural markdown for common static HTML elements including simple tables, base-URL-aware markdown links, Chrome/CDP rendering for localStorage-backed primary extraction, CDP retry when CSS waits require rendered DOM, a conservative default main-content heuristic for text/markdown/json output, and safe support for `crawl4ai.excluded_tags`, but I19d remains in progress because broader browser-rendered JavaScript extraction and full Crawl4AI-quality markdown/readability are not yet owned.
+- First owned extractor slices are implemented behind `ExtractorBackend` and documented in `knowledge.md` D55-D57, D59, D61-D63, and D69-D71. The owned backend now has Rust HTTP(S) transport, CSS selector parsing, structural markdown for common static HTML elements including simple tables, base-URL-aware markdown links, Chrome/CDP rendering for localStorage-backed primary extraction, CDP retry when CSS waits require rendered DOM, a conservative default main-content heuristic for text/markdown/json output, and safe support for `crawl4ai.excluded_tags` and `crawl4ai.target_elements`, but I19d remains in progress because broader browser-rendered JavaScript extraction and full Crawl4AI-quality markdown/readability are not yet owned.
 
 ### 🚧 Task I19e: Port `agent-browser` session/browser features into `aget`
 

@@ -1222,7 +1222,21 @@ Validation:
 
 - `cargo test --test mock_site_cli homegrown_extractor_backend_covers_static_http_parity_slice`
 
-Confidence: Medium-high. This closes one safe backend-option parity gap with deterministic coverage. Other Crawl4AI options such as `target_elements`, `only_text`, `word_count_threshold`, and timing/load controls remain unsupported until they have clear owned semantics.
+Confidence: Medium-high. This closes one safe backend-option parity gap with deterministic coverage. Other Crawl4AI options such as `only_text`, `word_count_threshold`, and timing/load controls remain unsupported until they have clear owned semantics.
+
+### D71: I19d supports safe `crawl4ai.target_elements` in the owned extractor
+
+The next safe backend-option slice ports `crawl4ai.target_elements`, again without copying upstream code. Crawl4AI's `content_scraping_strategy.py` applies `target_elements` after optional `css_selector` narrowing by collecting matches from the current content source and serializing only those elements into cleaned HTML. This option is selector-based content narrowing, not JavaScript execution.
+
+The owned backend now accepts `crawl4ai.target_elements` as a comma-separated CSS selector list. Selectors are parsed before fetching or rendering so invalid CSS fails early. If a normal `--selector` is also present, target selectors are evaluated inside that selected source; otherwise they are evaluated against the parsed document root. Markdown rendering now includes the selected element itself rather than only its children, so targeting a heading preserves heading syntax instead of flattening it to plain text.
+
+Unsupported backend options still fail explicitly. The owned backend now supports only `crawl4ai.excluded_tags` and `crawl4ai.target_elements` from the Crawl4AI namespace.
+
+Validation:
+
+- `cargo test --test mock_site_cli homegrown_extractor_backend_covers_static_http_parity_slice`
+
+Confidence: Medium-high. This closes another deterministic option-parity gap. It intentionally does not port `only_text`, `word_count_threshold`, or timing/load-control options yet.
 
 ## Open Questions
 

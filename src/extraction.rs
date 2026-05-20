@@ -854,6 +854,7 @@ struct OwnedPageExtraction {
 #[derive(Debug, Default)]
 struct OwnedExtractorOptions {
     excluded_tags: Vec<String>,
+    target_elements: Vec<String>,
 }
 
 fn extract_owned_page(
@@ -906,7 +907,13 @@ fn extract_owned_html(
     let prefer_main_content = selector.is_none()
         && options.wait_for_selector.is_none()
         && options.content_format != OutputFormat::Html;
-    let extracted = extract_owned_content(&document, selector, &base_url, prefer_main_content)?;
+    let extracted = extract_owned_content(
+        &document,
+        selector,
+        &base_url,
+        prefer_main_content,
+        owned_options,
+    )?;
     let content = match options.content_format {
         OutputFormat::Html => extracted.html,
         OutputFormat::Json => serde_json::json!({
@@ -941,9 +948,14 @@ fn validate_owned_extraction_options(
                     .excluded_tags
                     .extend(parse_owned_excluded_tags(&option.value)?);
             }
+            "target_elements" => {
+                owned_options
+                    .target_elements
+                    .extend(parse_owned_target_elements(&option.value)?);
+            }
             _ => {
                 return Err(extraction_failed(format!(
-                    "owned extractor does not support backend option '{}'; supported option: crawl4ai.excluded_tags",
+                    "owned extractor does not support backend option '{}'; supported options: crawl4ai.excluded_tags, crawl4ai.target_elements",
                     option.key
                 )));
             }
@@ -977,6 +989,18 @@ fn is_html_tag_name(value: &str) -> bool {
         && value
             .chars()
             .all(|character| character.is_ascii_alphanumeric() || character == '-')
+}
+
+fn parse_owned_target_elements(value: &str) -> Result<Vec<String>, AgetError> {
+    value
+        .split(',')
+        .map(str::trim)
+        .filter(|selector| !selector.is_empty())
+        .map(|selector| {
+            parse_css_selector(selector)?;
+            Ok(selector.to_string())
+        })
+        .collect()
 }
 
 fn validate_css_only_wait(value: &str) -> Result<(), AgetError> {
@@ -1097,30 +1121,67 @@ fn extract_owned_content(
     selector: Option<&str>,
     base_url: &str,
     prefer_main_content: bool,
+    owned_options: &OwnedExtractorOptions,
 ) -> Result<ExtractedOwnedContent, AgetError> {
-    if let Some(raw_selector) = selector {
+    let root = if let Some(raw_selector) = selector {
         let selector = parse_css_selector(raw_selector)?;
-        let element = document.select(&selector).next().ok_or_else(|| {
+        document.select(&selector).next().ok_or_else(|| {
             extraction_failed(format!(
                 "selector '{raw_selector}' was not found by owned extractor"
             ))
-        })?;
-        return Ok(ExtractedOwnedContent {
-            html: element.inner_html(),
-            markdown: element_to_markdown(element, base_url),
-            text: normalize_text_pieces(element.text()),
-        });
-    }
-
-    let root = if prefer_main_content {
+        })?
+    } else if !owned_options.target_elements.is_empty() {
+        document.root_element()
+    } else if prefer_main_content {
         default_main_content_element(document)?
     } else {
         document.root_element()
     };
+
+    if owned_options.target_elements.is_empty() {
+        return Ok(extract_single_owned_element(root, base_url));
+    }
+    extract_target_owned_elements(root, &owned_options.target_elements, base_url)
+}
+
+fn extract_single_owned_element(element: ElementRef<'_>, base_url: &str) -> ExtractedOwnedContent {
+    ExtractedOwnedContent {
+        html: element.inner_html(),
+        markdown: element_to_markdown(element, base_url),
+        text: normalize_text_pieces(element.text()),
+    }
+}
+
+fn extract_target_owned_elements(
+    source: ElementRef<'_>,
+    raw_selectors: &[String],
+    base_url: &str,
+) -> Result<ExtractedOwnedContent, AgetError> {
+    let mut elements = Vec::new();
+    for raw_selector in raw_selectors {
+        let selector = parse_css_selector(raw_selector)?;
+        elements.extend(source.select(&selector));
+    }
+
+    let html = elements
+        .iter()
+        .map(|element| element.inner_html())
+        .collect::<Vec<_>>()
+        .join("\n");
+    let markdown = normalize_markdown(
+        &elements
+            .iter()
+            .map(|element| element_to_markdown(*element, base_url))
+            .filter(|markdown| !markdown.is_empty())
+            .collect::<Vec<_>>()
+            .join("\n\n"),
+    );
+    let text = normalize_text_pieces(elements.iter().flat_map(|element| element.text()));
+
     Ok(ExtractedOwnedContent {
-        html: root.inner_html(),
-        markdown: element_to_markdown(root, base_url),
-        text: normalize_text_pieces(root.text()),
+        html,
+        markdown,
+        text,
     })
 }
 
@@ -1212,7 +1273,7 @@ fn normalize_text_pieces<'a>(pieces: impl IntoIterator<Item = &'a str>) -> Strin
 
 fn element_to_markdown(element: ElementRef<'_>, base_url: &str) -> String {
     let mut writer = MarkdownWriter::new(base_url);
-    render_children(*element, &mut writer);
+    render_node(*element, &mut writer);
     normalize_markdown(&writer.output)
 }
 
