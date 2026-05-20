@@ -848,6 +848,8 @@ fn extract_owned_rendered_page(
         state,
         wait_for_selector: options.wait_for_selector.as_deref(),
         settle_delay: owned_options.render_settle_delay,
+        page_timeout: owned_options.page_timeout.unwrap_or(timeout),
+        wait_for_timeout: owned_options.wait_for_timeout,
         timeout,
     })?;
     extract_owned_html(
@@ -883,6 +885,8 @@ struct OwnedExtractorOptions {
     target_elements: Vec<String>,
     only_text: bool,
     render_settle_delay: Duration,
+    page_timeout: Option<Duration>,
+    wait_for_timeout: Option<Duration>,
 }
 
 impl Default for OwnedExtractorOptions {
@@ -892,6 +896,8 @@ impl Default for OwnedExtractorOptions {
             target_elements: Vec::new(),
             only_text: false,
             render_settle_delay: DEFAULT_RENDER_SETTLE_DELAY,
+            page_timeout: None,
+            wait_for_timeout: None,
         }
     }
 }
@@ -1005,9 +1011,21 @@ fn validate_owned_extraction_options(
             "delay_before_return_html" => {
                 owned_options.render_settle_delay = parse_owned_render_delay(&option.value)?;
             }
+            "page_timeout" => {
+                owned_options.page_timeout = Some(parse_owned_milliseconds(
+                    "crawl4ai.page_timeout",
+                    &option.value,
+                )?);
+            }
+            "wait_for_timeout" => {
+                owned_options.wait_for_timeout = Some(parse_owned_milliseconds(
+                    "crawl4ai.wait_for_timeout",
+                    &option.value,
+                )?);
+            }
             _ => {
                 return Err(extraction_failed(format!(
-                    "owned extractor does not support backend option '{}'; supported options: crawl4ai.delay_before_return_html, crawl4ai.excluded_tags, crawl4ai.only_text, crawl4ai.target_elements",
+                    "owned extractor does not support backend option '{}'; supported options: crawl4ai.delay_before_return_html, crawl4ai.excluded_tags, crawl4ai.only_text, crawl4ai.page_timeout, crawl4ai.target_elements, crawl4ai.wait_for_timeout",
                     option.key
                 )));
             }
@@ -1077,6 +1095,15 @@ fn parse_owned_bool(name: &str, value: &str) -> Result<bool, AgetError> {
             "{name} expects a boolean value, got '{value}'"
         ))),
     }
+}
+
+fn parse_owned_milliseconds(name: &str, value: &str) -> Result<Duration, AgetError> {
+    let milliseconds = value.trim().parse::<u64>().map_err(|_| {
+        extraction_failed(format!(
+            "{name} expects a non-negative integer number of milliseconds, got '{value}'"
+        ))
+    })?;
+    Ok(Duration::from_millis(milliseconds))
 }
 
 fn validate_css_only_wait(value: &str) -> Result<(), AgetError> {

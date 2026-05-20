@@ -25,6 +25,8 @@ pub(crate) struct BrowserRenderRequest<'a> {
     pub(crate) state: &'a PlaywrightState,
     pub(crate) wait_for_selector: Option<&'a str>,
     pub(crate) settle_delay: Duration,
+    pub(crate) page_timeout: Duration,
+    pub(crate) wait_for_timeout: Option<Duration>,
     pub(crate) timeout: Duration,
 }
 
@@ -68,21 +70,26 @@ pub(crate) fn render_page(request: BrowserRenderRequest<'_>) -> Result<RenderedP
     let mut chrome =
         ChromeProcess::launch_temp(request.tmp_dir, request.timeout, "owned browser fallback")?;
     let mut client = CdpClient::connect(&chrome.ws_url, request.timeout)?;
-    let page = client.create_page(request.timeout)?;
-    client.enable_page_domains(&page.session_id, request.timeout)?;
-    client.load_state(&page.session_id, request.state, request.timeout)?;
-    client.navigate_and_wait(&page.session_id, request.url, request.timeout)?;
+    let page = client.create_page(request.page_timeout)?;
+    client.enable_page_domains(&page.session_id, request.page_timeout)?;
+    client.load_state(&page.session_id, request.state, request.page_timeout)?;
+    client.navigate_and_wait(&page.session_id, request.url, request.page_timeout)?;
     if let Some(selector) = request.wait_for_selector {
-        client.wait_for_selector(&page.session_id, selector, request.timeout)?;
+        client.wait_for_selector(
+            &page.session_id,
+            selector,
+            request.wait_for_timeout.unwrap_or(request.page_timeout),
+        )?;
     }
     if !request.settle_delay.is_zero() {
         thread::sleep(request.settle_delay);
     }
-    let final_url = client.evaluate_string(&page.session_id, "location.href", request.timeout)?;
+    let final_url =
+        client.evaluate_string(&page.session_id, "location.href", request.page_timeout)?;
     let html = client.evaluate_string(
         &page.session_id,
         "document.documentElement.outerHTML || ''",
-        request.timeout,
+        request.page_timeout,
     )?;
     let _ = client.send(
         "Target.closeTarget",
