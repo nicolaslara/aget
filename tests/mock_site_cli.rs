@@ -5,7 +5,10 @@ use std::path::{Path, PathBuf};
 use std::process::Command as StdCommand;
 use std::sync::OnceLock;
 
-use aget::{Aget, OutputFormat, Session, SessionCookie, SessionOrigin, SessionStore, StorageEntry};
+use aget::{
+    Aget, ErrorCode, OutputFormat, OwnedExtractorBackend, Session, SessionCookie, SessionOrigin,
+    SessionStore, StorageEntry,
+};
 use assert_cmd::Command;
 use support::mock_site::{MockResponse, MockSite};
 
@@ -74,6 +77,182 @@ fn mock_site_fetch_handles_redirect_output_shaping_and_waits() {
         .as_str()
         .unwrap()
         .contains("Delayed Ready"));
+}
+
+#[test]
+fn backend_parity_covers_extractor_content_formats() {
+    let temp = tempfile::tempdir().unwrap();
+    let aget_home = temp.path().join("aget-home");
+    let fake_backend = mock_backend_command();
+    let site = MockSite::builder()
+        .route(
+            "/formats",
+            MockResponse::html(
+                r#"
+<html>
+  <body>
+    <main>
+      <h1>Format Heading</h1>
+      <p>Format body text.</p>
+    </main>
+  </body>
+</html>
+"#,
+            ),
+        )
+        .start();
+
+    let markdown = aget(&aget_home, &fake_backend)
+        .get(site.url("/formats"))
+        .content_format(OutputFormat::Markdown)
+        .run()
+        .unwrap();
+    assert_eq!(markdown.content_format, "markdown");
+    assert!(markdown.content.contains("Format Heading"));
+    assert!(markdown.content.contains("Format body text."));
+
+    let text = aget(&aget_home, &fake_backend)
+        .get(site.url("/formats"))
+        .content_format(OutputFormat::Text)
+        .run()
+        .unwrap();
+    assert_eq!(text.content_format, "text");
+    assert_eq!(text.content, "Format Heading Format body text.");
+
+    let html = aget(&aget_home, &fake_backend)
+        .get(site.url("/formats"))
+        .content_format(OutputFormat::Html)
+        .run()
+        .unwrap();
+    assert_eq!(html.content_format, "html");
+    assert!(html.content.contains("<main>"));
+    assert!(html.content.contains("<h1>Format Heading</h1>"));
+
+    let json = aget(&aget_home, &fake_backend)
+        .get(site.url("/formats"))
+        .content_format(OutputFormat::Json)
+        .exclude_selector("p.ad")
+        .run()
+        .unwrap();
+    assert_eq!(json.content_format, "json");
+    let parsed: serde_json::Value = serde_json::from_str(&json.content).unwrap();
+    assert_eq!(parsed["url"], site.url("/formats"));
+    assert_eq!(parsed["content"], "Format Heading Format body text.");
+}
+
+#[test]
+fn homegrown_extractor_backend_covers_static_http_parity_slice() {
+    let temp = tempfile::tempdir().unwrap();
+    let aget_home = temp.path().join("aget-home");
+    let site = MockSite::builder()
+        .route(
+            "/formats",
+            MockResponse::html(
+                r#"
+<html>
+  <body>
+    <main class="article">
+      <h1>Format Heading</h1>
+      <p>Format body text.</p>
+      <p class="ad">Promotional aside.</p>
+    </main>
+  </body>
+</html>
+"#,
+            ),
+        )
+        .route(
+            "/wait-ready",
+            MockResponse::html(
+                r#"<html><body><main><div id="ready">Ready Now</div></main></body></html>"#,
+            ),
+        )
+        .start();
+    save_cookie_session(&aget_home, "app", &site.host(), "app_session", "valid-app");
+
+    let public = Aget::new(&aget_home)
+        .with_extractor_backend(OwnedExtractorBackend)
+        .get(site.url("/public"))
+        .content_format(OutputFormat::Text)
+        .selector("#content")
+        .exclude_selector("nav")
+        .run()
+        .unwrap();
+    assert_eq!(public.extractor, "aget-owned-extractor");
+    assert_eq!(public.content, "Public Main Visible public article.");
+
+    let protected = Aget::new(&aget_home)
+        .with_extractor_backend(OwnedExtractorBackend)
+        .get(site.url("/protected"))
+        .session("app")
+        .content_format(OutputFormat::Text)
+        .run()
+        .unwrap();
+    assert!(protected.content.contains("Protected Account"));
+    assert!(site.received_cookie("/protected", "app_session", "valid-app"));
+
+    let text = Aget::new(&aget_home)
+        .with_extractor_backend(OwnedExtractorBackend)
+        .get(site.url("/formats"))
+        .content_format(OutputFormat::Text)
+        .selector("main.article")
+        .exclude_selector("p.ad")
+        .run()
+        .unwrap();
+    assert_eq!(text.content, "Format Heading Format body text.");
+
+    let child_selector = Aget::new(&aget_home)
+        .with_extractor_backend(OwnedExtractorBackend)
+        .get(site.url("/formats"))
+        .content_format(OutputFormat::Text)
+        .selector("main.article > p:not(.ad)")
+        .run()
+        .unwrap();
+    assert_eq!(child_selector.content, "Format body text.");
+
+    let html = Aget::new(&aget_home)
+        .with_extractor_backend(OwnedExtractorBackend)
+        .get(site.url("/formats"))
+        .content_format(OutputFormat::Html)
+        .run()
+        .unwrap();
+    assert!(html.content.contains("<main class=\"article\">"));
+
+    let json = Aget::new(&aget_home)
+        .with_extractor_backend(OwnedExtractorBackend)
+        .get(site.url("/formats"))
+        .content_format(OutputFormat::Json)
+        .exclude_selector("p.ad")
+        .run()
+        .unwrap();
+    let parsed: serde_json::Value = serde_json::from_str(&json.content).unwrap();
+    assert_eq!(parsed["url"], site.url("/formats"));
+    assert_eq!(parsed["content"], "Format Heading Format body text.");
+
+    let redirect = Aget::new(&aget_home)
+        .with_extractor_backend(OwnedExtractorBackend)
+        .get(site.url("/redirect"))
+        .content_format(OutputFormat::Text)
+        .run()
+        .unwrap();
+    assert_eq!(redirect.final_url, site.url("/public"));
+
+    let waited = Aget::new(&aget_home)
+        .with_extractor_backend(OwnedExtractorBackend)
+        .get(site.url("/wait-ready"))
+        .content_format(OutputFormat::Text)
+        .wait_for_selector("body main #ready")
+        .run()
+        .unwrap();
+    assert_eq!(waited.content, "Ready Now");
+
+    let js_wait = Aget::new(&aget_home)
+        .with_extractor_backend(OwnedExtractorBackend)
+        .get(site.url("/wait-ready"))
+        .wait_for_selector("js:() => true")
+        .run()
+        .unwrap_err();
+    assert_eq!(js_wait.code(), ErrorCode::ExtractionFailed);
 }
 
 #[test]

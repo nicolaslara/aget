@@ -387,27 +387,106 @@ Acceptance criteria:
 - Keep the public `Aget` API stable enough that CLI and tests call capabilities, not implementation-specific commands.
 - Add comments around each backend boundary explaining what is abstracted and why the current adapter is command-backed.
 
-### 📋 Task I19: Replace PoC command backends with homegrown implementations
+### 🚧 Task I19: Migrate PoC external backends into `aget`-owned implementations
 
 Acceptance criteria:
 
-- Build homegrown implementations behind the existing static backend interfaces rather than changing the public CLI/API first.
-- Replace the current Crawl4AI-compatible extractor command adapter with an in-process extraction backend that preserves the behavior `aget` uses today:
-  - Fetch/render one URL using an explicit Playwright-compatible session state input or an equivalent internal session representation.
-  - Produce markdown by default and preserve `html`, `text`, and `json` content-format behavior.
-  - Support CSS `selector`, `exclude_selector`, CSS-only `wait_for`, `max_chars` finalization, warnings, final URL, artifacts, metadata, and stable failure reporting.
-  - Preserve the current safety rule that JavaScript wait/extractor options are not executed from user input in authenticated contexts.
-- Replace the current `agent-browser` command adapter with homegrown browser/session automation that preserves the behavior `aget` uses today:
-  - Start a dedicated login profile/session at a URL.
-  - Export cookies/localStorage into `aget` session records for login finish and Chrome/profile import.
-  - Load composed session state into a temporary browser profile for authenticated fallback extraction.
-  - Extract body HTML/text for fallback output and close/cleanup sessions and temp profiles.
-  - Preserve profile-lock/login-needed/user-action classification, timeouts, temp-file cleanup, and local-only handling of auth state.
-- Keep the command-backed adapters available behind tests or feature flags until the homegrown replacements pass equivalent e2e coverage.
-- Add e2e tests using the existing `MockSite` fixture that prove public fetch, authenticated replay, login finish, import, fallback extraction, output formats, selectors/exclusions, and waits work without Crawl4AI or `agent-browser`.
-- Record any dependency choices and license implications before adding browser automation or markdown/readability crates.
+- Do the migration on branch `dep-migration-homegrown-backends` unless the user redirects.
+- Complete the I19a-I19h migration tasks below as separately reviewable phases.
+- Preserve the current CLI/API and `Aget` backend interfaces while replacing internals; any public API changes must be separately justified and documented.
+- Keep command-backed Crawl4AI and `agent-browser` adapters available until the homegrown replacements pass parity tests for every feature `aget` currently depends on.
+- Before porting each entrypoint or feature, inspect the original Crawl4AI or `agent-browser` implementation in the local dependency clone and record the relevant paths/commits in `references.md` or `knowledge.md`.
+- Do not copy incompatible code or tests. Record license implications before reusing code or adapting upstream tests.
+- Verify the final state with tests that do not require Crawl4AI or `agent-browser` to be installed for the default path.
 
-### 📋 Task I20: Design OAuth-safe browser login and profile import flow
+Status note:
+
+- Task split started on `dep-migration-homegrown-backends`. No porting should begin until I19a-I19c establish source references, backend boundaries, and parity tests.
+
+### ✅ Task I19a: Stage dependency source clones and migration inventory
+
+Acceptance criteria:
+
+- Ensure gitignored local clones exist at `references/repos/crawl4ai` and `references/repos/agent-browser`.
+- Record each clone's remote URL, checked-out commit, license, and relevant source/test entrypoints in `references.md`.
+- Inventory the current `aget` features that depend on Crawl4AI and `agent-browser`, including source files, scripts, tests, command-line contracts, and environment overrides.
+- Record the migration inventory and first-pass risk notes in `knowledge.md`.
+- Confirm `references/repos/` remains ignored and no dependency source files are tracked.
+
+### ✅ Task I19b: Audit and tighten backend abstractions for replacement
+
+Acceptance criteria:
+
+- Review the existing extractor, browser automation, and session-store backend interfaces against the I19a inventory.
+- Add or adjust internal abstractions only where the current interfaces leak command/process details or cannot support a homegrown backend.
+- Keep command-backed adapters as one implementation behind the same interfaces.
+- Add API-level tests proving a non-command extractor and non-command browser backend can be swapped in without shelling out.
+- Document any abstraction gaps that are deferred rather than silently working around them.
+
+### ✅ Task I19c: Build dependency parity tests before porting
+
+Acceptance criteria:
+
+- Define the behavior matrix for the Crawl4AI features `aget` uses: public fetch, authenticated replay, markdown/html/text/json output, selectors, exclusions, CSS-only waits, truncation metadata, final URL, warnings, artifacts, malformed output, and timeout/error mapping.
+- Define the behavior matrix for the `agent-browser` features `aget` uses: login start/finish/cancel, Chrome/profile import, state export parsing, profile lock/no-auth classification, fallback extraction, session close, timeout handling, temp cleanup, and redaction of backend logs.
+- Reuse upstream tests only after license review; otherwise adapt small cases or generate expected behavior by running the dependency through existing command adapters.
+- Add deterministic parity tests around `MockSite` and checked-in mock tools that can run without network credentials.
+- Add optional ignored/manual parity checks for the real dependencies and record their commands.
+
+### 🚧 Task I19d: Port Crawl4AI-backed extraction features into `aget`
+
+Acceptance criteria:
+
+- Inspect the original Crawl4AI implementation for each extraction entrypoint before porting the corresponding `aget` behavior.
+- Implement an `aget`-owned extraction backend behind the existing extractor interface.
+- Preserve the current behavior used by `aget`: one-URL rendered fetch, explicit session-state input, markdown default, html/text/json content formats, selectors, exclusions, CSS-only waits, truncation/finalization, artifacts, warnings, final URL, and stable failure reporting.
+- Preserve the authenticated safety rule that JavaScript waits or extractor options are not executed from user input.
+- Pass the I19c Crawl4AI parity tests with the homegrown backend and keep command-adapter tests as compatibility coverage.
+
+Status note:
+
+- First owned extractor slices are implemented behind `ExtractorBackend` and documented in `knowledge.md` D55-D56. The owned backend now has Rust HTTP(S) transport and CSS selector parsing, but I19d remains in progress because browser-rendered JavaScript extraction, localStorage-backed replay, and Crawl4AI-quality markdown/readability are not yet owned.
+
+### 📋 Task I19e: Port `agent-browser` session/browser features into `aget`
+
+Acceptance criteria:
+
+- Inspect the original `agent-browser` implementation for each browser/session entrypoint before porting the corresponding `aget` behavior.
+- Implement an `aget`-owned browser automation backend behind the existing browser backend interfaces.
+- Preserve the current behavior used by `aget`: dedicated login profile/session startup, login finish state export, Chrome/profile import, composed session loading for fallback extraction, body HTML/text fallback output, session close, timeout handling, temp cleanup, and local-only handling of auth state.
+- Preserve profile-lock, no-auth-state, login-needed, and `requires_user_action` classification.
+- Pass the I19c `agent-browser` parity tests with the homegrown backend and keep command-adapter tests as compatibility coverage.
+
+### 📋 Task I19f: Switch default runtime path to homegrown backends
+
+Acceptance criteria:
+
+- Make the homegrown extractor and browser automation backends the default `aget` runtime path.
+- Keep external command adapters behind tests, feature flags, or explicit compatibility configuration until removal is safe.
+- Ensure the standard test suite passes with Crawl4AI and `agent-browser` absent from PATH.
+- Update `aget doctor`, README, OpenCode tool descriptions, and the agent skill so current installation guidance no longer treats Crawl4AI or `agent-browser` as required default dependencies.
+- Record any remaining optional/developer dependency use clearly.
+
+### 📋 Task I19g: Remove or demote PoC dependency surfaces
+
+Acceptance criteria:
+
+- Remove production-only assumptions around `scripts/crawl4ai_extract.py`, Crawl4AI command configuration, and `AGET_AGENT_BROWSER_COMMAND`/`AGET_BACKEND_COMMAND` defaults once replacements are proven.
+- Keep only deliberately supported compatibility/test hooks, with names and docs that make their non-default status clear.
+- Delete obsolete docs, recipes, or warnings that describe the PoC wrappers as required runtime dependencies.
+- Verify `.gitignore`, artifact retention, temp cleanup, and sensitive-output rules still cover the new implementation.
+
+### 📋 Task I19h: Final migration review and cleanup
+
+Acceptance criteria:
+
+- Run the full standard check set and all new parity tests.
+- Run any ignored/manual real-backend checks that remain useful for comparison, recording results in `references.md` or `knowledge.md`.
+- Use review subagents for test adequacy, architecture cohesion, and security/privacy before marking the migration complete.
+- Resolve or explicitly record all material review feedback.
+- Confirm no dependency source clone contents, sensitive state, authenticated artifacts, or raw browser state are tracked.
+
+### 🚧 Task I20: Design OAuth-safe browser login and profile import flow
 
 Acceptance criteria:
 
@@ -428,7 +507,37 @@ Acceptance criteria:
 - Add deterministic mocked-site tests for the decision tree and a documented manual smoke-test recipe for real OAuth sites.
 - Record lock-handling behavior and error messages for open profile directories, including "quit this browser/profile before import."
 
-### 🚧 Task I17: Redesign public CLI/API and README around coherent concepts
+Status note:
+
+- Current support is partial, not automatic. `aget` has the import/fetch/session pieces and agent guidance, but no first-class OAuth-safe orchestration command or browser-choice flow. See `knowledge.md` D51.
+
+### 📋 Task I21: Implement OAuth-safe session authorization workflow
+
+Acceptance criteria:
+
+- Add a first-class command or API flow that models the desired agent workflow without adding site-specific login/paywall heuristics to the binary.
+- Start with an unauthenticated fetch/result artifact, then guide explicit real-browser session import, verification fetch, and re-import after user login when needed.
+- Preserve the generic fetcher boundary: the binary can report extraction/import/verification outcomes, while the calling agent interprets page content unless the user supplies generic verification predicates.
+- Support the current Chrome import path first, while leaving room for browser-choice terminology such as default browser, Chrome, Arc, Brave, Firefox, Safari, and explicit profile path.
+- Add deterministic mocked-site tests that cover:
+  - unauthenticated fetch appears gated to the calling agent,
+  - import succeeds but verification still looks unauthenticated,
+  - import returns `requires_user_action` for locked/no-auth profiles,
+  - re-import plus verification succeeds,
+  - sensitive/session-backed envelopes omit inline content by default.
+- Document the manual real OAuth smoke-test recipe and expected user prompts.
+
+### 📋 Task I22: Design and implement browser-choice session import surfaces
+
+Acceptance criteria:
+
+- Define which browsers can be opened for user login versus which browsers can have state imported safely.
+- Add explicit public terminology for browser choice, browser profile names, and profile paths without overloading Chrome-specific flags.
+- Start with supported Chromium-family import paths only if they can preserve the same scoped filtering, lock handling, temp cleanup, and local-only guarantees as Chrome import.
+- Record unsupported browsers and safe fallback guidance instead of pretending broad import works.
+- Add mocked and ignored/manual tests for each supported browser family.
+
+### ✅ Task I17: Redesign public CLI/API and README around coherent concepts
 
 Acceptance criteria:
 

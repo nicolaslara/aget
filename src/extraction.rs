@@ -6,7 +6,10 @@ use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
 use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 
+use html5ever::tree_builder::TreeSink;
+use scraper::{Html, HtmlTreeSink, Selector};
 use serde::{Deserialize, Serialize};
+use ureq::ResponseExt;
 
 use crate::cli::{ExtractorOption, OutputFormat};
 use crate::error::{AgetError, ErrorCode};
@@ -18,6 +21,7 @@ use crate::session::{
 
 const DEFAULT_TIMEOUT: Duration = Duration::from_secs(60);
 const EXTRACTOR: &str = "crawl4ai";
+const OWNED_EXTRACTOR: &str = "aget-owned-extractor";
 const FALLBACK_EXTRACTOR: &str = "agent-browser-fallback";
 const FALLBACK_WARNING: &str = "agent-browser fallback used after Crawl4AI failed";
 
@@ -84,6 +88,9 @@ pub struct OutputOptions {
 
 pub struct ExtractorRequest<'a> {
     pub url: &'a str,
+    // Structured session state lets in-process extractors avoid re-reading the
+    // temp Playwright file that exists for command-backed compatibility.
+    pub state: &'a PlaywrightState,
     pub state_path: &'a Path,
     pub content_path: &'a Path,
     pub metadata_path: &'a Path,
@@ -91,7 +98,7 @@ pub struct ExtractorRequest<'a> {
     pub timeout: Duration,
 }
 
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ExtractorBackendResult {
     pub ok: bool,
     #[serde(default)]
@@ -115,6 +122,9 @@ pub trait ExtractorBackend {
 pub struct BrowserFallbackRequest<'a> {
     pub tmp_dir: &'a Path,
     pub url: &'a str,
+    // Keep the structured state alongside the temp file path so future browser
+    // backends can load cookies/storage without coupling to command adapter I/O.
+    pub state: &'a PlaywrightState,
     pub state_path: &'a Path,
     pub options: &'a GetOptions,
     pub timeout: Duration,
@@ -194,6 +204,19 @@ impl ExtractorBackend for CommandExtractorBackend {
     }
 }
 
+#[derive(Debug, Clone, Default)]
+pub struct OwnedExtractorBackend;
+
+impl ExtractorBackend for OwnedExtractorBackend {
+    fn name(&self) -> &'static str {
+        OWNED_EXTRACTOR
+    }
+
+    fn extract(&self, request: ExtractorRequest<'_>) -> Result<ExtractorBackendResult, AgetError> {
+        run_owned_extractor_backend(request)
+    }
+}
+
 pub fn get_url(options: GetOptions) -> Result<GetSuccess, AgetError> {
     let extractor = CommandExtractorBackend::new(None);
     let browser_fallback = CommandBrowserFallbackBackend;
@@ -253,6 +276,7 @@ pub fn get_url_with_session_store(
 
     let extraction = match run_primary_extractor(
         &options,
+        &state,
         temp_state.path(),
         &content_path,
         &metadata_path,
@@ -264,6 +288,7 @@ pub fn get_url_with_session_store(
                 browser_fallback_backend,
                 &store.home().join("tmp"),
                 &options,
+                &state,
                 temp_state.path(),
                 sensitive,
                 &metadata_path,
@@ -275,6 +300,7 @@ pub fn get_url_with_session_store(
                     &options,
                     &content_path,
                     &metadata_path,
+                    extractor_backend.name(),
                     &selected_session_names,
                     sensitive,
                     &output_options,
@@ -310,6 +336,7 @@ struct SuccessfulExtraction {
 
 fn run_primary_extractor(
     options: &GetOptions,
+    state: &PlaywrightState,
     state_path: &Path,
     content_path: &Path,
     metadata_path: &Path,
@@ -317,6 +344,7 @@ fn run_primary_extractor(
 ) -> Result<SuccessfulExtraction, AgetError> {
     let backend = extractor_backend.extract(ExtractorRequest {
         url: &options.url,
+        state,
         state_path,
         content_path,
         metadata_path,
@@ -355,6 +383,7 @@ fn try_session_fallback(
     browser_fallback_backend: &impl BrowserFallbackBackend,
     tmp_dir: &Path,
     options: &GetOptions,
+    state: &PlaywrightState,
     state_path: &Path,
     sensitive: bool,
     metadata_path: &Path,
@@ -369,6 +398,7 @@ fn try_session_fallback(
         .extract_with_state(BrowserFallbackRequest {
             tmp_dir,
             url: &options.url,
+            state,
             state_path,
             options,
             timeout: options.timeout.unwrap_or(DEFAULT_TIMEOUT),
@@ -387,6 +417,7 @@ fn finalize_error(
     options: &GetOptions,
     content_path: &Path,
     metadata_path: &Path,
+    extractor: &str,
     selected_session_names: &[String],
     sensitive: bool,
     output_options: &OutputOptions,
@@ -398,6 +429,7 @@ fn finalize_error(
         metadata_path,
         &options.url,
         content_path,
+        extractor,
         selected_session_names,
         sensitive,
         output_options,
@@ -683,6 +715,256 @@ fn percent_encode(value: &str, case: PercentEncoding) -> String {
 
 fn form_encode(value: &str, case: PercentEncoding) -> String {
     percent_encode(value, case).replace("%20", "+")
+}
+
+fn run_owned_extractor_backend(
+    request: ExtractorRequest<'_>,
+) -> Result<ExtractorBackendResult, AgetError> {
+    validate_owned_extractor_request(&request)?;
+    let response = owned_fetch(request.url, request.state, request.timeout)?;
+    let mut document = Html::parse_document(&response.body);
+    document = remove_selected_elements(document, "script,style,noscript")?;
+
+    if let Some(wait_for) = &request.options.wait_for_selector {
+        let selector = parse_css_selector(wait_for)?;
+        if document.select(&selector).next().is_none() {
+            return Err(extraction_failed(format!(
+                "wait selector '{wait_for}' was not found by owned extractor"
+            )));
+        }
+    }
+
+    if let Some(exclude_selector) = &request.options.exclude_selector {
+        document = remove_selected_elements(document, exclude_selector)?;
+    }
+
+    let extracted = extract_owned_content(&document, request.options.selector.as_deref())?;
+    let content = match request.options.content_format {
+        OutputFormat::Html => extracted.html,
+        OutputFormat::Json => serde_json::json!({
+            "url": response.final_url,
+            "content": extracted.text,
+        })
+        .to_string(),
+        OutputFormat::Markdown | OutputFormat::Text => extracted.text,
+    };
+
+    let backend_response = ExtractorBackendResult {
+        ok: true,
+        final_url: Some(response.final_url),
+        content: Some(content.clone()),
+        warnings: Vec::new(),
+        error: None,
+    };
+    write_private_file(request.content_path, content.as_bytes()).map_err(io_aget_error)?;
+    let metadata =
+        serde_json::to_vec_pretty(&backend_response).map_err(|error| AgetError::Stable {
+            code: ErrorCode::IoError,
+            message: error.to_string(),
+        })?;
+    write_private_file(request.metadata_path, &metadata).map_err(io_aget_error)?;
+    Ok(backend_response)
+}
+
+fn validate_owned_extractor_request(request: &ExtractorRequest<'_>) -> Result<(), AgetError> {
+    if let Some(wait_for) = &request.options.wait_for_selector {
+        validate_css_only_wait(wait_for)?;
+    }
+    if let Some(option) = request.options.backend_options.first() {
+        return Err(extraction_failed(format!(
+            "owned extractor does not support backend option '{}'; keep Crawl4AI compatibility options on the command adapter until an aget-owned namespace is designed",
+            option.key
+        )));
+    }
+    Ok(())
+}
+
+fn validate_css_only_wait(value: &str) -> Result<(), AgetError> {
+    let normalized = value.trim().to_ascii_lowercase();
+    if normalized.starts_with("js:")
+        || ["=>", "function(", "return ", ";"]
+            .iter()
+            .any(|marker| normalized.contains(marker))
+    {
+        return Err(extraction_failed(
+            "--wait-for-selector only supports CSS selectors in v1; JavaScript wait conditions are not allowed",
+        ));
+    }
+    Ok(())
+}
+
+#[derive(Debug, Clone)]
+struct OwnedHttpResponse {
+    final_url: String,
+    body: String,
+}
+
+fn owned_fetch(
+    url: &str,
+    state: &PlaywrightState,
+    timeout: Duration,
+) -> Result<OwnedHttpResponse, AgetError> {
+    let parsed = ParsedRequestUrl::parse(url)?;
+    let config = ureq::Agent::config_builder()
+        .timeout_global(Some(timeout))
+        .http_status_as_error(false)
+        .max_redirects(5)
+        .build();
+    let agent: ureq::Agent = config.into();
+    let mut request = agent.get(url).header("User-Agent", "aget/0.1");
+    if let Some(cookie_header) = cookie_header_for_state(state, &parsed) {
+        request = request.header("Cookie", cookie_header);
+    }
+
+    let mut response = request.call().map_err(map_ureq_error)?;
+    let final_url = response.get_uri().to_string();
+    let body = response
+        .body_mut()
+        .read_to_string()
+        .map_err(map_ureq_error)?;
+    Ok(OwnedHttpResponse { final_url, body })
+}
+
+#[derive(Debug, Clone)]
+struct ParsedRequestUrl {
+    scheme: String,
+    host: String,
+    path: String,
+}
+
+impl ParsedRequestUrl {
+    fn parse(url: &str) -> Result<Self, AgetError> {
+        let uri = url.parse::<ureq::http::Uri>().map_err(|error| {
+            extraction_failed(format!(
+                "owned extractor received invalid URL '{url}': {error}"
+            ))
+        })?;
+        let scheme = uri
+            .scheme_str()
+            .ok_or_else(|| extraction_failed(format!("request URL '{url}' is missing a scheme")))?;
+        if !matches!(scheme, "http" | "https") {
+            return Err(extraction_failed(format!(
+                "owned extractor supports only http and https URLs, got '{scheme}'"
+            )));
+        }
+        let host = uri
+            .host()
+            .ok_or_else(|| extraction_failed(format!("request URL '{url}' is missing a host")))?;
+        let path = uri.path().to_string();
+        Ok(Self {
+            scheme: scheme.to_string(),
+            host: host.to_string(),
+            path,
+        })
+    }
+}
+
+fn cookie_header_for_state(state: &PlaywrightState, parsed: &ParsedRequestUrl) -> Option<String> {
+    let cookies = state
+        .cookies
+        .iter()
+        .filter(|cookie| !cookie.secure || parsed.scheme == "https")
+        .filter(|cookie| domain_matches_host(&parsed.host, &cookie.domain))
+        .filter(|cookie| request_path_matches_cookie_path(&parsed.path, &cookie.path))
+        .map(|cookie| format!("{}={}", cookie.name, cookie.value))
+        .collect::<Vec<_>>();
+    (!cookies.is_empty()).then(|| cookies.join("; "))
+}
+
+fn request_path_matches_cookie_path(request_path: &str, cookie_path: &str) -> bool {
+    let cookie_path = if cookie_path.is_empty() {
+        "/"
+    } else {
+        cookie_path
+    };
+    request_path == cookie_path
+        || (request_path.starts_with(cookie_path)
+            && (cookie_path.ends_with('/')
+                || request_path
+                    .as_bytes()
+                    .get(cookie_path.len())
+                    .is_some_and(|byte| *byte == b'/')))
+}
+
+struct ExtractedOwnedContent {
+    html: String,
+    text: String,
+}
+
+fn extract_owned_content(
+    document: &Html,
+    selector: Option<&str>,
+) -> Result<ExtractedOwnedContent, AgetError> {
+    if let Some(raw_selector) = selector {
+        let selector = parse_css_selector(raw_selector)?;
+        let element = document.select(&selector).next().ok_or_else(|| {
+            extraction_failed(format!(
+                "selector '{raw_selector}' was not found by owned extractor"
+            ))
+        })?;
+        return Ok(ExtractedOwnedContent {
+            html: element.inner_html(),
+            text: normalize_text_pieces(element.text()),
+        });
+    }
+
+    let root = document.root_element();
+    Ok(ExtractedOwnedContent {
+        html: root.inner_html(),
+        text: normalize_text_pieces(root.text()),
+    })
+}
+
+fn remove_selected_elements(document: Html, selector_list: &str) -> Result<Html, AgetError> {
+    let selector = parse_css_selector(selector_list)?;
+    let node_ids = document
+        .select(&selector)
+        .map(|element| element.id())
+        .collect::<Vec<_>>();
+    let tree = HtmlTreeSink::new(document);
+    for id in node_ids {
+        tree.remove_from_parent(&id);
+    }
+    Ok(tree.finish())
+}
+
+fn parse_css_selector(raw: &str) -> Result<Selector, AgetError> {
+    let selector = raw.trim().strip_prefix("css:").unwrap_or(raw.trim()).trim();
+    if selector.is_empty() {
+        return Err(extraction_failed(format!(
+            "owned extractor received an empty CSS selector from '{raw}'"
+        )));
+    }
+    Selector::parse(selector).map_err(|error| {
+        extraction_failed(format!(
+            "owned extractor could not parse CSS selector '{raw}': {error:?}"
+        ))
+    })
+}
+
+fn normalize_text_pieces<'a>(pieces: impl IntoIterator<Item = &'a str>) -> String {
+    pieces
+        .into_iter()
+        .flat_map(str::split_whitespace)
+        .collect::<Vec<_>>()
+        .join(" ")
+}
+
+fn map_ureq_error(error: ureq::Error) -> AgetError {
+    match error {
+        ureq::Error::Timeout(_) => AgetError::Stable {
+            code: ErrorCode::Timeout,
+            message: error.to_string(),
+        },
+        other => extraction_failed(other.to_string()),
+    }
+}
+
+fn extraction_failed(message: impl Into<String>) -> AgetError {
+    AgetError::Stable {
+        code: ErrorCode::ExtractionFailed,
+        message: message.into(),
+    }
 }
 
 fn run_command_extractor_backend(
@@ -1173,6 +1455,7 @@ fn write_error_metadata(
     path: &Path,
     url: &str,
     content_path: &Path,
+    extractor: &str,
     sessions: &[String],
     sensitive: bool,
     output_options: &OutputOptions,
@@ -1187,7 +1470,7 @@ fn write_error_metadata(
         "ok": false,
         "url": url,
         "content_format": options.content_format.to_string(),
-        "extractor": EXTRACTOR,
+        "extractor": extractor,
         "artifacts": {
             "content": content_path.to_string_lossy(),
             "metadata": path.to_string_lossy(),
