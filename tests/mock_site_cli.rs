@@ -406,6 +406,25 @@ fn owned_extractor_backend_renders_local_storage_backed_session_with_chrome() {
 }
 
 #[test]
+#[ignore = "requires local Chrome/Chromium; set AGET_CHROME_COMMAND if auto-discovery fails"]
+fn owned_extractor_backend_renders_waited_javascript_page_with_chrome() {
+    let temp = tempfile::tempdir().unwrap();
+    let aget_home = temp.path().join("aget-home");
+    let site = MockSite::start();
+
+    let extraction = Aget::new(&aget_home)
+        .with_extractor_backend(OwnedExtractorBackend)
+        .get(site.url("/delayed"))
+        .content_format(OutputFormat::Text)
+        .wait_for_selector("#ready")
+        .run()
+        .unwrap();
+
+    assert_eq!(extraction.extractor, "aget-owned-extractor");
+    assert!(extraction.content.contains("Delayed Ready"));
+}
+
+#[test]
 fn mock_site_replays_cookie_and_storage_sessions() {
     let temp = tempfile::tempdir().unwrap();
     let aget_home = temp.path().join("aget-home");

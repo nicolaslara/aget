@@ -724,34 +724,24 @@ fn form_encode(value: &str, case: PercentEncoding) -> String {
 fn run_owned_extractor_backend(
     request: ExtractorRequest<'_>,
 ) -> Result<ExtractorBackendResult, AgetError> {
-    let extraction = if request.state.origins.is_empty() {
-        extract_owned_page(
-            request.url,
-            request.state,
-            request.options,
-            request.timeout,
-            None,
-        )?
-    } else {
-        let tmp_dir = request
-            .state_path
-            .parent()
-            .ok_or_else(|| AgetError::Stable {
-                code: ErrorCode::IoError,
-                message: format!(
-                    "owned extractor state path '{}' has no temp directory",
-                    request.state_path.display()
-                ),
-            })?;
-        extract_owned_rendered_page(
-            tmp_dir,
-            request.url,
-            request.state,
-            request.options,
-            request.timeout,
-            None,
-        )?
-    };
+    let tmp_dir = request
+        .state_path
+        .parent()
+        .ok_or_else(|| AgetError::Stable {
+            code: ErrorCode::IoError,
+            message: format!(
+                "owned extractor state path '{}' has no temp directory",
+                request.state_path.display()
+            ),
+        })?;
+    let extraction = extract_owned_static_or_rendered(
+        tmp_dir,
+        request.url,
+        request.state,
+        request.options,
+        request.timeout,
+        None,
+    )?;
 
     let backend_response = ExtractorBackendResult {
         ok: true,
@@ -774,17 +764,14 @@ fn run_owned_extractor_backend(
 pub(crate) fn run_owned_browser_fallback(
     request: BrowserFallbackRequest<'_>,
 ) -> Result<BrowserFallbackResult, AgetError> {
-    let extraction = if request.state.origins.is_empty() {
-        extract_owned_page(
-            request.url,
-            request.state,
-            request.options,
-            request.timeout,
-            Some("body"),
-        )?
-    } else {
-        extract_owned_browser_rendered_page(request)?
-    };
+    let extraction = extract_owned_static_or_rendered(
+        request.tmp_dir,
+        request.url,
+        request.state,
+        request.options,
+        request.timeout,
+        Some("body"),
+    )?;
     Ok(BrowserFallbackResult {
         final_url: extraction.final_url,
         content: extraction.content,
@@ -793,17 +780,32 @@ pub(crate) fn run_owned_browser_fallback(
     })
 }
 
-fn extract_owned_browser_rendered_page(
-    request: BrowserFallbackRequest<'_>,
+fn extract_owned_static_or_rendered(
+    tmp_dir: &Path,
+    url: &str,
+    state: &PlaywrightState,
+    options: &GetOptions,
+    timeout: Duration,
+    fallback_selector: Option<&str>,
 ) -> Result<OwnedPageExtraction, AgetError> {
-    extract_owned_rendered_page(
-        request.tmp_dir,
-        request.url,
-        request.state,
-        request.options,
-        request.timeout,
-        Some("body"),
-    )
+    if !state.origins.is_empty() {
+        return extract_owned_rendered_page(
+            tmp_dir,
+            url,
+            state,
+            options,
+            timeout,
+            fallback_selector,
+        );
+    }
+
+    match extract_owned_page(url, state, options, timeout, fallback_selector) {
+        Ok(extraction) => Ok(extraction),
+        Err(error) if should_retry_with_rendered_wait(&error, options) => {
+            extract_owned_rendered_page(tmp_dir, url, state, options, timeout, fallback_selector)
+        }
+        Err(error) => Err(error),
+    }
 }
 
 fn extract_owned_rendered_page(
@@ -827,6 +829,19 @@ fn extract_owned_rendered_page(
         rendered.html,
         options,
         fallback_selector,
+    )
+}
+
+fn should_retry_with_rendered_wait(error: &AgetError, options: &GetOptions) -> bool {
+    if options.wait_for_selector.is_none() {
+        return false;
+    }
+    matches!(
+        error,
+        AgetError::Stable {
+            code: ErrorCode::ExtractionFailed,
+            message,
+        } if message.starts_with("wait selector ") && message.ends_with(" was not found by owned extractor")
     )
 }
 

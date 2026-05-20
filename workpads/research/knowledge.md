@@ -1065,6 +1065,21 @@ Validation:
 
 Confidence: Medium-high for this slice. The local Chrome smoke test proves rendered DOM extraction for the primary owned backend on this machine; broader rendered-JavaScript default policy remains an open I19d/I19f decision.
 
+### D62: I19d retries owned extraction through CDP when CSS waits need rendered DOM
+
+I19d now covers a second narrow rendered-JavaScript case without adding public API: when the owned static HTTP path cannot find a requested CSS `--wait-for-selector`, it retries the same extraction through the owned Chrome/CDP renderer. This mirrors the current Crawl4AI contract for CSS waits while preserving the existing safety boundary: JavaScript wait expressions are still rejected, and the only user input evaluated in Chrome is a JSON-quoted CSS selector passed to `document.querySelector(...)`.
+
+This is deliberately not a blanket browser-rendering default. Static pages with matching selectors still stay on the faster HTTP path, and JavaScript-heavy pages without a wait selector remain a future policy/default decision for I19f.
+
+Validation:
+
+- `cargo test --test mock_site_cli owned_extractor_backend_renders_waited_javascript_page_with_chrome -- --ignored`
+- `cargo test --test mock_site_cli owned_extractor_backend_renders_local_storage_backed_session_with_chrome -- --ignored`
+- `cargo test`
+- `git diff --check`
+
+Confidence: Medium-high for this slice. The ignored Chrome smoke test proves the delayed-DOM wait path locally, and the normal suite keeps static wait-selector behavior covered without requiring Chrome.
+
 ## Open Questions
 
 - Can pure Rust browser automation provide reliable persistent profiles and CDP attach, or do we need a small Node/Playwright sidecar?
