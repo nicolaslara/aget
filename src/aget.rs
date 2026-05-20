@@ -12,7 +12,8 @@ use crate::extraction::{
 use crate::session::{
     cancel_login_session as cancel_login_flow, complete_login_session, compose_session,
     finish_login_session as finish_login_flow, import_chrome_session as import_chrome_state,
-    import_cmux_session as import_cmux_state, merge_login_session,
+    import_cmux_session as import_cmux_state,
+    import_owned_chrome_session as import_owned_chrome_state, merge_login_session,
     start_login_session as start_login_flow, ChromeImportOptions, CmuxImportOptions,
     LoginCancelOptions, LoginCancelResult, LoginCompleteOptions, LoginFinishOptions,
     LoginFinishResult, LoginStartOptions, LoginStartResult, Session, SessionStore,
@@ -282,10 +283,8 @@ impl BrowserFallbackBackend for CommandBrowserAutomationBackend {
 pub struct OwnedBrowserAutomationBackend;
 
 impl BrowserAutomationBackend for OwnedBrowserAutomationBackend {
-    fn import_chrome(&self, _options: ChromeImportOptions) -> Result<Session, AgetError> {
-        Err(unsupported_owned_browser_capability(
-            "Chrome/profile import",
-        ))
+    fn import_chrome(&self, options: ChromeImportOptions) -> Result<Session, AgetError> {
+        import_owned_chrome_state(options)
     }
 
     fn start_login(&self, _options: LoginStartOptions) -> Result<LoginStartResult, AgetError> {

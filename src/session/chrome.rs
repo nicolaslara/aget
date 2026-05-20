@@ -3,9 +3,10 @@ use std::path::PathBuf;
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use crate::error::{AgetError, ErrorCode};
+use crate::process::DEFAULT_SUBPROCESS_TIMEOUT;
 use crate::session::agent_browser::{
-    classify_agent_browser_failure, read_filtered_agent_browser_session, run_agent_browser,
-    set_private_file_permissions, AgentBrowserSessionFilter, RawStateFile,
+    classify_agent_browser_failure, filter_playwright_state, read_filtered_agent_browser_session,
+    run_agent_browser, set_private_file_permissions, AgentBrowserSessionFilter, RawStateFile,
 };
 use crate::session::{Session, SessionSource};
 
@@ -95,6 +96,80 @@ pub fn import_chrome_session(options: ChromeImportOptions) -> Result<Session, Ag
     }
 }
 
+pub(crate) fn import_owned_chrome_session(
+    options: ChromeImportOptions,
+) -> Result<Session, AgetError> {
+    fs::create_dir_all(&options.tmp_dir).map_err(io_aget_error)?;
+    let profile_dir = explicit_profile_dir(&options.profile)?;
+    let state =
+        crate::browser_cdp::export_browser_state(crate::browser_cdp::BrowserStateExportRequest {
+            profile_dir: &profile_dir,
+            allowed_domains: &options.domains,
+            timeout: DEFAULT_SUBPROCESS_TIMEOUT,
+        })?;
+
+    let session = filter_playwright_state(
+        state,
+        AgentBrowserSessionFilter {
+            name: options.name.clone(),
+            source: SessionSource::ChromeProfile {
+                profile: options.profile.clone(),
+            },
+            allowed_domains: options.domains.clone(),
+            source_session: format!("owned-chrome:{}", options.profile),
+        },
+    )?;
+    if session.cookies.is_empty() && session.origins.is_empty() {
+        return Err(AgetError::Stable {
+            code: ErrorCode::RequiresUserAction,
+            message: format!(
+                "owned Chrome import exported no auth state for allowed domains: {}",
+                options.domains.join(", ")
+            ),
+        });
+    }
+
+    Ok(session)
+}
+
+fn explicit_profile_dir(profile: &str) -> Result<PathBuf, AgetError> {
+    if !looks_like_profile_path(profile) {
+        return Err(AgetError::Stable {
+            code: ErrorCode::BackendUnavailable,
+            message: "owned Chrome import currently supports explicit user-data-dir paths; use the command-backed agent-browser adapter for named Chrome profiles".to_string(),
+        });
+    }
+
+    let path = expand_tilde(profile);
+    if !path.is_dir() {
+        return Err(AgetError::Stable {
+            code: ErrorCode::RequiresUserAction,
+            message: format!(
+                "owned Chrome import profile directory does not exist: {}",
+                path.display()
+            ),
+        });
+    }
+    Ok(path)
+}
+
+fn looks_like_profile_path(profile: &str) -> bool {
+    let profile = profile.trim();
+    profile.starts_with('/')
+        || profile.starts_with('~')
+        || profile.contains(std::path::MAIN_SEPARATOR)
+        || profile.contains('\\')
+}
+
+fn expand_tilde(path: &str) -> PathBuf {
+    if let Some(rest) = path.strip_prefix("~/") {
+        if let Some(home) = std::env::var_os("HOME") {
+            return PathBuf::from(home).join(rest);
+        }
+    }
+    PathBuf::from(path)
+}
+
 fn unique_agent_browser_session_name() -> String {
     let nanos = SystemTime::now()
         .duration_since(UNIX_EPOCH)
@@ -107,5 +182,34 @@ fn io_aget_error(error: impl std::fmt::Display) -> AgetError {
     AgetError::Stable {
         code: ErrorCode::IoError,
         message: error.to_string(),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn owned_import_rejects_named_chrome_profiles_for_now() {
+        let error = explicit_profile_dir("Default").unwrap_err();
+
+        assert_eq!(error.code(), ErrorCode::BackendUnavailable);
+    }
+
+    #[test]
+    fn owned_import_requires_existing_profile_path() {
+        let missing =
+            std::env::temp_dir().join(format!("aget-missing-profile-{}", std::process::id()));
+        let error = explicit_profile_dir(&missing.to_string_lossy()).unwrap_err();
+
+        assert_eq!(error.code(), ErrorCode::RequiresUserAction);
+    }
+
+    #[test]
+    fn owned_import_accepts_existing_profile_path() {
+        let temp = tempfile::tempdir().unwrap();
+        let profile = explicit_profile_dir(&temp.path().to_string_lossy()).unwrap();
+
+        assert_eq!(profile, temp.path());
     }
 }

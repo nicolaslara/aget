@@ -1094,6 +1094,28 @@ Validation:
 
 Confidence: Medium-high for this slice. The static parity test now covers a table with links and literal pipe characters, but complex table semantics remain an explicit follow-up.
 
+### D64: I19e adds bounded owned Chrome profile-path import
+
+Before porting this import slice, I19e inspected the `agent-browser` state/profile paths that back the current command adapter:
+
+- `references/repos/agent-browser/cli/src/native/state.rs` exports Playwright-style storage state by reading cookies through CDP and collecting local/session storage from the current page plus known origins.
+- `references/repos/agent-browser/cli/src/native/cookies.rs` uses `Network.getAllCookies` and URL-scoped cookie reads as the browser-state bridge.
+- `references/repos/agent-browser/cli/src/native/cdp/chrome.rs` launches Chrome with a user-data-dir, removes stale `DevToolsActivePort` files before launch, copies named Chrome profiles to temporary directories, and uses the real keychain only for copied named-profile imports.
+
+`OwnedBrowserAutomationBackend::import_chrome` now has a bounded owned path for explicit profile directories. It launches local Chrome against the supplied user-data-dir path, exports cookies and localStorage through the in-process CDP client, filters the resulting Playwright-style state through the same allowlist/provenance logic used for command-backed `agent-browser` state, and persists only scoped session material. LocalStorage collection uses request interception to load blank same-origin documents for allowed domains, avoiding real network requests while still reading origin storage.
+
+This deliberately does not claim parity with named Chrome profiles such as `Default`. Named profile import still needs the higher-risk `agent-browser` behavior: resolving Chrome's user-data-dir, copying only the selected profile plus `Local State`, preserving macOS/OS keychain behavior where needed, diagnosing locked/running profiles, and cleaning copied profiles. For now, the owned backend returns a structured backend-unavailable error for named profiles and leaves the command-backed adapter as the supported path.
+
+Validation:
+
+- `cargo test browser_cdp`
+- `cargo test session::chrome`
+- `cargo test session::agent_browser`
+- `cargo test --test aget_api owned_browser_backend_reports_named_profile_import_gap`
+- `cargo test browser_cdp::tests::owned_chrome_import_exports_cookie_and_local_storage_from_profile -- --ignored` passed locally with system Chrome, proving a temporary user-data-dir profile can persist a cookie/localStorage pair and be re-imported through the owned CDP export path.
+
+Confidence: Medium. The explicit profile-path slice is now owned and tested, but full `agent-browser` import parity remains open until named real-profile copy/keychain/lock behavior is ported.
+
 ## Open Questions
 
 - Can pure Rust browser automation provide reliable persistent profiles and CDP attach, or do we need a small Node/Playwright sidecar?

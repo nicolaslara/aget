@@ -14,7 +14,7 @@ use aget::session::login::PendingLogin;
 use aget::{
     Aget, AgetError, ChromeImportOptions, ErrorCode, LoginCancelOptions, LoginCancelResult,
     LoginFinishOptions, LoginFinishResult, LoginStartOptions, LoginStartResult, OutputFormat,
-    Session, SessionCookie, SessionSource,
+    OwnedBrowserAutomationBackend, Session, SessionCookie, SessionSource,
 };
 
 #[test]
@@ -116,6 +116,21 @@ fn aget_with_static_browser_backend_imports_chrome_session_to_custom_store() {
         store.load("chrome").unwrap().cookies[0].value,
         "chrome-secret"
     );
+}
+
+#[test]
+fn owned_browser_backend_reports_named_profile_import_gap() {
+    let temp = tempfile::tempdir().unwrap();
+    let home = temp.path().join("aget-home");
+
+    let error = Aget::new(&home)
+        .with_browser_automation_backend(OwnedBrowserAutomationBackend)
+        .import_chrome_session("Default", "chrome", vec!["example.com".to_string()])
+        .unwrap_err();
+
+    assert_eq!(error.code(), ErrorCode::BackendUnavailable);
+    assert!(error.to_string().contains("explicit user-data-dir paths"));
+    assert!(!home.join("sessions/chrome.json").exists());
 }
 
 #[test]

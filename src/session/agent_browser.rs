@@ -13,7 +13,9 @@ use crate::process::{
     configure_local_command, create_private_file as create_private_output_file, wait_for_child,
     TempOutputFile, DEFAULT_SUBPROCESS_TIMEOUT,
 };
-use crate::session::{Session, SessionCookie, SessionOrigin, SessionSource, StorageEntry};
+use crate::session::{
+    PlaywrightState, Session, SessionCookie, SessionOrigin, SessionSource, StorageEntry,
+};
 
 #[derive(Debug, Deserialize)]
 pub(crate) struct AgentBrowserState {
@@ -277,6 +279,40 @@ pub(crate) fn filter_agent_browser_state(
     Ok(session)
 }
 
+pub(crate) fn filter_playwright_state(
+    state: PlaywrightState,
+    filter: AgentBrowserSessionFilter,
+) -> Result<Session, AgetError> {
+    filter_agent_browser_state(
+        AgentBrowserState {
+            cookies: state
+                .cookies
+                .into_iter()
+                .map(|cookie| AgentBrowserCookie {
+                    name: cookie.name,
+                    value: cookie.value,
+                    domain: cookie.domain,
+                    path: cookie.path,
+                    expires: cookie.expires,
+                    http_only: cookie.http_only,
+                    secure: cookie.secure,
+                    same_site: cookie.same_site,
+                })
+                .collect(),
+            origins: state
+                .origins
+                .into_iter()
+                .map(|origin| AgentBrowserOrigin {
+                    origin: origin.origin,
+                    local_storage: origin.local_storage,
+                    _session_storage: Vec::new(),
+                })
+                .collect(),
+        },
+        filter,
+    )
+}
+
 pub(crate) fn domain_allowed(candidate_domain: &str, allowed_domains: &[String]) -> bool {
     allowed_domains
         .iter()
@@ -474,6 +510,57 @@ mod tests {
         let error = filter_agent_browser_state(state, filter()).unwrap_err();
 
         assert_eq!(error.code(), ErrorCode::SessionConflict);
+    }
+
+    #[test]
+    fn filters_playwright_state_with_same_import_rules() {
+        let state = PlaywrightState {
+            cookies: vec![
+                crate::session::PlaywrightCookie {
+                    name: "sid".to_string(),
+                    value: "secret".to_string(),
+                    domain: ".example.com".to_string(),
+                    path: "/".to_string(),
+                    expires: Some(1_800_000_000),
+                    http_only: true,
+                    secure: true,
+                    same_site: Some("Lax".to_string()),
+                },
+                crate::session::PlaywrightCookie {
+                    name: "evil".to_string(),
+                    value: "secret".to_string(),
+                    domain: "example.com.evil".to_string(),
+                    path: "/".to_string(),
+                    expires: None,
+                    http_only: false,
+                    secure: false,
+                    same_site: None,
+                },
+            ],
+            origins: vec![
+                crate::session::PlaywrightOrigin {
+                    origin: "https://example.com".to_string(),
+                    local_storage: vec![StorageEntry {
+                        name: "token".to_string(),
+                        value: "secret".to_string(),
+                    }],
+                },
+                crate::session::PlaywrightOrigin {
+                    origin: "https://example.com.evil".to_string(),
+                    local_storage: vec![StorageEntry {
+                        name: "token".to_string(),
+                        value: "evil".to_string(),
+                    }],
+                },
+            ],
+        };
+
+        let session = filter_playwright_state(state, filter()).unwrap();
+
+        assert_eq!(session.cookies.len(), 1);
+        assert_eq!(session.cookies[0].name, "sid");
+        assert_eq!(session.origins.len(), 1);
+        assert_eq!(session.origins[0].origin, "https://example.com");
     }
 
     #[cfg(unix)]

@@ -6,6 +6,7 @@ pub mod model;
 pub mod playwright;
 pub mod store;
 
+pub(crate) use chrome::import_owned_chrome_session;
 pub use chrome::{import_chrome_session, ChromeImportOptions};
 pub use cmux::{import_cmux_session, CmuxImportOptions};
 pub use login::{

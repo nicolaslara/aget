@@ -1,3 +1,4 @@
+use std::collections::{BTreeMap, BTreeSet};
 use std::env;
 use std::fs;
 use std::io;
@@ -13,7 +14,7 @@ use tungstenite::{connect, Message, WebSocket};
 
 use crate::error::{AgetError, ErrorCode};
 use crate::process::configure_local_command;
-use crate::session::{PlaywrightCookie, PlaywrightState};
+use crate::session::{PlaywrightCookie, PlaywrightOrigin, PlaywrightState, StorageEntry};
 
 const CDP_READ_POLL: Duration = Duration::from_millis(100);
 const CHROME_SHUTDOWN_WAIT: Duration = Duration::from_secs(1);
@@ -26,13 +27,20 @@ pub(crate) struct BrowserRenderRequest<'a> {
     pub(crate) timeout: Duration,
 }
 
+pub(crate) struct BrowserStateExportRequest<'a> {
+    pub(crate) profile_dir: &'a Path,
+    pub(crate) allowed_domains: &'a [String],
+    pub(crate) timeout: Duration,
+}
+
 pub(crate) struct RenderedPage {
     pub(crate) final_url: String,
     pub(crate) html: String,
 }
 
 pub(crate) fn render_page(request: BrowserRenderRequest<'_>) -> Result<RenderedPage, AgetError> {
-    let mut chrome = ChromeProcess::launch(request.tmp_dir, request.timeout)?;
+    let mut chrome =
+        ChromeProcess::launch_temp(request.tmp_dir, request.timeout, "owned browser fallback")?;
     let mut client = CdpClient::connect(&chrome.ws_url, request.timeout)?;
     let page = client.create_page(request.timeout)?;
     client.enable_page_domains(&page.session_id, request.timeout)?;
@@ -58,20 +66,64 @@ pub(crate) fn render_page(request: BrowserRenderRequest<'_>) -> Result<RenderedP
     Ok(RenderedPage { final_url, html })
 }
 
+pub(crate) fn export_browser_state(
+    request: BrowserStateExportRequest<'_>,
+) -> Result<PlaywrightState, AgetError> {
+    let mut chrome =
+        ChromeProcess::launch_profile(request.profile_dir, request.timeout, "owned Chrome import")?;
+    let mut client = CdpClient::connect(&chrome.ws_url, request.timeout)?;
+    let page = client.create_page(request.timeout)?;
+    client.enable_page_domains(&page.session_id, request.timeout)?;
+    let state = client.export_state(&page.session_id, request.allowed_domains, request.timeout)?;
+    let _ = client.send(
+        "Target.closeTarget",
+        Some(json!({ "targetId": page.target_id })),
+        None,
+        Duration::from_secs(1),
+    );
+    let _ = client.send("Browser.close", None, None, Duration::from_secs(1));
+    chrome.wait_or_kill(CHROME_SHUTDOWN_WAIT);
+    Ok(state)
+}
+
 struct ChromeProcess {
     child: Child,
     ws_url: String,
     user_data_dir: PathBuf,
+    remove_user_data_dir: bool,
     terminated: bool,
 }
 
 impl ChromeProcess {
-    fn launch(tmp_dir: &Path, timeout: Duration) -> Result<Self, AgetError> {
+    fn launch_temp(
+        tmp_dir: &Path,
+        timeout: Duration,
+        operation: &'static str,
+    ) -> Result<Self, AgetError> {
+        let user_data_dir = unique_profile_dir(tmp_dir)?;
+        Self::launch_with_user_data_dir(user_data_dir, true, timeout, operation)
+    }
+
+    fn launch_profile(
+        user_data_dir: &Path,
+        timeout: Duration,
+        operation: &'static str,
+    ) -> Result<Self, AgetError> {
+        Self::launch_with_user_data_dir(user_data_dir.to_path_buf(), false, timeout, operation)
+    }
+
+    fn launch_with_user_data_dir(
+        user_data_dir: PathBuf,
+        remove_user_data_dir: bool,
+        timeout: Duration,
+        operation: &'static str,
+    ) -> Result<Self, AgetError> {
         let executable = find_chrome_binary().ok_or_else(|| AgetError::Stable {
             code: ErrorCode::BackendUnavailable,
-            message: "owned browser fallback could not find Chrome; set AGET_CHROME_COMMAND to a Chrome/Chromium executable for localStorage-backed rendering".to_string(),
+            message: format!(
+                "{operation} could not find Chrome; set AGET_CHROME_COMMAND to a Chrome/Chromium executable"
+            ),
         })?;
-        let user_data_dir = unique_profile_dir(tmp_dir)?;
         let mut command = Command::new(&executable);
         command
             .arg("--remote-debugging-port=0")
@@ -97,10 +149,11 @@ impl ChromeProcess {
             command.arg("--no-sandbox").arg("--disable-dev-shm-usage");
         }
         configure_local_command(&mut command);
+        let _ = fs::remove_file(user_data_dir.join("DevToolsActivePort"));
         let mut child = command.spawn().map_err(|error| AgetError::Stable {
             code: ErrorCode::BackendUnavailable,
             message: format!(
-                "owned browser fallback could not launch Chrome at '{}': {error}",
+                "{operation} could not launch Chrome at '{}': {error}",
                 executable.display()
             ),
         })?;
@@ -108,7 +161,9 @@ impl ChromeProcess {
             Ok(ws_url) => ws_url,
             Err(error) => {
                 terminate_child(&mut child);
-                let _ = fs::remove_dir_all(&user_data_dir);
+                if remove_user_data_dir {
+                    let _ = fs::remove_dir_all(&user_data_dir);
+                }
                 return Err(error);
             }
         };
@@ -116,6 +171,7 @@ impl ChromeProcess {
             child,
             ws_url,
             user_data_dir,
+            remove_user_data_dir,
             terminated: false,
         })
     }
@@ -146,7 +202,9 @@ impl Drop for ChromeProcess {
             terminate_child(&mut self.child);
             self.terminated = true;
         }
-        let _ = fs::remove_dir_all(&self.user_data_dir);
+        if self.remove_user_data_dir {
+            let _ = fs::remove_dir_all(&self.user_data_dir);
+        }
     }
 }
 
@@ -241,6 +299,156 @@ impl CdpClient {
             }
         }
         Ok(())
+    }
+
+    fn export_state(
+        &mut self,
+        session_id: &str,
+        allowed_domains: &[String],
+        timeout: Duration,
+    ) -> Result<PlaywrightState, AgetError> {
+        let cookies = self.collect_cookies(session_id, allowed_domains, timeout)?;
+        let origins = self.collect_storage_origins(session_id, allowed_domains, timeout)?;
+        Ok(PlaywrightState { cookies, origins })
+    }
+
+    fn collect_cookies(
+        &mut self,
+        session_id: &str,
+        allowed_domains: &[String],
+        timeout: Duration,
+    ) -> Result<Vec<PlaywrightCookie>, AgetError> {
+        let result = self.send("Network.getAllCookies", None, Some(session_id), timeout)?;
+        let mut cookies = playwright_cookies_from_cdp(&result);
+
+        let urls = storage_candidate_origins(allowed_domains)
+            .into_iter()
+            .map(|origin| format!("{}/", origin.trim_end_matches('/')))
+            .collect::<Vec<_>>();
+        if !urls.is_empty() {
+            let result = self.send(
+                "Network.getCookies",
+                Some(json!({ "urls": urls })),
+                Some(session_id),
+                timeout,
+            )?;
+            cookies.extend(playwright_cookies_from_cdp(&result));
+        }
+
+        if cookies.is_empty() {
+            let result = self.send("Storage.getCookies", None, Some(session_id), timeout)?;
+            cookies.extend(playwright_cookies_from_cdp(&result));
+        }
+
+        Ok(dedupe_playwright_cookies(cookies))
+    }
+
+    fn collect_storage_origins(
+        &mut self,
+        session_id: &str,
+        allowed_domains: &[String],
+        timeout: Duration,
+    ) -> Result<Vec<PlaywrightOrigin>, AgetError> {
+        let candidate_origins = storage_candidate_origins(allowed_domains);
+        if candidate_origins.is_empty() {
+            return Ok(Vec::new());
+        }
+
+        self.send(
+            "Fetch.enable",
+            Some(json!({ "patterns": [{ "urlPattern": "*" }] })),
+            Some(session_id),
+            timeout,
+        )?;
+
+        let mut origins = Vec::new();
+        for origin in candidate_origins {
+            let navigate_url = format!("{}/", origin.trim_end_matches('/'));
+            self.navigate_with_blank_response(session_id, &navigate_url, timeout)?;
+            let result = self.send(
+                "Runtime.evaluate",
+                Some(json!({
+                    "expression": origin_storage_expression(),
+                    "returnByValue": true,
+                    "awaitPromise": false,
+                })),
+                Some(session_id),
+                timeout,
+            )?;
+            let Some(origin) = origin_storage_from_runtime_result(&result) else {
+                continue;
+            };
+            if !origin.local_storage.is_empty() {
+                origins.push(origin);
+            }
+        }
+
+        let _ = self.send(
+            "Fetch.disable",
+            None,
+            Some(session_id),
+            Duration::from_secs(1),
+        );
+        Ok(origins)
+    }
+
+    fn navigate_with_blank_response(
+        &mut self,
+        session_id: &str,
+        url: &str,
+        timeout: Duration,
+    ) -> Result<(), AgetError> {
+        let navigate_id = self.send_no_wait(
+            "Page.navigate",
+            Some(json!({ "url": url })),
+            Some(session_id),
+        )?;
+
+        let deadline = Instant::now() + timeout;
+        loop {
+            let message = self.read_message(deadline)?;
+            if message.get("id").and_then(Value::as_u64) == Some(navigate_id) {
+                if let Some(error) = message.get("error") {
+                    let text = error
+                        .get("message")
+                        .and_then(Value::as_str)
+                        .unwrap_or("CDP command failed");
+                    return Err(AgetError::Stable {
+                        code: ErrorCode::ExtractionFailed,
+                        message: format!("owned browser fallback CDP Page.navigate failed: {text}"),
+                    });
+                }
+                continue;
+            }
+            if message.get("sessionId").and_then(Value::as_str) != Some(session_id) {
+                continue;
+            }
+
+            match message.get("method").and_then(Value::as_str) {
+                Some("Fetch.requestPaused") => {
+                    if let Some(request_id) = message
+                        .get("params")
+                        .and_then(|params| params.get("requestId"))
+                        .and_then(Value::as_str)
+                    {
+                        self.send_no_wait(
+                            "Fetch.fulfillRequest",
+                            Some(json!({
+                                "requestId": request_id,
+                                "responseCode": 200,
+                                "responseHeaders": [
+                                    { "name": "Content-Type", "value": "text/html" }
+                                ],
+                                "body": "PGh0bWw+PC9odG1sPg=="
+                            })),
+                            Some(session_id),
+                        )?;
+                    }
+                }
+                Some("Page.loadEventFired") => return Ok(()),
+                _ => {}
+            }
+        }
     }
 
     fn navigate_and_wait(
@@ -344,6 +552,30 @@ impl CdpClient {
             .send(Message::Text(text.into()))
             .map_err(cdp_io_error)?;
         self.wait_for_response(id, method, timeout)
+    }
+
+    fn send_no_wait(
+        &mut self,
+        method: &str,
+        params: Option<Value>,
+        session_id: Option<&str>,
+    ) -> Result<u64, AgetError> {
+        let id = self.next_id;
+        self.next_id += 1;
+        let mut command = serde_json::Map::new();
+        command.insert("id".to_string(), json!(id));
+        command.insert("method".to_string(), json!(method));
+        if let Some(params) = params {
+            command.insert("params".to_string(), params);
+        }
+        if let Some(session_id) = session_id {
+            command.insert("sessionId".to_string(), json!(session_id));
+        }
+        let text = serde_json::to_string(&Value::Object(command)).map_err(io_aget_error)?;
+        self.socket
+            .send(Message::Text(text.into()))
+            .map_err(cdp_io_error)?;
+        Ok(id)
     }
 
     fn wait_for_response(
@@ -470,6 +702,132 @@ fn cdp_cookies(cookies: &[PlaywrightCookie]) -> Vec<Value> {
             value
         })
         .collect()
+}
+
+fn playwright_cookies_from_cdp(result: &Value) -> Vec<PlaywrightCookie> {
+    result
+        .get("cookies")
+        .and_then(Value::as_array)
+        .into_iter()
+        .flatten()
+        .filter_map(playwright_cookie_from_cdp)
+        .collect()
+}
+
+fn playwright_cookie_from_cdp(cookie: &Value) -> Option<PlaywrightCookie> {
+    Some(PlaywrightCookie {
+        name: cookie.get("name")?.as_str()?.to_string(),
+        value: cookie.get("value")?.as_str()?.to_string(),
+        domain: cookie.get("domain")?.as_str()?.to_string(),
+        path: cookie
+            .get("path")
+            .and_then(Value::as_str)
+            .unwrap_or("/")
+            .to_string(),
+        expires: cdp_cookie_expires(cookie.get("expires")),
+        http_only: cookie
+            .get("httpOnly")
+            .and_then(Value::as_bool)
+            .unwrap_or(false),
+        secure: cookie
+            .get("secure")
+            .and_then(Value::as_bool)
+            .unwrap_or(false),
+        same_site: cookie
+            .get("sameSite")
+            .and_then(Value::as_str)
+            .map(ToString::to_string),
+    })
+}
+
+fn dedupe_playwright_cookies(cookies: Vec<PlaywrightCookie>) -> Vec<PlaywrightCookie> {
+    let mut by_key = BTreeMap::new();
+    for cookie in cookies {
+        let key = (
+            cookie.name.trim().to_string(),
+            cookie
+                .domain
+                .trim()
+                .trim_start_matches('.')
+                .trim_end_matches('.')
+                .to_ascii_lowercase(),
+            if cookie.path.trim().is_empty() {
+                "/".to_string()
+            } else {
+                cookie.path.trim().to_string()
+            },
+        );
+        by_key.entry(key).or_insert(cookie);
+    }
+    by_key.into_values().collect()
+}
+
+fn cdp_cookie_expires(value: Option<&Value>) -> Option<i64> {
+    let expires = value.and_then(Value::as_i64).or_else(|| {
+        value
+            .and_then(Value::as_f64)
+            .map(|value| value.trunc() as i64)
+    })?;
+    (expires > 0).then_some(expires)
+}
+
+fn storage_candidate_origins(allowed_domains: &[String]) -> Vec<String> {
+    let mut origins = BTreeSet::new();
+    for domain in allowed_domains {
+        let domain = domain
+            .trim()
+            .trim_start_matches('.')
+            .trim_end_matches('/')
+            .trim_end_matches('.');
+        if domain.is_empty() {
+            continue;
+        }
+        if domain.starts_with("http://") || domain.starts_with("https://") {
+            origins.insert(domain.to_ascii_lowercase());
+        } else {
+            let domain = domain.to_ascii_lowercase();
+            origins.insert(format!("https://{domain}"));
+            origins.insert(format!("http://{domain}"));
+        }
+    }
+    origins.into_iter().collect()
+}
+
+fn origin_storage_expression() -> &'static str {
+    r#"(() => {
+        const result = { origin: location.origin, localStorage: [], sessionStorage: [] };
+        try {
+            for (let i = 0; i < localStorage.length; i++) {
+                const key = localStorage.key(i);
+                result.localStorage.push({ name: key, value: localStorage.getItem(key) });
+            }
+        } catch(e) {}
+        try {
+            for (let i = 0; i < sessionStorage.length; i++) {
+                const key = sessionStorage.key(i);
+                result.sessionStorage.push({ name: key, value: sessionStorage.getItem(key) });
+            }
+        } catch(e) {}
+        return result;
+    })()"#
+}
+
+fn origin_storage_from_runtime_result(result: &Value) -> Option<PlaywrightOrigin> {
+    let value = result
+        .get("result")
+        .and_then(|result| result.get("value"))?;
+    let origin = value.get("origin")?.as_str()?;
+    if origin.is_empty() || origin == "null" {
+        return None;
+    }
+    let local_storage = value
+        .get("localStorage")
+        .and_then(|storage| serde_json::from_value::<Vec<StorageEntry>>(storage.clone()).ok())
+        .unwrap_or_default();
+    Some(PlaywrightOrigin {
+        origin: origin.to_string(),
+        local_storage,
+    })
 }
 
 fn local_storage_set_expression(name: &str, value: &str) -> Result<String, AgetError> {
@@ -735,6 +1093,164 @@ mod tests {
                 "sameSite": "Lax",
             })]
         );
+    }
+
+    #[test]
+    fn parses_cdp_cookies_into_playwright_state_shape() {
+        let cookies = playwright_cookies_from_cdp(&json!({
+            "cookies": [
+                {
+                    "name": "sid",
+                    "value": "secret",
+                    "domain": ".example.com",
+                    "path": "/",
+                    "expires": 1800000000.9,
+                    "httpOnly": true,
+                    "secure": true,
+                    "sameSite": "Lax"
+                },
+                {
+                    "name": "session",
+                    "value": "secret",
+                    "domain": "example.com",
+                    "path": "/",
+                    "expires": -1
+                }
+            ]
+        }));
+
+        assert_eq!(cookies.len(), 2);
+        assert_eq!(cookies[0].expires, Some(1_800_000_000));
+        assert_eq!(cookies[1].expires, None);
+        assert!(cookies[0].http_only);
+        assert!(cookies[0].secure);
+        assert_eq!(cookies[0].same_site.as_deref(), Some("Lax"));
+    }
+
+    #[test]
+    fn storage_candidate_origins_cover_http_and_https_domains() {
+        let origins = storage_candidate_origins(&[
+            "Example.COM".to_string(),
+            ".docs.example.com/".to_string(),
+            "https://app.example.com".to_string(),
+        ]);
+
+        assert_eq!(
+            origins,
+            vec![
+                "http://docs.example.com".to_string(),
+                "http://example.com".to_string(),
+                "https://app.example.com".to_string(),
+                "https://docs.example.com".to_string(),
+                "https://example.com".to_string(),
+            ]
+        );
+    }
+
+    #[test]
+    fn parses_origin_storage_runtime_value() {
+        let origin = origin_storage_from_runtime_result(&json!({
+            "result": {
+                "value": {
+                    "origin": "https://example.com",
+                    "localStorage": [
+                        {"name": "token", "value": "secret"}
+                    ],
+                    "sessionStorage": [
+                        {"name": "ignored", "value": "session-only"}
+                    ]
+                }
+            }
+        }))
+        .unwrap();
+
+        assert_eq!(origin.origin, "https://example.com");
+        assert_eq!(origin.local_storage.len(), 1);
+        assert_eq!(origin.local_storage[0].name, "token");
+    }
+
+    #[test]
+    #[ignore = "requires local Chrome/Chromium; set AGET_CHROME_COMMAND if auto-discovery fails"]
+    fn owned_chrome_import_exports_cookie_and_local_storage_from_profile() {
+        let temp = tempfile::tempdir().unwrap();
+        let profile = temp.path().join("profile");
+        fs::create_dir_all(&profile).unwrap();
+        let timeout = Duration::from_secs(20);
+        let expires = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap()
+            .as_secs()
+            + 3600;
+
+        {
+            let mut chrome = ChromeProcess::launch_profile(&profile, timeout, "owned Chrome test")
+                .expect("Chrome should launch for test profile");
+            let mut client = CdpClient::connect(&chrome.ws_url, timeout).unwrap();
+            let page = client.create_page(timeout).unwrap();
+            client
+                .enable_page_domains(&page.session_id, timeout)
+                .unwrap();
+            client
+                .send(
+                    "Fetch.enable",
+                    Some(json!({ "patterns": [{ "urlPattern": "*" }] })),
+                    Some(&page.session_id),
+                    timeout,
+                )
+                .unwrap();
+            client
+                .navigate_with_blank_response(&page.session_id, "https://example.com/", timeout)
+                .unwrap();
+            client
+                .send(
+                    "Network.setCookie",
+                    Some(json!({
+                        "name": "sid",
+                        "value": "secret",
+                        "url": "https://example.com/",
+                        "path": "/",
+                        "expires": expires,
+                        "secure": true,
+                        "sameSite": "Lax",
+                    })),
+                    Some(&page.session_id),
+                    timeout,
+                )
+                .unwrap();
+            client
+                .send(
+                    "Runtime.evaluate",
+                    Some(json!({
+                        "expression": local_storage_set_expression("token", "storage-secret").unwrap(),
+                        "returnByValue": true,
+                        "awaitPromise": false,
+                    })),
+                    Some(&page.session_id),
+                    timeout,
+                )
+                .unwrap();
+            let _ = client.send("Browser.close", None, None, Duration::from_secs(1));
+            chrome.wait_or_kill(Duration::from_secs(5));
+        }
+
+        let exported = export_browser_state(BrowserStateExportRequest {
+            profile_dir: &profile,
+            allowed_domains: &["example.com".to_string()],
+            timeout,
+        })
+        .unwrap();
+
+        assert!(exported
+            .cookies
+            .iter()
+            .any(|cookie| cookie.name == "sid" && cookie.value == "secret"));
+        assert!(exported.origins.iter().any(|origin| {
+            origin.origin == "https://example.com"
+                && origin
+                    .local_storage
+                    .iter()
+                    .any(|entry| entry.name == "token" && entry.value == "storage-secret")
+        }));
     }
 
     #[test]
