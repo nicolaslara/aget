@@ -130,6 +130,7 @@ Reproducibility notes for the positive auth bridge:
 | DOM traversal | `ego-tree` | `https://crates.io/crates/ego-tree`, docs `https://docs.rs/ego-tree/0.11.0`. Added as a direct dependency because `scraper` stores parsed DOM nodes in `ego-tree`, and the first owned markdown renderer needs explicit child-node traversal. License: ISC. |
 | HTML to markdown | `html2md` | Rejected for this project after `cargo info html2md` reported GPL-3.0+. The first owned markdown slice uses a small local renderer instead. |
 | URL parsing/joining | `url` | `https://crates.io/crates/url`, docs `https://docs.rs/url/2.5.8`. I19d uses v2.5.8 so owned markdown resolves relative links and images against the final URL or HTML `<base href>`. License: MIT OR Apache-2.0. |
+| Browser/CDP WebSocket | `tungstenite` | `https://crates.io/crates/tungstenite`, docs `https://docs.rs/tungstenite/0.29.0`. I19e uses the blocking WebSocket client for a minimal local Chrome DevTools Protocol renderer in the owned browser fallback. License: MIT OR Apache-2.0. |
 | Browser/CDP | `chromiumoxide`, `fantoccini` | Need maintenance/reliability research. |
 | Token estimate | `tiktoken-rs` | Need model compatibility check. |
 | Cache | SQLite/`rusqlite`, filesystem | Need schema design. |

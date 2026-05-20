@@ -348,6 +348,53 @@ fn owned_browser_fallback_replays_cookie_backed_session_without_agent_browser() 
 }
 
 #[test]
+#[ignore = "requires local Chrome/Chromium; set AGET_CHROME_COMMAND if auto-discovery fails"]
+fn owned_browser_fallback_renders_local_storage_backed_session_with_chrome() {
+    let temp = tempfile::tempdir().unwrap();
+    let aget_home = temp.path().join("aget-home");
+    let site = MockSite::builder()
+        .route(
+            "/storage-rendered",
+            MockResponse::html(
+                r##"
+<html>
+  <body>
+    <main><h1>Storage App Shell</h1><div id="storage-result"></div></main>
+    <script>
+      fetch("/storage-api", { headers: { "X-Local-Token": localStorage.getItem("local_token") }})
+        .then((response) => response.text())
+        .then((html) => { document.querySelector("#storage-result").innerHTML = html })
+    </script>
+  </body>
+</html>
+"##,
+            ),
+        )
+        .start();
+    save_storage_session(
+        &aget_home,
+        "storage",
+        &site.origin(),
+        "local_token",
+        "storage-secret",
+    );
+
+    let fallback = Aget::new(&aget_home)
+        .with_extractor_backend(FailingExtractor)
+        .with_browser_automation_backend(OwnedBrowserAutomationBackend)
+        .get(site.url("/storage-rendered"))
+        .session("storage")
+        .content_format(OutputFormat::Text)
+        .wait_for_selector("#storage-result h1")
+        .run()
+        .unwrap();
+
+    assert_eq!(fallback.extractor, "aget-owned-browser-fallback");
+    assert_eq!(fallback.content, "Storage App Shell Storage Protected");
+    assert!(site.received_header("/storage-api", "x-local-token", "storage-secret"));
+}
+
+#[test]
 fn mock_site_replays_cookie_and_storage_sessions() {
     let temp = tempfile::tempdir().unwrap();
     let aget_home = temp.path().join("aget-home");

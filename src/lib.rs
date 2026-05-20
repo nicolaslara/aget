@@ -1,3 +1,5 @@
+mod browser_cdp;
+
 pub mod aget;
 pub mod cli;
 pub mod error;

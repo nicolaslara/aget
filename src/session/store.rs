@@ -146,6 +146,10 @@ fn sweep_orphaned_tmp(tmp_dir: &Path, min_age: Duration) -> io::Result<()> {
             sweep_orphaned_agent_browser_profiles(&path, min_age, now)?;
             continue;
         }
+        if file_name == "owned-chrome" {
+            sweep_orphaned_owned_chrome_profiles(&path, min_age, now)?;
+            continue;
+        }
         if is_orphanable_tmp_file(file_name) && is_older_than(&path, min_age, now) {
             let _ = fs::remove_file(path);
         }
@@ -169,6 +173,28 @@ fn sweep_orphaned_agent_browser_profiles(
             .and_then(|name| name.to_str())
             .unwrap_or("");
         if file_name.starts_with("aget-fallback-") && is_older_than(&path, min_age, now) {
+            let _ = fs::remove_dir_all(path);
+        }
+    }
+    Ok(())
+}
+
+fn sweep_orphaned_owned_chrome_profiles(
+    dir: &Path,
+    min_age: Duration,
+    now: SystemTime,
+) -> io::Result<()> {
+    if !dir.exists() {
+        return Ok(());
+    }
+    for entry in fs::read_dir(dir)? {
+        let entry = entry?;
+        let path = entry.path();
+        let file_name = path
+            .file_name()
+            .and_then(|name| name.to_str())
+            .unwrap_or("");
+        if file_name.starts_with("aget-chrome-") && is_older_than(&path, min_age, now) {
             let _ = fs::remove_dir_all(path);
         }
     }
@@ -309,6 +335,28 @@ mod tests {
         assert!(is_orphanable_tmp_file("agent-browser-raw-state-123.json"));
         assert!(is_orphanable_tmp_file("login-raw-state-123.json"));
         assert!(is_orphanable_tmp_file("playwright-state-123.json"));
+        assert!(!is_orphanable_tmp_file("owned-chrome"));
+        assert!(!is_orphanable_tmp_file("aget-chrome-123"));
         assert!(!is_orphanable_tmp_file("login-active.json"));
+    }
+
+    #[test]
+    fn orphan_sweep_removes_owned_chrome_profiles() {
+        let temp = tempfile::tempdir().unwrap();
+        let owned_chrome = temp.path().join("owned-chrome");
+        let profile = owned_chrome.join("aget-chrome-123");
+        let unrelated = owned_chrome.join("keep-me");
+        fs::create_dir_all(&profile).unwrap();
+        fs::create_dir_all(&unrelated).unwrap();
+
+        sweep_orphaned_owned_chrome_profiles(
+            &owned_chrome,
+            Duration::from_secs(0),
+            SystemTime::now() + Duration::from_secs(1),
+        )
+        .unwrap();
+
+        assert!(!profile.exists());
+        assert!(unrelated.exists());
     }
 }

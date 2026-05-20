@@ -1023,6 +1023,33 @@ Validation:
 
 Confidence: Medium-high for this slice. It closes a concrete markdown parity gap with primary-source behavior inspection and local deterministic coverage; citation/reference formatting and broader readability quality remain open.
 
+### D60: I19e adds a minimal owned CDP renderer for localStorage-backed fallback
+
+Before porting this behavior, I19e inspected `agent-browser`'s storage-state and CDP paths again:
+
+- `references/repos/agent-browser/cli/src/native/state.rs` loads Playwright-style cookies first, then navigates to each storage origin and sets `localStorage`/`sessionStorage` through `Runtime.evaluate` before the target page is opened.
+- `references/repos/agent-browser/cli/src/native/element.rs` extracts element HTML through CDP after resolving the selector.
+- `references/repos/agent-browser/cli/src/native/cdp/chrome.rs` launches Chrome with a temporary user data directory, waits for `DevToolsActivePort`, and cleans up the temp profile after shutdown.
+
+`OwnedBrowserAutomationBackend` now keeps the fast static fallback for cookie-only sessions but switches to a minimal owned Chrome/CDP renderer when composed state contains localStorage origins. The CDP path launches a temporary local Chrome profile, attaches to a page target, sets cookies with `Network.setCookies`, navigates each localStorage origin to set storage, opens the requested URL, optionally waits for a CSS selector through an internally generated `document.querySelector(...)` expression, then feeds the rendered document HTML back into the owned extraction/formatting pipeline. This preserves the safety rule that user-provided JavaScript waits are not executed; user input is still limited to CSS selectors and is JSON-quoted inside agent-owned CDP expressions. Owned Chrome profile temp dirs are removed on normal shutdown and are now included in orphan sweeping.
+
+Dependency note:
+
+- `tungstenite` v0.29.0 is now a direct dependency for the blocking local CDP WebSocket transport. License: MIT OR Apache-2.0.
+
+Remaining I19e gaps are still substantial: Chrome/profile import, login start/finish/cancel lifecycle, current-tab attach, richer process diagnostics, screenshot/debug artifacts, and broader rendered-SPA parity. The new CDP path is intentionally scoped to fallback extraction with explicit session state and a throwaway profile.
+
+Validation:
+
+- `cargo test browser_cdp`
+- `cargo test session::store::tests::orphan_sweep`
+- `cargo test --test mock_site_cli owned_browser_fallback_replays_cookie_backed_session_without_agent_browser`
+- `cargo test --test mock_site_cli owned_browser_fallback_renders_local_storage_backed_session_with_chrome -- --ignored` passed locally with system Chrome and confirmed localStorage-driven rendered DOM extraction.
+- `cargo test`
+- `git diff --check`
+
+Confidence: Medium-high for this slice. The CDP command construction and cookie-only fallback path are covered by deterministic tests, and the ignored local Chrome smoke test passed on this machine. Full migration confidence still requires more lifecycle/error-path coverage before switching defaults.
+
 ## Open Questions
 
 - Can pure Rust browser automation provide reliable persistent profiles and CDP attach, or do we need a small Node/Playwright sidecar?

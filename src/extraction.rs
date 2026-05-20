@@ -753,19 +753,42 @@ fn run_owned_extractor_backend(
 pub(crate) fn run_owned_browser_fallback(
     request: BrowserFallbackRequest<'_>,
 ) -> Result<BrowserFallbackResult, AgetError> {
-    let extraction = extract_owned_page(
-        request.url,
-        request.state,
-        request.options,
-        request.timeout,
-        Some("body"),
-    )?;
+    let extraction = if request.state.origins.is_empty() {
+        extract_owned_page(
+            request.url,
+            request.state,
+            request.options,
+            request.timeout,
+            Some("body"),
+        )?
+    } else {
+        extract_owned_browser_rendered_page(request)?
+    };
     Ok(BrowserFallbackResult {
         final_url: extraction.final_url,
         content: extraction.content,
         warnings: vec![OWNED_FALLBACK_WARNING.to_string()],
         extractor: OWNED_BROWSER_FALLBACK.to_string(),
     })
+}
+
+fn extract_owned_browser_rendered_page(
+    request: BrowserFallbackRequest<'_>,
+) -> Result<OwnedPageExtraction, AgetError> {
+    validate_owned_extraction_options(request.options)?;
+    let rendered = crate::browser_cdp::render_page(crate::browser_cdp::BrowserRenderRequest {
+        tmp_dir: request.tmp_dir,
+        url: request.url,
+        state: request.state,
+        wait_for_selector: request.options.wait_for_selector.as_deref(),
+        timeout: request.timeout,
+    })?;
+    extract_owned_html(
+        rendered.final_url,
+        rendered.html,
+        request.options,
+        Some("body"),
+    )
 }
 
 struct OwnedPageExtraction {
@@ -782,7 +805,21 @@ fn extract_owned_page(
 ) -> Result<OwnedPageExtraction, AgetError> {
     validate_owned_extraction_options(options)?;
     let response = owned_fetch(url, state, timeout)?;
-    let mut document = Html::parse_document(&response.body);
+    extract_owned_html(
+        response.final_url,
+        response.body,
+        options,
+        fallback_selector,
+    )
+}
+
+fn extract_owned_html(
+    final_url: String,
+    body: String,
+    options: &GetOptions,
+    fallback_selector: Option<&str>,
+) -> Result<OwnedPageExtraction, AgetError> {
+    let mut document = Html::parse_document(&body);
     document = remove_selected_elements(document, "script,style,noscript")?;
 
     if let Some(wait_for) = &options.wait_for_selector {
@@ -799,12 +836,12 @@ fn extract_owned_page(
     }
 
     let selector = options.selector.as_deref().or(fallback_selector);
-    let base_url = markdown_base_url(&document, &response.final_url)?;
+    let base_url = markdown_base_url(&document, &final_url)?;
     let extracted = extract_owned_content(&document, selector, &base_url)?;
     let content = match options.content_format {
         OutputFormat::Html => extracted.html,
         OutputFormat::Json => serde_json::json!({
-            "url": response.final_url,
+            "url": final_url,
             "content": extracted.text,
         })
         .to_string(),
@@ -812,10 +849,7 @@ fn extract_owned_page(
         OutputFormat::Text => extracted.text,
     };
 
-    Ok(OwnedPageExtraction {
-        final_url: response.final_url,
-        content,
-    })
+    Ok(OwnedPageExtraction { final_url, content })
 }
 
 fn validate_owned_extraction_options(options: &GetOptions) -> Result<(), AgetError> {
