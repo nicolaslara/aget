@@ -23,24 +23,30 @@ pub struct MockSite {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct MockResponse {
     status: u16,
+    content_type: String,
     headers: Vec<(String, String)>,
     body: String,
+    delay: Option<Duration>,
 }
 
 impl MockResponse {
     pub fn html(body: impl Into<String>) -> Self {
         Self {
             status: 200,
+            content_type: "text/html; charset=utf-8".to_string(),
             headers: Vec::new(),
             body: body.into(),
+            delay: None,
         }
     }
 
     pub fn redirect(location: impl Into<String>) -> Self {
         Self {
             status: 302,
+            content_type: "text/html; charset=utf-8".to_string(),
             headers: vec![("Location".to_string(), location.into())],
             body: String::new(),
+            delay: None,
         }
     }
 
@@ -51,6 +57,16 @@ impl MockResponse {
 
     pub fn header(mut self, name: impl Into<String>, value: impl Into<String>) -> Self {
         self.headers.push((name.into(), value.into()));
+        self
+    }
+
+    pub fn content_type(mut self, content_type: impl Into<String>) -> Self {
+        self.content_type = content_type.into();
+        self
+    }
+
+    pub fn delay(mut self, delay: Duration) -> Self {
+        self.delay = Some(delay);
         self
     }
 }
@@ -348,8 +364,12 @@ fn cookie_contains(cookie_header: &str, name: &str, value: &str) -> bool {
 
 impl MockResponse {
     fn to_http(&self) -> String {
-        html(
+        if let Some(delay) = self.delay {
+            thread::sleep(delay);
+        }
+        http_response(
             self.status,
+            &self.content_type,
             &self
                 .headers
                 .iter()
@@ -361,6 +381,10 @@ impl MockResponse {
 }
 
 fn html(status: u16, headers: &[(&str, &str)], body: &str) -> String {
+    http_response(status, "text/html; charset=utf-8", headers, body)
+}
+
+fn http_response(status: u16, content_type: &str, headers: &[(&str, &str)], body: &str) -> String {
     let reason = match status {
         200 => "OK",
         302 => "Found",
@@ -369,7 +393,7 @@ fn html(status: u16, headers: &[(&str, &str)], body: &str) -> String {
         _ => "OK",
     };
     let mut response = format!(
-        "HTTP/1.1 {status} {reason}\r\nContent-Type: text/html; charset=utf-8\r\nContent-Length: {}\r\nConnection: close\r\n",
+        "HTTP/1.1 {status} {reason}\r\nContent-Type: {content_type}\r\nContent-Length: {}\r\nConnection: close\r\n",
         body.len()
     );
     for (name, value) in headers {

@@ -750,7 +750,7 @@ fn run_owned_extractor_backend(
         ok: true,
         final_url: Some(extraction.final_url),
         content: Some(extraction.content.clone()),
-        warnings: Vec::new(),
+        warnings: extraction.warnings,
         error: None,
     };
     write_private_file(request.content_path, extraction.content.as_bytes())
@@ -775,10 +775,12 @@ pub(crate) fn run_owned_browser_fallback(
         request.timeout,
         Some("body"),
     )?;
+    let mut warnings = vec![OWNED_FALLBACK_WARNING.to_string()];
+    warnings.extend(extraction.warnings);
     Ok(BrowserFallbackResult {
         final_url: extraction.final_url,
         content: extraction.content,
-        warnings: vec![OWNED_FALLBACK_WARNING.to_string()],
+        warnings,
         extractor: OWNED_BROWSER_FALLBACK.to_string(),
     })
 }
@@ -792,6 +794,17 @@ fn extract_owned_static_or_rendered(
     fallback_selector: Option<&str>,
 ) -> Result<OwnedPageExtraction, AgetError> {
     let owned_options = validate_owned_extraction_options(options)?;
+    if owned_options.wait_for_images {
+        return extract_owned_rendered_page(
+            tmp_dir,
+            url,
+            state,
+            options,
+            timeout,
+            fallback_selector,
+            &owned_options,
+        );
+    }
     if !state.origins.is_empty() {
         return extract_owned_rendered_page(
             tmp_dir,
@@ -849,18 +862,21 @@ fn extract_owned_rendered_page(
         state,
         wait_for_selector: options.wait_for_selector.as_deref(),
         wait_until: owned_options.wait_until,
+        wait_for_images: owned_options.wait_for_images,
         settle_delay: owned_options.render_settle_delay,
         page_timeout: owned_options.page_timeout.unwrap_or(timeout),
         wait_for_timeout: owned_options.wait_for_timeout,
         timeout,
     })?;
-    extract_owned_html(
+    let mut extraction = extract_owned_html(
         rendered.final_url,
         rendered.html,
         options,
         fallback_selector,
         owned_options,
-    )
+    )?;
+    extraction.warnings.extend(rendered.warnings);
+    Ok(extraction)
 }
 
 fn should_retry_with_rendered_wait(error: &AgetError, options: &GetOptions) -> bool {
@@ -879,6 +895,7 @@ fn should_retry_with_rendered_wait(error: &AgetError, options: &GetOptions) -> b
 struct OwnedPageExtraction {
     final_url: String,
     content: String,
+    warnings: Vec<String>,
 }
 
 #[derive(Debug)]
@@ -887,6 +904,7 @@ struct OwnedExtractorOptions {
     target_elements: Vec<String>,
     only_text: bool,
     wait_until: PageWaitUntil,
+    wait_for_images: bool,
     render_settle_delay: Duration,
     page_timeout: Option<Duration>,
     wait_for_timeout: Option<Duration>,
@@ -899,6 +917,7 @@ impl Default for OwnedExtractorOptions {
             target_elements: Vec::new(),
             only_text: false,
             wait_until: PageWaitUntil::Load,
+            wait_for_images: false,
             render_settle_delay: DEFAULT_RENDER_SETTLE_DELAY,
             page_timeout: None,
             wait_for_timeout: None,
@@ -981,7 +1000,11 @@ fn extract_owned_html(
         OutputFormat::Text => extracted.text,
     };
 
-    Ok(OwnedPageExtraction { final_url, content })
+    Ok(OwnedPageExtraction {
+        final_url,
+        content,
+        warnings: Vec::new(),
+    })
 }
 
 fn validate_owned_extraction_options(
@@ -1030,9 +1053,13 @@ fn validate_owned_extraction_options(
             "wait_until" => {
                 owned_options.wait_until = parse_owned_wait_until(&option.value)?;
             }
+            "wait_for_images" => {
+                owned_options.wait_for_images =
+                    parse_owned_bool("crawl4ai.wait_for_images", &option.value)?;
+            }
             _ => {
                 return Err(extraction_failed(format!(
-                    "owned extractor does not support backend option '{}'; supported options: crawl4ai.delay_before_return_html, crawl4ai.excluded_tags, crawl4ai.only_text, crawl4ai.page_timeout, crawl4ai.target_elements, crawl4ai.wait_for_timeout, crawl4ai.wait_until",
+                    "owned extractor does not support backend option '{}'; supported options: crawl4ai.delay_before_return_html, crawl4ai.excluded_tags, crawl4ai.only_text, crawl4ai.page_timeout, crawl4ai.target_elements, crawl4ai.wait_for_images, crawl4ai.wait_for_timeout, crawl4ai.wait_until",
                     option.key
                 )));
             }

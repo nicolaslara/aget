@@ -25,6 +25,7 @@ pub(crate) struct BrowserRenderRequest<'a> {
     pub(crate) state: &'a PlaywrightState,
     pub(crate) wait_for_selector: Option<&'a str>,
     pub(crate) wait_until: PageWaitUntil,
+    pub(crate) wait_for_images: bool,
     pub(crate) settle_delay: Duration,
     pub(crate) page_timeout: Duration,
     pub(crate) wait_for_timeout: Option<Duration>,
@@ -80,6 +81,7 @@ pub(crate) struct BrowserLoginCloseRequest<'a> {
 pub(crate) struct RenderedPage {
     pub(crate) final_url: String,
     pub(crate) html: String,
+    pub(crate) warnings: Vec<String>,
 }
 
 pub(crate) fn render_page(request: BrowserRenderRequest<'_>) -> Result<RenderedPage, AgetError> {
@@ -102,6 +104,13 @@ pub(crate) fn render_page(request: BrowserRenderRequest<'_>) -> Result<RenderedP
             request.wait_for_timeout.unwrap_or(request.page_timeout),
         )?;
     }
+    let mut warnings = Vec::new();
+    if request.wait_for_images && !client.wait_for_images_complete(&page.session_id)? {
+        warnings.push(
+            "some images did not finish loading before crawl4ai.wait_for_images timeout"
+                .to_string(),
+        );
+    }
     if !request.settle_delay.is_zero() {
         thread::sleep(request.settle_delay);
     }
@@ -120,7 +129,11 @@ pub(crate) fn render_page(request: BrowserRenderRequest<'_>) -> Result<RenderedP
     );
     let _ = client.send("Browser.close", None, None, Duration::from_secs(1));
     chrome.wait_or_kill(CHROME_SHUTDOWN_WAIT);
-    Ok(RenderedPage { final_url, html })
+    Ok(RenderedPage {
+        final_url,
+        html,
+        warnings,
+    })
 }
 
 pub(crate) fn export_browser_state(
@@ -685,6 +698,34 @@ impl CdpClient {
                         "owned browser fallback timed out waiting for selector '{selector}'"
                     ),
                 });
+            }
+            thread::sleep(Duration::from_millis(100));
+        }
+    }
+
+    fn wait_for_images_complete(&mut self, session_id: &str) -> Result<bool, AgetError> {
+        let deadline = Instant::now() + Duration::from_secs(1);
+        loop {
+            if Instant::now() >= deadline {
+                return Ok(false);
+            }
+            let result = self.send(
+                "Runtime.evaluate",
+                Some(json!({
+                    "expression": "Array.from(document.images).every((img) => img.complete)",
+                    "returnByValue": true,
+                    "awaitPromise": false,
+                })),
+                Some(session_id),
+                remaining(deadline),
+            )?;
+            if result
+                .get("result")
+                .and_then(|result| result.get("value"))
+                .and_then(Value::as_bool)
+                .unwrap_or(false)
+            {
+                return Ok(true);
             }
             thread::sleep(Duration::from_millis(100));
         }

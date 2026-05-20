@@ -1382,7 +1382,7 @@ The next render-control slice ports the part of `crawl4ai.wait_until` that has d
 
 The owned renderer now accepts `crawl4ai.wait_until=domcontentloaded` and `crawl4ai.wait_until=load`. These map to CDP `Page.domContentEventFired` and `Page.loadEventFired` respectively. Unsupported values such as `networkidle` fail explicitly instead of being ignored, because the owned renderer does not yet implement network-idle tracking. The default owned behavior remains the existing load-event wait until a broader readiness policy is chosen.
 
-The supported owned Crawl4AI namespace is now `excluded_tags`, `target_elements`, `only_text`, `delay_before_return_html`, `page_timeout`, `wait_for_timeout`, and bounded `wait_until`. `word_count_threshold` and `wait_for_images` remain unsupported until they have owned semantics and validation strong enough for authenticated-session use.
+The supported owned Crawl4AI namespace is now `excluded_tags`, `target_elements`, `only_text`, `delay_before_return_html`, `page_timeout`, `wait_for_timeout`, and bounded `wait_until`. `word_count_threshold` and `wait_for_images` remained unsupported at this slice until they had owned semantics and validation strong enough for authenticated-session use.
 
 Validation:
 
@@ -1390,6 +1390,21 @@ Validation:
 - `cargo test --test mock_site_cli owned_extractor_backend_renders_waited_javascript_page_with_chrome -- --ignored`
 
 Confidence: Medium-high. This covers the two CDP lifecycle events the owned renderer can currently prove. It intentionally does not claim Playwright `networkidle` parity.
+
+### D80: I19d ports `crawl4ai.wait_for_images` to owned CDP rendering
+
+The next render-readiness slice ports the safe part of `crawl4ai.wait_for_images`. Before changing the owned renderer, I19d inspected `references/repos/crawl4ai/crawl4ai/async_configs.py`, where `wait_for_images` is a boolean navigation/timing option defaulting to false, and `references/repos/crawl4ai/crawl4ai/async_crawler_strategy.py`, where Crawl4AI waits for `domcontentloaded`, sleeps briefly, then checks that all `<img>` elements are complete with a one-second timeout. Crawl4AI logs a warning and continues if images do not finish.
+
+The owned extractor now parses `crawl4ai.wait_for_images` as a boolean using the same boolean spelling set as other owned options. When enabled, it forces the owned CDP rendering path, waits up to one second for `Array.from(document.images).every((img) => img.complete)`, and continues with an agent-visible warning if the image wait times out. This remains a browser-readiness option only; it does not add image description extraction, screenshot capture, external image fetching outside the browser, or JavaScript waits from user input.
+
+The supported owned Crawl4AI namespace is now `excluded_tags`, `target_elements`, `only_text`, `delay_before_return_html`, `page_timeout`, `wait_for_timeout`, bounded `wait_until`, and `wait_for_images`. `word_count_threshold` remains unsupported until source inspection establishes whether the current Crawl4AI default scraper applies it to the behavior `aget` actually depends on.
+
+Validation:
+
+- `cargo test --test mock_site_cli homegrown_extractor_backend_covers_static_http_parity_slice`
+- `cargo test --test mock_site_cli owned_extractor_backend_honors_wait_for_images_option_with_chrome -- --ignored`
+
+Confidence: Medium. The behavior is source-faithful for the explicit image-completion wait and covered by a local Chrome smoke, but broader rendered-page readiness remains a larger I19d gap.
 
 ## Open Questions
 

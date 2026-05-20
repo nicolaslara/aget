@@ -4,6 +4,7 @@ use std::fs;
 use std::path::{Path, PathBuf};
 use std::process::Command as StdCommand;
 use std::sync::OnceLock;
+use std::time::Duration;
 
 use aget::extraction::{ExtractorBackend, ExtractorBackendResult, ExtractorRequest};
 use aget::{
@@ -458,6 +459,17 @@ fn homegrown_extractor_backend_covers_static_http_parity_slice() {
         .to_string()
         .contains("crawl4ai.wait_until supports only 'domcontentloaded' or 'load'"));
 
+    let invalid_wait_for_images = Aget::new(&aget_home)
+        .with_extractor_backend(OwnedExtractorBackend)
+        .get(site.url("/formats"))
+        .backend_option("crawl4ai.wait_for_images", "eventually")
+        .run()
+        .unwrap_err();
+    assert_eq!(invalid_wait_for_images.code(), ErrorCode::ExtractionFailed);
+    assert!(invalid_wait_for_images
+        .to_string()
+        .contains("crawl4ai.wait_for_images expects a boolean value"));
+
     let unsupported_option = Aget::new(&aget_home)
         .with_extractor_backend(OwnedExtractorBackend)
         .get(site.url("/formats"))
@@ -468,7 +480,7 @@ fn homegrown_extractor_backend_covers_static_http_parity_slice() {
     assert!(unsupported_option
         .to_string()
         .contains(
-            "supported options: crawl4ai.delay_before_return_html, crawl4ai.excluded_tags, crawl4ai.only_text, crawl4ai.page_timeout, crawl4ai.target_elements, crawl4ai.wait_for_timeout, crawl4ai.wait_until"
+            "supported options: crawl4ai.delay_before_return_html, crawl4ai.excluded_tags, crawl4ai.only_text, crawl4ai.page_timeout, crawl4ai.target_elements, crawl4ai.wait_for_images, crawl4ai.wait_for_timeout, crawl4ai.wait_until"
         ));
 
     let redirect = Aget::new(&aget_home)
@@ -679,6 +691,59 @@ fn owned_extractor_backend_honors_render_delay_option_with_chrome() {
 
     assert_eq!(extraction.extractor, "aget-owned-extractor");
     assert_eq!(extraction.content, "Slow Client Shell Slow Client Rendered");
+}
+
+#[test]
+#[ignore = "requires local Chrome/Chromium; set AGET_CHROME_COMMAND if auto-discovery fails"]
+fn owned_extractor_backend_honors_wait_for_images_option_with_chrome() {
+    let temp = tempfile::tempdir().unwrap();
+    let aget_home = temp.path().join("aget-home");
+    let site = MockSite::builder()
+        .route(
+            "/image-wait",
+            MockResponse::html(
+                r##"
+<html>
+  <body>
+    <main>
+      <h1>Image Shell</h1>
+      <p id="image-status">Image Pending</p>
+      <img id="slow-image" src="/slow-image.svg" alt="slow">
+    </main>
+    <script>
+      const status = document.querySelector("#image-status")
+      const image = document.querySelector("#slow-image")
+      image.addEventListener("load", () => { status.textContent = "Image Loaded" })
+      image.addEventListener("error", () => { status.textContent = "Image Failed" })
+    </script>
+  </body>
+</html>
+"##,
+            ),
+        )
+        .route(
+            "/slow-image.svg",
+            MockResponse::html(
+                r#"<svg xmlns="http://www.w3.org/2000/svg" width="1" height="1"></svg>"#,
+            )
+            .content_type("image/svg+xml")
+            .delay(Duration::from_millis(250)),
+        )
+        .start();
+
+    let extraction = Aget::new(&aget_home)
+        .with_extractor_backend(OwnedExtractorBackend)
+        .get(site.url("/image-wait"))
+        .content_format(OutputFormat::Text)
+        .backend_option("crawl4ai.wait_until", "domcontentloaded")
+        .backend_option("crawl4ai.delay_before_return_html", "0")
+        .backend_option("crawl4ai.wait_for_images", "true")
+        .run()
+        .unwrap();
+
+    assert_eq!(extraction.extractor, "aget-owned-extractor");
+    assert_eq!(extraction.content, "Image Shell Image Loaded");
+    assert!(extraction.warnings.is_empty());
 }
 
 #[test]
