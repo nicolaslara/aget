@@ -24,10 +24,26 @@ pub(crate) struct BrowserRenderRequest<'a> {
     pub(crate) url: &'a str,
     pub(crate) state: &'a PlaywrightState,
     pub(crate) wait_for_selector: Option<&'a str>,
+    pub(crate) wait_until: PageWaitUntil,
     pub(crate) settle_delay: Duration,
     pub(crate) page_timeout: Duration,
     pub(crate) wait_for_timeout: Option<Duration>,
     pub(crate) timeout: Duration,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) enum PageWaitUntil {
+    DomContentLoaded,
+    Load,
+}
+
+impl PageWaitUntil {
+    fn event_name(self) -> &'static str {
+        match self {
+            Self::DomContentLoaded => "Page.domContentEventFired",
+            Self::Load => "Page.loadEventFired",
+        }
+    }
 }
 
 pub(crate) struct BrowserStateExportRequest<'a> {
@@ -73,7 +89,12 @@ pub(crate) fn render_page(request: BrowserRenderRequest<'_>) -> Result<RenderedP
     let page = client.create_page(request.page_timeout)?;
     client.enable_page_domains(&page.session_id, request.page_timeout)?;
     client.load_state(&page.session_id, request.state, request.page_timeout)?;
-    client.navigate_and_wait(&page.session_id, request.url, request.page_timeout)?;
+    client.navigate_and_wait(
+        &page.session_id,
+        request.url,
+        request.wait_until,
+        request.page_timeout,
+    )?;
     if let Some(selector) = request.wait_for_selector {
         client.wait_for_selector(
             &page.session_id,
@@ -446,7 +467,7 @@ impl CdpClient {
                 continue;
             }
             let navigate_url = format!("{}/", origin.origin.trim_end_matches('/'));
-            self.navigate_and_wait(session_id, &navigate_url, timeout)?;
+            self.navigate_and_wait(session_id, &navigate_url, PageWaitUntil::Load, timeout)?;
             for entry in &origin.local_storage {
                 let expression = local_storage_set_expression(&entry.name, &entry.value)?;
                 self.send(
@@ -618,6 +639,7 @@ impl CdpClient {
         &mut self,
         session_id: &str,
         url: &str,
+        wait_until: PageWaitUntil,
         timeout: Duration,
     ) -> Result<(), AgetError> {
         self.send(
@@ -626,7 +648,7 @@ impl CdpClient {
             Some(session_id),
             timeout,
         )?;
-        self.wait_for_event("Page.loadEventFired", Some(session_id), timeout)
+        self.wait_for_event(wait_until.event_name(), Some(session_id), timeout)
     }
 
     fn wait_for_selector(

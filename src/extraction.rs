@@ -13,6 +13,7 @@ use serde::{Deserialize, Serialize};
 use ureq::ResponseExt;
 use url::Url;
 
+use crate::browser_cdp::PageWaitUntil;
 use crate::cli::{ExtractorOption, OutputFormat};
 use crate::error::{AgetError, ErrorCode};
 use crate::process::{configure_local_command, wait_for_child};
@@ -847,6 +848,7 @@ fn extract_owned_rendered_page(
         url,
         state,
         wait_for_selector: options.wait_for_selector.as_deref(),
+        wait_until: owned_options.wait_until,
         settle_delay: owned_options.render_settle_delay,
         page_timeout: owned_options.page_timeout.unwrap_or(timeout),
         wait_for_timeout: owned_options.wait_for_timeout,
@@ -884,6 +886,7 @@ struct OwnedExtractorOptions {
     excluded_tags: Vec<String>,
     target_elements: Vec<String>,
     only_text: bool,
+    wait_until: PageWaitUntil,
     render_settle_delay: Duration,
     page_timeout: Option<Duration>,
     wait_for_timeout: Option<Duration>,
@@ -895,6 +898,7 @@ impl Default for OwnedExtractorOptions {
             excluded_tags: Vec::new(),
             target_elements: Vec::new(),
             only_text: false,
+            wait_until: PageWaitUntil::Load,
             render_settle_delay: DEFAULT_RENDER_SETTLE_DELAY,
             page_timeout: None,
             wait_for_timeout: None,
@@ -1023,9 +1027,12 @@ fn validate_owned_extraction_options(
                     &option.value,
                 )?);
             }
+            "wait_until" => {
+                owned_options.wait_until = parse_owned_wait_until(&option.value)?;
+            }
             _ => {
                 return Err(extraction_failed(format!(
-                    "owned extractor does not support backend option '{}'; supported options: crawl4ai.delay_before_return_html, crawl4ai.excluded_tags, crawl4ai.only_text, crawl4ai.page_timeout, crawl4ai.target_elements, crawl4ai.wait_for_timeout",
+                    "owned extractor does not support backend option '{}'; supported options: crawl4ai.delay_before_return_html, crawl4ai.excluded_tags, crawl4ai.only_text, crawl4ai.page_timeout, crawl4ai.target_elements, crawl4ai.wait_for_timeout, crawl4ai.wait_until",
                     option.key
                 )));
             }
@@ -1104,6 +1111,16 @@ fn parse_owned_milliseconds(name: &str, value: &str) -> Result<Duration, AgetErr
         ))
     })?;
     Ok(Duration::from_millis(milliseconds))
+}
+
+fn parse_owned_wait_until(value: &str) -> Result<PageWaitUntil, AgetError> {
+    match value.trim().to_ascii_lowercase().as_str() {
+        "domcontentloaded" => Ok(PageWaitUntil::DomContentLoaded),
+        "load" => Ok(PageWaitUntil::Load),
+        _ => Err(extraction_failed(format!(
+            "crawl4ai.wait_until supports only 'domcontentloaded' or 'load' in the owned extractor, got '{value}'"
+        ))),
+    }
 }
 
 fn validate_css_only_wait(value: &str) -> Result<(), AgetError> {

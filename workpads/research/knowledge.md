@@ -1367,7 +1367,7 @@ The next render-control slice ports the timeout options that have clear browser-
 
 The owned extractor now parses `crawl4ai.page_timeout` and `crawl4ai.wait_for_timeout` as non-negative integer millisecond values. `page_timeout` is applied to CDP page creation, domain enabling, state loading, navigation, and final DOM reads in `browser_cdp::render_page`; browser process startup still uses the outer `aget --timeout` budget. `wait_for_timeout` applies only to the CSS selector wait and falls back to the page timeout when absent. The CSS-only wait safety rule remains unchanged.
 
-The supported owned Crawl4AI namespace is now `excluded_tags`, `target_elements`, `only_text`, `delay_before_return_html`, `page_timeout`, and `wait_for_timeout`. `word_count_threshold`, `wait_until`, and `wait_for_images` remain unsupported until they have owned semantics and validation strong enough for authenticated-session use.
+The supported owned Crawl4AI namespace is now `excluded_tags`, `target_elements`, `only_text`, `delay_before_return_html`, `page_timeout`, and `wait_for_timeout`. `word_count_threshold`, `wait_until`, and `wait_for_images` remained unsupported at this slice until they had owned semantics and validation strong enough for authenticated-session use.
 
 Validation:
 
@@ -1375,6 +1375,21 @@ Validation:
 - `cargo test --test mock_site_cli owned_extractor_backend_renders_waited_javascript_page_with_chrome -- --ignored`
 
 Confidence: Medium-high. The parser is deterministically covered, and the ignored Chrome smoke covers the positive rendered wait path with explicit page and wait timeouts. This does not add network-idle or image-readiness behavior.
+
+### D79: I19d ports bounded `crawl4ai.wait_until` support to owned CDP rendering
+
+The next render-control slice ports the part of `crawl4ai.wait_until` that has direct owned CDP semantics. Before changing the owned renderer, I19d inspected `references/repos/crawl4ai/crawl4ai/async_configs.py`, where the default `wait_until` is `domcontentloaded`, and `references/repos/crawl4ai/crawl4ai/async_crawler_strategy.py`, where Crawl4AI passes that value into Playwright navigation.
+
+The owned renderer now accepts `crawl4ai.wait_until=domcontentloaded` and `crawl4ai.wait_until=load`. These map to CDP `Page.domContentEventFired` and `Page.loadEventFired` respectively. Unsupported values such as `networkidle` fail explicitly instead of being ignored, because the owned renderer does not yet implement network-idle tracking. The default owned behavior remains the existing load-event wait until a broader readiness policy is chosen.
+
+The supported owned Crawl4AI namespace is now `excluded_tags`, `target_elements`, `only_text`, `delay_before_return_html`, `page_timeout`, `wait_for_timeout`, and bounded `wait_until`. `word_count_threshold` and `wait_for_images` remain unsupported until they have owned semantics and validation strong enough for authenticated-session use.
+
+Validation:
+
+- `cargo test --test mock_site_cli homegrown_extractor_backend_covers_static_http_parity_slice`
+- `cargo test --test mock_site_cli owned_extractor_backend_renders_waited_javascript_page_with_chrome -- --ignored`
+
+Confidence: Medium-high. This covers the two CDP lifecycle events the owned renderer can currently prove. It intentionally does not claim Playwright `networkidle` parity.
 
 ## Open Questions
 

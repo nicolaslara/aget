@@ -447,6 +447,17 @@ fn homegrown_extractor_backend_covers_static_http_parity_slice() {
         .to_string()
         .contains("crawl4ai.page_timeout expects a non-negative integer number of milliseconds"));
 
+    let unsupported_wait_until = Aget::new(&aget_home)
+        .with_extractor_backend(OwnedExtractorBackend)
+        .get(site.url("/formats"))
+        .backend_option("crawl4ai.wait_until", "networkidle")
+        .run()
+        .unwrap_err();
+    assert_eq!(unsupported_wait_until.code(), ErrorCode::ExtractionFailed);
+    assert!(unsupported_wait_until
+        .to_string()
+        .contains("crawl4ai.wait_until supports only 'domcontentloaded' or 'load'"));
+
     let unsupported_option = Aget::new(&aget_home)
         .with_extractor_backend(OwnedExtractorBackend)
         .get(site.url("/formats"))
@@ -457,7 +468,7 @@ fn homegrown_extractor_backend_covers_static_http_parity_slice() {
     assert!(unsupported_option
         .to_string()
         .contains(
-            "supported options: crawl4ai.delay_before_return_html, crawl4ai.excluded_tags, crawl4ai.only_text, crawl4ai.page_timeout, crawl4ai.target_elements, crawl4ai.wait_for_timeout"
+            "supported options: crawl4ai.delay_before_return_html, crawl4ai.excluded_tags, crawl4ai.only_text, crawl4ai.page_timeout, crawl4ai.target_elements, crawl4ai.wait_for_timeout, crawl4ai.wait_until"
         ));
 
     let redirect = Aget::new(&aget_home)
@@ -583,6 +594,7 @@ fn owned_extractor_backend_renders_waited_javascript_page_with_chrome() {
         .wait_for_selector("#ready")
         .backend_option("crawl4ai.page_timeout", "5000")
         .backend_option("crawl4ai.wait_for_timeout", "1000")
+        .backend_option("crawl4ai.wait_until", "domcontentloaded")
         .run()
         .unwrap();
 
