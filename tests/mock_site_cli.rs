@@ -5,9 +5,10 @@ use std::path::{Path, PathBuf};
 use std::process::Command as StdCommand;
 use std::sync::OnceLock;
 
+use aget::extraction::{ExtractorBackend, ExtractorBackendResult, ExtractorRequest};
 use aget::{
-    Aget, ErrorCode, OutputFormat, OwnedExtractorBackend, Session, SessionCookie, SessionOrigin,
-    SessionStore, StorageEntry,
+    Aget, AgetError, ErrorCode, OutputFormat, OwnedBrowserAutomationBackend, OwnedExtractorBackend,
+    Session, SessionCookie, SessionOrigin, SessionStore, StorageEntry,
 };
 use assert_cmd::Command;
 use support::mock_site::{MockResponse, MockSite};
@@ -285,6 +286,31 @@ fn homegrown_extractor_backend_covers_static_http_parity_slice() {
         .run()
         .unwrap_err();
     assert_eq!(js_wait.code(), ErrorCode::ExtractionFailed);
+}
+
+#[test]
+fn owned_browser_fallback_replays_cookie_backed_session_without_agent_browser() {
+    let temp = tempfile::tempdir().unwrap();
+    let aget_home = temp.path().join("aget-home");
+    let site = MockSite::start();
+    save_cookie_session(&aget_home, "app", &site.host(), "app_session", "valid-app");
+
+    let fallback = Aget::new(&aget_home)
+        .with_extractor_backend(FailingExtractor)
+        .with_browser_automation_backend(OwnedBrowserAutomationBackend)
+        .get(site.url("/protected"))
+        .session("app")
+        .content_format(OutputFormat::Text)
+        .run()
+        .unwrap();
+
+    assert_eq!(fallback.extractor, "aget-owned-browser-fallback");
+    assert_eq!(fallback.content, "Protected Account Private account body.");
+    assert_eq!(
+        fallback.warnings,
+        vec!["aget-owned fallback used after primary extractor failed"]
+    );
+    assert!(site.received_cookie("/protected", "app_session", "valid-app"));
 }
 
 #[test]
@@ -1055,4 +1081,20 @@ fn save_mixed_scope_session(home: &Path, name: &str, domain: &str) {
         source_session: Some(name.to_string()),
     });
     store.save(&session).unwrap();
+}
+
+#[derive(Clone)]
+struct FailingExtractor;
+
+impl ExtractorBackend for FailingExtractor {
+    fn name(&self) -> &'static str {
+        "failing-extractor"
+    }
+
+    fn extract(&self, _request: ExtractorRequest<'_>) -> Result<ExtractorBackendResult, AgetError> {
+        Err(AgetError::Stable {
+            code: ErrorCode::ExtractionFailed,
+            message: "primary extractor failed".to_string(),
+        })
+    }
 }

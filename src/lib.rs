@@ -5,7 +5,7 @@ pub mod extraction;
 pub(crate) mod process;
 pub mod session;
 
-pub use aget::{Aget, GetRequest};
+pub use aget::{Aget, GetRequest, OwnedBrowserAutomationBackend};
 pub use cli::{
     Cli, Command, ComposeSessionCommand, DeleteSessionCommand, EnvelopeFormat, ExtractorOption,
     GetCommand, GlobalOptions, ImportChromeSessionCommand, ImportCmuxSessionCommand,

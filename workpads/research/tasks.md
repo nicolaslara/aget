@@ -447,7 +447,7 @@ Status note:
 
 - First owned extractor slices are implemented behind `ExtractorBackend` and documented in `knowledge.md` D55-D57. The owned backend now has Rust HTTP(S) transport, CSS selector parsing, and structural markdown for common static HTML elements, but I19d remains in progress because browser-rendered JavaScript extraction, localStorage-backed replay, and full Crawl4AI-quality markdown/readability are not yet owned.
 
-### 📋 Task I19e: Port `agent-browser` session/browser features into `aget`
+### 🚧 Task I19e: Port `agent-browser` session/browser features into `aget`
 
 Acceptance criteria:
 
@@ -456,6 +456,10 @@ Acceptance criteria:
 - Preserve the current behavior used by `aget`: dedicated login profile/session startup, login finish state export, Chrome/profile import, composed session loading for fallback extraction, body HTML/text fallback output, session close, timeout handling, temp cleanup, and local-only handling of auth state.
 - Preserve profile-lock, no-auth-state, login-needed, and `requires_user_action` classification.
 - Pass the I19c `agent-browser` parity tests with the homegrown backend and keep command-adapter tests as compatibility coverage.
+
+Status note:
+
+- Started after the first I19d owned extractor slices and documented in `knowledge.md` D58. `OwnedBrowserAutomationBackend` now has an owned session-backed fallback extraction path for static cookie-backed pages, but I19e remains in progress because Chrome/profile import, login lifecycle, rendered JavaScript, localStorage-backed browser replay, close/process lifecycle parity, and `requires_user_action` classification still require deeper CDP/profile work.
 
 ### 📋 Task I19f: Switch default runtime path to homegrown backends
 

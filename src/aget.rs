@@ -278,6 +278,47 @@ impl BrowserFallbackBackend for CommandBrowserAutomationBackend {
     }
 }
 
+#[derive(Clone, Default)]
+pub struct OwnedBrowserAutomationBackend;
+
+impl BrowserAutomationBackend for OwnedBrowserAutomationBackend {
+    fn import_chrome(&self, _options: ChromeImportOptions) -> Result<Session, AgetError> {
+        Err(unsupported_owned_browser_capability(
+            "Chrome/profile import",
+        ))
+    }
+
+    fn start_login(&self, _options: LoginStartOptions) -> Result<LoginStartResult, AgetError> {
+        Err(unsupported_owned_browser_capability("login start"))
+    }
+
+    fn finish_login(&self, _options: LoginFinishOptions) -> Result<LoginFinishResult, AgetError> {
+        Err(unsupported_owned_browser_capability("login finish"))
+    }
+
+    fn cancel_login(&self, _options: LoginCancelOptions) -> Result<LoginCancelResult, AgetError> {
+        Err(unsupported_owned_browser_capability("login cancel"))
+    }
+}
+
+impl BrowserFallbackBackend for OwnedBrowserAutomationBackend {
+    fn extract_with_state(
+        &self,
+        request: BrowserFallbackRequest<'_>,
+    ) -> Result<BrowserFallbackResult, AgetError> {
+        crate::extraction::run_owned_browser_fallback(request)
+    }
+}
+
+fn unsupported_owned_browser_capability(capability: &str) -> AgetError {
+    AgetError::Stable {
+        code: ErrorCode::BackendUnavailable,
+        message: format!(
+            "owned browser automation backend does not yet support {capability}; use the command-backed agent-browser adapter for this flow"
+        ),
+    }
+}
+
 pub trait SessionStoreBackend {
     // The default implementation is filesystem-backed and local-first, but `Aget`
     // only needs this persistence contract.

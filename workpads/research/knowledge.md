@@ -987,6 +987,25 @@ Validation:
 
 Confidence: Medium for this slice. It replaces the most obvious markdown-as-text gap with tested structural markdown, but it is not yet a full Crawl4AI-quality markdown/readability replacement.
 
+### D58: I19e starts with owned session-backed fallback extraction
+
+Before porting the first `agent-browser` behavior, I19e inspected the local `agent-browser` snapshot paths that implement the current `aget get` fallback shape:
+
+- `references/repos/agent-browser/cli/src/commands.rs`: parses `open`, `state load`, `get html body`, `get text body`, and `close` command shapes.
+- `references/repos/agent-browser/cli/src/native/state.rs`: loads Playwright-style storage state by setting cookies and navigating to storage origins before setting local/session storage through CDP.
+- `references/repos/agent-browser/cli/src/native/browser.rs`: navigates with CDP, tracks final page URL/title, and extracts DOM content through runtime evaluation.
+- `references/repos/agent-browser/cli/src/native/actions.rs` and `native/element.rs`: implement `get html <selector>` as selected element `innerHTML` and `get text <selector>` as selected element text.
+
+The current command fallback in `aget` uses this narrow sequence only after a session-backed primary extraction failure: load composed state into a temporary browser profile, open the URL, read body HTML/text, close the browser session, and clean up temp profile state. The first owned I19e slice therefore adds `OwnedBrowserAutomationBackend` with an owned fallback extraction path for static cookie-backed pages. It reuses the I19d owned fetch/HTML processing pipeline, uses structured `PlaywrightState` directly rather than an `agent-browser` state file, defaults fallback extraction to `body` to match the command fallback shape, and returns extractor metadata as `aget-owned-browser-fallback`.
+
+This is intentionally not the full `agent-browser` replacement. `OwnedBrowserAutomationBackend` returns explicit unsupported-capability errors for Chrome/profile import and login start/finish/cancel until a real CDP/profile implementation is ported. It also does not execute page JavaScript or apply localStorage through a browser context, so localStorage-backed fallback pages still depend on future CDP/browser work.
+
+Validation:
+
+- `cargo test --test mock_site_cli owned_browser_fallback_replays_cookie_backed_session_without_agent_browser`
+
+Confidence: Medium. The slice removes an `agent-browser` dependency path for static cookie-backed fallback extraction and is covered by deterministic MockSite evidence, but the high-risk browser automation work remains open.
+
 ## Open Questions
 
 - Can pure Rust browser automation provide reliable persistent profiles and CDP attach, or do we need a small Node/Playwright sidecar?

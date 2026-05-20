@@ -23,8 +23,10 @@ use crate::session::{
 const DEFAULT_TIMEOUT: Duration = Duration::from_secs(60);
 const EXTRACTOR: &str = "crawl4ai";
 const OWNED_EXTRACTOR: &str = "aget-owned-extractor";
+const OWNED_BROWSER_FALLBACK: &str = "aget-owned-browser-fallback";
 const FALLBACK_EXTRACTOR: &str = "agent-browser-fallback";
 const FALLBACK_WARNING: &str = "agent-browser fallback used after Crawl4AI failed";
+const OWNED_FALLBACK_WARNING: &str = "aget-owned fallback used after primary extractor failed";
 
 #[derive(Clone)]
 pub struct GetOptions {
@@ -721,12 +723,68 @@ fn form_encode(value: &str, case: PercentEncoding) -> String {
 fn run_owned_extractor_backend(
     request: ExtractorRequest<'_>,
 ) -> Result<ExtractorBackendResult, AgetError> {
-    validate_owned_extractor_request(&request)?;
-    let response = owned_fetch(request.url, request.state, request.timeout)?;
+    let extraction = extract_owned_page(
+        request.url,
+        request.state,
+        request.options,
+        request.timeout,
+        None,
+    )?;
+
+    let backend_response = ExtractorBackendResult {
+        ok: true,
+        final_url: Some(extraction.final_url),
+        content: Some(extraction.content.clone()),
+        warnings: Vec::new(),
+        error: None,
+    };
+    write_private_file(request.content_path, extraction.content.as_bytes())
+        .map_err(io_aget_error)?;
+    let metadata =
+        serde_json::to_vec_pretty(&backend_response).map_err(|error| AgetError::Stable {
+            code: ErrorCode::IoError,
+            message: error.to_string(),
+        })?;
+    write_private_file(request.metadata_path, &metadata).map_err(io_aget_error)?;
+    Ok(backend_response)
+}
+
+pub(crate) fn run_owned_browser_fallback(
+    request: BrowserFallbackRequest<'_>,
+) -> Result<BrowserFallbackResult, AgetError> {
+    let extraction = extract_owned_page(
+        request.url,
+        request.state,
+        request.options,
+        request.timeout,
+        Some("body"),
+    )?;
+    Ok(BrowserFallbackResult {
+        final_url: extraction.final_url,
+        content: extraction.content,
+        warnings: vec![OWNED_FALLBACK_WARNING.to_string()],
+        extractor: OWNED_BROWSER_FALLBACK.to_string(),
+    })
+}
+
+struct OwnedPageExtraction {
+    final_url: String,
+    content: String,
+}
+
+fn extract_owned_page(
+    url: &str,
+    state: &PlaywrightState,
+    options: &GetOptions,
+    timeout: Duration,
+    fallback_selector: Option<&str>,
+) -> Result<OwnedPageExtraction, AgetError> {
+    validate_owned_extraction_options(options)?;
+    let response = owned_fetch(url, state, timeout)?;
     let mut document = Html::parse_document(&response.body);
     document = remove_selected_elements(document, "script,style,noscript")?;
 
-    if let Some(wait_for) = &request.options.wait_for_selector {
+    if let Some(wait_for) = &options.wait_for_selector {
         let selector = parse_css_selector(wait_for)?;
         if document.select(&selector).next().is_none() {
             return Err(extraction_failed(format!(
@@ -735,12 +793,13 @@ fn run_owned_extractor_backend(
         }
     }
 
-    if let Some(exclude_selector) = &request.options.exclude_selector {
+    if let Some(exclude_selector) = &options.exclude_selector {
         document = remove_selected_elements(document, exclude_selector)?;
     }
 
-    let extracted = extract_owned_content(&document, request.options.selector.as_deref())?;
-    let content = match request.options.content_format {
+    let selector = options.selector.as_deref().or(fallback_selector);
+    let extracted = extract_owned_content(&document, selector)?;
+    let content = match options.content_format {
         OutputFormat::Html => extracted.html,
         OutputFormat::Json => serde_json::json!({
             "url": response.final_url,
@@ -751,28 +810,17 @@ fn run_owned_extractor_backend(
         OutputFormat::Text => extracted.text,
     };
 
-    let backend_response = ExtractorBackendResult {
-        ok: true,
-        final_url: Some(response.final_url),
-        content: Some(content.clone()),
-        warnings: Vec::new(),
-        error: None,
-    };
-    write_private_file(request.content_path, content.as_bytes()).map_err(io_aget_error)?;
-    let metadata =
-        serde_json::to_vec_pretty(&backend_response).map_err(|error| AgetError::Stable {
-            code: ErrorCode::IoError,
-            message: error.to_string(),
-        })?;
-    write_private_file(request.metadata_path, &metadata).map_err(io_aget_error)?;
-    Ok(backend_response)
+    Ok(OwnedPageExtraction {
+        final_url: response.final_url,
+        content,
+    })
 }
 
-fn validate_owned_extractor_request(request: &ExtractorRequest<'_>) -> Result<(), AgetError> {
-    if let Some(wait_for) = &request.options.wait_for_selector {
+fn validate_owned_extraction_options(options: &GetOptions) -> Result<(), AgetError> {
+    if let Some(wait_for) = &options.wait_for_selector {
         validate_css_only_wait(wait_for)?;
     }
-    if let Some(option) = request.options.backend_options.first() {
+    if let Some(option) = options.backend_options.first() {
         return Err(extraction_failed(format!(
             "owned extractor does not support backend option '{}'; keep Crawl4AI compatibility options on the command adapter until an aget-owned namespace is designed",
             option.key
