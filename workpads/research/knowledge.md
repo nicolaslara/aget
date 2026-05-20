@@ -962,6 +962,31 @@ Validation:
 
 Confidence: Medium-high for this slice. It closes the ad hoc selector/transport gap in the static owned extractor, but I19d remains open for JavaScript-rendered extraction, localStorage replay through page scripts, and markdown/readability quality.
 
+### D57: I19d adds a first owned HTML-to-markdown slice
+
+Before porting markdown behavior, I19d inspected Crawl4AI's markdown and cleaned-HTML flow:
+
+- `references/repos/crawl4ai/crawl4ai/async_webcrawler.py` selects the HTML source for markdown generation (`cleaned_html`, `raw_html`, or `fit_html`) after scraping/content processing.
+- `references/repos/crawl4ai/crawl4ai/markdown_generation_strategy.py` uses `DefaultMarkdownGenerator` plus `CustomHTML2Text`, then optionally converts links to citations and produces filtered/fit markdown.
+- `references/repos/crawl4ai/crawl4ai/content_scraping_strategy.py` removes excluded tags/selectors before cleaned HTML reaches markdown generation.
+- `references/repos/crawl4ai/tests/async/test_markdown_genertor.py` and `tests/regression/test_reg_content.py` cover links/citations, content filters, and selector/exclusion behavior at a higher quality bar than the first `aget`-owned slice.
+
+The Rust slice keeps the same layer boundary without copying Crawl4AI code. `OwnedExtractorBackend` now renders `OutputFormat::Markdown` through a small in-process DOM renderer instead of aliasing markdown to normalized text. The renderer currently handles the static/documentation structures `aget` tests directly: headings, paragraphs, emphasis, links/images, unordered/ordered lists, inline code, fenced code blocks, and blockquotes. Text output is unchanged and still uses normalized text.
+
+License and dependency notes:
+
+- The `html2md` Rust crate was rejected for this project because `cargo info html2md` reports GPL-3.0+.
+- `ego-tree` v0.11.0 is now a direct dependency so the renderer can traverse the `scraper` DOM explicitly. License: ISC.
+- No Crawl4AI source or tests were copied. The local Crawl4AI snapshot was used only to identify source-layer behavior and quality targets.
+
+Remaining markdown/readability gaps are deliberate follow-ups: Crawl4AI-style citations/references, relative URL resolution, GFM tables, cleaned-main-content/readability pruning, fit markdown, media/link metadata, and broader edge-case parity. Browser-rendered JavaScript and localStorage-backed replay are still separate I19d/I19e gaps.
+
+Validation:
+
+- `cargo test --test mock_site_cli homegrown_extractor_backend_covers_static_http_parity_slice`
+
+Confidence: Medium for this slice. It replaces the most obvious markdown-as-text gap with tested structural markdown, but it is not yet a full Crawl4AI-quality markdown/readability replacement.
+
 ## Open Questions
 
 - Can pure Rust browser automation provide reliable persistent profiles and CDP attach, or do we need a small Node/Playwright sidecar?

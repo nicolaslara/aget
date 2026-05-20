@@ -167,6 +167,26 @@ fn homegrown_extractor_backend_covers_static_http_parity_slice() {
                 r#"<html><body><main><div id="ready">Ready Now</div></main></body></html>"#,
             ),
         )
+        .route(
+            "/markdown",
+            MockResponse::html(
+                r#"
+<html>
+  <body>
+    <main class="article">
+      <h1>Guide</h1>
+      <p>Intro with <strong>bold</strong> and <a href="/docs">docs</a>.</p>
+      <ul>
+        <li>First item</li>
+        <li>Second <code>code</code></li>
+      </ul>
+      <pre><code>let answer = 42;</code></pre>
+    </main>
+  </body>
+</html>
+"#,
+            ),
+        )
         .start();
     save_cookie_session(&aget_home, "app", &site.host(), "app_session", "valid-app");
 
@@ -209,6 +229,18 @@ fn homegrown_extractor_backend_covers_static_http_parity_slice() {
         .run()
         .unwrap();
     assert_eq!(child_selector.content, "Format body text.");
+
+    let markdown = Aget::new(&aget_home)
+        .with_extractor_backend(OwnedExtractorBackend)
+        .get(site.url("/markdown"))
+        .content_format(OutputFormat::Markdown)
+        .selector("main.article")
+        .run()
+        .unwrap();
+    assert_eq!(
+        markdown.content,
+        "# Guide\n\nIntro with **bold** and [docs](/docs).\n\n- First item\n- Second `code`\n\n```\nlet answer = 42;\n```"
+    );
 
     let html = Aget::new(&aget_home)
         .with_extractor_backend(OwnedExtractorBackend)

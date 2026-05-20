@@ -6,8 +6,9 @@ use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
 use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 
+use ego_tree::NodeRef;
 use html5ever::tree_builder::TreeSink;
-use scraper::{Html, HtmlTreeSink, Selector};
+use scraper::{ElementRef, Html, HtmlTreeSink, Node, Selector};
 use serde::{Deserialize, Serialize};
 use ureq::ResponseExt;
 
@@ -746,7 +747,8 @@ fn run_owned_extractor_backend(
             "content": extracted.text,
         })
         .to_string(),
-        OutputFormat::Markdown | OutputFormat::Text => extracted.text,
+        OutputFormat::Markdown => extracted.markdown,
+        OutputFormat::Text => extracted.text,
     };
 
     let backend_response = ExtractorBackendResult {
@@ -888,6 +890,7 @@ fn request_path_matches_cookie_path(request_path: &str, cookie_path: &str) -> bo
 
 struct ExtractedOwnedContent {
     html: String,
+    markdown: String,
     text: String,
 }
 
@@ -904,6 +907,7 @@ fn extract_owned_content(
         })?;
         return Ok(ExtractedOwnedContent {
             html: element.inner_html(),
+            markdown: element_to_markdown(element),
             text: normalize_text_pieces(element.text()),
         });
     }
@@ -911,6 +915,7 @@ fn extract_owned_content(
     let root = document.root_element();
     Ok(ExtractedOwnedContent {
         html: root.inner_html(),
+        markdown: element_to_markdown(root),
         text: normalize_text_pieces(root.text()),
     })
 }
@@ -948,6 +953,286 @@ fn normalize_text_pieces<'a>(pieces: impl IntoIterator<Item = &'a str>) -> Strin
         .flat_map(str::split_whitespace)
         .collect::<Vec<_>>()
         .join(" ")
+}
+
+fn element_to_markdown(element: ElementRef<'_>) -> String {
+    let mut writer = MarkdownWriter::default();
+    render_children(*element, &mut writer);
+    normalize_markdown(&writer.output)
+}
+
+#[derive(Default)]
+struct MarkdownWriter {
+    output: String,
+}
+
+impl MarkdownWriter {
+    fn push_text(&mut self, text: &str) {
+        self.push_inline(&normalize_inline_markdown(text));
+    }
+
+    fn push_inline(&mut self, text: &str) {
+        let text = text.trim();
+        if text.is_empty() {
+            return;
+        }
+        if needs_space_before_inline(&self.output) && !starts_with_closing_punctuation(text) {
+            self.output.push(' ');
+        }
+        self.output.push_str(text);
+    }
+
+    fn ensure_blank_line(&mut self) {
+        trim_trailing_horizontal_space(&mut self.output);
+        if self.output.is_empty() {
+            return;
+        }
+        match trailing_newline_count(&self.output) {
+            0 => self.output.push_str("\n\n"),
+            1 => self.output.push('\n'),
+            _ => {}
+        }
+    }
+}
+
+fn render_node(node: NodeRef<'_, Node>, writer: &mut MarkdownWriter) {
+    match node.value() {
+        Node::Text(text) => writer.push_text(text),
+        Node::Element(element) => render_element(node, element.name(), writer),
+        _ => render_children(node, writer),
+    }
+}
+
+fn render_element(node: NodeRef<'_, Node>, tag: &str, writer: &mut MarkdownWriter) {
+    match tag {
+        "h1" | "h2" | "h3" | "h4" | "h5" | "h6" => render_heading(node, tag, writer),
+        "p" => render_block(node, writer),
+        "br" => writer.output.push('\n'),
+        "ul" => render_list(node, false, writer),
+        "ol" => render_list(node, true, writer),
+        "li" => render_block(node, writer),
+        "pre" => render_code_block(node, writer),
+        "code" => writer.push_inline(&format!("`{}`", inline_text_from_node(node))),
+        "strong" | "b" => {
+            writer.push_inline(&format!("**{}**", inline_markdown_from_children(node)));
+        }
+        "em" | "i" => {
+            writer.push_inline(&format!("*{}*", inline_markdown_from_children(node)));
+        }
+        "a" => render_link(node, writer),
+        "img" => render_image(node, writer),
+        "blockquote" => render_blockquote(node, writer),
+        "article" | "aside" | "body" | "div" | "footer" | "header" | "html" | "main" | "nav"
+        | "section" => {
+            render_children(node, writer);
+            if is_structural_block(tag) {
+                writer.ensure_blank_line();
+            }
+        }
+        _ => render_children(node, writer),
+    }
+}
+
+fn render_children(node: NodeRef<'_, Node>, writer: &mut MarkdownWriter) {
+    let mut child = node.first_child();
+    while let Some(current) = child {
+        let next = current.next_sibling();
+        render_node(current, writer);
+        child = next;
+    }
+}
+
+fn render_heading(node: NodeRef<'_, Node>, tag: &str, writer: &mut MarkdownWriter) {
+    let level = tag
+        .strip_prefix('h')
+        .and_then(|value| value.parse::<usize>().ok())
+        .unwrap_or(1)
+        .clamp(1, 6);
+    let text = inline_markdown_from_children(node);
+    if text.is_empty() {
+        return;
+    }
+    writer.ensure_blank_line();
+    writer.output.push_str(&"#".repeat(level));
+    writer.output.push(' ');
+    writer.output.push_str(&text);
+    writer.ensure_blank_line();
+}
+
+fn render_block(node: NodeRef<'_, Node>, writer: &mut MarkdownWriter) {
+    writer.ensure_blank_line();
+    render_children(node, writer);
+    writer.ensure_blank_line();
+}
+
+fn render_list(node: NodeRef<'_, Node>, ordered: bool, writer: &mut MarkdownWriter) {
+    writer.ensure_blank_line();
+    let mut child = node.first_child();
+    let mut index = 1usize;
+    while let Some(current) = child {
+        let next = current.next_sibling();
+        if let Some(element) = ElementRef::wrap(current) {
+            if element.value().name() == "li" {
+                trim_trailing_horizontal_space(&mut writer.output);
+                if !writer.output.is_empty() && !writer.output.ends_with('\n') {
+                    writer.output.push('\n');
+                }
+                if ordered {
+                    writer.output.push_str(&format!("{index}. "));
+                } else {
+                    writer.output.push_str("- ");
+                }
+                render_children(current, writer);
+                trim_trailing_horizontal_space(&mut writer.output);
+                writer.output.push('\n');
+                index += 1;
+            } else {
+                render_node(current, writer);
+            }
+        } else {
+            render_node(current, writer);
+        }
+        child = next;
+    }
+    writer.ensure_blank_line();
+}
+
+fn render_code_block(node: NodeRef<'_, Node>, writer: &mut MarkdownWriter) {
+    let text = raw_text_from_node(node);
+    if text.trim().is_empty() {
+        return;
+    }
+    writer.ensure_blank_line();
+    writer.output.push_str("```\n");
+    writer.output.push_str(text.trim_matches('\n'));
+    writer.output.push_str("\n```");
+    writer.ensure_blank_line();
+}
+
+fn render_link(node: NodeRef<'_, Node>, writer: &mut MarkdownWriter) {
+    let Some(element) = ElementRef::wrap(node) else {
+        render_children(node, writer);
+        return;
+    };
+    let Some(href) = element.attr("href") else {
+        render_children(node, writer);
+        return;
+    };
+    let label = inline_markdown_from_children(node);
+    let label = if label.is_empty() { href } else { &label };
+    writer.push_inline(&format!("[{}]({})", escape_link_text(label), href));
+}
+
+fn render_image(node: NodeRef<'_, Node>, writer: &mut MarkdownWriter) {
+    let Some(element) = ElementRef::wrap(node) else {
+        return;
+    };
+    let Some(src) = element.attr("src") else {
+        return;
+    };
+    let alt = element.attr("alt").unwrap_or("");
+    writer.push_inline(&format!("![{}]({})", escape_link_text(alt), src));
+}
+
+fn render_blockquote(node: NodeRef<'_, Node>, writer: &mut MarkdownWriter) {
+    let quote = inline_markdown_from_children(node);
+    if quote.is_empty() {
+        return;
+    }
+    writer.ensure_blank_line();
+    for line in quote.lines() {
+        writer.output.push_str("> ");
+        writer.output.push_str(line.trim());
+        writer.output.push('\n');
+    }
+    writer.ensure_blank_line();
+}
+
+fn inline_markdown_from_children(node: NodeRef<'_, Node>) -> String {
+    let mut writer = MarkdownWriter::default();
+    render_children(node, &mut writer);
+    normalize_inline_markdown(&writer.output)
+}
+
+fn inline_text_from_node(node: NodeRef<'_, Node>) -> String {
+    normalize_inline_markdown(&raw_text_from_node(node))
+}
+
+fn raw_text_from_node(node: NodeRef<'_, Node>) -> String {
+    let mut output = String::new();
+    collect_raw_text(node, &mut output);
+    output
+}
+
+fn collect_raw_text(node: NodeRef<'_, Node>, output: &mut String) {
+    if let Node::Text(text) = node.value() {
+        output.push_str(text);
+    }
+    let mut child = node.first_child();
+    while let Some(current) = child {
+        let next = current.next_sibling();
+        collect_raw_text(current, output);
+        child = next;
+    }
+}
+
+fn normalize_markdown(markdown: &str) -> String {
+    let mut output = String::new();
+    let mut blank_lines = 0usize;
+    for line in markdown.lines().map(str::trim_end) {
+        if line.trim().is_empty() {
+            blank_lines += 1;
+            if blank_lines <= 1 && !output.is_empty() {
+                output.push('\n');
+            }
+            continue;
+        }
+        blank_lines = 0;
+        if !output.is_empty() && !output.ends_with('\n') {
+            output.push('\n');
+        }
+        output.push_str(line);
+        output.push('\n');
+    }
+    output.trim().to_string()
+}
+
+fn normalize_inline_markdown(text: &str) -> String {
+    text.split_whitespace().collect::<Vec<_>>().join(" ")
+}
+
+fn needs_space_before_inline(output: &str) -> bool {
+    output
+        .chars()
+        .last()
+        .is_some_and(|character| !character.is_whitespace())
+}
+
+fn starts_with_closing_punctuation(text: &str) -> bool {
+    text.chars()
+        .next()
+        .is_some_and(|character| matches!(character, '.' | ',' | ':' | ';' | '!' | '?' | ')' | ']'))
+}
+
+fn trim_trailing_horizontal_space(output: &mut String) {
+    while output.ends_with(' ') || output.ends_with('\t') {
+        output.pop();
+    }
+}
+
+fn trailing_newline_count(output: &str) -> usize {
+    output.chars().rev().take_while(|&c| c == '\n').count()
+}
+
+fn escape_link_text(text: &str) -> String {
+    text.replace('[', "\\[").replace(']', "\\]")
+}
+
+fn is_structural_block(tag: &str) -> bool {
+    matches!(
+        tag,
+        "article" | "aside" | "footer" | "header" | "main" | "nav" | "section"
+    )
 }
 
 fn map_ureq_error(error: ureq::Error) -> AgetError {
