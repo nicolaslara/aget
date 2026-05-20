@@ -379,6 +379,7 @@ fn pending_login(name: String, profile: String, url: String) -> PendingLogin {
     PendingLogin {
         agent_session: format!("aget-login-{name}"),
         allowed_domains: vec!["example.com".to_string()],
+        browser_pid: None,
         name,
         profile,
         url,

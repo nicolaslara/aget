@@ -1157,7 +1157,7 @@ Validation:
 - `cargo fmt --check`
 - `git diff --check`
 
-Confidence: Medium. The deterministic tests cover ownership boundaries, cleanup, public backend wiring, CDP payload helpers, and the ignored headed Chrome smoke test is checked in for manual/local verification. The visible real-login path itself has not been run against a user-authorized site in this slice.
+Confidence: Medium-high. The deterministic tests cover ownership boundaries, cleanup, public backend wiring, and CDP payload helpers; the ignored headed Chrome smoke test now passes locally for disposable profile start/export/close. A real user-authorized site login has still not been run in this slice.
 
 ### D67: I19e sweeps stale owned-login profiles without deleting pending flows
 
@@ -1172,6 +1172,23 @@ Validation:
 - `git diff --check`
 
 Confidence: High for this cleanup slice. The behavior is narrow and deterministic; broader lifecycle/process parity remains covered by D66's open gaps.
+
+### D68: I19e hardens owned-login process cleanup after headed Chrome smoke
+
+The ignored headed Chrome smoke initially proved state export but exposed a lifecycle flaw: `Browser.close` could return while the detached visible Chrome process was still alive, and immediate profile removal could race or leave a disposable browser process behind. The owned login start path now records the launched browser PID in pending login metadata. Finish and cancel pass that PID into the CDP close path, wait for the process to exit after `Browser.close`, and only terminate the PID/process group as a fallback when the process command line still references the expected profile path.
+
+This keeps process cleanup scoped to `aget`-launched dedicated login browsers. Command-backed `agent-browser` flows still have no PID in pending metadata and keep their existing close behavior. Pending metadata remains backward-compatible because `browser_pid` defaults to `None` when older pending files are read.
+
+Validation:
+
+- `cargo test browser_cdp::tests::owned_login_browser_exports_state_from_headed_profile_and_closes -- --ignored`
+- `cargo test session::login::tests`
+- `cargo test`
+- `cargo fmt --check`
+- `git diff --check`
+- Manual process check after the ignored smoke: no remaining `login-profile`, `owned-login`, or `remote-debugging-port=0` test Chrome process.
+
+Confidence: Medium-high. The specific detached-process leak is now covered by a real local Chrome smoke and guarded cleanup logic, but broader cross-platform process behavior still needs Windows/Linux verification before I19e can be considered complete.
 
 ## Open Questions
 

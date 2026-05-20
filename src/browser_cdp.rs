@@ -41,14 +41,20 @@ pub(crate) struct BrowserLoginStartRequest<'a> {
     pub(crate) timeout: Duration,
 }
 
+pub(crate) struct StartedLoginBrowser {
+    pub(crate) pid: u32,
+}
+
 pub(crate) struct BrowserLoginStateExportRequest<'a> {
     pub(crate) profile_dir: &'a Path,
     pub(crate) allowed_domains: &'a [String],
+    pub(crate) pid: Option<u32>,
     pub(crate) timeout: Duration,
 }
 
 pub(crate) struct BrowserLoginCloseRequest<'a> {
     pub(crate) profile_dir: &'a Path,
+    pub(crate) pid: Option<u32>,
     pub(crate) timeout: Duration,
 }
 
@@ -110,7 +116,9 @@ pub(crate) fn export_browser_state(
     Ok(state)
 }
 
-pub(crate) fn start_login_browser(request: BrowserLoginStartRequest<'_>) -> Result<(), AgetError> {
+pub(crate) fn start_login_browser(
+    request: BrowserLoginStartRequest<'_>,
+) -> Result<StartedLoginBrowser, AgetError> {
     create_private_dir(request.profile_dir).map_err(io_aget_error)?;
     let chrome = ChromeProcess::launch_login(
         request.profile_dir,
@@ -118,8 +126,9 @@ pub(crate) fn start_login_browser(request: BrowserLoginStartRequest<'_>) -> Resu
         request.timeout,
         "owned login start",
     )?;
+    let pid = chrome.id();
     chrome.detach();
-    Ok(())
+    Ok(StartedLoginBrowser { pid })
 }
 
 pub(crate) fn export_login_browser_state(
@@ -140,8 +149,11 @@ pub(crate) fn export_login_browser_state(
         );
         client.close_browser(request.timeout)?;
         wait_for_profile_browser_shutdown(request.profile_dir, Duration::from_secs(5));
+        ensure_login_browser_exited(request.profile_dir, request.pid, Duration::from_secs(5))?;
         return Ok(state);
     }
+
+    ensure_login_browser_exited(request.profile_dir, request.pid, Duration::from_secs(5))?;
 
     export_browser_state(BrowserStateExportRequest {
         profile_dir: request.profile_dir,
@@ -159,6 +171,7 @@ pub(crate) fn close_login_browser(request: BrowserLoginCloseRequest<'_>) -> Resu
         client.close_browser(request.timeout)?;
         wait_for_profile_browser_shutdown(request.profile_dir, Duration::from_secs(5));
     }
+    ensure_login_browser_exited(request.profile_dir, request.pid, Duration::from_secs(5))?;
     Ok(())
 }
 
@@ -309,6 +322,10 @@ impl ChromeProcess {
 
     fn detach(mut self) {
         self.terminated = true;
+    }
+
+    fn id(&self) -> u32 {
+        self.child.id()
     }
 
     fn wait_or_kill(&mut self, timeout: Duration) {
@@ -1065,6 +1082,105 @@ fn wait_for_profile_browser_shutdown(profile_dir: &Path, timeout: Duration) {
     }
 }
 
+fn ensure_login_browser_exited(
+    profile_dir: &Path,
+    pid: Option<u32>,
+    timeout: Duration,
+) -> Result<(), AgetError> {
+    let Some(pid) = pid else {
+        return Ok(());
+    };
+
+    wait_for_process_exit(pid, timeout);
+    if !process_is_running(pid) {
+        return Ok(());
+    }
+
+    if !process_command_mentions(pid, profile_dir) {
+        return Ok(());
+    }
+
+    terminate_process_group_or_pid(pid);
+    wait_for_process_exit(pid, Duration::from_secs(2));
+    if process_is_running(pid) {
+        return Err(AgetError::Stable {
+            code: ErrorCode::ExtractionFailed,
+            message: format!("owned login browser process {pid} did not exit after Browser.close"),
+        });
+    }
+    Ok(())
+}
+
+fn wait_for_process_exit(pid: u32, timeout: Duration) {
+    let deadline = Instant::now() + timeout;
+    while Instant::now() < deadline {
+        if !process_is_running(pid) {
+            return;
+        }
+        thread::sleep(Duration::from_millis(50));
+    }
+}
+
+#[cfg(unix)]
+fn process_is_running(pid: u32) -> bool {
+    Command::new("kill")
+        .args(["-0", &pid.to_string()])
+        .stdout(Stdio::null())
+        .stderr(Stdio::null())
+        .status()
+        .is_ok_and(|status| status.success())
+}
+
+#[cfg(not(unix))]
+fn process_is_running(_pid: u32) -> bool {
+    false
+}
+
+#[cfg(unix)]
+fn process_command_mentions(pid: u32, needle: &Path) -> bool {
+    Command::new("ps")
+        .args(["-p", &pid.to_string(), "-o", "command="])
+        .output()
+        .ok()
+        .and_then(|output| String::from_utf8(output.stdout).ok())
+        .is_some_and(|command| command.contains(&needle.to_string_lossy().into_owned()))
+}
+
+#[cfg(not(unix))]
+fn process_command_mentions(_pid: u32, _needle: &Path) -> bool {
+    false
+}
+
+#[cfg(unix)]
+fn terminate_process_group_or_pid(pid: u32) {
+    let process_group = format!("-{pid}");
+    let pid = pid.to_string();
+    let _ = Command::new("kill")
+        .args(["-TERM", &process_group])
+        .stdout(Stdio::null())
+        .stderr(Stdio::null())
+        .status();
+    let _ = Command::new("kill")
+        .args(["-TERM", &pid])
+        .stdout(Stdio::null())
+        .stderr(Stdio::null())
+        .status();
+    thread::sleep(Duration::from_millis(100));
+    let _ = Command::new("kill")
+        .args(["-KILL", &process_group])
+        .stdout(Stdio::null())
+        .stderr(Stdio::null())
+        .status();
+    let _ = Command::new("kill")
+        .args(["-KILL", &pid])
+        .stdout(Stdio::null())
+        .stderr(Stdio::null())
+        .status();
+}
+
+#[cfg(not(unix))]
+fn terminate_process_group_or_pid(_pid: u32) {}
+
 fn unique_profile_dir(tmp_dir: &Path) -> Result<PathBuf, AgetError> {
     let owned_dir = tmp_dir.join("owned-chrome");
     create_private_dir(&owned_dir).map_err(io_aget_error)?;
@@ -1458,7 +1574,7 @@ mod tests {
             .as_secs()
             + 3600;
 
-        start_login_browser(BrowserLoginStartRequest {
+        let started = start_login_browser(BrowserLoginStartRequest {
             profile_dir: &profile,
             url: "https://example.com/",
             timeout,
@@ -1523,6 +1639,7 @@ mod tests {
         let exported = export_login_browser_state(BrowserLoginStateExportRequest {
             profile_dir: &profile,
             allowed_domains: &["example.com".to_string()],
+            pid: Some(started.pid),
             timeout,
         })
         .unwrap();
@@ -1538,7 +1655,7 @@ mod tests {
                     .iter()
                     .any(|entry| entry.name == "token" && entry.value == "login-storage")
         }));
-        assert!(fs::remove_dir_all(&profile).is_ok());
+        remove_dir_all_with_retries(&profile).unwrap();
     }
 
     #[test]
@@ -1575,5 +1692,20 @@ mod tests {
             read_devtools_active_port(temp.path()),
             Some((49152, "/devtools/browser/abc".to_string()))
         );
+    }
+
+    fn remove_dir_all_with_retries(path: &Path) -> io::Result<()> {
+        let mut last_error = None;
+        for _ in 0..5 {
+            match fs::remove_dir_all(path) {
+                Ok(()) => return Ok(()),
+                Err(error) if error.kind() == io::ErrorKind::NotFound => return Ok(()),
+                Err(error) => {
+                    last_error = Some(error);
+                    thread::sleep(Duration::from_millis(100));
+                }
+            }
+        }
+        Err(last_error.unwrap_or_else(|| io::Error::other("remove_dir_all failed")))
     }
 }
