@@ -1080,6 +1080,20 @@ Validation:
 
 Confidence: Medium-high for this slice. The ignored Chrome smoke test proves the delayed-DOM wait path locally, and the normal suite keeps static wait-selector behavior covered without requiring Chrome.
 
+### D63: I19d adds first owned markdown table rendering
+
+Before this slice, the owned markdown renderer collapsed HTML tables into plain text. Crawl4AI's markdown behavior and tests treat tables as part of the markdown-quality target, so the owned renderer now emits GitHub-flavored markdown tables for static table structures. Header rows are detected from `<th>` cells; tables without explicit headers use the first row as the markdown header. Cell content goes through the same inline renderer as normal text, so links are still resolved against the page base URL, and pipe characters inside cells are escaped.
+
+This is not a full markdown/readability replacement yet. Remaining quality gaps still include captions, complex row/column spans, Crawl4AI-style citations/references, fit markdown, and broader main-content cleanup.
+
+Validation:
+
+- `cargo test --test mock_site_cli homegrown_extractor_backend_covers_static_http_parity_slice`
+- `cargo test`
+- `git diff --check`
+
+Confidence: Medium-high for this slice. The static parity test now covers a table with links and literal pipe characters, but complex table semantics remain an explicit follow-up.
+
 ## Open Questions
 
 - Can pure Rust browser automation provide reliable persistent profiles and CDP attach, or do we need a small Node/Playwright sidecar?

@@ -1183,6 +1183,7 @@ fn render_element(node: NodeRef<'_, Node>, tag: &str, writer: &mut MarkdownWrite
         "ul" => render_list(node, false, writer),
         "ol" => render_list(node, true, writer),
         "li" => render_block(node, writer),
+        "table" => render_table(node, writer),
         "pre" => render_code_block(node, writer),
         "code" => writer.push_inline(&format!("`{}`", inline_text_from_node(node))),
         "strong" | "b" => {
@@ -1281,6 +1282,105 @@ fn render_code_block(node: NodeRef<'_, Node>, writer: &mut MarkdownWriter) {
     writer.output.push_str(text.trim_matches('\n'));
     writer.output.push_str("\n```");
     writer.ensure_blank_line();
+}
+
+struct MarkdownTableRow {
+    cells: Vec<String>,
+    has_header_cells: bool,
+}
+
+fn render_table(node: NodeRef<'_, Node>, writer: &mut MarkdownWriter) {
+    let mut rows = Vec::new();
+    collect_table_rows(node, writer, &mut rows);
+    let Some(max_columns) = rows.iter().map(|row| row.cells.len()).max() else {
+        return;
+    };
+    if max_columns == 0 {
+        return;
+    }
+
+    let header_index = rows
+        .iter()
+        .position(|row| row.has_header_cells)
+        .unwrap_or(0);
+    let header = normalize_table_row(&rows[header_index].cells, max_columns);
+    let body_rows = rows
+        .iter()
+        .enumerate()
+        .filter(|(index, _)| *index != header_index)
+        .map(|(_, row)| normalize_table_row(&row.cells, max_columns))
+        .collect::<Vec<_>>();
+
+    writer.ensure_blank_line();
+    writer.output.push_str(&markdown_table_line(&header));
+    writer.output.push('\n');
+    writer
+        .output
+        .push_str(&markdown_table_line(&vec!["---".to_string(); max_columns]));
+    writer.output.push('\n');
+    for row in body_rows {
+        writer.output.push_str(&markdown_table_line(&row));
+        writer.output.push('\n');
+    }
+    writer.ensure_blank_line();
+}
+
+fn collect_table_rows(
+    node: NodeRef<'_, Node>,
+    writer: &MarkdownWriter,
+    rows: &mut Vec<MarkdownTableRow>,
+) {
+    if let Some(element) = ElementRef::wrap(node) {
+        if element.value().name() == "tr" {
+            rows.push(markdown_table_row(node, writer));
+            return;
+        }
+    }
+
+    let mut child = node.first_child();
+    while let Some(current) = child {
+        let next = current.next_sibling();
+        collect_table_rows(current, writer, rows);
+        child = next;
+    }
+}
+
+fn markdown_table_row(node: NodeRef<'_, Node>, writer: &MarkdownWriter) -> MarkdownTableRow {
+    let mut cells = Vec::new();
+    let mut has_header_cells = false;
+    let mut child = node.first_child();
+    while let Some(current) = child {
+        let next = current.next_sibling();
+        if let Some(element) = ElementRef::wrap(current) {
+            match element.value().name() {
+                "th" => {
+                    has_header_cells = true;
+                    cells.push(table_cell_text(current, writer));
+                }
+                "td" => cells.push(table_cell_text(current, writer)),
+                _ => {}
+            }
+        }
+        child = next;
+    }
+    MarkdownTableRow {
+        cells,
+        has_header_cells,
+    }
+}
+
+fn table_cell_text(node: NodeRef<'_, Node>, writer: &MarkdownWriter) -> String {
+    escape_table_cell(&inline_markdown_from_children(node, writer))
+}
+
+fn normalize_table_row(cells: &[String], columns: usize) -> Vec<String> {
+    let mut row = cells.to_vec();
+    row.resize(columns, String::new());
+    row
+}
+
+fn markdown_table_line(cells: &[String]) -> String {
+    format!("| {} |", cells.join(" | "))
 }
 
 fn render_link(node: NodeRef<'_, Node>, writer: &mut MarkdownWriter) {
@@ -1408,6 +1508,10 @@ fn trailing_newline_count(output: &str) -> usize {
 
 fn escape_link_text(text: &str) -> String {
     text.replace('[', "\\[").replace(']', "\\]")
+}
+
+fn escape_table_cell(text: &str) -> String {
+    text.replace('\n', " ").replace('|', "\\|")
 }
 
 fn resolve_markdown_url(base: &str, raw: &str) -> String {

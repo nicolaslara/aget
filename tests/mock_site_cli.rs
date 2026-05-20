@@ -181,6 +181,10 @@ fn homegrown_extractor_backend_covers_static_http_parity_slice() {
         <li>First item</li>
         <li>Second <code>code</code></li>
       </ul>
+      <table>
+        <thead><tr><th>Name</th><th>Value</th></tr></thead>
+        <tbody><tr><td>Alpha</td><td><a href="/alpha">A|1</a></td></tr></tbody>
+      </table>
       <pre><code>let answer = 42;</code></pre>
     </main>
   </body>
@@ -257,8 +261,9 @@ fn homegrown_extractor_backend_covers_static_http_parity_slice() {
     assert_eq!(
         markdown.content,
         format!(
-            "# Guide\n\nIntro with **bold** and [docs]({}).\n\n- First item\n- Second `code`\n\n```\nlet answer = 42;\n```",
-            site.url("/docs")
+            "# Guide\n\nIntro with **bold** and [docs]({}).\n\n- First item\n- Second `code`\n\n| Name | Value |\n| --- | --- |\n| Alpha | [A\\|1]({}) |\n\n```\nlet answer = 42;\n```",
+            site.url("/docs"),
+            site.url("/alpha")
         )
     );
 
