@@ -891,7 +891,10 @@ fn extract_owned_html(
 
     let selector = options.selector.as_deref().or(fallback_selector);
     let base_url = markdown_base_url(&document, &final_url)?;
-    let extracted = extract_owned_content(&document, selector, &base_url)?;
+    let prefer_main_content = selector.is_none()
+        && options.wait_for_selector.is_none()
+        && options.content_format != OutputFormat::Html;
+    let extracted = extract_owned_content(&document, selector, &base_url, prefer_main_content)?;
     let content = match options.content_format {
         OutputFormat::Html => extracted.html,
         OutputFormat::Json => serde_json::json!({
@@ -1036,6 +1039,7 @@ fn extract_owned_content(
     document: &Html,
     selector: Option<&str>,
     base_url: &str,
+    prefer_main_content: bool,
 ) -> Result<ExtractedOwnedContent, AgetError> {
     if let Some(raw_selector) = selector {
         let selector = parse_css_selector(raw_selector)?;
@@ -1051,12 +1055,48 @@ fn extract_owned_content(
         });
     }
 
-    let root = document.root_element();
+    let root = if prefer_main_content {
+        default_main_content_element(document)?
+    } else {
+        document.root_element()
+    };
     Ok(ExtractedOwnedContent {
         html: root.inner_html(),
         markdown: element_to_markdown(root, base_url),
         text: normalize_text_pieces(root.text()),
     })
+}
+
+fn default_main_content_element(document: &Html) -> Result<ElementRef<'_>, AgetError> {
+    for selector in ["main", r#"[role="main"]"#, "article"] {
+        if let Some(element) = unique_selected_element(document, selector)? {
+            return Ok(element);
+        }
+    }
+    if let Some(body) = first_selected_element(document, "body")? {
+        return Ok(body);
+    }
+    Ok(document.root_element())
+}
+
+fn unique_selected_element<'a>(
+    document: &'a Html,
+    raw_selector: &str,
+) -> Result<Option<ElementRef<'a>>, AgetError> {
+    let selector = parse_css_selector(raw_selector)?;
+    let mut matches = document.select(&selector);
+    let Some(first) = matches.next() else {
+        return Ok(None);
+    };
+    Ok(matches.next().is_none().then_some(first))
+}
+
+fn first_selected_element<'a>(
+    document: &'a Html,
+    raw_selector: &str,
+) -> Result<Option<ElementRef<'a>>, AgetError> {
+    let selector = parse_css_selector(raw_selector)?;
+    Ok(document.select(&selector).next())
 }
 
 fn markdown_base_url(document: &Html, final_url: &str) -> Result<String, AgetError> {

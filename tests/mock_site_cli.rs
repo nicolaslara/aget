@@ -163,6 +163,25 @@ fn homegrown_extractor_backend_covers_static_http_parity_slice() {
             ),
         )
         .route(
+            "/main-content",
+            MockResponse::html(
+                r#"
+<html>
+  <body>
+    <header>Site Header</header>
+    <nav>Global Navigation</nav>
+    <main class="story">
+      <h1>Main Story</h1>
+      <p>Useful body text.</p>
+    </main>
+    <aside>Sidebar Noise</aside>
+    <footer>Footer Noise</footer>
+  </body>
+</html>
+"#,
+            ),
+        )
+        .route(
             "/wait-ready",
             MockResponse::html(
                 r#"<html><body><main><div id="ready">Ready Now</div></main></body></html>"#,
@@ -300,6 +319,31 @@ fn homegrown_extractor_backend_covers_static_http_parity_slice() {
     let parsed: serde_json::Value = serde_json::from_str(&json.content).unwrap();
     assert_eq!(parsed["url"], site.url("/formats"));
     assert_eq!(parsed["content"], "Format Heading Format body text.");
+
+    let main_text = Aget::new(&aget_home)
+        .with_extractor_backend(OwnedExtractorBackend)
+        .get(site.url("/main-content"))
+        .content_format(OutputFormat::Text)
+        .run()
+        .unwrap();
+    assert_eq!(main_text.content, "Main Story Useful body text.");
+
+    let main_markdown = Aget::new(&aget_home)
+        .with_extractor_backend(OwnedExtractorBackend)
+        .get(site.url("/main-content"))
+        .content_format(OutputFormat::Markdown)
+        .run()
+        .unwrap();
+    assert_eq!(main_markdown.content, "# Main Story\n\nUseful body text.");
+
+    let main_html = Aget::new(&aget_home)
+        .with_extractor_backend(OwnedExtractorBackend)
+        .get(site.url("/main-content"))
+        .content_format(OutputFormat::Html)
+        .run()
+        .unwrap();
+    assert!(main_html.content.contains("<header>Site Header</header>"));
+    assert!(main_html.content.contains("<main class=\"story\">"));
 
     let redirect = Aget::new(&aget_home)
         .with_extractor_backend(OwnedExtractorBackend)

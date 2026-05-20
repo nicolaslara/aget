@@ -1190,6 +1190,26 @@ Validation:
 
 Confidence: Medium-high. The specific detached-process leak is now covered by a real local Chrome smoke and guarded cleanup logic, but broader cross-platform process behavior still needs Windows/Linux verification before I19e can be considered complete.
 
+### D69: I19d adds conservative default main-content selection
+
+Before this slice, owned extraction without an explicit selector formatted the parsed document root for text, markdown, and JSON content. That kept the implementation simple, but it meant default agent-facing output could include header, global nav, sidebar, or footer chrome even when the page had a single obvious content container.
+
+I19d inspected Crawl4AI's cleaned-content flow again before changing this behavior:
+
+- `references/repos/crawl4ai/crawl4ai/content_scraping_strategy.py` removes excluded tags/selectors, builds a `content_element` from `css_selector` or `target_elements` when supplied, and serializes that cleaned element.
+- `references/repos/crawl4ai/crawl4ai/async_webcrawler.py` feeds `cleaned_html` into markdown generation by default.
+- `references/repos/crawl4ai/crawl4ai/markdown_generation_strategy.py` treats markdown generation as a separate layer over the selected cleaned HTML.
+
+The owned backend now applies a conservative default content heuristic only when there is no explicit selector, no browser-fallback selector, no CSS wait selector, and the requested output format is text, markdown, or JSON. It prefers a unique `main`, then a unique `[role="main"]`, then a unique `article`, then falls back to `body` or the root document. HTML output without a selector still returns the cleaned document shape for debugging/compatibility, and explicit selectors keep their existing exact behavior.
+
+This is not full readability pruning. It does not score competing article candidates, remove in-content nav, generate Crawl4AI citations, or apply fit-markdown filtering. It is a narrow default cleanup that reduces obvious page chrome while keeping wait-driven rendered extraction from accidentally discarding the waited element.
+
+Validation:
+
+- `cargo test --test mock_site_cli homegrown_extractor_backend_covers_static_http_parity_slice`
+
+Confidence: Medium-high for this slice. The behavior is deterministic and covered by a local fixture; broader readability quality remains an explicit I19d gap.
+
 ## Open Questions
 
 - Can pure Rust browser automation provide reliable persistent profiles and CDP attach, or do we need a small Node/Playwright sidecar?
