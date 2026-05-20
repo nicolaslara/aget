@@ -419,6 +419,23 @@ fn homegrown_extractor_backend_covers_static_http_parity_slice() {
         "# Tag Filtering\n\nKept article body."
     );
 
+    let only_text = Aget::new(&aget_home)
+        .with_extractor_backend(OwnedExtractorBackend)
+        .get(site.url("/markdown"))
+        .content_format(OutputFormat::Markdown)
+        .selector("main.article")
+        .backend_option("crawl4ai.only_text", "true")
+        .run()
+        .unwrap();
+    assert_eq!(
+        only_text.content,
+        format!(
+            "# Guide\n\nIntro with bold and [docs]({}).\n\n- First item\n- Second code\n\n| Name | Value |\n| --- | --- |\n| Alpha | [A\\|1]({}) |\n\n```\nlet answer = 42;\n```",
+            site.url("/docs"),
+            site.url("/alpha")
+        )
+    );
+
     let unsupported_option = Aget::new(&aget_home)
         .with_extractor_backend(OwnedExtractorBackend)
         .get(site.url("/formats"))
@@ -429,7 +446,7 @@ fn homegrown_extractor_backend_covers_static_http_parity_slice() {
     assert!(unsupported_option
         .to_string()
         .contains(
-            "supported options: crawl4ai.delay_before_return_html, crawl4ai.excluded_tags, crawl4ai.target_elements"
+            "supported options: crawl4ai.delay_before_return_html, crawl4ai.excluded_tags, crawl4ai.only_text, crawl4ai.target_elements"
         ));
 
     let redirect = Aget::new(&aget_home)

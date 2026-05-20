@@ -881,6 +881,7 @@ struct OwnedPageExtraction {
 struct OwnedExtractorOptions {
     excluded_tags: Vec<String>,
     target_elements: Vec<String>,
+    only_text: bool,
     render_settle_delay: Duration,
 }
 
@@ -889,6 +890,7 @@ impl Default for OwnedExtractorOptions {
         Self {
             excluded_tags: Vec::new(),
             target_elements: Vec::new(),
+            only_text: false,
             render_settle_delay: DEFAULT_RENDER_SETTLE_DELAY,
         }
     }
@@ -997,12 +999,15 @@ fn validate_owned_extraction_options(
                     .target_elements
                     .extend(parse_owned_target_elements(&option.value)?);
             }
+            "only_text" => {
+                owned_options.only_text = parse_owned_bool("crawl4ai.only_text", &option.value)?;
+            }
             "delay_before_return_html" => {
                 owned_options.render_settle_delay = parse_owned_render_delay(&option.value)?;
             }
             _ => {
                 return Err(extraction_failed(format!(
-                    "owned extractor does not support backend option '{}'; supported options: crawl4ai.delay_before_return_html, crawl4ai.excluded_tags, crawl4ai.target_elements",
+                    "owned extractor does not support backend option '{}'; supported options: crawl4ai.delay_before_return_html, crawl4ai.excluded_tags, crawl4ai.only_text, crawl4ai.target_elements",
                     option.key
                 )));
             }
@@ -1062,6 +1067,16 @@ fn parse_owned_render_delay(value: &str) -> Result<Duration, AgetError> {
         )));
     }
     Ok(Duration::from_secs_f64(seconds))
+}
+
+fn parse_owned_bool(name: &str, value: &str) -> Result<bool, AgetError> {
+    match value.trim().to_ascii_lowercase().as_str() {
+        "true" | "1" | "yes" | "on" => Ok(true),
+        "false" | "0" | "no" | "off" => Ok(false),
+        _ => Err(extraction_failed(format!(
+            "{name} expects a boolean value, got '{value}'"
+        ))),
+    }
 }
 
 fn validate_css_only_wait(value: &str) -> Result<(), AgetError> {
@@ -1200,15 +1215,24 @@ fn extract_owned_content(
     };
 
     if owned_options.target_elements.is_empty() {
-        return Ok(extract_single_owned_element(root, base_url));
+        return Ok(extract_single_owned_element(root, base_url, owned_options));
     }
-    extract_target_owned_elements(root, &owned_options.target_elements, base_url)
+    extract_target_owned_elements(
+        root,
+        &owned_options.target_elements,
+        base_url,
+        owned_options,
+    )
 }
 
-fn extract_single_owned_element(element: ElementRef<'_>, base_url: &str) -> ExtractedOwnedContent {
+fn extract_single_owned_element(
+    element: ElementRef<'_>,
+    base_url: &str,
+    owned_options: &OwnedExtractorOptions,
+) -> ExtractedOwnedContent {
     ExtractedOwnedContent {
         html: element.inner_html(),
-        markdown: element_to_markdown(element, base_url),
+        markdown: element_to_markdown(element, base_url, owned_options.only_text),
         text: normalize_text_pieces(element.text()),
     }
 }
@@ -1217,6 +1241,7 @@ fn extract_target_owned_elements(
     source: ElementRef<'_>,
     raw_selectors: &[String],
     base_url: &str,
+    owned_options: &OwnedExtractorOptions,
 ) -> Result<ExtractedOwnedContent, AgetError> {
     let mut elements = Vec::new();
     for raw_selector in raw_selectors {
@@ -1232,7 +1257,7 @@ fn extract_target_owned_elements(
     let markdown = normalize_markdown(
         &elements
             .iter()
-            .map(|element| element_to_markdown(*element, base_url))
+            .map(|element| element_to_markdown(*element, base_url, owned_options.only_text))
             .filter(|markdown| !markdown.is_empty())
             .collect::<Vec<_>>()
             .join("\n\n"),
@@ -1332,8 +1357,8 @@ fn normalize_text_pieces<'a>(pieces: impl IntoIterator<Item = &'a str>) -> Strin
         .join(" ")
 }
 
-fn element_to_markdown(element: ElementRef<'_>, base_url: &str) -> String {
-    let mut writer = MarkdownWriter::new(base_url);
+fn element_to_markdown(element: ElementRef<'_>, base_url: &str, only_text: bool) -> String {
+    let mut writer = MarkdownWriter::new(base_url, only_text);
     render_node(*element, &mut writer);
     normalize_markdown(&writer.output)
 }
@@ -1341,13 +1366,15 @@ fn element_to_markdown(element: ElementRef<'_>, base_url: &str) -> String {
 struct MarkdownWriter {
     output: String,
     base_url: Option<Url>,
+    only_text: bool,
 }
 
 impl MarkdownWriter {
-    fn new(base_url: &str) -> Self {
+    fn new(base_url: &str, only_text: bool) -> Self {
         Self {
             output: String::new(),
             base_url: Url::parse(base_url).ok(),
+            only_text,
         }
     }
 
@@ -1355,6 +1382,7 @@ impl MarkdownWriter {
         Self {
             output: String::new(),
             base_url: self.base_url.clone(),
+            only_text: self.only_text,
         }
     }
 
@@ -1402,6 +1430,11 @@ fn render_node(node: NodeRef<'_, Node>, writer: &mut MarkdownWriter) {
 }
 
 fn render_element(node: NodeRef<'_, Node>, tag: &str, writer: &mut MarkdownWriter) {
+    if writer.only_text && is_only_text_eligible_tag(tag) {
+        writer.push_text(&raw_text_from_node(node));
+        return;
+    }
+
     match tag {
         "h1" | "h2" | "h3" | "h4" | "h5" | "h6" => render_heading(node, tag, writer),
         "p" => render_block(node, writer),
@@ -1432,6 +1465,33 @@ fn render_element(node: NodeRef<'_, Node>, tag: &str, writer: &mut MarkdownWrite
         }
         _ => render_children(node, writer),
     }
+}
+
+fn is_only_text_eligible_tag(tag: &str) -> bool {
+    matches!(
+        tag,
+        "abbr"
+            | "b"
+            | "cite"
+            | "code"
+            | "del"
+            | "dfn"
+            | "em"
+            | "i"
+            | "ins"
+            | "kbd"
+            | "mark"
+            | "q"
+            | "s"
+            | "small"
+            | "span"
+            | "strong"
+            | "sub"
+            | "sup"
+            | "time"
+            | "u"
+            | "var"
+    )
 }
 
 fn render_children(node: NodeRef<'_, Node>, writer: &mut MarkdownWriter) {

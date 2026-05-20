@@ -1222,7 +1222,7 @@ Validation:
 
 - `cargo test --test mock_site_cli homegrown_extractor_backend_covers_static_http_parity_slice`
 
-Confidence: Medium-high. This closes one safe backend-option parity gap with deterministic coverage. Other Crawl4AI options such as `only_text`, `word_count_threshold`, `wait_until`, `page_timeout`, `wait_for_timeout`, and `wait_for_images` remain unsupported until they have clear owned semantics.
+Confidence: Medium-high. This closes one safe backend-option parity gap with deterministic coverage. At this slice, other Crawl4AI options such as `only_text`, `word_count_threshold`, `wait_until`, `page_timeout`, `wait_for_timeout`, and `wait_for_images` remained unsupported until they had clear owned semantics.
 
 ### D71: I19d supports safe `crawl4ai.target_elements` in the owned extractor
 
@@ -1236,7 +1236,7 @@ Validation:
 
 - `cargo test --test mock_site_cli homegrown_extractor_backend_covers_static_http_parity_slice`
 
-Confidence: Medium-high. This closes another deterministic option-parity gap. It intentionally does not port `only_text`, `word_count_threshold`, `wait_until`, `page_timeout`, `wait_for_timeout`, or `wait_for_images` yet.
+Confidence: Medium-high. This closes another deterministic option-parity gap. At this slice, it intentionally did not port `only_text`, `word_count_threshold`, `wait_until`, `page_timeout`, `wait_for_timeout`, or `wait_for_images` yet.
 
 ### D72: I19d renders script-bearing pages through owned CDP by default
 
@@ -1346,6 +1346,20 @@ Tracked-file hygiene audit:
 - `git status --ignored --short` shows the expected ignored local directories (`references/`, `target/`, `.firecrawl/`, `.opencode/node_modules/`, benchmark output dirs) and the pre-existing untracked `CLAUDE_REVIEW.md`.
 
 Confidence: Medium-high for the local audit evidence. The remaining I19h blocker is review coverage, not deterministic validation.
+
+### D77: I19d ports `crawl4ai.only_text` to owned markdown rendering
+
+The next safe Crawl4AI option to port was `crawl4ai.only_text`. Before changing the owned extractor, I19d inspected the upstream behavior in `references/repos/crawl4ai/crawl4ai/content_scraping_strategy.py`, where `only_text` replaces text-formatting inline tags from `ONLY_TEXT_ELIGIBLE_TAGS` with their text content, and `references/repos/crawl4ai/crawl4ai/config.py`, where that tag allowlist is defined. The local command helper already parsed this option as a boolean.
+
+The owned extractor now parses `crawl4ai.only_text` with the same boolean spelling set used by the command helper (`true/false`, `1/0`, `yes/no`, `on/off`). When enabled, owned markdown rendering treats Crawl4AI's text-formatting inline tags such as `strong`, `em`, `code`, `span`, `mark`, and `time` as plain text while preserving structural markdown such as headings, lists, links, tables, and preformatted code blocks. This mirrors the safe part of Crawl4AI's option without adding JavaScript execution or broader cleanup policy.
+
+The supported owned Crawl4AI namespace is now `excluded_tags`, `target_elements`, `only_text`, and `delay_before_return_html`. `word_count_threshold`, `wait_until`, `page_timeout`, `wait_for_timeout`, and `wait_for_images` remain unsupported until they have owned semantics and validation strong enough for authenticated-session use.
+
+Validation:
+
+- `cargo test --test mock_site_cli homegrown_extractor_backend_covers_static_http_parity_slice`
+
+Confidence: Medium-high. This is a narrow renderer option with deterministic fixture coverage; it does not change broader readability or rendered-page readiness behavior.
 
 ## Open Questions
 

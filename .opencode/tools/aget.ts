@@ -102,7 +102,7 @@ export const fetch = tool({
     backend_options: tool.schema
       .array(tool.schema.string())
       .optional()
-      .describe("Optional unstable backend.key=value strings; the owned extractor currently supports crawl4ai.target_elements, crawl4ai.excluded_tags, and crawl4ai.delay_before_return_html."),
+      .describe("Optional unstable backend.key=value strings; the owned extractor currently supports crawl4ai.target_elements, crawl4ai.excluded_tags, crawl4ai.only_text, and crawl4ai.delay_before_return_html."),
   },
   async execute(args, context) {
     const cliArgs: string[] = []
