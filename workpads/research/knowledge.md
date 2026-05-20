@@ -1324,6 +1324,29 @@ Validation:
 
 Confidence: High for the demotion slice. The source audit confirms the implicit command defaults are gone from live code, focused command-adapter suites still pass with explicit env configuration, and the full standard suite passes with owned defaults intact.
 
+### D76: I19h local final migration audit starts
+
+I19h began after the owned-default and command-demotion commits. The local audit has enough evidence that the default migration is stable for deterministic and local Chrome-backed coverage, but the task cannot be marked complete yet because its acceptance criteria explicitly require review subagents for test adequacy, architecture cohesion, and security/privacy. This Codex session can only spawn subagents when the user explicitly asks for them, so that acceptance item remains pending rather than simulated.
+
+Validation run during the local audit:
+
+- `cargo test`
+- `cargo test --test mock_site_cli owned_ -- --ignored`
+- `cargo test browser_cdp::tests::owned_chrome_import_exports_cookie_and_local_storage_from_profile_directory -- --ignored`
+
+Manual/ignored checks intentionally not run in this pass:
+
+- `browser_cdp::tests::owned_login_browser_exports_state_from_headed_profile_and_closes -- --ignored`, because it opens a visible browser window.
+- Real `agent-browser`/Crawl4AI/HelloInterview and cmux ignored tests, because those depend on optional external tools, running local surfaces, or manual authorized site login and are no longer default-runtime requirements.
+
+Tracked-file hygiene audit:
+
+- `git ls-files references references/repos .aget target 'workpads/research/benchmarks/r0a' 'workpads/research/benchmarks/crawl4ai-skill-*' '.firecrawl'` only reported the tracked helper script `workpads/research/benchmarks/crawl4ai-skill-minimal.py`; no dependency clone, `.aget` run artifact, target output, private R0a benchmark output, or Firecrawl output is tracked.
+- `git ls-files | rg -n '(^|/)(agent-browser-hi-auth-state\.json|raw-state|backend-stdout|backend-stderr|\.aget|references/repos|workpads/research/benchmarks/r0a|\.log$)' || true` found no tracked raw state, backend artifact, local run directory, dependency clone, private benchmark directory, or log file.
+- `git status --ignored --short` shows the expected ignored local directories (`references/`, `target/`, `.firecrawl/`, `.opencode/node_modules/`, benchmark output dirs) and the pre-existing untracked `CLAUDE_REVIEW.md`.
+
+Confidence: Medium-high for the local audit evidence. The remaining I19h blocker is review coverage, not deterministic validation.
+
 ## Open Questions
 
 - Can pure Rust browser automation provide reliable persistent profiles and CDP attach, or do we need a small Node/Playwright sidecar?

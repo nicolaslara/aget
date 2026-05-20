@@ -488,7 +488,7 @@ Status note:
 
 - Completed with `knowledge.md` D75. Implicit command defaults were removed from compatibility adapters: Crawl4AI-compatible extraction now requires an API-provided command or `AGET_CRAWL4AI_COMMAND`, and `agent-browser` compatibility paths require `AGET_AGENT_BROWSER_COMMAND`. README, CLI help, and the project skill now describe these as explicit compatibility surfaces. Full `cargo test`, formatting, diff hygiene, live-source default audit, and `.gitignore` review passed.
 
-### 📋 Task I19h: Final migration review and cleanup
+### 🚧 Task I19h: Final migration review and cleanup
 
 Acceptance criteria:
 
@@ -497,6 +497,10 @@ Acceptance criteria:
 - Use review subagents for test adequacy, architecture cohesion, and security/privacy before marking the migration complete.
 - Resolve or explicitly record all material review feedback.
 - Confirm no dependency source clone contents, sensitive state, authenticated artifacts, or raw browser state are tracked.
+
+Status note:
+
+- Started with `knowledge.md` D76 after I19f/I19g stable commits. Full deterministic suite and local Chrome ignored smokes passed, and tracked-file hygiene audit found no dependency clones, raw browser state, `.aget` artifacts, private benchmark outputs, or logs tracked. I19h remains in progress because the review-subagent acceptance item is still pending; this Codex session may only spawn subagents when explicitly requested by the user.
 
 ### 🚧 Task I20: Design OAuth-safe browser login and profile import flow
 
