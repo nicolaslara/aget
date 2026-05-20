@@ -59,7 +59,7 @@ function addOptional(args: string[], flag: string, value: string | number | unde
 
 export const fetch = tool({
   description:
-    "Fetch an HTTP(S) URL with the local aget CLI. Returns aget's structured JSON envelope. Use explicit sessions only when the user has authorized access. If content looks gated and the site uses OAuth, ask before importing a real browser session; do not use automation login as the first path.",
+    "Fetch an HTTP(S) URL with the local aget CLI and its owned default extraction path. Returns aget's structured JSON envelope. Use explicit sessions only when the user has authorized access. If content looks gated and the site uses OAuth, ask before importing a real browser session; do not use automation login as the first path.",
   args: {
     url: tool.schema.string().describe("HTTP(S) URL to fetch."),
     sessions: tool.schema
@@ -102,7 +102,7 @@ export const fetch = tool({
     backend_options: tool.schema
       .array(tool.schema.string())
       .optional()
-      .describe("Optional unstable aget backend options as backend.key=value strings."),
+      .describe("Optional unstable backend.key=value strings; the owned extractor currently supports crawl4ai.target_elements, crawl4ai.excluded_tags, and crawl4ai.delay_before_return_html."),
   },
   async execute(args, context) {
     const cliArgs: string[] = []
@@ -149,7 +149,7 @@ export const session_inspect = tool({
 
 export const session_import_chrome = tool({
   description:
-    "Import a scoped aget session from a user-approved real Chrome profile. Prefer this for OAuth-backed sites: the user logs in through their normal browser, then the agent imports only the allowed domains and verifies with fetch using the named session.",
+    "Import a scoped aget session from a user-approved real Chrome profile using aget's owned local Chrome/CDP path. Prefer this for OAuth-backed sites: the user logs in through their normal browser, then the agent imports only the allowed domains and verifies with fetch using the named session.",
   args: {
     profile: tool.schema
       .string()

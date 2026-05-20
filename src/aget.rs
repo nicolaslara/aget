@@ -7,7 +7,7 @@ use crate::error::{AgetError, ErrorCode};
 use crate::extraction::{
     BrowserFallbackBackend, BrowserFallbackRequest, BrowserFallbackResult,
     CommandBrowserFallbackBackend, CommandExtractorBackend, ExtractionSessionStore,
-    ExtractorBackend, GetOptions, GetSuccess,
+    ExtractorBackend, GetOptions, GetSuccess, OwnedExtractorBackend,
 };
 use crate::session::{
     cancel_login_session as cancel_login_flow,
@@ -23,9 +23,9 @@ use crate::session::{
 };
 
 pub type Aget = AgetWith<
-    CommandExtractorBackend,
+    DefaultExtractorBackend,
     FilesystemSessionStoreBackend,
-    CommandBrowserAutomationBackend,
+    DefaultBrowserAutomationBackend,
 >;
 
 #[derive(Clone)]
@@ -33,12 +33,11 @@ pub struct AgetWith<E, S, B> {
     // Session storage owns persisted local auth state. It is separate from browser
     // automation so future encrypted or test stores can reuse the same `Aget` flow.
     session_store: S,
-    // Browser automation covers login/profile import flows. Today the adapter shells
-    // out to `agent-browser`; future implementations can satisfy this capability
-    // without changing CLI command handlers or API-style tests.
+    // Browser automation covers login/profile import flows. The default backend is
+    // owned CDP/Chrome automation; the command adapter remains compatibility-only.
     browser_backend: B,
-    // Pluggable URL extraction capability. The default adapter shells out to Crawl4AI,
-    // but callers should depend on the capability rather than the command transport.
+    // Pluggable URL extraction capability. The default backend is owned Rust
+    // extraction; command transport remains an explicit compatibility path.
     extractor_backend: E,
     timeout: Option<Duration>,
 }
@@ -47,21 +46,26 @@ impl Aget {
     pub fn new(home: impl Into<PathBuf>) -> Self {
         Self {
             session_store: FilesystemSessionStoreBackend::new(home),
-            browser_backend: CommandBrowserAutomationBackend,
-            extractor_backend: CommandExtractorBackend::new(None),
+            browser_backend: DefaultBrowserAutomationBackend::owned(),
+            extractor_backend: DefaultExtractorBackend::owned(),
             timeout: None,
         }
     }
 
     pub fn from_env() -> io::Result<Self> {
         let store = SessionStore::from_env()?;
-        Ok(Self::new(store.home().to_path_buf()))
+        Ok(Self {
+            session_store: FilesystemSessionStoreBackend::new(store.home().to_path_buf()),
+            browser_backend: DefaultBrowserAutomationBackend::from_env(),
+            extractor_backend: DefaultExtractorBackend::from_env(),
+            timeout: None,
+        })
     }
 }
 
-impl<S, B> AgetWith<CommandExtractorBackend, S, B> {
+impl<S, B> AgetWith<DefaultExtractorBackend, S, B> {
     pub fn with_backend_command(mut self, command: impl Into<String>) -> Self {
-        self.extractor_backend = CommandExtractorBackend::new(Some(command.into()));
+        self.extractor_backend = DefaultExtractorBackend::command(Some(command.into()));
         self
     }
 }
@@ -245,11 +249,115 @@ where
 
 pub trait BrowserAutomationBackend {
     // Browser-backed session capture is modeled as a capability instead of as
-    // `agent-browser` argv so callers do not couple to the current subprocess adapter.
+    // command argv so callers do not couple to any particular backend transport.
     fn import_chrome(&self, options: ChromeImportOptions) -> Result<Session, AgetError>;
     fn start_login(&self, options: LoginStartOptions) -> Result<LoginStartResult, AgetError>;
     fn finish_login(&self, options: LoginFinishOptions) -> Result<LoginFinishResult, AgetError>;
     fn cancel_login(&self, options: LoginCancelOptions) -> Result<LoginCancelResult, AgetError>;
+}
+
+#[derive(Clone)]
+pub enum DefaultExtractorBackend {
+    Owned(OwnedExtractorBackend),
+    Command(CommandExtractorBackend),
+}
+
+impl DefaultExtractorBackend {
+    fn owned() -> Self {
+        Self::Owned(OwnedExtractorBackend)
+    }
+
+    fn command(command: Option<String>) -> Self {
+        Self::Command(CommandExtractorBackend::new(command))
+    }
+
+    fn from_env() -> Self {
+        match std::env::var("AGET_CRAWL4AI_COMMAND") {
+            Ok(command) => Self::command(Some(command)),
+            Err(_) => Self::owned(),
+        }
+    }
+}
+
+impl ExtractorBackend for DefaultExtractorBackend {
+    fn name(&self) -> &'static str {
+        match self {
+            Self::Owned(backend) => backend.name(),
+            Self::Command(backend) => backend.name(),
+        }
+    }
+
+    fn extract(
+        &self,
+        request: crate::extraction::ExtractorRequest<'_>,
+    ) -> Result<crate::extraction::ExtractorBackendResult, AgetError> {
+        match self {
+            Self::Owned(backend) => backend.extract(request),
+            Self::Command(backend) => backend.extract(request),
+        }
+    }
+}
+
+#[derive(Clone)]
+pub enum DefaultBrowserAutomationBackend {
+    Owned(OwnedBrowserAutomationBackend),
+    Command(CommandBrowserAutomationBackend),
+}
+
+impl DefaultBrowserAutomationBackend {
+    fn owned() -> Self {
+        Self::Owned(OwnedBrowserAutomationBackend)
+    }
+
+    fn from_env() -> Self {
+        if std::env::var("AGET_AGENT_BROWSER_COMMAND").is_ok() {
+            Self::Command(CommandBrowserAutomationBackend)
+        } else {
+            Self::owned()
+        }
+    }
+}
+
+impl BrowserAutomationBackend for DefaultBrowserAutomationBackend {
+    fn import_chrome(&self, options: ChromeImportOptions) -> Result<Session, AgetError> {
+        match self {
+            Self::Owned(backend) => backend.import_chrome(options),
+            Self::Command(backend) => backend.import_chrome(options),
+        }
+    }
+
+    fn start_login(&self, options: LoginStartOptions) -> Result<LoginStartResult, AgetError> {
+        match self {
+            Self::Owned(backend) => backend.start_login(options),
+            Self::Command(backend) => backend.start_login(options),
+        }
+    }
+
+    fn finish_login(&self, options: LoginFinishOptions) -> Result<LoginFinishResult, AgetError> {
+        match self {
+            Self::Owned(backend) => backend.finish_login(options),
+            Self::Command(backend) => backend.finish_login(options),
+        }
+    }
+
+    fn cancel_login(&self, options: LoginCancelOptions) -> Result<LoginCancelResult, AgetError> {
+        match self {
+            Self::Owned(backend) => backend.cancel_login(options),
+            Self::Command(backend) => backend.cancel_login(options),
+        }
+    }
+}
+
+impl BrowserFallbackBackend for DefaultBrowserAutomationBackend {
+    fn extract_with_state(
+        &self,
+        request: BrowserFallbackRequest<'_>,
+    ) -> Result<BrowserFallbackResult, AgetError> {
+        match self {
+            Self::Owned(backend) => backend.extract_with_state(request),
+            Self::Command(backend) => backend.extract_with_state(request),
+        }
+    }
 }
 
 #[derive(Clone)]

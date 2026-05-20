@@ -1269,6 +1269,33 @@ Validation:
 
 Confidence: Medium-high. The option is narrow, typed, and covered by an ignored Chrome smoke with a delayed client render; broader smart readiness remains open.
 
+### D74: I19f starts the owned-backend default runtime switch
+
+The migration reached the point where the default facade was still the biggest contradiction: `Aget` and `get_url` still defaulted to command-backed Crawl4AI and `agent-browser` even though the owned extractor and owned browser automation paths now cover the current PoC feature set at the capability boundary.
+
+I19f now switches the default runtime wiring to owned backends:
+
+- `Aget::new` defaults to `OwnedExtractorBackend` plus `OwnedBrowserAutomationBackend` through small default-backend enums.
+- `Aget::from_env` keeps compatibility by selecting command-backed adapters only when `AGET_CRAWL4AI_COMMAND` or `AGET_AGENT_BROWSER_COMMAND` is explicitly set.
+- `get_url` and `get_url_with_backend` now use the owned browser fallback by default instead of `agent-browser`.
+- The command adapters remain available for compatibility tests and explicit developer runs.
+
+Documentation was updated so README, `.opencode/tools/aget.ts`, and `.cursor/skills/aget/SKILL.md` no longer present Crawl4AI or `agent-browser` as required default dependencies. The current default runtime still needs local Chrome/Chromium for JavaScript-rendered pages, Chrome import, and login flows. There is no implemented `aget doctor` command in this snapshot, so no doctor code surface required an update.
+
+Validation:
+
+- `cargo test --test aget_api`
+- `cargo test --test get_cli get_json_success_writes_run_artifacts_with_empty_state`
+- `cargo test --test get_cli missing_backend_returns_backend_unavailable`
+- `cargo test --test get_cli get_session_backend_failure_redacts_state_secrets_from_errors_metadata_and_artifacts`
+- `cargo test --test mock_site_cli default_cli_fetch_uses_owned_backend_without_command_dependencies`
+- `env -u AGET_CRAWL4AI_COMMAND -u AGET_AGENT_BROWSER_COMMAND PATH="/Users/nicolas/.cargo/bin:/usr/bin:/bin" cargo test --test mock_site_cli default_cli_fetch_uses_owned_backend_without_command_dependencies`
+- `cargo test`
+- `cargo fmt --check`
+- `git diff --check`
+
+Confidence: Medium-high. This is the first default-runtime switch, but full standard validation passed and the no-command-path smoke proves the default public fetch path does not need Crawl4AI or `agent-browser` on PATH. Remaining dependency cleanup is tracked by I19g because compatibility adapters, old temp-file naming, and historical research notes still intentionally mention the PoC tools.
+
 ## Open Questions
 
 - Can pure Rust browser automation provide reliable persistent profiles and CDP attach, or do we need a small Node/Playwright sidecar?

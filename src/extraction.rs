@@ -223,8 +223,8 @@ impl ExtractorBackend for OwnedExtractorBackend {
 }
 
 pub fn get_url(options: GetOptions) -> Result<GetSuccess, AgetError> {
-    let extractor = CommandExtractorBackend::new(None);
-    let browser_fallback = CommandBrowserFallbackBackend;
+    let extractor = OwnedExtractorBackend;
+    let browser_fallback = crate::aget::OwnedBrowserAutomationBackend;
     get_url_with_backends(options, &extractor, &browser_fallback)
 }
 
@@ -232,7 +232,7 @@ pub fn get_url_with_backend(
     options: GetOptions,
     extractor_backend: &impl ExtractorBackend,
 ) -> Result<GetSuccess, AgetError> {
-    let browser_fallback = CommandBrowserFallbackBackend;
+    let browser_fallback = crate::aget::OwnedBrowserAutomationBackend;
     get_url_with_backends(options, extractor_backend, &browser_fallback)
 }
 

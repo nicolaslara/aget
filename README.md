@@ -4,7 +4,7 @@
 
 It is meant for getting clean, low-token page content into agent workflows without sending private browser state to a hosted service.
 
-`aget` is currently a **proof of concept**. The CLI/API is intentionally still changing while the project validates the local authenticated-fetch workflow before replacing or bundling the current PoC backends.
+`aget` is currently migrating from its proof-of-concept command backends to owned Rust implementations. The default fetch, browser fallback, Chrome import, and login lifecycle paths are intended to run through `aget`-owned code; Crawl4AI and `agent-browser` command adapters remain compatibility/test surfaces.
 
 ## Current Status
 
@@ -23,7 +23,7 @@ What works today:
 - session compose for persisting a deterministic composed session from named sources
 - experimental login start/finish/cancel for user-driven session bootstrap with caller-chosen session names
 - optional cmux cookie import for explicitly allowed domains
-- optional Chrome profile import through `agent-browser` for explicitly allowed domains
+- optional Chrome profile import for explicitly allowed domains
 - project skill guidance at `.cursor/skills/aget/SKILL.md`
 - project-local OpenCode tools for CLI-backed fetch/session workflows
 - the real demo script
@@ -33,10 +33,9 @@ See [`project.md`](./project.md) for the original product goal, [`AGENTS.md`](./
 ## Prerequisites
 
 - Rust and Cargo
-- `uv`
-- the default Crawl4AI/Playwright browser setup for the built-in backend
+- local Chrome/Chromium for JavaScript-rendered pages, Chrome import, and login flows
 - optional: `cmux` for `aget session import cmux`
-- optional: `agent-browser` for `aget session import chrome`
+- optional compatibility: `uv`/Crawl4AI and `agent-browser` only when explicitly using command-backed adapters in development or tests
 
 ## Quick Start
 
@@ -107,7 +106,7 @@ aget session list
 aget session inspect <session-id>
 aget session delete <session-id>
 aget session compose <new-name> --session <name> [--session <name>...]
-aget session login start <name> --url <login-or-target-url> [--profile <agent-browser-profile>]
+aget session login start <name> --url <login-or-target-url> [--profile <aget-profile-path>]
 aget session login finish <name>
 aget session login cancel <name>
 aget session import cmux --surface <surface> --name <name> --allow-domain <domain> [--allow-domain <domain>...]
@@ -120,18 +119,18 @@ Notes:
 - `aget <url>` is an alias for the same fetch path.
 - `--envelope json` prints the agent control-plane response envelope: `{ "ok": true, "schema_version": "aget.envelope.v1", "command": "...", "data": {...}, "warnings": [], "timing_ms": {...} }` for success or `{ "ok": false, "schema_version": "aget.envelope.v1", "command": "...", "error": {...} }` for failure. It does not change the fetched page content format.
 - `--output` writes the extracted markdown to a file.
-- `--content-format` requests `markdown`, `html`, `text`, or `json` page content from the extractor; markdown remains the default. For `text`, the Crawl4AI helper prefers extracted content and otherwise derives plain text from cleaned/raw HTML before falling back to markdown as a last resort.
+- `--content-format` requests `markdown`, `html`, `text`, or `json` page content from the extractor; markdown remains the default.
 - `--inline-content` controls whether `data.content` is embedded in the JSON envelope. `auto` includes content for non-sensitive fetches and omits it for session-backed/sensitive fetches by default. `always` embeds content explicitly; `never` returns artifact paths and metadata only.
-- `--selector`, `--exclude-selector`, `--wait-for-selector`, and repeated `--backend-option backend.key=value` are forwarded to the Crawl4AI helper when supported. `--wait-for-selector` is CSS-only in v1 for authenticated-session safety: use `css:<selector>` or a plain CSS selector; JavaScript waits are rejected. Supported Crawl4AI option keys use the `crawl4ai.` namespace: `crawl4ai.target_elements`, `crawl4ai.excluded_tags`, `crawl4ai.only_text`, `crawl4ai.word_count_threshold`, `crawl4ai.wait_until`, `crawl4ai.page_timeout`, `crawl4ai.wait_for_timeout`, `crawl4ai.delay_before_return_html`, and `crawl4ai.wait_for_images`; unsupported keys fail instead of being ignored. List values are comma-separated, booleans accept `true`/`false`, and numeric fields use integer or decimal values as appropriate.
+- `--selector`, `--exclude-selector`, `--wait-for-selector`, and repeated `--backend-option backend.key=value` shape extraction. `--wait-for-selector` is CSS-only in v1 for authenticated-session safety: use `css:<selector>` or a plain CSS selector; JavaScript waits are rejected. The owned extractor currently supports `crawl4ai.target_elements`, `crawl4ai.excluded_tags`, and `crawl4ai.delay_before_return_html` for compatibility with existing callers; unsupported keys fail instead of being ignored.
 - `--max-chars` truncates extracted content in Rust after backend extraction using Unicode scalar values; it never truncates the JSON response envelope.
 - Repeated `--session` flags replay named local sessions for the request in the order provided. Cookie conflicts and same-origin localStorage key conflicts are rejected instead of preferring one session; disjoint localStorage keys for the same origin are merged.
 - `aget session compose <new-name> --session <name>...` saves the same deterministic composition as a named local session, preserving cookie and storage-origin source provenance while redacting secret values in errors and inspect output by default.
-- `aget session login start <name> --url <url>` opens a visible `aget`-owned `agent-browser` profile for user-driven login. It does not collect or script credentials. `finish` exports local browser state, persists only URL-scoped cookies/storage as a normal local session, then removes the raw temp state. `cancel` closes only the pending `aget` login session.
+- `aget session login start <name> --url <url>` opens a visible `aget`-owned Chrome profile for user-driven login. It does not collect or script credentials. `finish` exports local browser state, persists only URL-scoped cookies/storage as a normal local session, then removes the raw temp state. `cancel` closes only the pending `aget` login session.
 - `aget` is a generic fetcher. It returns page content and extraction outcomes; it does not detect site-specific paywalls, login walls, rate limits, or content quirks. Site-specific reasoning belongs to the calling agent or a future agent skill.
 - `--timeout` sets the request timeout in seconds.
 - `aget session import cmux` imports cookies from a cmux browser surface for explicitly allowed domains only; imported cookies are stored locally as a sensitive named session.
 - cmux import reads raw cookie values from the selected local cmux surface. Use only disposable or user-authorized surfaces and domains.
-- `aget session import chrome` uses `agent-browser` to snapshot a Chrome profile into a temporary local state file, filters cookies and storage by explicit `--allow-domain` allowlists, stores only the scoped result, then deletes the raw temp state. Chrome may need to be quit manually if the profile is locked.
+- `aget session import chrome` snapshots a Chrome profile through owned local Chrome/CDP code, filters cookies and storage by explicit `--allow-domain` allowlists, stores only the scoped result, then deletes raw temp state. Chrome may need to be quit manually if the profile is locked.
 
 ## Envelope Output
 
@@ -146,7 +145,7 @@ Success example:
     "url": "https://example.com",
     "final_url": "https://example.com/",
     "content_format": "markdown",
-    "extractor": "crawl4ai",
+    "extractor": "aget-owned-extractor",
     "content": "# Example\n...",
     "artifacts": {
       "content": "/Users/me/.aget/runs/abc123/output.md",
@@ -185,7 +184,7 @@ Error example:
   "command": "get",
   "error": {
     "code": "extraction_failed",
-    "message": "Crawl4AI extraction failed"
+    "message": "aget-owned extraction failed"
   }
 }
 ```
@@ -198,7 +197,7 @@ Error example:
 - Run artifacts live under `~/.aget/runs`.
 - Temporary browser/session state is local. `aget` removes normal temp state on success/failure, sweeps old orphaned raw-state files on startup, and removes tool-owned login profiles after successful completion or cancel.
 - Imported Chrome sessions and localStorage values are credential-equivalent bearer material. `session inspect` redacts values by default; use `--show-secrets` only when explicitly needed.
-- Backend subprocesses run with a minimal environment instead of inheriting the full parent shell environment.
+- Optional compatibility backend subprocesses run with a minimal environment instead of inheriting the full parent shell environment.
 - Only process content you are authorized to access.
 - Do not use `aget` to bypass access controls, paywalls, or site policies.
 

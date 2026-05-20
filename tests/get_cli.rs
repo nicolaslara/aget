@@ -568,6 +568,7 @@ fn get_max_chars_success_sanitizes_backend_stdout_artifact() {
 fn get_session_backend_failure_redacts_state_secrets_from_errors_metadata_and_artifacts() {
     let temp = tempfile::tempdir().unwrap();
     let aget_home = temp.path().join("aget-home");
+    let missing_agent_browser = temp.path().join("missing-agent-browser");
     save_cookie_and_storage_session(
         &aget_home,
         "local",
@@ -591,6 +592,7 @@ fn get_session_backend_failure_redacts_state_secrets_from_errors_metadata_and_ar
     let output = cmd
         .env("AGET_HOME", &aget_home)
         .env("AGET_CRAWL4AI_COMMAND", &fake_backend)
+        .env("AGET_AGENT_BROWSER_COMMAND", &missing_agent_browser)
         .args([
             "--envelope",
             "json",

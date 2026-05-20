@@ -81,6 +81,42 @@ fn mock_site_fetch_handles_redirect_output_shaping_and_waits() {
 }
 
 #[test]
+fn default_cli_fetch_uses_owned_backend_without_command_dependencies() {
+    let temp = tempfile::tempdir().unwrap();
+    let aget_home = temp.path().join("aget-home");
+    let site = MockSite::start();
+
+    let output = Command::cargo_bin("aget")
+        .unwrap()
+        .env("AGET_HOME", &aget_home)
+        .env_remove("AGET_CRAWL4AI_COMMAND")
+        .env_remove("AGET_AGENT_BROWSER_COMMAND")
+        .args([
+            "--envelope",
+            "json",
+            "get",
+            "--inline-content",
+            "always",
+            &site.url("/public"),
+            "--content-format",
+            "text",
+            "--selector",
+            "main",
+            "--exclude-selector",
+            "nav",
+        ])
+        .assert()
+        .success()
+        .get_output()
+        .stdout
+        .clone();
+
+    let json = success_data(&output, "get");
+    assert_eq!(json["extractor"], "aget-owned-extractor");
+    assert_eq!(json["content"], "Public Main Visible public article.");
+}
+
+#[test]
 fn backend_parity_covers_extractor_content_formats() {
     let temp = tempfile::tempdir().unwrap();
     let aget_home = temp.path().join("aget-home");

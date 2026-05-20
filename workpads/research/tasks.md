@@ -461,7 +461,7 @@ Status note:
 
 - Started after the first I19d owned extractor slices and documented in `knowledge.md` D58, D60, D64-D68. `OwnedBrowserAutomationBackend` now has an owned session-backed fallback extraction path for static cookie-backed pages, a minimal Chrome/CDP renderer for localStorage-backed fallback extraction, explicit user-data-dir Chrome import, named Chrome profile resolution/copying into temporary user-data-dir imports, a first owned dedicated-profile login start/finish/cancel lifecycle, stale owned-login profile sweeping, and PID-backed cleanup for detached owned login browsers. I19e remains in progress because current-tab attach, broader rendered JavaScript parity, real logged-in profile/keychain smoke coverage, cross-platform close/process lifecycle parity, and full `requires_user_action` classification still require deeper CDP/profile work.
 
-### 📋 Task I19f: Switch default runtime path to homegrown backends
+### ✅ Task I19f: Switch default runtime path to homegrown backends
 
 Acceptance criteria:
 
@@ -470,6 +470,10 @@ Acceptance criteria:
 - Ensure the standard test suite passes with Crawl4AI and `agent-browser` absent from PATH.
 - Update `aget doctor`, README, OpenCode tool descriptions, and the agent skill so current installation guidance no longer treats Crawl4AI or `agent-browser` as required default dependencies.
 - Record any remaining optional/developer dependency use clearly.
+
+Status note:
+
+- Completed with `knowledge.md` D74. `Aget::new`, `Aget::from_env`, `get_url`, and CLI fetch/session flows now default to owned extractor/browser automation backends unless explicit compatibility environment variables select command adapters. README, OpenCode tool descriptions, and the project aget skill no longer describe Crawl4AI or `agent-browser` as required default dependencies. Full standard-suite validation passed, and a no-command-path smoke passed with compatibility env vars removed and PATH restricted away from optional command tools. There is no implemented `aget doctor` command in this snapshot, so no doctor code surface required an update.
 
 ### 📋 Task I19g: Remove or demote PoC dependency surfaces
 
