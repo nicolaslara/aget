@@ -35,6 +35,23 @@ pub(crate) struct BrowserStateExportRequest<'a> {
     pub(crate) timeout: Duration,
 }
 
+pub(crate) struct BrowserLoginStartRequest<'a> {
+    pub(crate) profile_dir: &'a Path,
+    pub(crate) url: &'a str,
+    pub(crate) timeout: Duration,
+}
+
+pub(crate) struct BrowserLoginStateExportRequest<'a> {
+    pub(crate) profile_dir: &'a Path,
+    pub(crate) allowed_domains: &'a [String],
+    pub(crate) timeout: Duration,
+}
+
+pub(crate) struct BrowserLoginCloseRequest<'a> {
+    pub(crate) profile_dir: &'a Path,
+    pub(crate) timeout: Duration,
+}
+
 pub(crate) struct RenderedPage {
     pub(crate) final_url: String,
     pub(crate) html: String,
@@ -93,6 +110,58 @@ pub(crate) fn export_browser_state(
     Ok(state)
 }
 
+pub(crate) fn start_login_browser(request: BrowserLoginStartRequest<'_>) -> Result<(), AgetError> {
+    create_private_dir(request.profile_dir).map_err(io_aget_error)?;
+    let chrome = ChromeProcess::launch_login(
+        request.profile_dir,
+        request.url,
+        request.timeout,
+        "owned login start",
+    )?;
+    chrome.detach();
+    Ok(())
+}
+
+pub(crate) fn export_login_browser_state(
+    request: BrowserLoginStateExportRequest<'_>,
+) -> Result<PlaywrightState, AgetError> {
+    if let Some(mut client) =
+        connect_existing_profile_browser(request.profile_dir, request.timeout)?
+    {
+        let page = client.create_page(request.timeout)?;
+        client.enable_page_domains(&page.session_id, request.timeout)?;
+        let state =
+            client.export_state(&page.session_id, request.allowed_domains, request.timeout)?;
+        let _ = client.send(
+            "Target.closeTarget",
+            Some(json!({ "targetId": page.target_id })),
+            None,
+            Duration::from_secs(1),
+        );
+        client.close_browser(request.timeout)?;
+        wait_for_profile_browser_shutdown(request.profile_dir, Duration::from_secs(5));
+        return Ok(state);
+    }
+
+    export_browser_state(BrowserStateExportRequest {
+        profile_dir: request.profile_dir,
+        profile_directory: None,
+        use_real_keychain: false,
+        allowed_domains: request.allowed_domains,
+        timeout: request.timeout,
+    })
+}
+
+pub(crate) fn close_login_browser(request: BrowserLoginCloseRequest<'_>) -> Result<(), AgetError> {
+    if let Some(mut client) =
+        connect_existing_profile_browser(request.profile_dir, request.timeout)?
+    {
+        client.close_browser(request.timeout)?;
+        wait_for_profile_browser_shutdown(request.profile_dir, Duration::from_secs(5));
+    }
+    Ok(())
+}
+
 struct ChromeProcess {
     child: Child,
     ws_url: String,
@@ -108,7 +177,16 @@ impl ChromeProcess {
         operation: &'static str,
     ) -> Result<Self, AgetError> {
         let user_data_dir = unique_profile_dir(tmp_dir)?;
-        Self::launch_with_user_data_dir(user_data_dir, true, None, false, timeout, operation)
+        Self::launch_with_user_data_dir(
+            user_data_dir,
+            true,
+            None,
+            false,
+            true,
+            None,
+            timeout,
+            operation,
+        )
     }
 
     fn launch_profile(
@@ -123,6 +201,26 @@ impl ChromeProcess {
             false,
             profile_directory,
             use_real_keychain,
+            true,
+            None,
+            timeout,
+            operation,
+        )
+    }
+
+    fn launch_login(
+        user_data_dir: &Path,
+        url: &str,
+        timeout: Duration,
+        operation: &'static str,
+    ) -> Result<Self, AgetError> {
+        Self::launch_with_user_data_dir(
+            user_data_dir.to_path_buf(),
+            false,
+            None,
+            false,
+            false,
+            Some(url),
             timeout,
             operation,
         )
@@ -133,6 +231,8 @@ impl ChromeProcess {
         remove_user_data_dir: bool,
         profile_directory: Option<&str>,
         use_real_keychain: bool,
+        headless: bool,
+        startup_url: Option<&str>,
         timeout: Duration,
         operation: &'static str,
     ) -> Result<Self, AgetError> {
@@ -154,13 +254,16 @@ impl ChromeProcess {
             .arg("--disable-popup-blocking")
             .arg("--disable-sync")
             .arg("--disable-features=Translate")
-            .arg("--headless=new")
-            .arg("--enable-unsafe-swiftshader")
             .arg("--window-size=1280,720")
             .arg(format!("--user-data-dir={}", user_data_dir.display()))
             .stdin(Stdio::null())
             .stdout(Stdio::null())
             .stderr(Stdio::null());
+        if headless {
+            command
+                .arg("--headless=new")
+                .arg("--enable-unsafe-swiftshader");
+        }
         if !use_real_keychain {
             command
                 .arg("--password-store=basic")
@@ -172,7 +275,11 @@ impl ChromeProcess {
         if cfg!(target_os = "linux") {
             command.arg("--no-sandbox").arg("--disable-dev-shm-usage");
         }
+        if let Some(startup_url) = startup_url {
+            command.arg("--new-window").arg(startup_url);
+        }
         configure_local_command(&mut command);
+        configure_chrome_process_group(&mut command);
         let _ = fs::remove_file(user_data_dir.join("DevToolsActivePort"));
         let mut child = command.spawn().map_err(|error| AgetError::Stable {
             code: ErrorCode::BackendUnavailable,
@@ -198,6 +305,10 @@ impl ChromeProcess {
             remove_user_data_dir,
             terminated: false,
         })
+    }
+
+    fn detach(mut self) {
+        self.terminated = true;
     }
 
     fn wait_or_kill(&mut self, timeout: Duration) {
@@ -551,6 +662,11 @@ impl CdpClient {
             .and_then(Value::as_str)
             .unwrap_or_default()
             .to_string())
+    }
+
+    fn close_browser(&mut self, timeout: Duration) -> Result<(), AgetError> {
+        self.send("Browser.close", None, None, timeout)?;
+        Ok(())
     }
 
     fn send(
@@ -918,6 +1034,37 @@ fn read_devtools_active_port(user_data_dir: &Path) -> Option<(u16, String)> {
     Some((port, path))
 }
 
+fn connect_existing_profile_browser(
+    profile_dir: &Path,
+    timeout: Duration,
+) -> Result<Option<CdpClient>, AgetError> {
+    let Some((port, path)) = read_devtools_active_port(profile_dir) else {
+        return Ok(None);
+    };
+    let ws_url = format!("ws://127.0.0.1:{port}{path}");
+    match CdpClient::connect(&ws_url, timeout) {
+        Ok(client) => Ok(Some(client)),
+        Err(AgetError::Stable {
+            code: ErrorCode::BackendUnavailable,
+            ..
+        }) => Ok(None),
+        Err(error) => Err(error),
+    }
+}
+
+fn wait_for_profile_browser_shutdown(profile_dir: &Path, timeout: Duration) {
+    let deadline = Instant::now() + timeout;
+    while Instant::now() < deadline {
+        let Some((port, _)) = read_devtools_active_port(profile_dir) else {
+            return;
+        };
+        if TcpStream::connect(("127.0.0.1", port)).is_err() {
+            return;
+        }
+        thread::sleep(Duration::from_millis(50));
+    }
+}
+
 fn unique_profile_dir(tmp_dir: &Path) -> Result<PathBuf, AgetError> {
     let owned_dir = tmp_dir.join("owned-chrome");
     create_private_dir(&owned_dir).map_err(io_aget_error)?;
@@ -1026,6 +1173,19 @@ fn configure_socket_timeout(
         _ => {}
     }
     Ok(())
+}
+
+fn configure_chrome_process_group(command: &mut Command) {
+    #[cfg(unix)]
+    {
+        use std::os::unix::process::CommandExt;
+        command.process_group(0);
+    }
+
+    #[cfg(not(unix))]
+    {
+        let _ = command;
+    }
 }
 
 fn remaining(deadline: Instant) -> Duration {
@@ -1284,6 +1444,101 @@ mod tests {
                     .iter()
                     .any(|entry| entry.name == "token" && entry.value == "storage-secret")
         }));
+    }
+
+    #[test]
+    #[ignore = "requires local Chrome/Chromium and opens a visible browser window"]
+    fn owned_login_browser_exports_state_from_headed_profile_and_closes() {
+        let temp = tempfile::tempdir().unwrap();
+        let profile = temp.path().join("login-profile");
+        let timeout = Duration::from_secs(20);
+        let expires = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap()
+            .as_secs()
+            + 3600;
+
+        start_login_browser(BrowserLoginStartRequest {
+            profile_dir: &profile,
+            url: "https://example.com/",
+            timeout,
+        })
+        .expect("Chrome should launch for headed login test");
+
+        {
+            let mut client = connect_existing_profile_browser(&profile, timeout)
+                .unwrap()
+                .expect("headed login browser should expose CDP");
+            let page = client.create_page(timeout).unwrap();
+            client
+                .enable_page_domains(&page.session_id, timeout)
+                .unwrap();
+            client
+                .send(
+                    "Fetch.enable",
+                    Some(json!({ "patterns": [{ "urlPattern": "*" }] })),
+                    Some(&page.session_id),
+                    timeout,
+                )
+                .unwrap();
+            client
+                .navigate_with_blank_response(&page.session_id, "https://example.com/", timeout)
+                .unwrap();
+            client
+                .send(
+                    "Network.setCookie",
+                    Some(json!({
+                        "name": "sid",
+                        "value": "login-secret",
+                        "url": "https://example.com/",
+                        "path": "/",
+                        "expires": expires,
+                        "secure": true,
+                        "sameSite": "Lax",
+                    })),
+                    Some(&page.session_id),
+                    timeout,
+                )
+                .unwrap();
+            client
+                .send(
+                    "Runtime.evaluate",
+                    Some(json!({
+                        "expression": local_storage_set_expression("token", "login-storage").unwrap(),
+                        "returnByValue": true,
+                        "awaitPromise": false,
+                    })),
+                    Some(&page.session_id),
+                    timeout,
+                )
+                .unwrap();
+            let _ = client.send(
+                "Target.closeTarget",
+                Some(json!({ "targetId": page.target_id })),
+                None,
+                Duration::from_secs(1),
+            );
+        }
+
+        let exported = export_login_browser_state(BrowserLoginStateExportRequest {
+            profile_dir: &profile,
+            allowed_domains: &["example.com".to_string()],
+            timeout,
+        })
+        .unwrap();
+
+        assert!(exported
+            .cookies
+            .iter()
+            .any(|cookie| cookie.name == "sid" && cookie.value == "login-secret"));
+        assert!(exported.origins.iter().any(|origin| {
+            origin.origin == "https://example.com"
+                && origin
+                    .local_storage
+                    .iter()
+                    .any(|entry| entry.name == "token" && entry.value == "login-storage")
+        }));
+        assert!(fs::remove_dir_all(&profile).is_ok());
     }
 
     #[test]

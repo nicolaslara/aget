@@ -5,10 +5,11 @@ use std::path::{Path, PathBuf};
 use serde::{Deserialize, Serialize};
 
 use crate::error::{AgetError, ErrorCode};
+use crate::process::DEFAULT_SUBPROCESS_TIMEOUT;
 use crate::session::agent_browser::{
-    classify_agent_browser_failure, domain_allowed, domain_matches_allowed, origin_host,
-    read_filtered_agent_browser_session, run_agent_browser, set_private_file_permissions,
-    AgentBrowserSessionFilter, RawStateFile,
+    classify_agent_browser_failure, domain_allowed, domain_matches_allowed,
+    filter_playwright_state, origin_host, read_filtered_agent_browser_session, run_agent_browser,
+    set_private_file_permissions, AgentBrowserSessionFilter, RawStateFile,
 };
 use crate::session::{Session, SessionSource};
 
@@ -99,6 +100,40 @@ pub fn start_login_session(options: LoginStartOptions) -> Result<LoginStartResul
     Ok(LoginStartResult { pending })
 }
 
+pub(crate) fn start_owned_login_session(
+    options: LoginStartOptions,
+) -> Result<LoginStartResult, AgetError> {
+    validate_login_name(&options.name)?;
+    let allowed_domains = allowed_domains_from_url(&options.url)?;
+    let profile = options
+        .profile
+        .map(PathBuf::from)
+        .unwrap_or_else(|| default_owned_login_profile_path(&options.tmp_dir, &options.name));
+    prepare_login_profile_path(&profile)?;
+    let pending = PendingLogin {
+        agent_session: format!("aget-login-{}", options.name),
+        name: options.name,
+        profile: profile.to_string_lossy().into_owned(),
+        url: options.url,
+        allowed_domains,
+    };
+
+    fs::create_dir_all(&options.tmp_dir).map_err(io_aget_error)?;
+    write_pending_login(&options.tmp_dir, &pending)?;
+    let start_result =
+        crate::browser_cdp::start_login_browser(crate::browser_cdp::BrowserLoginStartRequest {
+            profile_dir: &profile,
+            url: &pending.url,
+            timeout: DEFAULT_SUBPROCESS_TIMEOUT,
+        });
+    if let Err(error) = start_result {
+        let _ = remove_pending_login(&options.tmp_dir, &pending.name);
+        let _ = remove_tool_owned_login_profile(&options.tmp_dir, &pending);
+        return Err(error);
+    }
+    Ok(LoginStartResult { pending })
+}
+
 pub fn finish_login_session(options: LoginFinishOptions) -> Result<LoginFinishResult, AgetError> {
     validate_login_name(&options.name)?;
     let pending = read_pending_login(&options.tmp_dir, &options.name)?;
@@ -147,6 +182,41 @@ pub fn finish_login_session(options: LoginFinishOptions) -> Result<LoginFinishRe
     )?;
     if !close.status.success() {
         return Err(classify_agent_browser_failure("close", &close));
+    }
+    Ok(LoginFinishResult { session, pending })
+}
+
+pub(crate) fn finish_owned_login_session(
+    options: LoginFinishOptions,
+) -> Result<LoginFinishResult, AgetError> {
+    validate_login_name(&options.name)?;
+    let pending = read_pending_login(&options.tmp_dir, &options.name)?;
+    let state = crate::browser_cdp::export_login_browser_state(
+        crate::browser_cdp::BrowserLoginStateExportRequest {
+            profile_dir: Path::new(&pending.profile),
+            allowed_domains: &pending.allowed_domains,
+            timeout: DEFAULT_SUBPROCESS_TIMEOUT,
+        },
+    )?;
+    let session = filter_playwright_state(
+        state,
+        AgentBrowserSessionFilter {
+            name: pending.name.clone(),
+            source: SessionSource::AgentBrowser {
+                session: pending.agent_session.clone(),
+            },
+            allowed_domains: pending.allowed_domains.clone(),
+            source_session: pending.agent_session.clone(),
+        },
+    )?;
+    if session.cookies.is_empty() && session.origins.is_empty() {
+        return Err(AgetError::Stable {
+            code: ErrorCode::RequiresUserAction,
+            message: format!(
+                "owned login flow exported no auth state for allowed domains: {}",
+                pending.allowed_domains.join(", ")
+            ),
+        });
     }
     Ok(LoginFinishResult { session, pending })
 }
@@ -227,8 +297,35 @@ pub fn cancel_login_session(options: LoginCancelOptions) -> Result<LoginCancelRe
     Ok(LoginCancelResult { pending })
 }
 
+pub(crate) fn cancel_owned_login_session(
+    options: LoginCancelOptions,
+) -> Result<LoginCancelResult, AgetError> {
+    validate_login_name(&options.name)?;
+    let pending = read_pending_login(&options.tmp_dir, &options.name)?;
+    let close =
+        crate::browser_cdp::close_login_browser(crate::browser_cdp::BrowserLoginCloseRequest {
+            profile_dir: Path::new(&pending.profile),
+            timeout: DEFAULT_SUBPROCESS_TIMEOUT,
+        });
+    let cleanup_result = (|| {
+        remove_tool_owned_login_profile(&options.tmp_dir, &pending)?;
+        remove_pending_login(&options.tmp_dir, &pending.name)
+    })();
+
+    if let Err(error) = close {
+        cleanup_result.map_err(io_aget_error)?;
+        return Err(error);
+    }
+    cleanup_result.map_err(io_aget_error)?;
+    Ok(LoginCancelResult { pending })
+}
+
 fn default_login_profile_path(tmp_dir: &Path, name: &str) -> PathBuf {
     tmp_dir.join("agent-browser").join(format!("aget-{name}"))
+}
+
+fn default_owned_login_profile_path(tmp_dir: &Path, name: &str) -> PathBuf {
+    tmp_dir.join("owned-login").join(format!("aget-{name}"))
 }
 
 fn prepare_login_profile_path(profile: &Path) -> Result<(), AgetError> {
@@ -336,7 +433,9 @@ fn remove_pending_login(tmp_dir: &Path, name: &str) -> io::Result<()> {
 
 fn remove_tool_owned_login_profile(tmp_dir: &Path, pending: &PendingLogin) -> io::Result<()> {
     let profile = PathBuf::from(&pending.profile);
-    if profile != default_login_profile_path(tmp_dir, &pending.name) {
+    if profile != default_login_profile_path(tmp_dir, &pending.name)
+        && profile != default_owned_login_profile_path(tmp_dir, &pending.name)
+    {
         return Ok(());
     }
 
@@ -363,3 +462,95 @@ fn set_private_file_mode(options: &mut OpenOptions) {
 
 #[cfg(not(unix))]
 fn set_private_file_mode(_options: &mut OpenOptions) {}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn pending(name: &str, profile: PathBuf) -> PendingLogin {
+        PendingLogin {
+            name: name.to_string(),
+            profile: profile.to_string_lossy().into_owned(),
+            agent_session: format!("aget-login-{name}"),
+            url: "https://example.com/login".to_string(),
+            allowed_domains: vec!["example.com".to_string()],
+        }
+    }
+
+    #[test]
+    fn complete_login_session_removes_owned_default_profile() {
+        let temp = tempfile::tempdir().unwrap();
+        let tmp_dir = temp.path().join("tmp");
+        fs::create_dir_all(&tmp_dir).unwrap();
+        let profile = default_owned_login_profile_path(&tmp_dir, "docs");
+        fs::create_dir_all(&profile).unwrap();
+        let pending = pending("docs", profile.clone());
+        write_pending_login(&tmp_dir, &pending).unwrap();
+
+        complete_login_session(LoginCompleteOptions {
+            pending,
+            tmp_dir: tmp_dir.clone(),
+        })
+        .unwrap();
+
+        assert!(!profile.exists());
+        assert!(!pending_login_path(&tmp_dir, "docs").exists());
+    }
+
+    #[test]
+    fn complete_login_session_preserves_custom_profile_path() {
+        let temp = tempfile::tempdir().unwrap();
+        let tmp_dir = temp.path().join("tmp");
+        let profile = temp.path().join("custom-profile");
+        fs::create_dir_all(&tmp_dir).unwrap();
+        fs::create_dir_all(&profile).unwrap();
+        let pending = pending("docs", profile.clone());
+        write_pending_login(&tmp_dir, &pending).unwrap();
+
+        complete_login_session(LoginCompleteOptions {
+            pending,
+            tmp_dir: tmp_dir.clone(),
+        })
+        .unwrap();
+
+        assert!(profile.exists());
+        assert!(!pending_login_path(&tmp_dir, "docs").exists());
+    }
+
+    #[test]
+    fn cancel_owned_login_session_cleans_pending_and_profile_when_browser_is_closed() {
+        let temp = tempfile::tempdir().unwrap();
+        let tmp_dir = temp.path().join("tmp");
+        fs::create_dir_all(&tmp_dir).unwrap();
+        let profile = default_owned_login_profile_path(&tmp_dir, "docs");
+        fs::create_dir_all(&profile).unwrap();
+        write_pending_login(&tmp_dir, &pending("docs", profile.clone())).unwrap();
+
+        let result = cancel_owned_login_session(LoginCancelOptions {
+            name: "docs".to_string(),
+            tmp_dir: tmp_dir.clone(),
+        })
+        .unwrap();
+
+        assert_eq!(result.pending.name, "docs");
+        assert!(!profile.exists());
+        assert!(!pending_login_path(&tmp_dir, "docs").exists());
+    }
+
+    #[test]
+    fn start_owned_login_session_rejects_non_https_before_launching_browser() {
+        let temp = tempfile::tempdir().unwrap();
+        let tmp_dir = temp.path().join("tmp");
+
+        let error = start_owned_login_session(LoginStartOptions {
+            name: "docs".to_string(),
+            profile: None,
+            url: "http://example.com/login".to_string(),
+            tmp_dir: tmp_dir.clone(),
+        })
+        .unwrap_err();
+
+        assert_eq!(error.code(), ErrorCode::UsageError);
+        assert!(!pending_login_path(&tmp_dir, "docs").exists());
+    }
+}

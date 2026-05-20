@@ -459,7 +459,7 @@ Acceptance criteria:
 
 Status note:
 
-- Started after the first I19d owned extractor slices and documented in `knowledge.md` D58, D60, D64, and D65. `OwnedBrowserAutomationBackend` now has an owned session-backed fallback extraction path for static cookie-backed pages, a minimal Chrome/CDP renderer for localStorage-backed fallback extraction, explicit user-data-dir Chrome import, and named Chrome profile resolution/copying into temporary user-data-dir imports. I19e remains in progress because the login lifecycle, current-tab attach, broader rendered JavaScript parity, close/process lifecycle parity, real logged-in profile/keychain smoke coverage, and full `requires_user_action` classification still require deeper CDP/profile work.
+- Started after the first I19d owned extractor slices and documented in `knowledge.md` D58, D60, D64-D66. `OwnedBrowserAutomationBackend` now has an owned session-backed fallback extraction path for static cookie-backed pages, a minimal Chrome/CDP renderer for localStorage-backed fallback extraction, explicit user-data-dir Chrome import, named Chrome profile resolution/copying into temporary user-data-dir imports, and a first owned dedicated-profile login start/finish/cancel lifecycle. I19e remains in progress because current-tab attach, broader rendered JavaScript parity, close/process lifecycle parity, real logged-in profile/keychain smoke coverage, and full `requires_user_action` classification still require deeper CDP/profile work.
 
 ### 📋 Task I19f: Switch default runtime path to homegrown backends
 

@@ -1134,6 +1134,31 @@ Validation:
 
 Confidence: Medium. The named-profile setup is now owned and deterministically covered, but real-profile auth/keychain and lock/error classification remain higher-risk I19e follow-ups.
 
+### D66: I19e adds a first owned dedicated-profile login lifecycle
+
+Before porting the login lifecycle, I19e inspected the `agent-browser` command and native paths that back the current `aget session login start|finish|cancel` flow:
+
+- `references/repos/agent-browser/cli/src/commands.rs`: parses `open`, `state save <path>`, and `close`.
+- `references/repos/agent-browser/cli/src/native/browser.rs`: sends `Browser.close` only for locally launched browsers, so external/current-browser connections are not shut down accidentally.
+- `references/repos/agent-browser/cli/src/native/state.rs`: exports Playwright-style cookies and origin storage through CDP, including blank-response origin visits for storage collection.
+- `references/repos/agent-browser/cli/src/native/cdp/chrome.rs`: launches Chrome with an explicit `--user-data-dir`, uses mock keychain flags by default, omits headless mode for visible browser flows, and reads `DevToolsActivePort` for CDP attachment.
+
+`OwnedBrowserAutomationBackend` now implements `start_login`, `finish_login`, and `cancel_login` for dedicated `aget` profiles without shelling out to `agent-browser`. Start creates a private `tmp/owned-login/aget-<name>` profile by default, launches visible Chrome at the caller-provided HTTPS URL, records pending login metadata, and leaves Chrome running for user-driven auth. Finish connects to the running profile browser through `DevToolsActivePort` when available, exports cookies/localStorage for only the pending flow's allowed domains, closes the browser, filters the state through the existing session allowlist/provenance logic, and still returns `requires_user_action` when no scoped auth state is found. If the user already closed the browser, finish falls back to a headless launch against the same dedicated profile to export state. Cancel closes the running profile browser when reachable and cleans pending metadata plus tool-owned login profiles; custom profile paths are preserved.
+
+This slice preserves the public login API and the existing `SessionSource::AgentBrowser` shape for compatibility, even though the implementation is now owned. It does not copy upstream code. The remaining parity gaps are real manual login smoke coverage, richer process diagnostics, Windows/profile-lock behavior, current-tab attach, and complete `requires_user_action` classification for all Chrome startup/export failures.
+
+Validation:
+
+- `cargo test session::login::tests`
+- `cargo test --test aget_api owned_browser_backend_cancels_pending_login_without_agent_browser`
+- `cargo test --test aget_api owned_browser_backend`
+- `cargo test browser_cdp`
+- `cargo test`
+- `cargo fmt --check`
+- `git diff --check`
+
+Confidence: Medium. The deterministic tests cover ownership boundaries, cleanup, public backend wiring, CDP payload helpers, and the ignored headed Chrome smoke test is checked in for manual/local verification. The visible real-login path itself has not been run against a user-authorized site in this slice.
+
 ## Open Questions
 
 - Can pure Rust browser automation provide reliable persistent profiles and CDP attach, or do we need a small Node/Playwright sidecar?

@@ -14,6 +14,9 @@ pub use login::{
     start_login_session, LoginCancelOptions, LoginCancelResult, LoginCompleteOptions,
     LoginFinishOptions, LoginFinishResult, LoginStartOptions, LoginStartResult,
 };
+pub(crate) use login::{
+    cancel_owned_login_session, finish_owned_login_session, start_owned_login_session,
+};
 pub use model::{Session, SessionCookie, SessionOrigin, SessionSource, StorageEntry};
 pub use playwright::{
     compose_playwright_state, compose_session, PlaywrightCookie, PlaywrightOrigin, PlaywrightState,

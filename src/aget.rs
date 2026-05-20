@@ -10,13 +10,16 @@ use crate::extraction::{
     ExtractorBackend, GetOptions, GetSuccess,
 };
 use crate::session::{
-    cancel_login_session as cancel_login_flow, complete_login_session, compose_session,
-    finish_login_session as finish_login_flow, import_chrome_session as import_chrome_state,
-    import_cmux_session as import_cmux_state,
+    cancel_login_session as cancel_login_flow,
+    cancel_owned_login_session as cancel_owned_login_flow, complete_login_session, compose_session,
+    finish_login_session as finish_login_flow,
+    finish_owned_login_session as finish_owned_login_flow,
+    import_chrome_session as import_chrome_state, import_cmux_session as import_cmux_state,
     import_owned_chrome_session as import_owned_chrome_state, merge_login_session,
-    start_login_session as start_login_flow, ChromeImportOptions, CmuxImportOptions,
-    LoginCancelOptions, LoginCancelResult, LoginCompleteOptions, LoginFinishOptions,
-    LoginFinishResult, LoginStartOptions, LoginStartResult, Session, SessionStore,
+    start_login_session as start_login_flow, start_owned_login_session as start_owned_login_flow,
+    ChromeImportOptions, CmuxImportOptions, LoginCancelOptions, LoginCancelResult,
+    LoginCompleteOptions, LoginFinishOptions, LoginFinishResult, LoginStartOptions,
+    LoginStartResult, Session, SessionStore,
 };
 
 pub type Aget = AgetWith<
@@ -287,16 +290,16 @@ impl BrowserAutomationBackend for OwnedBrowserAutomationBackend {
         import_owned_chrome_state(options)
     }
 
-    fn start_login(&self, _options: LoginStartOptions) -> Result<LoginStartResult, AgetError> {
-        Err(unsupported_owned_browser_capability("login start"))
+    fn start_login(&self, options: LoginStartOptions) -> Result<LoginStartResult, AgetError> {
+        start_owned_login_flow(options)
     }
 
-    fn finish_login(&self, _options: LoginFinishOptions) -> Result<LoginFinishResult, AgetError> {
-        Err(unsupported_owned_browser_capability("login finish"))
+    fn finish_login(&self, options: LoginFinishOptions) -> Result<LoginFinishResult, AgetError> {
+        finish_owned_login_flow(options)
     }
 
-    fn cancel_login(&self, _options: LoginCancelOptions) -> Result<LoginCancelResult, AgetError> {
-        Err(unsupported_owned_browser_capability("login cancel"))
+    fn cancel_login(&self, options: LoginCancelOptions) -> Result<LoginCancelResult, AgetError> {
+        cancel_owned_login_flow(options)
     }
 }
 
@@ -306,15 +309,6 @@ impl BrowserFallbackBackend for OwnedBrowserAutomationBackend {
         request: BrowserFallbackRequest<'_>,
     ) -> Result<BrowserFallbackResult, AgetError> {
         crate::extraction::run_owned_browser_fallback(request)
-    }
-}
-
-fn unsupported_owned_browser_capability(capability: &str) -> AgetError {
-    AgetError::Stable {
-        code: ErrorCode::BackendUnavailable,
-        message: format!(
-            "owned browser automation backend does not yet support {capability}; use the command-backed agent-browser adapter for this flow"
-        ),
     }
 }
 
