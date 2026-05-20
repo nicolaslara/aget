@@ -1050,6 +1050,21 @@ Validation:
 
 Confidence: Medium-high for this slice. The CDP command construction and cookie-only fallback path are covered by deterministic tests, and the ignored local Chrome smoke test passed on this machine. Full migration confidence still requires more lifecycle/error-path coverage before switching defaults.
 
+### D61: I19d uses owned CDP rendering for localStorage-backed primary extraction
+
+The D60 renderer exposed a follow-up correctness gap: once `OwnedExtractorBackend` becomes default, a localStorage-backed request could otherwise return a static app shell successfully and never invoke browser fallback. I19d now routes owned primary extraction through the same temporary Chrome/CDP renderer whenever composed session state contains localStorage origins. Cookie-only extraction stays on the static HTTP path.
+
+This still does not make every JavaScript-heavy cookie-backed page render through Chrome; there is no reliable generic signal for that yet. The new rule only covers the explicit structured-state case where static HTTP cannot replay localStorage at all.
+
+Validation:
+
+- `cargo test --test mock_site_cli owned_extractor_backend_renders_local_storage_backed_session_with_chrome -- --ignored`
+- `cargo test --test mock_site_cli owned_browser_fallback_renders_local_storage_backed_session_with_chrome -- --ignored`
+- `cargo test`
+- `git diff --check`
+
+Confidence: Medium-high for this slice. The local Chrome smoke test proves rendered DOM extraction for the primary owned backend on this machine; broader rendered-JavaScript default policy remains an open I19d/I19f decision.
+
 ## Open Questions
 
 - Can pure Rust browser automation provide reliable persistent profiles and CDP attach, or do we need a small Node/Playwright sidecar?

@@ -352,25 +352,7 @@ fn owned_browser_fallback_replays_cookie_backed_session_without_agent_browser() 
 fn owned_browser_fallback_renders_local_storage_backed_session_with_chrome() {
     let temp = tempfile::tempdir().unwrap();
     let aget_home = temp.path().join("aget-home");
-    let site = MockSite::builder()
-        .route(
-            "/storage-rendered",
-            MockResponse::html(
-                r##"
-<html>
-  <body>
-    <main><h1>Storage App Shell</h1><div id="storage-result"></div></main>
-    <script>
-      fetch("/storage-api", { headers: { "X-Local-Token": localStorage.getItem("local_token") }})
-        .then((response) => response.text())
-        .then((html) => { document.querySelector("#storage-result").innerHTML = html })
-    </script>
-  </body>
-</html>
-"##,
-            ),
-        )
-        .start();
+    let site = storage_rendered_site();
     save_storage_session(
         &aget_home,
         "storage",
@@ -391,6 +373,35 @@ fn owned_browser_fallback_renders_local_storage_backed_session_with_chrome() {
 
     assert_eq!(fallback.extractor, "aget-owned-browser-fallback");
     assert_eq!(fallback.content, "Storage App Shell Storage Protected");
+    assert!(site.received_header("/storage-api", "x-local-token", "storage-secret"));
+}
+
+#[test]
+#[ignore = "requires local Chrome/Chromium; set AGET_CHROME_COMMAND if auto-discovery fails"]
+fn owned_extractor_backend_renders_local_storage_backed_session_with_chrome() {
+    let temp = tempfile::tempdir().unwrap();
+    let aget_home = temp.path().join("aget-home");
+    let site = storage_rendered_site();
+    save_storage_session(
+        &aget_home,
+        "storage",
+        &site.origin(),
+        "local_token",
+        "storage-secret",
+    );
+
+    let extraction = Aget::new(&aget_home)
+        .with_extractor_backend(OwnedExtractorBackend)
+        .with_browser_automation_backend(OwnedBrowserAutomationBackend)
+        .get(site.url("/storage-rendered"))
+        .session("storage")
+        .content_format(OutputFormat::Text)
+        .wait_for_selector("#storage-result h1")
+        .run()
+        .unwrap();
+
+    assert_eq!(extraction.extractor, "aget-owned-extractor");
+    assert_eq!(extraction.content, "Storage App Shell Storage Protected");
     assert!(site.received_header("/storage-api", "x-local-token", "storage-secret"));
 }
 
@@ -1100,6 +1111,28 @@ fn success_data(output: &[u8], command: &str) -> serde_json::Value {
     assert_eq!(json["ok"], true);
     assert_eq!(json["command"], command);
     json["data"].clone()
+}
+
+fn storage_rendered_site() -> MockSite {
+    MockSite::builder()
+        .route(
+            "/storage-rendered",
+            MockResponse::html(
+                r##"
+<html>
+  <body>
+    <main><h1>Storage App Shell</h1><div id="storage-result"></div></main>
+    <script>
+      fetch("/storage-api", { headers: { "X-Local-Token": localStorage.getItem("local_token") }})
+        .then((response) => response.text())
+        .then((html) => { document.querySelector("#storage-result").innerHTML = html })
+    </script>
+  </body>
+</html>
+"##,
+            ),
+        )
+        .start()
 }
 
 fn save_cookie_session(home: &Path, name: &str, domain: &str, cookie_name: &str, value: &str) {

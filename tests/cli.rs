@@ -1,9 +1,10 @@
 use std::io::{Read, Write};
-use std::net::TcpListener;
+use std::net::{Shutdown, TcpListener};
 use std::path::PathBuf;
 use std::process::Command as StdCommand;
 use std::sync::OnceLock;
 use std::thread::{self, JoinHandle};
+use std::time::Duration;
 
 use assert_cmd::Command;
 use predicates::prelude::*;
@@ -173,14 +174,29 @@ fn local_server(body: &str) -> (String, JoinHandle<()>) {
     let body = body.to_string();
     let handle = thread::spawn(move || {
         let (mut stream, _) = listener.accept().unwrap();
-        let mut buffer = [0; 1024];
-        let _ = stream.read(&mut buffer);
+        let _ = stream.set_read_timeout(Some(Duration::from_secs(2)));
+        let mut request = Vec::new();
+        let mut buffer = [0; 512];
+        while request.len() < 16 * 1024 {
+            match stream.read(&mut buffer) {
+                Ok(0) => break,
+                Ok(read) => {
+                    request.extend_from_slice(&buffer[..read]);
+                    if request.windows(4).any(|window| window == b"\r\n\r\n") {
+                        break;
+                    }
+                }
+                Err(_) => break,
+            }
+        }
         let response = format!(
             "HTTP/1.1 200 OK\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{}",
             body.len(),
             body
         );
         stream.write_all(response.as_bytes()).unwrap();
+        let _ = stream.flush();
+        let _ = stream.shutdown(Shutdown::Both);
     });
     (url, handle)
 }

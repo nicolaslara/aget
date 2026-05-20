@@ -724,13 +724,34 @@ fn form_encode(value: &str, case: PercentEncoding) -> String {
 fn run_owned_extractor_backend(
     request: ExtractorRequest<'_>,
 ) -> Result<ExtractorBackendResult, AgetError> {
-    let extraction = extract_owned_page(
-        request.url,
-        request.state,
-        request.options,
-        request.timeout,
-        None,
-    )?;
+    let extraction = if request.state.origins.is_empty() {
+        extract_owned_page(
+            request.url,
+            request.state,
+            request.options,
+            request.timeout,
+            None,
+        )?
+    } else {
+        let tmp_dir = request
+            .state_path
+            .parent()
+            .ok_or_else(|| AgetError::Stable {
+                code: ErrorCode::IoError,
+                message: format!(
+                    "owned extractor state path '{}' has no temp directory",
+                    request.state_path.display()
+                ),
+            })?;
+        extract_owned_rendered_page(
+            tmp_dir,
+            request.url,
+            request.state,
+            request.options,
+            request.timeout,
+            None,
+        )?
+    };
 
     let backend_response = ExtractorBackendResult {
         ok: true,
@@ -775,19 +796,37 @@ pub(crate) fn run_owned_browser_fallback(
 fn extract_owned_browser_rendered_page(
     request: BrowserFallbackRequest<'_>,
 ) -> Result<OwnedPageExtraction, AgetError> {
-    validate_owned_extraction_options(request.options)?;
+    extract_owned_rendered_page(
+        request.tmp_dir,
+        request.url,
+        request.state,
+        request.options,
+        request.timeout,
+        Some("body"),
+    )
+}
+
+fn extract_owned_rendered_page(
+    tmp_dir: &Path,
+    url: &str,
+    state: &PlaywrightState,
+    options: &GetOptions,
+    timeout: Duration,
+    fallback_selector: Option<&str>,
+) -> Result<OwnedPageExtraction, AgetError> {
+    validate_owned_extraction_options(options)?;
     let rendered = crate::browser_cdp::render_page(crate::browser_cdp::BrowserRenderRequest {
-        tmp_dir: request.tmp_dir,
-        url: request.url,
-        state: request.state,
-        wait_for_selector: request.options.wait_for_selector.as_deref(),
-        timeout: request.timeout,
+        tmp_dir,
+        url,
+        state,
+        wait_for_selector: options.wait_for_selector.as_deref(),
+        timeout,
     })?;
     extract_owned_html(
         rendered.final_url,
         rendered.html,
-        request.options,
-        Some("body"),
+        options,
+        fallback_selector,
     )
 }
 
