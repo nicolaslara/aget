@@ -182,6 +182,23 @@ fn homegrown_extractor_backend_covers_static_http_parity_slice() {
             ),
         )
         .route(
+            "/excluded-tags",
+            MockResponse::html(
+                r#"
+<html>
+  <body>
+    <main>
+      <h1>Tag Filtering</h1>
+      <aside>Promotional Sidebar</aside>
+      <p>Kept article body.</p>
+      <footer>Article Footer</footer>
+    </main>
+  </body>
+</html>
+"#,
+            ),
+        )
+        .route(
             "/wait-ready",
             MockResponse::html(
                 r#"<html><body><main><div id="ready">Ready Now</div></main></body></html>"#,
@@ -344,6 +361,26 @@ fn homegrown_extractor_backend_covers_static_http_parity_slice() {
         .unwrap();
     assert!(main_html.content.contains("<header>Site Header</header>"));
     assert!(main_html.content.contains("<main class=\"story\">"));
+
+    let excluded_tags = Aget::new(&aget_home)
+        .with_extractor_backend(OwnedExtractorBackend)
+        .get(site.url("/excluded-tags"))
+        .content_format(OutputFormat::Text)
+        .backend_option("crawl4ai.excluded_tags", "aside,footer")
+        .run()
+        .unwrap();
+    assert_eq!(excluded_tags.content, "Tag Filtering Kept article body.");
+
+    let unsupported_option = Aget::new(&aget_home)
+        .with_extractor_backend(OwnedExtractorBackend)
+        .get(site.url("/formats"))
+        .backend_option("crawl4ai.magic", "value")
+        .run()
+        .unwrap_err();
+    assert_eq!(unsupported_option.code(), ErrorCode::ExtractionFailed);
+    assert!(unsupported_option
+        .to_string()
+        .contains("supported option: crawl4ai.excluded_tags"));
 
     let redirect = Aget::new(&aget_home)
         .with_extractor_backend(OwnedExtractorBackend)

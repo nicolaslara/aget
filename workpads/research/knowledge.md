@@ -1210,6 +1210,20 @@ Validation:
 
 Confidence: Medium-high for this slice. The behavior is deterministic and covered by a local fixture; broader readability quality remains an explicit I19d gap.
 
+### D70: I19d supports safe `crawl4ai.excluded_tags` in the owned extractor
+
+The I19c parity matrix keeps the current namespaced Crawl4AI backend-option surface alive until an `aget`-owned option namespace is designed. Before this slice, `OwnedExtractorBackend` rejected every backend option, which would make a default switch fail even for safe cleanup options that do not execute JavaScript or require browser-specific timing.
+
+Before porting the option, I19d inspected `references/repos/crawl4ai/crawl4ai/content_scraping_strategy.py`: Crawl4AI reads `excluded_tags` from the run config, removes matching tag elements before selector-based content selection and cleaned-HTML serialization, then passes that cleaned HTML into the later markdown layer.
+
+The owned backend now accepts only `crawl4ai.excluded_tags` from the backend-option escape hatch. The value is parsed like the helper's comma-separated list, but each entry must be a plain HTML tag name so the option cannot become a general CSS selector injection path. The removal happens before explicit `--exclude-selector` and before owned text/markdown/json/html formatting. Unsupported backend options still fail explicitly and point callers at the single supported option.
+
+Validation:
+
+- `cargo test --test mock_site_cli homegrown_extractor_backend_covers_static_http_parity_slice`
+
+Confidence: Medium-high. This closes one safe backend-option parity gap with deterministic coverage. Other Crawl4AI options such as `target_elements`, `only_text`, `word_count_threshold`, and timing/load controls remain unsupported until they have clear owned semantics.
+
 ## Open Questions
 
 - Can pure Rust browser automation provide reliable persistent profiles and CDP attach, or do we need a small Node/Playwright sidecar?

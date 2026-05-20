@@ -816,7 +816,7 @@ fn extract_owned_rendered_page(
     timeout: Duration,
     fallback_selector: Option<&str>,
 ) -> Result<OwnedPageExtraction, AgetError> {
-    validate_owned_extraction_options(options)?;
+    let owned_options = validate_owned_extraction_options(options)?;
     let rendered = crate::browser_cdp::render_page(crate::browser_cdp::BrowserRenderRequest {
         tmp_dir,
         url,
@@ -829,6 +829,7 @@ fn extract_owned_rendered_page(
         rendered.html,
         options,
         fallback_selector,
+        &owned_options,
     )
 }
 
@@ -850,6 +851,11 @@ struct OwnedPageExtraction {
     content: String,
 }
 
+#[derive(Debug, Default)]
+struct OwnedExtractorOptions {
+    excluded_tags: Vec<String>,
+}
+
 fn extract_owned_page(
     url: &str,
     state: &PlaywrightState,
@@ -857,13 +863,14 @@ fn extract_owned_page(
     timeout: Duration,
     fallback_selector: Option<&str>,
 ) -> Result<OwnedPageExtraction, AgetError> {
-    validate_owned_extraction_options(options)?;
+    let owned_options = validate_owned_extraction_options(options)?;
     let response = owned_fetch(url, state, timeout)?;
     extract_owned_html(
         response.final_url,
         response.body,
         options,
         fallback_selector,
+        &owned_options,
     )
 }
 
@@ -872,6 +879,7 @@ fn extract_owned_html(
     body: String,
     options: &GetOptions,
     fallback_selector: Option<&str>,
+    owned_options: &OwnedExtractorOptions,
 ) -> Result<OwnedPageExtraction, AgetError> {
     let mut document = Html::parse_document(&body);
     document = remove_selected_elements(document, "script,style,noscript")?;
@@ -883,6 +891,10 @@ fn extract_owned_html(
                 "wait selector '{wait_for}' was not found by owned extractor"
             )));
         }
+    }
+
+    if !owned_options.excluded_tags.is_empty() {
+        document = remove_owned_excluded_tags(document, &owned_options.excluded_tags)?;
     }
 
     if let Some(exclude_selector) = &options.exclude_selector {
@@ -909,17 +921,62 @@ fn extract_owned_html(
     Ok(OwnedPageExtraction { final_url, content })
 }
 
-fn validate_owned_extraction_options(options: &GetOptions) -> Result<(), AgetError> {
+fn validate_owned_extraction_options(
+    options: &GetOptions,
+) -> Result<OwnedExtractorOptions, AgetError> {
     if let Some(wait_for) = &options.wait_for_selector {
         validate_css_only_wait(wait_for)?;
     }
-    if let Some(option) = options.backend_options.first() {
-        return Err(extraction_failed(format!(
-            "owned extractor does not support backend option '{}'; keep Crawl4AI compatibility options on the command adapter until an aget-owned namespace is designed",
-            option.key
-        )));
+    let mut owned_options = OwnedExtractorOptions::default();
+    for option in &options.backend_options {
+        let option_name = option.key.strip_prefix("crawl4ai.").ok_or_else(|| {
+            extraction_failed(format!(
+                "owned extractor backend option '{}' must use the crawl4ai namespace",
+                option.key
+            ))
+        })?;
+        match option_name {
+            "excluded_tags" => {
+                owned_options
+                    .excluded_tags
+                    .extend(parse_owned_excluded_tags(&option.value)?);
+            }
+            _ => {
+                return Err(extraction_failed(format!(
+                    "owned extractor does not support backend option '{}'; supported option: crawl4ai.excluded_tags",
+                    option.key
+                )));
+            }
+        }
     }
-    Ok(())
+    Ok(owned_options)
+}
+
+fn parse_owned_excluded_tags(value: &str) -> Result<Vec<String>, AgetError> {
+    value
+        .split(',')
+        .map(str::trim)
+        .filter(|tag| !tag.is_empty())
+        .map(|tag| {
+            if is_html_tag_name(tag) {
+                Ok(tag.to_string())
+            } else {
+                Err(extraction_failed(format!(
+                    "crawl4ai.excluded_tags entry '{tag}' is not a plain HTML tag name"
+                )))
+            }
+        })
+        .collect()
+}
+
+fn is_html_tag_name(value: &str) -> bool {
+    value
+        .chars()
+        .next()
+        .is_some_and(|character| character.is_ascii_alphabetic())
+        && value
+            .chars()
+            .all(|character| character.is_ascii_alphanumeric() || character == '-')
 }
 
 fn validate_css_only_wait(value: &str) -> Result<(), AgetError> {
@@ -1109,6 +1166,13 @@ fn markdown_base_url(document: &Html, final_url: &str) -> Result<String, AgetErr
         return Ok(final_url.to_string());
     };
     Ok(resolve_markdown_url(final_url, base_href))
+}
+
+fn remove_owned_excluded_tags(document: Html, tags: &[String]) -> Result<Html, AgetError> {
+    if tags.is_empty() {
+        return Ok(document);
+    }
+    remove_selected_elements(document, &tags.join(","))
 }
 
 fn remove_selected_elements(document: Html, selector_list: &str) -> Result<Html, AgetError> {
