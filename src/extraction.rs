@@ -11,6 +11,7 @@ use html5ever::tree_builder::TreeSink;
 use scraper::{ElementRef, Html, HtmlTreeSink, Node, Selector};
 use serde::{Deserialize, Serialize};
 use ureq::ResponseExt;
+use url::Url;
 
 use crate::cli::{ExtractorOption, OutputFormat};
 use crate::error::{AgetError, ErrorCode};
@@ -798,7 +799,8 @@ fn extract_owned_page(
     }
 
     let selector = options.selector.as_deref().or(fallback_selector);
-    let extracted = extract_owned_content(&document, selector)?;
+    let base_url = markdown_base_url(&document, &response.final_url)?;
+    let extracted = extract_owned_content(&document, selector, &base_url)?;
     let content = match options.content_format {
         OutputFormat::Html => extracted.html,
         OutputFormat::Json => serde_json::json!({
@@ -945,6 +947,7 @@ struct ExtractedOwnedContent {
 fn extract_owned_content(
     document: &Html,
     selector: Option<&str>,
+    base_url: &str,
 ) -> Result<ExtractedOwnedContent, AgetError> {
     if let Some(raw_selector) = selector {
         let selector = parse_css_selector(raw_selector)?;
@@ -955,7 +958,7 @@ fn extract_owned_content(
         })?;
         return Ok(ExtractedOwnedContent {
             html: element.inner_html(),
-            markdown: element_to_markdown(element),
+            markdown: element_to_markdown(element, base_url),
             text: normalize_text_pieces(element.text()),
         });
     }
@@ -963,9 +966,21 @@ fn extract_owned_content(
     let root = document.root_element();
     Ok(ExtractedOwnedContent {
         html: root.inner_html(),
-        markdown: element_to_markdown(root),
+        markdown: element_to_markdown(root, base_url),
         text: normalize_text_pieces(root.text()),
     })
+}
+
+fn markdown_base_url(document: &Html, final_url: &str) -> Result<String, AgetError> {
+    let selector = parse_css_selector("base[href]")?;
+    let Some(base_href) = document
+        .select(&selector)
+        .next()
+        .and_then(|element| element.attr("href"))
+    else {
+        return Ok(final_url.to_string());
+    };
+    Ok(resolve_markdown_url(final_url, base_href))
 }
 
 fn remove_selected_elements(document: Html, selector_list: &str) -> Result<Html, AgetError> {
@@ -1003,18 +1018,39 @@ fn normalize_text_pieces<'a>(pieces: impl IntoIterator<Item = &'a str>) -> Strin
         .join(" ")
 }
 
-fn element_to_markdown(element: ElementRef<'_>) -> String {
-    let mut writer = MarkdownWriter::default();
+fn element_to_markdown(element: ElementRef<'_>, base_url: &str) -> String {
+    let mut writer = MarkdownWriter::new(base_url);
     render_children(*element, &mut writer);
     normalize_markdown(&writer.output)
 }
 
-#[derive(Default)]
 struct MarkdownWriter {
     output: String,
+    base_url: Option<Url>,
 }
 
 impl MarkdownWriter {
+    fn new(base_url: &str) -> Self {
+        Self {
+            output: String::new(),
+            base_url: Url::parse(base_url).ok(),
+        }
+    }
+
+    fn child(&self) -> Self {
+        Self {
+            output: String::new(),
+            base_url: self.base_url.clone(),
+        }
+    }
+
+    fn resolve_url(&self, raw: &str) -> String {
+        self.base_url
+            .as_ref()
+            .map(|base| resolve_markdown_url(base.as_str(), raw))
+            .unwrap_or_else(|| raw.to_string())
+    }
+
     fn push_text(&mut self, text: &str) {
         self.push_inline(&normalize_inline_markdown(text));
     }
@@ -1062,10 +1098,12 @@ fn render_element(node: NodeRef<'_, Node>, tag: &str, writer: &mut MarkdownWrite
         "pre" => render_code_block(node, writer),
         "code" => writer.push_inline(&format!("`{}`", inline_text_from_node(node))),
         "strong" | "b" => {
-            writer.push_inline(&format!("**{}**", inline_markdown_from_children(node)));
+            let inner = inline_markdown_from_children(node, writer);
+            writer.push_inline(&format!("**{inner}**"));
         }
         "em" | "i" => {
-            writer.push_inline(&format!("*{}*", inline_markdown_from_children(node)));
+            let inner = inline_markdown_from_children(node, writer);
+            writer.push_inline(&format!("*{inner}*"));
         }
         "a" => render_link(node, writer),
         "img" => render_image(node, writer),
@@ -1096,7 +1134,7 @@ fn render_heading(node: NodeRef<'_, Node>, tag: &str, writer: &mut MarkdownWrite
         .and_then(|value| value.parse::<usize>().ok())
         .unwrap_or(1)
         .clamp(1, 6);
-    let text = inline_markdown_from_children(node);
+    let text = inline_markdown_from_children(node, writer);
     if text.is_empty() {
         return;
     }
@@ -1166,9 +1204,13 @@ fn render_link(node: NodeRef<'_, Node>, writer: &mut MarkdownWriter) {
         render_children(node, writer);
         return;
     };
-    let label = inline_markdown_from_children(node);
+    let label = inline_markdown_from_children(node, writer);
     let label = if label.is_empty() { href } else { &label };
-    writer.push_inline(&format!("[{}]({})", escape_link_text(label), href));
+    writer.push_inline(&format!(
+        "[{}]({})",
+        escape_link_text(label),
+        writer.resolve_url(href)
+    ));
 }
 
 fn render_image(node: NodeRef<'_, Node>, writer: &mut MarkdownWriter) {
@@ -1179,11 +1221,15 @@ fn render_image(node: NodeRef<'_, Node>, writer: &mut MarkdownWriter) {
         return;
     };
     let alt = element.attr("alt").unwrap_or("");
-    writer.push_inline(&format!("![{}]({})", escape_link_text(alt), src));
+    writer.push_inline(&format!(
+        "![{}]({})",
+        escape_link_text(alt),
+        writer.resolve_url(src)
+    ));
 }
 
 fn render_blockquote(node: NodeRef<'_, Node>, writer: &mut MarkdownWriter) {
-    let quote = inline_markdown_from_children(node);
+    let quote = inline_markdown_from_children(node, writer);
     if quote.is_empty() {
         return;
     }
@@ -1196,8 +1242,8 @@ fn render_blockquote(node: NodeRef<'_, Node>, writer: &mut MarkdownWriter) {
     writer.ensure_blank_line();
 }
 
-fn inline_markdown_from_children(node: NodeRef<'_, Node>) -> String {
-    let mut writer = MarkdownWriter::default();
+fn inline_markdown_from_children(node: NodeRef<'_, Node>, parent: &MarkdownWriter) -> String {
+    let mut writer = parent.child();
     render_children(node, &mut writer);
     normalize_inline_markdown(&writer.output)
 }
@@ -1274,6 +1320,16 @@ fn trailing_newline_count(output: &str) -> usize {
 
 fn escape_link_text(text: &str) -> String {
     text.replace('[', "\\[").replace(']', "\\]")
+}
+
+fn resolve_markdown_url(base: &str, raw: &str) -> String {
+    if raw.starts_with("http://") || raw.starts_with("https://") || raw.starts_with("mailto:") {
+        return raw.to_string();
+    }
+    Url::parse(base)
+        .and_then(|base| base.join(raw))
+        .map(|url| url.to_string())
+        .unwrap_or_else(|_| raw.to_string())
 }
 
 fn is_structural_block(tag: &str) -> bool {

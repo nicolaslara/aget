@@ -188,6 +188,22 @@ fn homegrown_extractor_backend_covers_static_http_parity_slice() {
 "#,
             ),
         )
+        .route(
+            "/markdown-base",
+            MockResponse::html(
+                r#"
+<html>
+  <head><base href="/guide/"></head>
+  <body>
+    <main class="article">
+      <h1>Base Links</h1>
+      <p>Read the <a href="page.html">base page</a>.</p>
+    </main>
+  </body>
+</html>
+"#,
+            ),
+        )
         .start();
     save_cookie_session(&aget_home, "app", &site.host(), "app_session", "valid-app");
 
@@ -240,7 +256,25 @@ fn homegrown_extractor_backend_covers_static_http_parity_slice() {
         .unwrap();
     assert_eq!(
         markdown.content,
-        "# Guide\n\nIntro with **bold** and [docs](/docs).\n\n- First item\n- Second `code`\n\n```\nlet answer = 42;\n```"
+        format!(
+            "# Guide\n\nIntro with **bold** and [docs]({}).\n\n- First item\n- Second `code`\n\n```\nlet answer = 42;\n```",
+            site.url("/docs")
+        )
+    );
+
+    let markdown_base = Aget::new(&aget_home)
+        .with_extractor_backend(OwnedExtractorBackend)
+        .get(site.url("/markdown-base"))
+        .content_format(OutputFormat::Markdown)
+        .selector("main.article")
+        .run()
+        .unwrap();
+    assert_eq!(
+        markdown_base.content,
+        format!(
+            "# Base Links\n\nRead the [base page]({}).",
+            site.url("/guide/page.html")
+        )
     );
 
     let html = Aget::new(&aget_home)

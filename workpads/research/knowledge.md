@@ -979,7 +979,7 @@ License and dependency notes:
 - `ego-tree` v0.11.0 is now a direct dependency so the renderer can traverse the `scraper` DOM explicitly. License: ISC.
 - No Crawl4AI source or tests were copied. The local Crawl4AI snapshot was used only to identify source-layer behavior and quality targets.
 
-Remaining markdown/readability gaps are deliberate follow-ups: Crawl4AI-style citations/references, relative URL resolution, GFM tables, cleaned-main-content/readability pruning, fit markdown, media/link metadata, and broader edge-case parity. Browser-rendered JavaScript and localStorage-backed replay are still separate I19d/I19e gaps.
+Remaining markdown/readability gaps are deliberate follow-ups: Crawl4AI-style citations/references, GFM tables, cleaned-main-content/readability pruning, fit markdown, media/link metadata, and broader edge-case parity. Browser-rendered JavaScript and localStorage-backed replay are still separate I19d/I19e gaps.
 
 Validation:
 
@@ -1005,6 +1005,23 @@ Validation:
 - `cargo test --test mock_site_cli owned_browser_fallback_replays_cookie_backed_session_without_agent_browser`
 
 Confidence: Medium. The slice removes an `agent-browser` dependency path for static cookie-backed fallback extraction and is covered by deterministic MockSite evidence, but the high-risk browser automation work remains open.
+
+### D59: I19d resolves owned markdown links against the page base URL
+
+Before porting this behavior, I19d inspected Crawl4AI's link handling in `references/repos/crawl4ai/crawl4ai/markdown_generation_strategy.py`. Crawl4AI's `DefaultMarkdownGenerator` passes a base URL into its HTML-to-markdown converter and resolves relative markdown links before building citation references. Its tests in `references/repos/crawl4ai/tests/async/test_markdown_genertor.py` cover relative links and image URLs against a supplied base URL.
+
+The owned renderer now resolves link and image URLs with the Rust `url` crate. It uses the final fetched URL as the default markdown base and honors an HTML `<base href="...">` element before extraction, matching Crawl4AI's separation between cleaned HTML and markdown generation. This keeps markdown output agent-ready when a selected content block contains relative links.
+
+License and dependency notes:
+
+- `url` v2.5.8 is now a direct dependency for standards-based URL joining. License: MIT OR Apache-2.0.
+- No Crawl4AI source or tests were copied; the deterministic MockSite route was authored in this repo from the observed behavior target.
+
+Validation:
+
+- `cargo test --test mock_site_cli homegrown_extractor_backend_covers_static_http_parity_slice`
+
+Confidence: Medium-high for this slice. It closes a concrete markdown parity gap with primary-source behavior inspection and local deterministic coverage; citation/reference formatting and broader readability quality remain open.
 
 ## Open Questions
 
