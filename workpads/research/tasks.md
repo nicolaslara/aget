@@ -818,6 +818,21 @@ Status note:
 
 - Completed with D195 after I19ac completed and committed. The mechanical split kept discovery routing stable and moved CDP state conversion, Chrome/profile lifecycle smokes, and page-script expression tests into focused submodules; the parent `src/browser_cdp/tests.rs` now only routes modules and owns shared test helpers. Validation passed with focused browser CDP tests, `cargo fmt --check`, `cargo test`, and `git diff --check`.
 
+### ✅ Task I19ae: Improve owned main-content scoring with Crawl4AI pruning signals
+
+Acceptance criteria:
+
+- Inspect Crawl4AI source for readability/content pruning signals before changing scoring.
+- Preserve current `AgetExtractor` public behavior while improving the default main-content candidate choice.
+- Add deterministic mocked coverage for a noisy link-dense candidate competing with a denser article body.
+- Keep the heuristic local and transparent; do not introduce LLM or site-specific rules.
+- Run focused extractor coverage plus the standard validation set before committing.
+- Record source paths, heuristic boundaries, and validation in `knowledge.md`.
+
+Status note:
+
+- Completed with D196 after I19ad completed and committed. The scorer change was based on Crawl4AI `PruningContentFilter` signals from `references/repos/crawl4ai/crawl4ai/content_filter_strategy.py`: text density, link density, tag weights, and text length. The owned extractor now keeps its existing transparent label/tag scoring while adding a deterministic density score so link-heavy candidates lose to denser article bodies. Validation passed with focused extractor coverage, `cargo fmt --check`, `cargo test`, and `git diff --check`.
+
 ### ✅ Task I20: Design OAuth-safe browser login and profile import flow
 
 Acceptance criteria:

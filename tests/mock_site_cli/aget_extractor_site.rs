@@ -98,6 +98,31 @@ pub(crate) fn aget_extractor_parity_site() -> MockSite {
             ),
         )
         .route(
+            "/main-content-link-density",
+            MockResponse::html(
+                r#"
+<html>
+  <body>
+    <article class="story">
+      <h1>Related Reading</h1>
+      <p>
+        <a href="/one">Guide setup reference quickstart migration examples checklist</a>
+        <a href="/two">Release notes archive support community forum changelog</a>
+        <a href="/three">Pricing signup trial demo contact docs index</a>
+        <a href="/four">More linked navigation labels and repeated index terms</a>
+      </p>
+    </article>
+    <div id="content" class="content">
+      <h1>Dense Article</h1>
+      <p>Dense useful body text should win because it has direct prose instead of mostly navigation links.</p>
+      <p>The local scorer should prefer low-link-density content for agent-ready extraction.</p>
+    </div>
+  </body>
+</html>
+"#,
+            ),
+        )
+        .route(
             "/selector-miss",
             MockResponse::html(
                 r#"

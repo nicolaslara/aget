@@ -189,10 +189,46 @@ fn score_main_content_candidate(element: ElementRef<'_>) -> Result<i64, AgetErro
         return Ok(0);
     }
     let label_penalty = content_label_penalty(element) as i64;
+    let pruning_score = crawl4ai_like_pruning_score(element, &link_selector);
     Ok(
-        (text_words as i64 * 10) - (link_words as i64 * 8) + tag_bonus + positive_label_bonus
-            - label_penalty,
+        (text_words as i64 * 8) - (link_words as i64 * 12) + tag_bonus + positive_label_bonus
+            - label_penalty
+            + pruning_score,
     )
+}
+
+fn crawl4ai_like_pruning_score(element: ElementRef<'_>, link_selector: &scraper::Selector) -> i64 {
+    let text_len = normalize_text_pieces(element.text()).chars().count();
+    if text_len == 0 {
+        return 0;
+    }
+    let tag_len = element.html().chars().count().max(1);
+    let link_text_len = element
+        .select(link_selector)
+        .map(|link| normalize_text_pieces(link.text()).chars().count())
+        .sum::<usize>();
+    let text_density = text_len as f64 / tag_len as f64;
+    let non_link_density = 1.0 - (link_text_len as f64 / text_len as f64).clamp(0.0, 1.0);
+    let tag_weight = match element.value().name() {
+        "article" => 1.5,
+        "main" => 1.4,
+        "section" | "p" => 1.0,
+        "div" | "li" | "ul" | "ol" => 0.5,
+        "h1" => 1.2,
+        "h2" => 1.1,
+        "h3" => 1.0,
+        "h4" => 0.9,
+        "h5" => 0.8,
+        "h6" => 0.7,
+        _ => 0.5,
+    };
+    let length_bonus = (text_len as f64 + 1.0).ln();
+
+    ((text_density * 300.0)
+        + (non_link_density * 220.0)
+        + (tag_weight * 80.0)
+        + (length_bonus * 20.0))
+        .round() as i64
 }
 
 fn word_count<'a>(pieces: impl IntoIterator<Item = &'a str>) -> usize {

@@ -17,6 +17,7 @@ This compact file records current source routing. Detailed reference rows are ar
 | Project | Local / Source | Use |
 | --- | --- | --- |
 | Crawl4AI | `references/repos/crawl4ai`, commit `1debe5f5fcc118ced10826a1040a81f9b77e9255` | Inspect before porting extraction, markdown, readiness, session, or option behavior. License: Apache-2.0. |
+| Crawl4AI content pruning | `references/repos/crawl4ai/crawl4ai/content_filter_strategy.py` (`PruningContentFilter`) | Source for owned readability scoring signals: text density, link density, tag weights, class/id noise, and text length. |
 | agent-browser | `references/repos/agent-browser`, commit `3bb1d43f8bb16444596365496f78395da8f1e6b7` | Inspect before porting browser/CDP/session/profile behavior. License: Apache-2.0. |
 | cmux | Source review at commit `7142e31d3a749c241843655cac2771927505860c` | `browser cookies get` returns broad cookie data; `aget` must post-filter by explicit allowlist. |
 | agent-fetch | `references/repos/agent-fetch` | Extraction-strategy inspiration for Readability/text-density/JSON-LD/Next.js/RSC/WordPress/selectors. License: MIT. |

@@ -57,6 +57,7 @@ Safety boundary remains unchanged: `aget` is a generic fetcher for content the u
 - D193: extraction public DTOs/traits and backend adapter structs were split into `src/extraction/types.rs` and `src/extraction/backends.rs` without changing extraction API paths or runtime behavior.
 - D194: markdown renderer state and inline helpers were split into `src/extraction/markdown/writer.rs` and `inline.rs`, reducing the core renderer while preserving current markdown output behavior.
 - D195: browser CDP tests were split into state conversion, Chrome/profile lifecycle, page script, and discovery submodules without changing browser/CDP coverage.
+- D196: owned main-content scoring now includes Crawl4AI `PruningContentFilter`-inspired text-density, link-density, tag-weight, and text-length signals so link-heavy candidates lose to denser article bodies.
 
 ## Archive Index
 
@@ -96,6 +97,7 @@ Safety boundary remains unchanged: `aget` is a generic fetcher for content the u
 | D193 | `archive/knowledge/d193-extraction-types-backends-split.md` | mechanical extraction split into public DTO/trait and backend adapter submodules |
 | D194 | `archive/knowledge/d194-markdown-writer-inline-split.md` | mechanical markdown renderer split into writer state and inline helper submodules |
 | D195 | `archive/knowledge/d195-browser-cdp-test-split.md` | mechanical browser CDP test split into state, Chrome, page script, and discovery modules |
+| D196 | `archive/knowledge/d196-main-content-density-scoring.md` | source-backed owned main-content scoring improvement using Crawl4AI pruning signals |
 
 ## Current Verification Expectations
 

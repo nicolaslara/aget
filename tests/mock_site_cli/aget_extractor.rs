@@ -257,6 +257,17 @@ fn aget_extractor_backend_covers_static_http_parity_slice() {
         "# Labeled Story\n\nUseful labeled content should win default extraction without an explicit selector."
     );
 
+    let link_dense_markdown = Aget::new(&aget_home)
+        .with_extractor_backend(AgetExtractorBackend::default())
+        .get(site.url("/main-content-link-density"))
+        .content_format(OutputFormat::Markdown)
+        .run()
+        .unwrap();
+    assert_eq!(
+        link_dense_markdown.content,
+        "# Dense Article\n\nDense useful body text should win because it has direct prose instead of mostly navigation links.\n\nThe local scorer should prefer low-link-density content for agent-ready extraction."
+    );
+
     let overlay_text = Aget::new(&aget_home)
         .with_extractor_backend(AgetExtractorBackend::default())
         .get(site.url("/overlay-content"))
