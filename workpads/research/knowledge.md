@@ -2053,6 +2053,20 @@ Validation:
 
 Confidence: High for the first physical split. The change is mechanical, preserves the public `aget::extraction` module path, and focused plus full-suite validation passed. The remaining I19i work is to keep carving `src/extraction/mod.rs` and then split `src/browser_cdp.rs`.
 
+### D124: I19i splits the Crawl4AI command adapter
+
+The second decomposition slice moved the Crawl4AI compatibility process adapter from `src/extraction/mod.rs` to `src/extraction/command.rs`. The new module owns `AGET_CRAWL4AI_COMMAND` lookup, helper argument construction, backend stdout/stderr artifact files, command spawning, timeout handling, exit-status mapping, and backend JSON parsing. The parent extraction module keeps the public `CommandExtractorBackend` type and delegates to the module, so public API behavior is unchanged.
+
+Validation:
+
+- `cargo fmt`
+- `cargo fmt --check`
+- `git diff --check`
+- `cargo test --test get_cli get_real_helper_rejects_unsupported_extractor_option_before_crawl4ai_import`
+- `cargo test`
+
+Confidence: High for the command-adapter split. This is another mechanical split, the focused compatibility-adapter test passed, and the full standard suite is green.
+
 ## Open Questions
 
 - Can pure Rust browser automation provide reliable persistent profiles and CDP attach, or do we need a small Node/Playwright sidecar?
