@@ -1702,6 +1702,21 @@ Validation:
 
 Confidence: Medium-high. The behavior is source-backed and deterministic for the primary abbreviation-title case. It does not attempt to reproduce every whitespace variant in html2text's final reference block.
 
+### D101: I19e falls back to CDP HTTP discovery for existing profiles
+
+The next owned browser/session parity slice ports an `agent-browser` attachment reliability behavior. Before changing the owned path, I19e re-inspected `references/repos/agent-browser/cli/src/native/cdp/chrome.rs`, where `resolve_cdp_from_active_port` first tries the exact `DevToolsActivePort` WebSocket path and then falls back to HTTP CDP discovery, and `references/repos/agent-browser/cli/src/native/cdp/discovery.rs`, where `/json/version` supplies `webSocketDebuggerUrl`.
+
+`OwnedBrowserAutomationBackend` now keeps direct `DevToolsActivePort` attachment as the primary path for running login/profile browsers. If that WebSocket path cannot be connected, it queries `http://127.0.0.1:<port>/json/version`, rewrites the discovered WebSocket host and port to the local target, and tries that URL before giving up. This improves owned login-finish/profile attachment reliability without adding ambient current-browser access or a new public command.
+
+Validation:
+
+- `cargo fmt --check`
+- `git diff --check`
+- `cargo test browser_cdp::tests::`
+- `cargo test`
+
+Confidence: Medium-high. The discovery parsing and URL rewrite are deterministic and source-backed. Real Chrome path-staleness behavior still needs ignored/manual Chrome smoke coverage before current-tab attach or broader profile attachment can be considered complete.
+
 ## Open Questions
 
 - Can pure Rust browser automation provide reliable persistent profiles and CDP attach, or do we need a small Node/Playwright sidecar?

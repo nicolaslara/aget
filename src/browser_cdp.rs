@@ -11,6 +11,7 @@ use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 use serde_json::{json, Value};
 use tungstenite::stream::MaybeTlsStream;
 use tungstenite::{connect, Message, WebSocket};
+use url::Url;
 
 use crate::error::{AgetError, ErrorCode};
 use crate::process::{configure_local_command, create_private_file, TempOutputFile};
@@ -1478,8 +1479,68 @@ fn connect_existing_profile_browser(
         Err(AgetError::Stable {
             code: ErrorCode::BackendUnavailable,
             ..
-        }) => Ok(None),
+        }) => {
+            let discovered_ws_url = match discover_cdp_ws_url(port, timeout) {
+                Ok(ws_url) => ws_url,
+                Err(_) => return Ok(None),
+            };
+            match CdpClient::connect(&discovered_ws_url, timeout) {
+                Ok(client) => Ok(Some(client)),
+                Err(AgetError::Stable {
+                    code: ErrorCode::BackendUnavailable,
+                    ..
+                }) => Ok(None),
+                Err(error) => Err(error),
+            }
+        }
         Err(error) => Err(error),
+    }
+}
+
+fn discover_cdp_ws_url(port: u16, timeout: Duration) -> Result<String, AgetError> {
+    let config = ureq::Agent::config_builder()
+        .timeout_global(Some(timeout.min(Duration::from_secs(2))))
+        .http_status_as_error(false)
+        .build();
+    let agent: ureq::Agent = config.into();
+    let url = format!("http://127.0.0.1:{port}/json/version");
+    let mut response = agent.get(&url).call().map_err(cdp_discovery_error)?;
+    let body = response
+        .body_mut()
+        .read_to_string()
+        .map_err(cdp_discovery_error)?;
+    let json: Value = serde_json::from_str(&body).map_err(|error| AgetError::Stable {
+        code: ErrorCode::BackendUnavailable,
+        message: format!("owned browser could not parse Chrome CDP discovery response: {error}"),
+    })?;
+    let ws_url = json
+        .get("webSocketDebuggerUrl")
+        .and_then(Value::as_str)
+        .ok_or_else(|| AgetError::Stable {
+            code: ErrorCode::BackendUnavailable,
+            message: "owned browser CDP discovery response lacked webSocketDebuggerUrl".to_string(),
+        })?;
+    rewrite_cdp_ws_host(ws_url, port).ok_or_else(|| AgetError::Stable {
+        code: ErrorCode::BackendUnavailable,
+        message: format!("owned browser CDP discovery returned invalid WebSocket URL: {ws_url}"),
+    })
+}
+
+fn rewrite_cdp_ws_host(ws_url: &str, port: u16) -> Option<String> {
+    let mut url = Url::parse(ws_url).ok()?;
+    match url.scheme() {
+        "ws" | "wss" => {}
+        _ => return None,
+    }
+    url.set_host(Some("127.0.0.1")).ok()?;
+    url.set_port(Some(port)).ok()?;
+    Some(url.to_string())
+}
+
+fn cdp_discovery_error(error: ureq::Error) -> AgetError {
+    AgetError::Stable {
+        code: ErrorCode::BackendUnavailable,
+        message: format!("owned browser CDP discovery failed: {error}"),
     }
 }
 
@@ -2228,6 +2289,46 @@ more noise";
         assert_eq!(
             read_devtools_active_port(temp.path()),
             Some((49152, "/devtools/browser/abc".to_string()))
+        );
+    }
+
+    #[test]
+    fn rewrites_discovered_cdp_websocket_host_and_port() {
+        assert_eq!(
+            rewrite_cdp_ws_host("ws://localhost:9222/devtools/browser/abc", 49152).as_deref(),
+            Some("ws://127.0.0.1:49152/devtools/browser/abc")
+        );
+        assert!(rewrite_cdp_ws_host("http://localhost:9222/json/version", 49152).is_none());
+    }
+
+    #[test]
+    fn discovers_cdp_websocket_url_from_json_version() {
+        use std::io::{Read as _, Write as _};
+        use std::net::TcpListener;
+
+        let listener = TcpListener::bind(("127.0.0.1", 0)).unwrap();
+        let port = listener.local_addr().unwrap().port();
+        let handle = thread::spawn(move || {
+            let (mut stream, _) = listener.accept().unwrap();
+            let mut request = [0u8; 512];
+            let _ = stream.read(&mut request);
+            let body =
+                r#"{"webSocketDebuggerUrl":"ws://localhost:9999/devtools/browser/discovered"}"#;
+            write!(
+                stream,
+                "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{}",
+                body.len(),
+                body
+            )
+            .unwrap();
+        });
+
+        let ws_url = discover_cdp_ws_url(port, Duration::from_secs(2)).unwrap();
+        handle.join().unwrap();
+
+        assert_eq!(
+            ws_url,
+            format!("ws://127.0.0.1:{port}/devtools/browser/discovered")
         );
     }
 
