@@ -2126,6 +2126,22 @@ Validation:
 
 Confidence: High for the owned HTTP fetch split. The split is mechanical, focused public fetch plus cookie replay coverage passed, and the full standard suite is green.
 
+### D129: I19i splits CDP process helpers
+
+The next `browser_cdp` decomposition slice moved process-control helpers from `src/browser_cdp.rs` to `src/browser_cdp/process.rs`. The new module owns owned-login browser exit enforcement, process-exit polling, process-command matching, process-group or PID termination, Chrome process-group configuration, and child-process termination. CDP rendering, discovery, state export, and Chrome launch command construction still live in `src/browser_cdp.rs`.
+
+Validation:
+
+- `cargo fmt`
+- `cargo fmt --check`
+- `git diff --check`
+- `cargo test browser_cdp::tests::chrome_launch_retries_after_early_startup_exit`
+- `cargo test browser_cdp::tests::wait_for_devtools_active_port_uses_stderr_fallback`
+- `cargo test browser_cdp::tests::existing_profile_attach_removes_stale_devtools_active_port`
+- `cargo test`
+
+Confidence: High for the CDP process split. The split is mechanical, focused process/lifecycle coverage passed, and the full standard suite is green.
+
 ## Open Questions
 
 - Can pure Rust browser automation provide reliable persistent profiles and CDP attach, or do we need a small Node/Playwright sidecar?
