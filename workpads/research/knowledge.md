@@ -2496,6 +2496,27 @@ Validation:
 
 Confidence: High for the task-boundary clarification. No runtime code changed.
 
+### D153: I21 starts OAuth-safe authorization API
+
+I21 now has a first API-level authorization workflow: `Aget::authorize_chrome_session`. The flow is generic and does not classify site-specific login/paywall content. It:
+
+- runs an unauthenticated baseline fetch first;
+- imports scoped Chrome state into the requested named local session;
+- verifies the same URL with that saved session;
+- evaluates caller-supplied `must_contain` and `must_not_contain` predicates against verification content;
+- reports `verified` versus `verification_failed` without deleting the saved session;
+- preserves `requires_user_action` import failures after the baseline fetch and does not save a session on failed import.
+
+Coverage lives in `tests/aget_api.rs` and uses in-process test backends to prove baseline/import/verify order, session persistence, predicate failure reporting, sensitive verification fetches, and profile-lock/user-action propagation. This is intentionally API-first; CLI command/envelope shape and mocked-site command tests remain open I21 work.
+
+Validation:
+
+- `cargo fmt`
+- `cargo fmt --check`
+- `cargo test --test aget_api`
+
+Confidence: Medium-high. The new API boundary is deterministic and tested, but I21 is not complete until the CLI surface, mocked-site tests, and user-prompt documentation are added.
+
 ## Open Questions
 
 - Can pure Rust browser automation provide reliable persistent profiles and CDP attach, or do we need a small Node/Playwright sidecar?

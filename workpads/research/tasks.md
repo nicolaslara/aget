@@ -557,6 +557,10 @@ Acceptance criteria:
   - sensitive/session-backed envelopes omit inline content by default.
 - Document the manual real OAuth smoke-test recipe and expected user prompts.
 
+Status note:
+
+- Started after I20 completion. D153 added the first API-level authorization workflow: `Aget::authorize_chrome_session` performs an unauthenticated baseline fetch, imports scoped Chrome state, verifies with the saved session, evaluates caller-supplied generic predicates, preserves `requires_user_action` import failures, and keeps executable coverage in `tests/aget_api.rs`. Remaining work is to expose a CLI command/envelope, add mocked-site CLI tests, and document expected user prompts.
+
 ### 📋 Task I22: Design and implement browser-choice session import surfaces
 
 Acceptance criteria:

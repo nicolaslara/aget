@@ -22,6 +22,43 @@ use crate::session::{
     LoginStartResult, Session, SessionStore,
 };
 
+#[derive(Debug, Clone)]
+pub struct AuthorizeSessionOptions {
+    pub name: String,
+    pub url: String,
+    pub chrome_profile: String,
+    pub allow_domains: Vec<String>,
+    pub must_contain: Vec<String>,
+    pub must_not_contain: Vec<String>,
+    pub output: Option<PathBuf>,
+}
+
+#[derive(Debug, Clone, serde::Serialize)]
+pub struct AuthorizeSessionResult {
+    pub state: AuthorizationState,
+    pub name: String,
+    pub source: &'static str,
+    pub allowed_domains: Vec<String>,
+    pub baseline: GetSuccess,
+    pub verification: GetSuccess,
+    pub predicates: Vec<AuthorizationPredicateResult>,
+    pub warnings: Vec<String>,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize)]
+#[serde(rename_all = "snake_case")]
+pub enum AuthorizationState {
+    Verified,
+    VerificationFailed,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize)]
+pub struct AuthorizationPredicateResult {
+    pub kind: &'static str,
+    pub value: String,
+    pub matched: bool,
+}
+
 pub type Aget = AgetWith<
     DefaultExtractorBackend,
     FilesystemSessionStoreBackend,
@@ -161,6 +198,56 @@ where
         })?;
         self.session_store.save(&session).map_err(io_aget_error)?;
         Ok(session)
+    }
+
+    pub fn authorize_chrome_session(
+        &self,
+        options: AuthorizeSessionOptions,
+    ) -> Result<AuthorizeSessionResult, AgetError> {
+        let baseline = self
+            .get(options.url.clone())
+            .content_format(OutputFormat::Markdown)
+            .run()?;
+        let session = self.import_chrome_session(
+            options.chrome_profile,
+            options.name,
+            options.allow_domains.clone(),
+        )?;
+        let mut verification_request = self
+            .get(options.url)
+            .session(session.name.clone())
+            .content_format(OutputFormat::Markdown);
+        if let Some(output) = options.output {
+            verification_request = verification_request.output(output);
+        }
+        let verification = verification_request.run()?;
+        let predicates = evaluate_authorization_predicates(
+            &verification.content,
+            &options.must_contain,
+            &options.must_not_contain,
+        );
+        let verified = predicates.iter().all(|predicate| predicate.matched);
+        let mut warnings = verification.warnings.clone();
+        if !verified {
+            warnings.push(
+                "verification fetch completed, but one or more caller-supplied predicates failed"
+                    .to_string(),
+            );
+        }
+        Ok(AuthorizeSessionResult {
+            state: if verified {
+                AuthorizationState::Verified
+            } else {
+                AuthorizationState::VerificationFailed
+            },
+            name: session.name,
+            source: "chrome",
+            allowed_domains: options.allow_domains,
+            baseline,
+            verification,
+            predicates,
+            warnings,
+        })
     }
 
     pub fn compose_sessions(
@@ -549,6 +636,31 @@ where
             &self.browser_fallback_backend,
         )
     }
+}
+
+fn evaluate_authorization_predicates(
+    content: &str,
+    must_contain: &[String],
+    must_not_contain: &[String],
+) -> Vec<AuthorizationPredicateResult> {
+    let mut predicates = must_contain
+        .iter()
+        .map(|value| AuthorizationPredicateResult {
+            kind: "must_contain",
+            value: value.clone(),
+            matched: content.contains(value),
+        })
+        .collect::<Vec<_>>();
+    predicates.extend(
+        must_not_contain
+            .iter()
+            .map(|value| AuthorizationPredicateResult {
+                kind: "must_not_contain",
+                value: value.clone(),
+                matched: !content.contains(value),
+            }),
+    );
+    predicates
 }
 
 fn validate_compose_target(
