@@ -23,6 +23,7 @@ const CHROME_LAUNCH_RETRY_DELAY: Duration = Duration::from_millis(500);
 const CHROME_SHUTDOWN_WAIT: Duration = Duration::from_secs(1);
 const NETWORK_IDLE_DURATION: Duration = Duration::from_millis(500);
 const CHROME_SANDBOX_STARTUP_HINT: &str = "Hint: Chrome sandbox/namespace startup failure; in containers or VMs, set AGET_CHROME_COMMAND to a Chrome/Chromium executable that can run with --no-sandbox";
+const CHROME_SILENT_STARTUP_HINT: &str = "Hint: Chrome exited without startup diagnostics; in containers or VMs, set AGET_CHROME_COMMAND to a Chrome/Chromium wrapper that can run with --no-sandbox";
 
 pub(crate) struct BrowserRenderRequest<'a> {
     pub(crate) tmp_dir: &'a Path,
@@ -1417,6 +1418,9 @@ fn classify_chrome_startup_error(
     }
 
     if detail.is_empty() {
+        if stderr.trim().is_empty() {
+            return append_silent_chrome_startup_hint(error);
+        }
         return error;
     }
 
@@ -1496,6 +1500,15 @@ fn append_chrome_startup_hint(detail: String) -> String {
         format!("{detail}\n  {CHROME_SANDBOX_STARTUP_HINT}")
     } else {
         detail
+    }
+}
+
+fn append_silent_chrome_startup_hint(error: AgetError) -> AgetError {
+    match error {
+        AgetError::Stable { code, message } => AgetError::Stable {
+            code,
+            message: format!("{message}; {CHROME_SILENT_STARTUP_HINT}"),
+        },
     }
 }
 
@@ -2466,6 +2479,23 @@ more noise";
         assert!(detail.contains("Failed to move to new namespace"));
         assert!(detail.contains("Chrome sandbox/namespace startup failure"));
         assert!(detail.contains("AGET_CHROME_COMMAND"));
+    }
+
+    #[test]
+    fn chrome_startup_error_adds_silent_exit_hint_without_stderr() {
+        let temp = tempfile::tempdir().unwrap();
+        let stderr_capture = TempOutputFile::new(temp.path(), "chrome-stderr").unwrap();
+        let error = AgetError::Stable {
+            code: ErrorCode::BackendUnavailable,
+            message: "owned browser fallback Chrome exited before CDP startup".to_string(),
+        };
+
+        let classified = classify_chrome_startup_error("owned Chrome test", error, &stderr_capture);
+
+        assert_eq!(classified.code(), ErrorCode::BackendUnavailable);
+        let message = classified.to_string();
+        assert!(message.contains("Chrome exited without startup diagnostics"));
+        assert!(message.contains("AGET_CHROME_COMMAND"));
     }
 
     #[cfg(unix)]

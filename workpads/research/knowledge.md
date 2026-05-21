@@ -1959,6 +1959,22 @@ Validation:
 
 Confidence: High for dead-port stale-file cleanup. The behavior is source-backed and covered by a deterministic closed-port test; broader current-tab discovery and real-profile attach UX remain separate I19e work.
 
+### D118: I19e adds silent Chrome startup diagnostics
+
+The next startup-classification slice ports `agent-browser`'s no-stderr Chrome launch hint. Before changing the owned browser backend, I19e re-inspected `references/repos/agent-browser/cli/src/native/cdp/chrome.rs` at local commit `3bb1d43`, where `chrome_launch_error` adds an explicit no-stderr diagnostic and sandbox hint when Chrome exits before reporting a DevTools URL without producing stderr lines.
+
+`OwnedBrowserAutomationBackend` now appends a no-stderr startup hint when Chrome exits or times out before CDP startup and the captured stderr file is empty. Existing profile-lock `requires_user_action` classification, relevant stderr lines, and sandbox/namespace hints still take precedence when diagnostic output exists.
+
+Validation:
+
+- `cargo fmt`
+- `cargo fmt --check`
+- `git diff --check`
+- `cargo test chrome_startup_error_adds_silent_exit_hint_without_stderr`
+- `cargo test`
+
+Confidence: High for silent-startup classification. The behavior is source-backed and covered at the classifier boundary; platform-specific real Chrome crashes still need opt-in smoke coverage.
+
 ## Open Questions
 
 - Can pure Rust browser automation provide reliable persistent profiles and CDP attach, or do we need a small Node/Playwright sidecar?
