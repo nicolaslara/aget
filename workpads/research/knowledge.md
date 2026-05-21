@@ -2186,6 +2186,23 @@ Validation:
 
 Confidence: High for the CDP client split. The split is mechanical, the CDP-focused unit slice passed, and the full standard suite is green.
 
+### D133: I19i splits extraction artifacts and redaction helpers
+
+The next extraction decomposition slice moved run artifact mechanics from `src/extraction/mod.rs` to `src/extraction/artifacts.rs`. The new module owns run ID generation, private run directories and files, success/error metadata JSON writing, backend stdout/stderr reading, sensitive-value collection, backend error sanitization, backend artifact redaction, and redaction pattern generation for literal, percent-encoded, form-encoded, and JSON-escaped secret values. The main extraction module still owns request orchestration, session loading/scope enforcement, primary/fallback selection, output limits, and owned extraction behavior.
+
+Validation:
+
+- `cargo check`
+- `cargo fmt`
+- `cargo fmt --check`
+- `git diff --check`
+- `cargo test extraction::tests::redacts`
+- `cargo test --test get_cli get_json_success_writes_run_artifacts_with_empty_state`
+- `cargo test --test get_cli get_session_backend_failure_redacts_state_secrets_from_errors_metadata_and_artifacts`
+- `cargo test`
+
+Confidence: High for the extraction artifacts split. The split is mechanical, focused artifact/redaction coverage passed, and the full standard suite is green.
+
 ## Open Questions
 
 - Can pure Rust browser automation provide reliable persistent profiles and CDP attach, or do we need a small Node/Playwright sidecar?
