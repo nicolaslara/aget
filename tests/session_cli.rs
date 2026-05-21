@@ -3,6 +3,8 @@ use aget::SessionSource;
 use assert_cmd::Command;
 use predicates::prelude::*;
 use support::session_cli::{demo_session, named_session, session_origin, success_data};
+#[path = "session_cli/authorize.rs"]
+mod authorize;
 #[path = "session_cli/imports.rs"]
 mod imports;
 #[path = "session_cli/login.rs"]

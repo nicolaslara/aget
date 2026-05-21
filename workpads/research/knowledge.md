@@ -2517,6 +2517,30 @@ Validation:
 
 Confidence: Medium-high. The new API boundary is deterministic and tested, but I21 is not complete until the CLI surface, mocked-site tests, and user-prompt documentation are added.
 
+### D154: I21 adds OAuth-safe authorization CLI
+
+I21 now exposes the API workflow through `aget session authorize`. The command supports Chrome first through `--browser chrome`, `--browser-profile <profile>`, and the compatibility alias `--chrome-profile <profile>`. It runs the generic OAuth-safe sequence in one CLI flow:
+
+- unauthenticated baseline fetch;
+- scoped Chrome profile import into the named local session;
+- session-backed verification fetch;
+- optional caller-supplied `--must-contain` and `--must-not-contain` predicates;
+- `verified` or `verification_failed` state in a `session.authorize` envelope.
+
+The JSON view intentionally differs from the raw API result: it omits inline `content` from both baseline and verification entries, includes `verification_sensitive: true` for session-backed fetches, and keeps authenticated output in artifacts or the explicit `--output` path. `requires_user_action` import failures remain structured errors and do not save the requested session.
+
+Mocked CLI coverage in `tests/session_cli/authorize.rs` verifies a baseline fetch before import, Chrome import plus session-backed verification, verification predicate failure, profile-lock propagation, session persistence on successful import, no session persistence on locked import, and omission of sensitive inline content. The design doc now records the one-shot manual command and expected caller prompts for import approval, profile locks, failed verification, and verified sessions.
+
+Validation:
+
+- `cargo fmt`
+- `cargo fmt --check`
+- `cargo test --lib parses_session_authorize`
+- `cargo test --test aget_api authorize_chrome_session`
+- `cargo test --test session_cli session_authorize`
+
+Confidence: Medium-high. The CLI and envelope behavior are deterministic and tested with local mocks. I21 still needs an explicit re-import-after-user-login scenario before the task should be marked complete.
+
 ## Open Questions
 
 - Can pure Rust browser automation provide reliable persistent profiles and CDP attach, or do we need a small Node/Playwright sidecar?

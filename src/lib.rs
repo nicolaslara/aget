@@ -12,11 +12,12 @@ pub use aget::{
     AuthorizeSessionResult, GetRequest, OwnedBrowserAutomationBackend,
 };
 pub use cli::{
-    Cli, Command, ComposeSessionCommand, DeleteSessionCommand, EnvelopeFormat, ExtractorOption,
-    GetCommand, GlobalOptions, ImportChromeSessionCommand, ImportCmuxSessionCommand,
-    ImportSessionCommand, ImportSessionSource, InlineContent, InspectSessionCommand,
-    LoginCancelCommand, LoginFinishCommand, LoginSessionCommand, LoginSessionSubcommand,
-    LoginStartCommand, OutputFormat, SessionCommand, SessionSubcommand,
+    AuthorizeSessionCommand, BrowserChoice, Cli, Command, ComposeSessionCommand,
+    DeleteSessionCommand, EnvelopeFormat, ExtractorOption, GetCommand, GlobalOptions,
+    ImportChromeSessionCommand, ImportCmuxSessionCommand, ImportSessionCommand,
+    ImportSessionSource, InlineContent, InspectSessionCommand, LoginCancelCommand,
+    LoginFinishCommand, LoginSessionCommand, LoginSessionSubcommand, LoginStartCommand,
+    OutputFormat, SessionCommand, SessionSubcommand,
 };
 pub use error::{AgetError, ErrorCode, ErrorResponse, ENVELOPE_SCHEMA_VERSION};
 pub use extraction::{get_url, GetOptions, GetSuccess, OwnedExtractorBackend, TimingMs};

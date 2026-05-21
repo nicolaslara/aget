@@ -1,6 +1,6 @@
 # OAuth-Safe Browser Login And Import Design
 
-Status: I20 draft. This document defines the target decision tree and public vocabulary for I21/I22 implementation. It is intentionally generic: `aget` reports fetch, import, and verification outcomes; the calling agent or user interprets site-specific login, subscription, and account state.
+Status: I20 design, with the first I21 CLI/API implementation in place for Chrome profile import. This document defines the target decision tree and public vocabulary for I21/I22 implementation. It is intentionally generic: `aget` reports fetch, import, and verification outcomes; the calling agent or user interprets site-specific login, subscription, and account state.
 
 ## Goals
 
@@ -46,6 +46,14 @@ aget session authorize <session> \
 ```
 
 I22 should decide whether the lower-level import command keeps `--chrome-profile` forever or gains browser-neutral aliases such as `--browser`, `--browser-profile`, and `--profile-path`.
+
+Current I21 CLI behavior:
+
+- `aget session authorize` supports `--browser chrome`, `--browser-profile`, and `--chrome-profile` as a compatibility alias.
+- The command runs baseline fetch, Chrome import, and session-backed verification in one flow.
+- JSON envelopes report `state: verified` or `state: verification_failed`.
+- Baseline and verification entries omit inline `content` by default; authenticated verification content is available through artifacts or the optional `--output` path.
+- `requires_user_action` import failures are returned as structured errors and do not save the requested session.
 
 ## Default Decision Tree
 
@@ -173,6 +181,26 @@ Use only an account and site the user is authorized to access. Do not paste pass
    ```
 
 Evidence to record locally, not in git: command timestamps, browser/profile choice, allowed domains, result codes, whether verification content was usable, and whether any `requires_user_action` lock/message occurred. Do not store screenshots, raw state, cookies, or private page content in workpads.
+
+Equivalent one-shot CLI command after the user approves local browser-state import:
+
+```bash
+cargo run --quiet -- --envelope json session authorize "$SESSION" \
+  --url "$URL" \
+  --browser chrome \
+  --browser-profile Default \
+  --allow-domain "$DOMAIN" \
+  --must-contain "$EXPECTED_PRIVATE_MARKER" \
+  --must-not-contain "$EXPECTED_GATED_MARKER" \
+  --output /tmp/aget-oauth-verified.md
+```
+
+Expected prompt wording for callers:
+
+- Before import: "This page still appears gated. May I import scoped local browser state from Chrome profile `<profile>` for `<domain>`?"
+- On profile lock: "Quit the selected browser/profile, then rerun the same authorization command."
+- On `verification_failed`: "The session was imported, but the verification checks did not pass. Complete login in the selected browser/profile, then rerun `aget session authorize` to re-import and verify."
+- On `verified`: "The named `aget` session is verified for this URL. Use it explicitly with `aget get <url> --session <session>`."
 
 ## Implementation Boundary
 

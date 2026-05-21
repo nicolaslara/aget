@@ -3,8 +3,9 @@ use std::process::ExitCode;
 use std::time::Instant;
 
 use aget::{
-    Aget, Cli, Command, EnvelopeFormat, ErrorCode, ErrorResponse, GetSuccess, ImportSessionSource,
-    InlineContent, LoginSessionSubcommand, Session, SessionCookie, SessionSubcommand, TimingMs,
+    Aget, AuthorizeSessionOptions, AuthorizeSessionResult, BrowserChoice, Cli, Command,
+    EnvelopeFormat, ErrorCode, ErrorResponse, GetSuccess, ImportSessionSource, InlineContent,
+    LoginSessionSubcommand, Session, SessionCookie, SessionSubcommand, TimingMs,
     ENVELOPE_SCHEMA_VERSION,
 };
 use clap::error::ErrorKind;
@@ -61,6 +62,7 @@ fn command_name_from_args(args: &[OsString]) -> &'static str {
     if let Some(index) = tokens.iter().position(|token| *token == "session") {
         return match tokens.get(index + 1).copied() {
             Some("list") => "session.list",
+            Some("authorize") => "session.authorize",
             Some("inspect") => "session.inspect",
             Some("delete") => "session.delete",
             Some("compose") => "session.compose",
@@ -147,16 +149,22 @@ fn run(cli: Cli) -> Result<(), ErrorResponse> {
             Ok::<(), ErrorResponse>(())
         })()
         .map_err(|error| error.with_command("get")),
-        Command::Session(session) => run_session(session.command, structured_output),
+        Command::Session(session) => {
+            run_session(session.command, structured_output, cli.global.timeout)
+        }
     }
 }
 
-fn run_session(command: SessionSubcommand, json: bool) -> Result<(), ErrorResponse> {
+fn run_session(
+    command: SessionSubcommand,
+    json: bool,
+    timeout: Option<std::time::Duration>,
+) -> Result<(), ErrorResponse> {
     let command_name = session_command_name(&command);
     let started = Instant::now();
 
     (|| {
-        let aget = Aget::from_env().map_err(io_error)?;
+        let aget = Aget::from_env().map_err(io_error)?.with_timeout_opt(timeout);
 
         match command {
         SessionSubcommand::List => {
@@ -173,6 +181,48 @@ fn run_session(command: SessionSubcommand, json: bool) -> Result<(), ErrorRespon
             } else {
                 for name in names {
                     println!("{name}");
+                }
+            }
+            Ok(())
+        }
+        SessionSubcommand::Authorize(authorize) => {
+            let chrome_profile = resolve_chrome_authorize_profile(
+                authorize.browser,
+                authorize.browser_profile,
+                authorize.chrome_profile,
+            )?;
+            let result = aget
+                .authorize_chrome_session(AuthorizeSessionOptions {
+                    name: authorize.name,
+                    url: authorize.url,
+                    chrome_profile,
+                    allow_domains: authorize.allow_domain,
+                    must_contain: authorize.must_contain,
+                    must_not_contain: authorize.must_not_contain,
+                    output: authorize.output,
+                })
+                .map_err(error_response)?;
+            if json {
+                print_success_envelope(
+                    command_name,
+                    authorize_envelope_data(&result)?,
+                    result.warnings,
+                    elapsed_timing(started),
+                )?;
+            } else {
+                match result.state {
+                    aget::AuthorizationState::Verified => {
+                        println!("Authorized session {}; verification passed", result.name);
+                    }
+                    aget::AuthorizationState::VerificationFailed => {
+                        println!(
+                            "Imported session {}, but verification predicates failed",
+                            result.name
+                        );
+                        println!(
+                            "Complete login in the selected browser/profile, then rerun session authorize to re-import and verify"
+                        );
+                    }
                 }
             }
             Ok(())
@@ -421,6 +471,58 @@ fn run_session(command: SessionSubcommand, json: bool) -> Result<(), ErrorRespon
     .map_err(|error: ErrorResponse| error.with_command(command_name))
 }
 
+fn resolve_chrome_authorize_profile(
+    browser: BrowserChoice,
+    browser_profile: Option<String>,
+    chrome_profile: Option<String>,
+) -> Result<String, ErrorResponse> {
+    match browser {
+        BrowserChoice::Chrome => match (browser_profile, chrome_profile) {
+            (Some(browser_profile), Some(chrome_profile)) if browser_profile != chrome_profile => {
+                Err(ErrorResponse::new(
+                    ErrorCode::UsageError,
+                    "--browser-profile and --chrome-profile must match when both are supplied",
+                ))
+            }
+            (Some(profile), _) | (_, Some(profile)) => Ok(profile),
+            (None, None) => Err(ErrorResponse::new(
+                ErrorCode::UsageError,
+                "session authorize requires --browser-profile <profile> or --chrome-profile <profile>",
+            )),
+        },
+    }
+}
+
+fn authorize_envelope_data(result: &AuthorizeSessionResult) -> Result<Value, ErrorResponse> {
+    Ok(serde_json::json!({
+        "state": result.state,
+        "name": result.name,
+        "source": result.source,
+        "allowed_domains": result.allowed_domains,
+        "baseline": get_envelope_data(&result.baseline, InlineContent::Never)?,
+        "verification": get_envelope_data(&result.verification, InlineContent::Never)?,
+        "verification_sensitive": result.verification.sensitive,
+        "verification_content_inlined": false,
+        "predicates": result.predicates,
+        "next_command": if result.state == aget::AuthorizationState::VerificationFailed {
+            Some(serde_json::json!([
+                "aget",
+                "session",
+                "authorize",
+                result.name,
+                "--url",
+                result.verification.url,
+                "--browser-profile",
+                "<profile>",
+                "--allow-domain",
+                "<domain>",
+            ]))
+        } else {
+            None
+        },
+    }))
+}
+
 fn print_success_envelope(
     command: &str,
     data: Value,
@@ -476,6 +578,7 @@ fn elapsed_timing(started: Instant) -> TimingMs {
 fn session_command_name(command: &SessionSubcommand) -> &'static str {
     match command {
         SessionSubcommand::List => "session.list",
+        SessionSubcommand::Authorize(_) => "session.authorize",
         SessionSubcommand::Inspect(_) => "session.inspect",
         SessionSubcommand::Delete(_) => "session.delete",
         SessionSubcommand::Import(import) => match &import.source {

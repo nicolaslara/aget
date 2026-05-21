@@ -148,6 +148,8 @@ pub struct SessionCommand {
 pub enum SessionSubcommand {
     /// List local session names.
     List,
+    /// Import and verify a real-browser session for an authorized page.
+    Authorize(AuthorizeSessionCommand),
     /// Inspect one local session with secrets redacted by default.
     Inspect(InspectSessionCommand),
     /// Delete one local session.
@@ -158,6 +160,49 @@ pub enum SessionSubcommand {
     Compose(ComposeSessionCommand),
     /// Start, finish, or cancel an experimental user-driven login flow.
     Login(LoginSessionCommand),
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, ValueEnum)]
+pub enum BrowserChoice {
+    Chrome,
+}
+
+#[derive(Debug, Args, PartialEq, Eq)]
+pub struct AuthorizeSessionCommand {
+    /// Local session name to create or replace after import.
+    pub name: String,
+
+    /// URL to fetch before and after browser profile import.
+    #[arg(long)]
+    pub url: String,
+
+    /// Browser source for session import. Chrome is the first supported source.
+    #[arg(long, value_enum, default_value_t = BrowserChoice::Chrome)]
+    pub browser: BrowserChoice,
+
+    /// Browser profile name or path for the selected browser.
+    #[arg(long = "browser-profile")]
+    pub browser_profile: Option<String>,
+
+    /// Chrome profile name or path. Compatibility alias for `--browser-profile`.
+    #[arg(long = "chrome-profile")]
+    pub chrome_profile: Option<String>,
+
+    /// Explicit allowed cookie/storage domain to import. Repeat for each trusted domain.
+    #[arg(long = "allow-domain", required = true)]
+    pub allow_domain: Vec<String>,
+
+    /// Generic verification predicate that must appear in the session-backed fetch.
+    #[arg(long = "must-contain")]
+    pub must_contain: Vec<String>,
+
+    /// Generic verification predicate that must be absent in the session-backed fetch.
+    #[arg(long = "must-not-contain")]
+    pub must_not_contain: Vec<String>,
+
+    /// Write the session-backed verification content to this path.
+    #[arg(long)]
+    pub output: Option<PathBuf>,
 }
 
 #[derive(Debug, Args, PartialEq, Eq)]
@@ -510,6 +555,82 @@ mod tests {
                 command: SessionSubcommand::Inspect(InspectSessionCommand {
                     name: "demo".to_string(),
                     show_secrets: false
+                })
+            })
+        );
+    }
+
+    #[test]
+    fn parses_session_authorize_chrome() {
+        let cli = Cli::try_parse_from([
+            "aget",
+            "session",
+            "authorize",
+            "news",
+            "--url",
+            "https://example.com/account",
+            "--browser",
+            "chrome",
+            "--browser-profile",
+            "Default",
+            "--allow-domain",
+            "example.com",
+            "--must-contain",
+            "Welcome",
+            "--must-not-contain",
+            "Please sign in",
+            "--output",
+            "verification.md",
+        ])
+        .unwrap();
+
+        assert_eq!(
+            cli.command,
+            Command::Session(SessionCommand {
+                command: SessionSubcommand::Authorize(AuthorizeSessionCommand {
+                    name: "news".to_string(),
+                    url: "https://example.com/account".to_string(),
+                    browser: BrowserChoice::Chrome,
+                    browser_profile: Some("Default".to_string()),
+                    chrome_profile: None,
+                    allow_domain: vec!["example.com".to_string()],
+                    must_contain: vec!["Welcome".to_string()],
+                    must_not_contain: vec!["Please sign in".to_string()],
+                    output: Some(PathBuf::from("verification.md")),
+                })
+            })
+        );
+    }
+
+    #[test]
+    fn parses_session_authorize_chrome_profile_alias() {
+        let cli = Cli::try_parse_from([
+            "aget",
+            "session",
+            "authorize",
+            "news",
+            "--url",
+            "https://example.com/account",
+            "--chrome-profile",
+            "Default",
+            "--allow-domain",
+            "example.com",
+        ])
+        .unwrap();
+
+        assert_eq!(
+            cli.command,
+            Command::Session(SessionCommand {
+                command: SessionSubcommand::Authorize(AuthorizeSessionCommand {
+                    name: "news".to_string(),
+                    url: "https://example.com/account".to_string(),
+                    browser: BrowserChoice::Chrome,
+                    browser_profile: None,
+                    chrome_profile: Some("Default".to_string()),
+                    allow_domain: vec!["example.com".to_string()],
+                    must_contain: Vec::new(),
+                    must_not_contain: Vec::new(),
+                    output: None,
                 })
             })
         );
