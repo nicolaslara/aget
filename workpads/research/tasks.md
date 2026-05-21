@@ -648,6 +648,20 @@ Status note:
 
 - Completed with D183 after I19q completed and committed. The mechanical split kept `crate::session::agent_browser::*` as the compatibility surface while moving subprocess execution/failure classification, state filtering/domain helpers, raw-state temp files, and existing tests into focused submodules. Validation passed with focused `session::agent_browser` tests, `cargo fmt --check`, `cargo test`, and `git diff --check`.
 
+### ✅ Task I19s: Split Chrome session import internals
+
+Acceptance criteria:
+
+- Preserve current compatibility Chrome import and owned Chrome profile import behavior while splitting `src/session/chrome.rs`.
+- Keep existing public `session::chrome` import paths unchanged for callers.
+- Split mechanically first, prioritizing compatibility command import, owned CDP import, profile discovery/copy helpers, and tests because they are cohesive subdomains.
+- Run focused Chrome/session tests plus the standard validation set before committing.
+- Record the resulting module boundaries in `knowledge.md`.
+
+Status note:
+
+- Completed with D184 after I19r completed and committed. The mechanical split kept `session::chrome` import paths stable while moving compatibility command import, owned CDP import, profile discovery/copy helpers, and existing tests into focused submodules. Validation passed with focused `session::chrome` tests, `cargo fmt --check`, `cargo test`, and `git diff --check`.
+
 ### ✅ Task I20: Design OAuth-safe browser login and profile import flow
 
 Acceptance criteria:
