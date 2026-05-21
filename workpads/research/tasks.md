@@ -746,6 +746,20 @@ Status note:
 
 - Completed with D190 after I19x completed and committed. The mechanical split kept `tests/get_cli/session.rs` as the parent route while moving session replay/scope, fallback/redaction, and ignored real Crawl4AI replay smoke coverage into focused submodules. Validation passed with focused `get_cli` tests, `cargo fmt --check`, `cargo test`, and `git diff --check`.
 
+### ✅ Task I19z: Split Aget facade/backend API tests
+
+Acceptance criteria:
+
+- Preserve current `Aget` facade and backend abstraction test behavior while splitting `tests/aget_api.rs`.
+- Keep the integration test target name stable.
+- Split mechanically first, prioritizing extractor/session-store wiring, browser fallback, authorization, session import/login, and default AgetBrowser backend behavior.
+- Run focused API tests plus the standard validation set before committing.
+- Record the resulting module boundaries in `knowledge.md`.
+
+Status note:
+
+- Completed with D191 after I19y completed and committed. The mechanical split kept `tests/aget_api.rs` as the integration-test route while moving shared fixtures, extraction wiring, authorization, session backend, and default browser backend behavior into focused submodules. Validation passed with focused `aget_api` tests, `cargo fmt --check`, `cargo test`, and `git diff --check`.
+
 ### ✅ Task I20: Design OAuth-safe browser login and profile import flow
 
 Acceptance criteria:
