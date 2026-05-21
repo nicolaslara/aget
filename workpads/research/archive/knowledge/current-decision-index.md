@@ -60,6 +60,7 @@ This archive file keeps the denser decision routing that used to live in top-lev
 | D241 | `d241-windows-chrome-process-lifecycle.md` | agent-browser-inspired Windows Chrome process-group launch and pid cleanup hooks. |
 | D242 | `d242-chrome-stderr-tail-diagnostics.md` | agent-browser-inspired last-five-line generic Chrome startup stderr diagnostics. |
 | D243 | `d243-session-wrapper-spec-archive-split.md` | Support-file split of historical session-wrapper PoC spec without compacting tasks. |
+| D244 | `d244-chrome-launch-stability-flags.md` | agent-browser-inspired generic Chrome launch stability/noise-control flags. |
 
 ## Full Archive Routing
 
@@ -79,7 +80,7 @@ This archive file keeps the denser decision routing that used to live in top-lev
 | D151-D157 | `d151-d157-auth-and-browser-import.md` | OAuth-safe authorization API/CLI and conservative browser-neutral Chrome import surface. |
 | D158-D167 | `d158-d167-recent-migration-followups.md` | Recent source-backed extraction improvements and follow-up decomposition slices. |
 | D168-D176 | Per-decision files | Knowledge/reference compaction, engine-refactor planning, wrapper introduction, naming cleanup, and direct engine coverage. |
-| D177-D243 | Per-decision files | Module/test/support decomposition plus the latest owned extractor/browser parity improvements. |
+| D177-D244 | Per-decision files | Module/test/support decomposition plus the latest owned extractor/browser parity improvements. |
 
 ## Current Open Migration Gaps
 

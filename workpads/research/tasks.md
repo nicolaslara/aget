@@ -459,7 +459,7 @@ Acceptance criteria:
 
 Status note:
 
-- Started after the first I19d owned extractor slices and documented in `knowledge.md` D58, D60, D64-D68, D83-D85, D96-D97, D101-D103, D116-D118, D214, D215, and D241. `OwnedBrowserAutomationBackend` now has an owned session-backed fallback extraction path for static and scripted cookie-backed pages, a minimal Chrome/CDP renderer for localStorage/sessionStorage-backed fallback extraction, explicit user-data-dir Chrome import, named Chrome profile resolution/copying into temporary user-data-dir imports, a first owned dedicated-profile login start/finish/cancel lifecycle, stale owned-login profile sweeping, PID-backed cleanup for detached owned login browsers including Windows pid termination hooks, profile-in-use Chrome startup classification as `requires_user_action`, Chrome stderr `DevTools listening on ...` URL startup fallback, sandbox/namespace startup hints, no-stderr Chrome startup hints, source-backed labeled generic Chrome stderr diagnostics, `/json/version`, `/json/list`, plus direct `/devtools/browser` CDP discovery fallbacks when attaching to an existing profile browser, three-attempt owned Chrome launch retries, stale `DevToolsActivePort` removal when existing-profile attach finds a dead endpoint, Windows detached process-group Chrome launch flags, and stronger opt-in real-profile import smoke assertions for persisted scoped auth state. I19e remains in progress because broader rendered JavaScript parity, manual real logged-in profile/keychain smoke execution, and still-fuller startup/error classification require deeper CDP/profile work.
+- Started after the first I19d owned extractor slices and documented in `knowledge.md` D58, D60, D64-D68, D83-D85, D96-D97, D101-D103, D116-D118, D214, D215, D241, D242, and D244. `OwnedBrowserAutomationBackend` now has an owned session-backed fallback extraction path for static and scripted cookie-backed pages, a minimal Chrome/CDP renderer for localStorage/sessionStorage-backed fallback extraction, explicit user-data-dir Chrome import, named Chrome profile resolution/copying into temporary user-data-dir imports, a first owned dedicated-profile login start/finish/cancel lifecycle, stale owned-login profile sweeping, PID-backed cleanup for detached owned login browsers including Windows pid termination hooks, profile-in-use Chrome startup classification as `requires_user_action`, Chrome stderr `DevTools listening on ...` URL startup fallback, sandbox/namespace startup hints, no-stderr Chrome startup hints, source-backed labeled generic Chrome stderr diagnostics including bounded five-line generic stderr tails, `/json/version`, `/json/list`, plus direct `/devtools/browser` CDP discovery fallbacks when attaching to an existing profile browser, three-attempt owned Chrome launch retries, stale `DevToolsActivePort` removal when existing-profile attach finds a dead endpoint, Windows detached process-group Chrome launch flags, agent-browser-style generic Chrome stability/noise-control launch flags, and stronger opt-in real-profile import smoke assertions for persisted scoped auth state. I19e remains in progress because broader rendered JavaScript parity, manual real logged-in profile/keychain smoke execution, and still-fuller startup/error classification require deeper CDP/profile work.
 
 ### ✅ Task I19f: Switch default runtime path to homegrown backends
 
@@ -1558,6 +1558,21 @@ Acceptance criteria:
 Status note:
 
 - Completed with D243. The historical session-wrapper PoC spec archive now keeps its old path as a 17-line routing index and preserves the original text in four section files under `archive/support/session-wrapper-poc-spec/`. Concatenating the split files matches the original tracked archive content, `workpads/research/knowledge.md` routes to the index, and `workpads/research/tasks.md` remains un-compacted.
+
+### ✅ Task I19ca: Align owned Chrome launch stability flags with agent-browser
+
+Acceptance criteria:
+
+- Inspect `agent-browser` Chrome launch argument construction before changing owned Chrome launch behavior.
+- Add the source-backed generic Chrome launch flags that reduce background work and startup noise without broadening auth/session scope.
+- Preserve existing owned profile, keychain, headless, Linux, Windows process-group, and startup-URL behavior.
+- Add deterministic coverage for the source-backed launch arguments without requiring real Chrome.
+- Record the source-backed boundary in `knowledge.md`.
+- Verify with focused browser/CDP coverage plus the standard check set.
+
+Status note:
+
+- Completed with D244. Source inspection found agent-browser's Chrome launch arguments include additional generic stability/noise-control flags. Owned Chrome launches now include `--disable-hang-monitor`, `--disable-prompt-on-repost`, `--enable-features=NetworkService,NetworkServiceInProcess`, and `--metrics-recording-only` while preserving profile/keychain/headless/platform/startup URL behavior. Deterministic command-construction coverage locks the added arguments.
 
 ### ✅ Task I20: Design OAuth-safe browser login and profile import flow
 

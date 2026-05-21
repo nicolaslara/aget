@@ -225,9 +225,13 @@ fn chrome_launch_command(
         .arg("--disable-backgrounding-occluded-windows")
         .arg("--disable-component-update")
         .arg("--disable-default-apps")
+        .arg("--disable-hang-monitor")
         .arg("--disable-popup-blocking")
+        .arg("--disable-prompt-on-repost")
         .arg("--disable-sync")
         .arg("--disable-features=Translate")
+        .arg("--enable-features=NetworkService,NetworkServiceInProcess")
+        .arg("--metrics-recording-only")
         .arg("--window-size=1280,720")
         .arg(format!("--user-data-dir={}", user_data_dir.display()))
         .stdin(Stdio::null())
@@ -345,4 +349,41 @@ fn find_on_path(command: &str) -> Option<PathBuf> {
     env::split_paths(&path)
         .map(|dir| dir.join(command))
         .find(|path| path.is_file())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::chrome_launch_command;
+    use crate::process::create_private_file;
+
+    #[test]
+    fn chrome_launch_args_include_agent_browser_stability_flags() {
+        let temp = tempfile::tempdir().unwrap();
+        let stderr = create_private_file(&temp.path().join("stderr.txt")).unwrap();
+        let command = chrome_launch_command(
+            temp.path().join("chrome").as_path(),
+            &temp.path().join("profile"),
+            None,
+            false,
+            true,
+            None,
+            stderr,
+        );
+        let args = command
+            .get_args()
+            .map(|arg| arg.to_string_lossy().into_owned())
+            .collect::<Vec<_>>();
+
+        for expected in [
+            "--disable-hang-monitor",
+            "--disable-prompt-on-repost",
+            "--enable-features=NetworkService,NetworkServiceInProcess",
+            "--metrics-recording-only",
+        ] {
+            assert!(
+                args.iter().any(|arg| arg == expected),
+                "missing Chrome launch arg {expected}; got {args:?}"
+            );
+        }
+    }
 }
