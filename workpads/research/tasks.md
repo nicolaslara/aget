@@ -1620,6 +1620,21 @@ Status note:
 
 - Completed with D247. `CurrentTabOptions` and consent-gated current-tab extraction orchestration moved from `src/aget/mod.rs` into `src/aget/current_tab.rs`, while `aget::CurrentTabOptions` and `AgetWith::current_tab` remain caller-compatible. The split keeps facade internals private to the `aget` module tree and leaves `workpads/research/tasks.md` un-compacted.
 
+### ✅ Task I19ce: Split AgetExtractor mock-site route fixture
+
+Acceptance criteria:
+
+- Preserve the public `aget_extractor_parity_site()` test helper and all existing mocked route behavior.
+- Move dense route HTML out of `tests/mock_site_cli/aget_extractor_site.rs` into behavior-focused route modules.
+- Keep the AgetExtractor parity test entrypoint and assertions unchanged.
+- Do not compact or remove planned tasks from `workpads/research/tasks.md`.
+- Record the test fixture boundary in `knowledge.md`.
+- Verify with focused mock-site AgetExtractor parity coverage plus the standard check set.
+
+Status note:
+
+- Completed with D248. `tests/mock_site_cli/aget_extractor_site.rs` now stays as a 21-line route composer, while dense route bodies live under `tests/mock_site_cli/aget_extractor_site/` by formats/options, main-content, selector, markdown, and cleanup behavior. The `aget_extractor_parity_site()` helper and parity assertions remain unchanged, route/asset strings match the previous fixture, and `workpads/research/tasks.md` remains un-compacted.
+
 ### ✅ Task I20: Design OAuth-safe browser login and profile import flow
 
 Acceptance criteria:
