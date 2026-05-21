@@ -2345,6 +2345,21 @@ Validation:
 
 Confidence: High for the mock-site browser/rendering split. The split is mechanical, both affected integration targets passed, and the full standard suite is green.
 
+### D143: I19i splits mock-site session/auth tests
+
+The next integration-test decomposition slice moved mock-site session and auth scenario coverage from `tests/mock_site_cli.rs` to `tests/mock_site_sessions.rs`. The new test target owns cookie and storage replay, unauthenticated/expired/logout states, imported Chrome session replay through the compatibility mock, and login bootstrap replay. `tests/mock_site_cli.rs` is now focused on command/default/static extraction parity and is below 900 lines.
+
+Validation:
+
+- `cargo test --test mock_site_cli`
+- `cargo test --test mock_site_sessions`
+- `cargo fmt`
+- `cargo fmt --check`
+- `git diff --check`
+- `cargo test`
+
+Confidence: High for the mock-site session/auth split. The split is mechanical, both affected integration targets passed, and the full standard suite is green.
+
 ## Open Questions
 
 - Can pure Rust browser automation provide reliable persistent profiles and CDP attach, or do we need a small Node/Playwright sidecar?
