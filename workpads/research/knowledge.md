@@ -22,20 +22,20 @@ Safety boundary remains unchanged: `aget` is a generic fetcher for content the u
 - I19d remains open for full Crawl4AI-quality readability/markdown and still-richer rendered-page readiness after D231 added source-backed custom social media domain support.
 - I19e remains open for broader rendered JavaScript parity, manual real logged-in profile/keychain smoke execution, cross-platform close/process lifecycle parity, and still-fuller startup/error classification.
 - I19h remains open because final migration review requires review subagents for test adequacy, architecture cohesion, and security/privacy.
-- Current support-file rule: do not compact `workpads/research/tasks.md`; compact supporting files by moving dense detail to referenced archive files.
+- Current support-file rule: do not compact `workpads/research/tasks.md`; compact supporting files by moving dense detail to referenced archive files. The largest historical knowledge bundles now route through split archive indexes after D232.
 
 ## Decision Routing
 
 | Need | Open |
 | --- | --- |
 | Recent decision ledger and archive map | `archive/knowledge/current-decision-index.md` |
-| Foundation, PoC, and early architecture decisions | `archive/knowledge/d001-d048-foundation-and-poc.md` |
-| Migration setup, parity, default switch, and first audit | `archive/knowledge/d049-d076-migration-setup-and-defaults.md` |
-| Owned backend feature slices | `archive/knowledge/d077-d122-owned-backend-slices.md` |
+| Foundation, PoC, and early architecture decisions | `archive/knowledge/d001-d048-foundation-and-poc.md` index to `d001-d020-foundation-research.md`, `r12-mvp-architecture-proposal.md`, `d021-d034-poc-session-api.md`, and `d035-d048-poc-hardening-backends.md` |
+| Migration setup, parity, default switch, and first audit | `archive/knowledge/d049-d076-migration-setup-and-defaults.md` index to `d049-d054-migration-setup-and-parity.md`, `d055-d063-owned-extractor-foundation.md`, and `d064-d076-browser-default-switch.md` |
+| Owned backend feature slices | `archive/knowledge/d077-d122-owned-backend-slices.md` index to `d077-d091-owned-extractor-options-cleanup.md`, `d092-d108-markdown-browser-slices.md`, and `d109-d122-selector-overlay-shadow.md` |
 | Original module-decomposition sequence | `archive/knowledge/d123-d150-module-decomposition.md` |
 | Auth/browser import and browser-choice design | `archive/knowledge/d151-d157-auth-and-browser-import.md` |
 | Recent migration follow-ups and source-backed extraction improvements | `archive/knowledge/d158-d167-recent-migration-followups.md` |
-| Latest individual decisions | `archive/knowledge/d168-workpad-knowledge-compaction.md` through `archive/knowledge/d231-custom-social-media-domains.md` |
+| Latest individual decisions | `archive/knowledge/d168-workpad-knowledge-compaction.md` through `archive/knowledge/d232-archive-knowledge-bundle-split.md` |
 
 ## Historical Support Docs
 

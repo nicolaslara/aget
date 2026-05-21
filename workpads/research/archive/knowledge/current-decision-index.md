@@ -48,19 +48,27 @@ This archive file keeps the denser decision routing that used to live in top-lev
 | D229 | `d229-exclude-domains-cleanup.md` | Crawl4AI `exclude_domains` cleanup option for owned extraction. |
 | D230 | `d230-social-media-link-cleanup.md` | Crawl4AI `exclude_social_media_links` cleanup option for owned extraction. |
 | D231 | `d231-custom-social-media-domains.md` | Crawl4AI `exclude_social_media_domains` custom link-domain cleanup option for owned extraction. |
+| D232 | `d232-archive-knowledge-bundle-split.md` | Split the largest historical knowledge bundles into smaller routed archive files without compacting tasks. |
 
 ## Full Archive Routing
 
 | Range | Archive | Contents |
 | --- | --- | --- |
-| D1-D48 | `d001-d048-foundation-and-poc.md` | Product premise, prior art, benchmarks, R12 MVP architecture, early implementation and backend-pluggability decisions. |
-| D49-D76 | `d049-d076-migration-setup-and-defaults.md` | OAuth workflow assessment, I19 source inventory, backend abstractions, parity matrix, owned default switch, command-adapter demotion, first final-audit evidence. |
-| D77-D122 | `d077-d122-owned-backend-slices.md` | Crawl4AI and agent-browser feature slices for owned options, markdown behavior, CDP rendering/readiness, Chrome startup/discovery, overlays, linked images, shadow DOM. |
+| D1-D20 | `d001-d020-foundation-research.md` | Product premise, prior art, auth/session research, benchmark findings, and first PoC direction. |
+| R12 | `r12-mvp-architecture-proposal.md` | MVP architecture proposal, CLI/API boundary, session model, security notes, implementation plan, and review recommendations. |
+| D21-D34 | `d021-d034-poc-session-api.md` | Early implementation, session replay/import, output shaping, auth ownership, login bootstrap, and response API decisions. |
+| D35-D48 | `d035-d048-poc-hardening-backends.md` | Generic extraction follow-up, agent integration, hardening, mocked tests, facade, and backend-pluggability decisions. |
+| D49-D54 | `d049-d054-migration-setup-and-parity.md` | OAuth workflow assessment, API cleanup, dependency migration setup, backend abstractions, and parity matrix. |
+| D55-D63 | `d055-d063-owned-extractor-foundation.md` | First owned extractor, transport, selector, markdown, CDP, and table-rendering slices. |
+| D64-D76 | `d064-d076-browser-default-switch.md` | Browser/profile import, login lifecycle, main-content selection, owned default switch, command-adapter demotion, and first final-audit evidence. |
+| D77-D91 | `d077-d091-owned-extractor-options-cleanup.md` | Owned extractor options, CDP rendering controls, cleaned-HTML cleanup, and early markdown tags. |
+| D92-D108 | `d092-d108-markdown-browser-slices.md` | Markdown fidelity improvements plus Chrome/CDP discovery and startup fallback slices. |
+| D109-D122 | `d109-d122-selector-overlay-shadow.md` | Hard breaks, selector behavior, Chrome retry diagnostics, overlay cleanup, linked images, and shadow DOM flattening. |
 | D123-D150 | `d123-d150-module-decomposition.md` | Original extraction/CDP/test module decomposition through I19i completion. |
 | D151-D157 | `d151-d157-auth-and-browser-import.md` | OAuth-safe authorization API/CLI and conservative browser-neutral Chrome import surface. |
 | D158-D167 | `d158-d167-recent-migration-followups.md` | Recent source-backed extraction improvements and follow-up decomposition slices. |
 | D168-D176 | Per-decision files | Knowledge/reference compaction, engine-refactor planning, wrapper introduction, naming cleanup, and direct engine coverage. |
-| D177-D231 | Per-decision files | Module/test decomposition plus the latest owned extractor/browser parity improvements. |
+| D177-D232 | Per-decision files | Module/test/support decomposition plus the latest owned extractor/browser parity improvements. |
 
 ## Current Open Migration Gaps
 

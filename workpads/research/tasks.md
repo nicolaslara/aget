@@ -1374,6 +1374,21 @@ Status note:
 
 - Completed with D231. Source inspection found `CrawlerRunConfig.exclude_social_media_domains` is a list crawler option and Crawl4AI applies it only through the `exclude_social_media_links` gate while merging it with the built-in social-domain list. Owned extraction now supports `crawl4ai.exclude_social_media_domains`, preserves custom social links by default, removes matching custom and built-in social anchors when `crawl4ai.exclude_social_media_links=true`, leaves images to image/domain cleanup options, and keeps command-helper plus mock-backend option validation aligned.
 
+### ✅ Task I19bo: Split large archived workpad knowledge bundles
+
+Acceptance criteria:
+
+- Preserve `workpads/research/tasks.md` as the full planned-task source of truth; do not compact or remove planned tasks.
+- Split the largest archived knowledge bundles into smaller referenced files so agents can load only the relevant decision range.
+- Keep the original large archive paths as routing indexes rather than deleting them.
+- Update `workpads/research/knowledge.md` and `archive/knowledge/current-decision-index.md` so current routing points at the split files.
+- Record the compaction decision in `knowledge.md`.
+- Verify the split with file-size/line-count checks and `git diff --check`.
+
+Status note:
+
+- Completed with D232. The largest historical knowledge bundles now keep their original paths as short routing indexes, while dense detail lives in smaller decision-range archive files. `workpads/research/tasks.md` remains the full executable backlog and was not compacted.
+
 ### ✅ Task I20: Design OAuth-safe browser login and profile import flow
 
 Acceptance criteria:
