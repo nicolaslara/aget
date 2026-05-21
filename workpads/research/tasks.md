@@ -1240,6 +1240,21 @@ Status note:
 
 - Completed with D223. Source inspection found `CrawlerRunConfig.remove_forms` defaults to `false` and Crawl4AI removes `<form>` nodes before content processing when enabled. Owned extraction now supports `crawl4ai.remove_forms=true`, leaves forms in default output, removes forms during opted-in pre-content cleanup, and keeps the command compatibility allowlist aligned. Deterministic mock-site coverage locks the default and opted-in behavior.
 
+### ✅ Task I19bg: Split browser CDP client test coverage by behavior
+
+Acceptance criteria:
+
+- Preserve current browser/CDP client behavior coverage while reducing `src/browser_cdp/tests/chrome/cdp_client.rs`.
+- Split the large mock-CDP client test module into smaller behavior-focused modules.
+- Keep shared mock server/request helpers local to the Chrome CDP test namespace.
+- Do not compact or remove planned tasks from `workpads/research/tasks.md`.
+- Record the resulting test boundary in `knowledge.md`.
+- Verify with focused browser CDP coverage plus the standard check set.
+
+Status note:
+
+- Completed with D224. The 558-line mock CDP client test module now routes through smaller behavior-focused modules for setup/attach behavior, navigation behavior, and attached-page rendering behavior. Shared mock WebSocket request/reply helpers remain in the Chrome CDP test namespace, runtime behavior was unchanged, and `workpads/research/tasks.md` was not compacted.
+
 ### ✅ Task I20: Design OAuth-safe browser login and profile import flow
 
 Acceptance criteria:
