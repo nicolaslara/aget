@@ -1671,7 +1671,7 @@ fn render_element(node: NodeRef<'_, Node>, tag: &str, writer: &mut MarkdownWrite
         }
         "em" | "i" => {
             let inner = inline_markdown_from_children(node, writer);
-            writer.push_inline(&format!("*{inner}*"));
+            writer.push_inline(&format!("_{inner}_"));
         }
         "del" | "strike" | "s" => {
             let inner = inline_markdown_from_children(node, writer);

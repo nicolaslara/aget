@@ -1657,6 +1657,21 @@ Validation:
 
 Confidence: Medium-high. The behavior is source-backed and covered by deterministic helper and CLI tests using a fake Chrome executable. It still does not prove every platform-specific Chrome startup failure shape, so fuller cross-platform process/error classification remains an I19e follow-up.
 
+### D98: I19d aligns owned emphasis markdown markers
+
+The next markdown-quality slice ports a small Crawl4AI/html2text formatting default. Before changing the owned renderer, I19d re-inspected `references/repos/crawl4ai/crawl4ai/html2text/__init__.py`, where `HTML2Text.__init__` sets `self.emphasis_mark = "_"`, and `references/repos/crawl4ai/crawl4ai/html2text/config.py`, where inline markdown output is the default for links and images.
+
+`OwnedExtractorBackend` now renders `<em>` and `<i>` text with underscore emphasis (`_text_`) instead of asterisk emphasis (`*text*`). The static markdown parity fixture now includes an emphasized phrase alongside the existing deletion, inline-code, quote, horizontal-rule, and definition-list cases.
+
+Validation:
+
+- `cargo fmt --check`
+- `git diff --check`
+- `cargo test --test mock_site_cli homegrown_extractor_backend_covers_static_http_parity_slice`
+- `cargo test`
+
+Confidence: High. The behavior is source-backed, deterministic, and limited to equivalent Markdown emphasis syntax. It does not affect strong emphasis, links, tables, session replay, or browser rendering.
+
 ## Open Questions
 
 - Can pure Rust browser automation provide reliable persistent profiles and CDP attach, or do we need a small Node/Playwright sidecar?

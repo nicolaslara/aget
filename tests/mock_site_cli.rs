@@ -307,7 +307,7 @@ fn homegrown_extractor_backend_covers_static_http_parity_slice() {
   <body>
     <main class="article">
       <h1>Reference Bits</h1>
-      <p>Status: <del>removed</del>, <kbd>Cmd K</kbd>, <tt>TTY</tt>, <q>quoted</q>.</p>
+      <p>Status: <del>removed</del>, <em>soft</em>, <kbd>Cmd K</kbd>, <tt>TTY</tt>, <q>quoted</q>.</p>
       <hr>
       <dl>
         <dt>Term</dt>
@@ -474,7 +474,7 @@ fn homegrown_extractor_backend_covers_static_http_parity_slice() {
         .unwrap();
     assert_eq!(
         markdown_inline_blocks.content,
-        "# Reference Bits\n\nStatus: ~~removed~~, `Cmd K`, `TTY`, \"quoted\".\n\n* * *\n\nTerm\n    Definition with **detail**."
+        "# Reference Bits\n\nStatus: ~~removed~~, _soft_, `Cmd K`, `TTY`, \"quoted\".\n\n* * *\n\nTerm\n    Definition with **detail**."
     );
 
     let markdown_nested_lists = Aget::new(&aget_home)
