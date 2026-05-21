@@ -120,6 +120,24 @@ pub(super) fn assert_cleanup_outputs(aget_home: &Path, site: &MockSite) {
         .content
         .contains("https://cdn.example/remote.png"));
 
+    let no_excluded_domains = Aget::new(aget_home)
+        .with_extractor_backend(AgetExtractorBackend::default())
+        .get(site.url("/html-cleanup"))
+        .content_format(OutputFormat::Html)
+        .backend_option("crawl4ai.exclude_domains", "external.example,cdn.example")
+        .run()
+        .unwrap();
+    assert!(no_excluded_domains.content.contains("href=\"/kept\""));
+    assert!(no_excluded_domains.content.contains("src=\"/diagram.png\""));
+    assert!(!no_excluded_domains.content.contains("id=\"external-link\""));
+    assert!(!no_excluded_domains
+        .content
+        .contains("https://external.example/out"));
+    assert!(!no_excluded_domains.content.contains("id=\"remote-image\""));
+    assert!(!no_excluded_domains
+        .content
+        .contains("https://cdn.example/remote.png"));
+
     let selected_by_pruned_attr = Aget::new(aget_home)
         .with_extractor_backend(AgetExtractorBackend::default())
         .get(site.url("/html-cleanup"))

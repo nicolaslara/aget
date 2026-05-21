@@ -18,6 +18,7 @@ pub(crate) struct OwnedExtractorOptions {
     pub(crate) remove_forms: bool,
     pub(crate) keep_data_attributes: bool,
     pub(crate) exclude_all_images: bool,
+    pub(crate) exclude_domains: Vec<String>,
     pub(crate) exclude_external_images: bool,
     pub(crate) exclude_external_links: bool,
     pub(crate) wait_until: PageWaitUntil,
@@ -41,6 +42,7 @@ impl Default for OwnedExtractorOptions {
             remove_forms: false,
             keep_data_attributes: false,
             exclude_all_images: false,
+            exclude_domains: Vec::new(),
             exclude_external_images: false,
             exclude_external_links: false,
             wait_until: PageWaitUntil::Load,
@@ -97,6 +99,11 @@ pub(crate) fn validate_owned_extraction_options(
                 owned_options.exclude_all_images =
                     parse_owned_bool("crawl4ai.exclude_all_images", &option.value)?;
             }
+            "exclude_domains" => {
+                owned_options
+                    .exclude_domains
+                    .extend(parse_owned_list("crawl4ai.exclude_domains", &option.value)?);
+            }
             "exclude_external_images" => {
                 owned_options.exclude_external_images =
                     parse_owned_bool("crawl4ai.exclude_external_images", &option.value)?;
@@ -148,7 +155,7 @@ pub(crate) fn validate_owned_extraction_options(
             }
             _ => {
                 return Err(extraction_failed(format!(
-                    "owned extractor does not support backend option '{}'; supported options: crawl4ai.delay_before_return_html, crawl4ai.exclude_all_images, crawl4ai.exclude_external_images, crawl4ai.exclude_external_links, crawl4ai.excluded_tags, crawl4ai.flatten_shadow_dom, crawl4ai.keep_data_attributes, crawl4ai.max_scroll_steps, crawl4ai.only_text, crawl4ai.page_timeout, crawl4ai.remove_forms, crawl4ai.scan_full_page, crawl4ai.scroll_delay, crawl4ai.target_elements, crawl4ai.wait_for_images, crawl4ai.wait_for_timeout, crawl4ai.wait_until, crawl4ai.word_count_threshold",
+                    "owned extractor does not support backend option '{}'; supported options: crawl4ai.delay_before_return_html, crawl4ai.exclude_all_images, crawl4ai.exclude_domains, crawl4ai.exclude_external_images, crawl4ai.exclude_external_links, crawl4ai.excluded_tags, crawl4ai.flatten_shadow_dom, crawl4ai.keep_data_attributes, crawl4ai.max_scroll_steps, crawl4ai.only_text, crawl4ai.page_timeout, crawl4ai.remove_forms, crawl4ai.scan_full_page, crawl4ai.scroll_delay, crawl4ai.target_elements, crawl4ai.wait_for_images, crawl4ai.wait_for_timeout, crawl4ai.wait_until, crawl4ai.word_count_threshold",
                     option.key
                 )));
             }
@@ -158,13 +165,11 @@ pub(crate) fn validate_owned_extraction_options(
 }
 
 fn parse_owned_excluded_tags(value: &str) -> Result<Vec<String>, AgetError> {
-    value
-        .split(',')
-        .map(str::trim)
-        .filter(|tag| !tag.is_empty())
+    parse_owned_list("crawl4ai.excluded_tags", value)?
+        .into_iter()
         .map(|tag| {
-            if is_html_tag_name(tag) {
-                Ok(tag.to_string())
+            if is_html_tag_name(&tag) {
+                Ok(tag)
             } else {
                 Err(extraction_failed(format!(
                     "crawl4ai.excluded_tags entry '{tag}' is not a plain HTML tag name"
@@ -172,6 +177,21 @@ fn parse_owned_excluded_tags(value: &str) -> Result<Vec<String>, AgetError> {
             }
         })
         .collect()
+}
+
+fn parse_owned_list(name: &str, value: &str) -> Result<Vec<String>, AgetError> {
+    let items = value
+        .split(',')
+        .map(str::trim)
+        .filter(|item| !item.is_empty())
+        .map(ToOwned::to_owned)
+        .collect::<Vec<_>>();
+    if items.is_empty() {
+        return Err(extraction_failed(format!(
+            "{name} expects a comma-separated list with at least one entry"
+        )));
+    }
+    Ok(items)
 }
 
 fn is_html_tag_name(value: &str) -> bool {

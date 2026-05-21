@@ -10,9 +10,9 @@ use crate::session::PlaywrightState;
 
 use super::artifacts::write_private_file;
 use super::html_clean::{
-    parse_css_selector, remove_owned_comments, remove_owned_excluded_tags,
-    remove_owned_external_images, remove_owned_external_links, remove_owned_overlay_elements,
-    remove_selected_elements,
+    parse_css_selector, remove_owned_comments, remove_owned_excluded_domain_urls,
+    remove_owned_excluded_tags, remove_owned_external_images, remove_owned_external_links,
+    remove_owned_overlay_elements, remove_selected_elements,
 };
 use super::http::{owned_fetch, OwnedHttpResponse};
 use super::{
@@ -307,6 +307,11 @@ fn extract_owned_html(
 
     let selector = options.selector.as_deref().or(fallback_selector);
     let base_url = markdown_base_url(&document, &final_url)?;
+
+    if !owned_options.exclude_domains.is_empty() {
+        document =
+            remove_owned_excluded_domain_urls(document, &base_url, &owned_options.exclude_domains)?;
+    }
 
     if owned_options.exclude_external_links {
         document = remove_owned_external_links(document, &base_url)?;
