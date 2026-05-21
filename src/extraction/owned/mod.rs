@@ -300,6 +300,10 @@ fn extract_owned_html(
         document = remove_selected_elements(document, "form")?;
     }
 
+    if owned_options.exclude_all_images {
+        document = remove_selected_elements(document, "img")?;
+    }
+
     let selector = options.selector.as_deref().or(fallback_selector);
     let base_url = markdown_base_url(&document, &final_url)?;
     let prefer_main_content = selector.is_none()

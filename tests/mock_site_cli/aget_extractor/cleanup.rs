@@ -70,6 +70,17 @@ pub(super) fn assert_cleanup_outputs(aget_home: &Path, site: &MockSite) {
     assert!(!data_attributes.content.contains("aria-label="));
     assert!(!data_attributes.content.contains("rel=\"nofollow\""));
 
+    let no_images = Aget::new(aget_home)
+        .with_extractor_backend(AgetExtractorBackend::default())
+        .get(site.url("/html-cleanup"))
+        .content_format(OutputFormat::Html)
+        .backend_option("crawl4ai.exclude_all_images", "true")
+        .run()
+        .unwrap();
+    assert!(!no_images.content.contains("<img"));
+    assert!(!no_images.content.contains("diagram.png"));
+    assert!(!no_images.content.contains("Inline image"));
+
     let selected_by_pruned_attr = Aget::new(aget_home)
         .with_extractor_backend(AgetExtractorBackend::default())
         .get(site.url("/html-cleanup"))

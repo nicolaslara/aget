@@ -19,7 +19,8 @@ fn get_command_backend_accepts_scan_full_page_options() {
                 "crawl4ai.scroll_delay=0.3",
                 "crawl4ai.max_scroll_steps=5",
                 "crawl4ai.remove_forms=true",
-                "crawl4ai.keep_data_attributes=true"
+                "crawl4ai.keep_data_attributes=true",
+                "crawl4ai.exclude_all_images=true"
             ]
         }),
     );
@@ -42,6 +43,8 @@ fn get_command_backend_accepts_scan_full_page_options() {
             "crawl4ai.remove_forms=true",
             "--backend-option",
             "crawl4ai.keep_data_attributes=true",
+            "--backend-option",
+            "crawl4ai.exclude_all_images=true",
         ])
         .assert()
         .success();
