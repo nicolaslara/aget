@@ -1072,6 +1072,21 @@ Status note:
 
 - Completed with D212. The CLI parser unit tests now route through focused modules for global/top-level behavior, `get`, `current-tab`, and `session` parsing while preserving existing assertions and `src/cli.rs` test-module routing. `workpads/research/tasks.md` was not compacted. Validation passed with focused CLI parser coverage plus the standard check set.
 
+### ✅ Task I19av: Split CLI integration tests by behavior
+
+Acceptance criteria:
+
+- Preserve current `tests/cli.rs` integration-test behavior and assertions.
+- Split help/error, top-level `get`/envelope, current-tab, and shared local-server/mock-tool helpers into focused modules under `tests/cli/`.
+- Keep `tests/cli.rs` as the stable integration-test entrypoint for `cargo test --test cli`.
+- Do not compact or remove planned tasks from `workpads/research/tasks.md`.
+- Record the resulting test boundaries in `knowledge.md`.
+- Verify with focused CLI integration tests plus the standard check set.
+
+Status note:
+
+- Completed with D213. The CLI integration tests now keep `tests/cli.rs` as the stable entrypoint and route help/error, top-level `get`/envelope, current-tab, and shared local-server/mock-tool helpers through focused modules under `tests/cli/`. `workpads/research/tasks.md` was not compacted. The first focused run caught integration-test module path resolution, fixed with explicit `#[path = "cli/..."]` module routes. Validation passed with focused CLI integration coverage plus the standard check set.
+
 ### ✅ Task I20: Design OAuth-safe browser login and profile import flow
 
 Acceptance criteria:
