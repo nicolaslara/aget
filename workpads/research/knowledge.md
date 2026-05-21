@@ -2483,6 +2483,19 @@ Key decisions:
 
 The design also records deterministic mocked tests for I21 and a manual real-OAuth smoke recipe. Confidence is medium-high: the design is consistent with current `README.md`, `.cursor/skills/aget/SKILL.md`, `.opencode/tools/aget.ts`, and earlier D25/D26 auth ownership decisions, but I20 remains open until we decide whether executable mocked tests are part of I20 completion or entirely I21 implementation.
 
+### D152: I20 completed as design scope and I21 owns executable OAuth workflow tests
+
+I20 is complete as a design task. The acceptance wording now distinguishes design deliverables from implementation deliverables: I20 defines the deterministic mocked-site test cases and manual OAuth smoke recipe, while I21 owns the executable tests plus first-class orchestration command/API.
+
+This split matches the existing task boundary because I21 already requires a first-class workflow, mocked tests for unauthenticated/import/locked/reimport/sensitive-envelope states, and documented user prompts. Keeping executable tests in I21 avoids adding pass-through tests before the orchestration surface exists.
+
+Validation:
+
+- `git diff --check`
+- Workpad cross-check: I20 points to `workpads/research/oauth-safe-browser-login-design.md`; I21 remains in progress for implementation and executable test coverage.
+
+Confidence: High for the task-boundary clarification. No runtime code changed.
+
 ## Open Questions
 
 - Can pure Rust browser automation provide reliable persistent profiles and CDP attach, or do we need a small Node/Playwright sidecar?

@@ -516,7 +516,7 @@ Status note:
 
 - Completed after D149. The original agent-context bottlenecks are now split into behavior-owned modules: extraction orchestration, owned extraction, markdown, command adapters, fallback adapters, HTML cleanup, HTTP/static fetch, artifacts/redaction, CDP page scripts, process helpers, discovery, Chrome process launch, CDP client/session plumbing, session data conversion, rendered-page orchestration, profile state export, login lifecycle orchestration, and CDP unit tests. The large integration targets were also split into support helpers plus behavior modules for mock-site docs/browser/session/owned coverage, session CLI import/login coverage, and get CLI session-backed replay/fallback coverage. The post-split size profile keeps the formerly 2k-3k line files below the original problem range, with the largest remaining files around 600-750 lines.
 
-### 🚧 Task I20: Design OAuth-safe browser login and profile import flow
+### ✅ Task I20: Design OAuth-safe browser login and profile import flow
 
 Acceptance criteria:
 
@@ -534,14 +534,14 @@ Acceptance criteria:
   - Normal Chrome `Default` profile import did work when the user was already logged in.
 - Add browser-choice terminology and flags to the proposed public API, e.g. default browser, Chrome profile, Arc/Brave support, and explicit profile path.
 - Preserve the safety boundary: never ask the agent to handle user passwords or OAuth prompts; the user completes login in their browser.
-- Add deterministic mocked-site tests for the decision tree and a documented manual smoke-test recipe for real OAuth sites.
+- Define deterministic mocked-site tests for the decision tree and a documented manual smoke-test recipe for real OAuth sites. Executable tests belong to I21 because they require the first-class orchestration command/API.
 - Record lock-handling behavior and error messages for open profile directories, including "quit this browser/profile before import."
 
 Status note:
 
-- Current support is partial, not automatic. `aget` has the import/fetch/session pieces and agent guidance, but no first-class OAuth-safe orchestration command or browser-choice flow. See `knowledge.md` D51. D151 added `workpads/research/oauth-safe-browser-login-design.md` with the import-first decision tree, public vocabulary, browser-choice boundary, lock/error wording, mocked-test plan, and manual OAuth smoke recipe. Remaining I20 work is to settle whether design acceptance requires executable mocked tests before task completion or whether those tests belong entirely to I21.
+- Completed after D151/D152. `workpads/research/oauth-safe-browser-login-design.md` records the import-first decision tree, public vocabulary, browser-choice boundary, lock/error wording, mocked-test plan, and manual OAuth smoke recipe. I20 acceptance is design-scoped; executable mocked tests and the first-class orchestration command/API are tracked by I21.
 
-### 📋 Task I21: Implement OAuth-safe session authorization workflow
+### 🚧 Task I21: Implement OAuth-safe session authorization workflow
 
 Acceptance criteria:
 
