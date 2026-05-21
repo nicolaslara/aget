@@ -2685,6 +2685,23 @@ Validation:
 
 Confidence: High. The moved code remains inside the binary crate, preserves the same private helper access through the parent module, and focused CLI/session tests pass.
 
+### D163: I19d gives semantic figure/details blocks stable markdown boundaries
+
+The next markdown-quality slice ports a small semantic-content boundary from Crawl4AI. Source inspection used:
+
+- `references/repos/crawl4ai/crawl4ai/content_filter_strategy.py`, where `RelevantContentFilter` treats `figure`, `figcaption`, `details`, `summary`, `address`, `time`, and `cite` as included content tags rather than noise;
+- `references/repos/crawl4ai/crawl4ai/html2text/__init__.py`, where `CustomHTML2Text` delegates non-special semantic tags through the base HTML2Text flow while preserving markdown generation through its cleaned HTML input.
+
+`OwnedExtractorBackend` now renders `figure`, `figcaption`, `details`, `summary`, and `address` with block boundaries instead of letting them collapse into adjacent inline text. Inline semantic tags such as `cite` and `time` continue to render as text. This keeps captions, expandable details, and contact blocks readable in markdown without adding site-specific extraction logic.
+
+Coverage in `tests/mock_site_cli/owned.rs` verifies a figure image plus caption, a details/summary block, and an address block inside the existing static markdown parity fixture.
+
+Validation:
+
+- `cargo test homegrown_extractor_backend_covers_static_http_parity_slice --test mock_site_cli`
+
+Confidence: Medium-high. This is source-backed and deterministic, but it is a local markdown-boundary improvement rather than full Crawl4AI readability parity.
+
 ## Open Questions
 
 - Can pure Rust browser automation provide reliable persistent profiles and CDP attach, or do we need a small Node/Playwright sidecar?

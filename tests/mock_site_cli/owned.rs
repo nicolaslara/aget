@@ -238,6 +238,15 @@ fn homegrown_extractor_backend_covers_static_http_parity_slice() {
       <p>Literal \*stars\* and \[brackets\].</p>
       <hr>
       <blockquote><p>Quoted <strong>block</strong>.</p><p>Second line.</p></blockquote>
+      <figure>
+        <img src="/figure.png" alt="Figure alt">
+        <figcaption>Figure caption with <cite>source</cite>.</figcaption>
+      </figure>
+      <details>
+        <summary>Expandable Summary</summary>
+        <p>Hidden detail text.</p>
+      </details>
+      <address>Contact the docs team.</address>
       <dl>
         <dt>Term</dt>
         <dd>Definition with <strong>detail</strong>.</dd>
@@ -407,7 +416,10 @@ fn homegrown_extractor_backend_covers_static_http_parity_slice() {
         .unwrap();
     assert_eq!(
         markdown_inline_blocks.content,
-        "# Reference Bits\n\nStatus: ~~removed~~, _soft_, _under_, `Cmd K`, `TTY`, \"quoted\", HTML.\n\n1\\. Not a generated list.\n\n\\- Not a generated bullet.\n\n\\+ Not a generated plus bullet.\n\nLiteral \\\\*stars\\\\* and \\\\[brackets\\\\].\n\n* * *\n\n> Quoted **block**.\n>\n> Second line.\n\nTerm\n    Definition with **detail**.\n\n  *[HTML]: HyperText Markup Language"
+        format!(
+            "# Reference Bits\n\nStatus: ~~removed~~, _soft_, _under_, `Cmd K`, `TTY`, \"quoted\", HTML.\n\n1\\. Not a generated list.\n\n\\- Not a generated bullet.\n\n\\+ Not a generated plus bullet.\n\nLiteral \\\\*stars\\\\* and \\\\[brackets\\\\].\n\n* * *\n\n> Quoted **block**.\n>\n> Second line.\n\n![Figure alt]({})\n\nFigure caption with source.\n\nExpandable Summary\n\nHidden detail text.\n\nContact the docs team.\n\nTerm\n    Definition with **detail**.\n\n  *[HTML]: HyperText Markup Language",
+            site.url("/figure.png")
+        )
     );
 
     let markdown_nested_lists = Aget::new(&aget_home)

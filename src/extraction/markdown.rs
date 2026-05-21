@@ -141,6 +141,7 @@ fn render_element(node: NodeRef<'_, Node>, tag: &str, writer: &mut MarkdownWrite
         "table" => render_table(node, writer),
         "pre" => render_code_block(node, writer),
         "code" | "kbd" | "tt" => writer.push_inline(&format!("`{}`", inline_text_from_node(node))),
+        "address" | "details" | "figcaption" | "figure" | "summary" => render_block(node, writer),
         "strong" | "b" => {
             let inner = inline_markdown_from_children(node, writer);
             writer.push_inline(&format!("**{inner}**"));
