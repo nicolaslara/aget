@@ -4,7 +4,9 @@
 
 It is meant for getting clean, low-token page content into agent workflows without sending private browser state to a hosted service.
 
-`aget` is currently migrating from its proof-of-concept command backends to owned Rust implementations. The default fetch, browser fallback, Chrome import, and login lifecycle paths are intended to run through `aget`-owned code; Crawl4AI and `agent-browser` command adapters remain compatibility/test surfaces.
+`aget` has switched its default fetch, browser fallback, Chrome import, and login lifecycle paths to owned Rust implementations. Crawl4AI and `agent-browser` command adapters remain explicit compatibility/test surfaces, but they are no longer required for normal default-runtime use.
+
+The owned-backend migration is not fully closed: final review evidence, deeper browser/profile parity, and OAuth-safe orchestration remain active workpad items.
 
 ## Current Status
 
@@ -86,6 +88,20 @@ The repo includes a real end-to-end demo script:
 ```
 
 It exercises a static public page and a JS-rendered page using the real default backend.
+
+## Compatibility Backends
+
+The default runtime does not automatically fall back to Crawl4AI or `agent-browser`. To compare against the old PoC dependencies or run compatibility tests, select them explicitly:
+
+```bash
+AGET_CRAWL4AI_COMMAND='uv run --with crawl4ai python scripts/crawl4ai_extract.py' \
+  cargo run --quiet -- get https://example.com --envelope json
+
+AGET_AGENT_BROWSER_COMMAND='npx -y agent-browser' \
+  cargo run --quiet -- session import chrome --chrome-profile Default --name docs --allow-domain example.com
+```
+
+When these variables are unset, `aget` uses its owned Rust extractor and owned Chrome/CDP browser/session paths.
 
 ## CLI Reference
 
@@ -240,6 +256,7 @@ Testing layers:
 
 - Use focused unit and fake-backend tests for narrow parser, envelope, subprocess, and redaction behavior.
 - Use `tests/mock_site_cli.rs` and `tests/support/mock_site.rs` for deterministic e2e-style auth/session coverage without real credentials, real sites, or manual login.
+- Use behavior-focused parity tests for the Crawl4AI and `agent-browser` features that `aget` actually depends on. These are local `aget` tests built from source inspection and mock fixtures, not copied upstream test suites.
 - Keep ignored/manual real-site checks only for confidence that local backends still work against user-authorized live pages.
 
 ## Roadmap
