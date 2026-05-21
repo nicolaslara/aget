@@ -2203,6 +2203,22 @@ Validation:
 
 Confidence: High for the extraction artifacts split. The split is mechanical, focused artifact/redaction coverage passed, and the full standard suite is green.
 
+### D134: I19i splits CDP rendered-page orchestration
+
+The next `browser_cdp` decomposition slice moved rendered-page orchestration from `src/browser_cdp.rs` to `src/browser_cdp/render.rs`. The new module owns `BrowserRenderRequest`, `RenderedPage`, `PageWaitUntil`, temporary Chrome launch for page rendering, page-domain setup, optional shadow-root opening and flattening, session-state loading, navigation/wait orchestration, image waits, settle delay, rendered overlay cleanup dispatch, final URL evaluation, HTML capture fallback, target close, and browser shutdown. The parent `browser_cdp` module keeps state export and login lifecycle orchestration for separate state/login splits.
+
+Validation:
+
+- `cargo check`
+- `cargo fmt`
+- `cargo fmt --check`
+- `git diff --check`
+- `cargo test --test mock_site_cli homegrown_extractor_backend_covers_static_http_parity_slice`
+- `cargo test browser_cdp::tests::`
+- `cargo test`
+
+Confidence: High for the CDP render split. The split is mechanical, the CDP-focused unit slice passed, the owned-extractor caller path still passes, and the full standard suite is green.
+
 ## Open Questions
 
 - Can pure Rust browser automation provide reliable persistent profiles and CDP attach, or do we need a small Node/Playwright sidecar?
