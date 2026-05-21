@@ -2716,6 +2716,20 @@ Validation:
 
 Confidence: High. The behavior is source-backed, narrow, and covered by the existing owned markdown link-default fixture.
 
+### D165: Follow-up mock-site owned fixture split
+
+The next decomposition slice reduced the largest remaining tracked Rust file, `tests/mock_site_cli/owned.rs`, without changing test behavior. Route construction for the owned extractor parity site now lives in `tests/mock_site_cli/owned_site.rs`; the original owned parity test keeps the assertions and imports the shared fixture builder from the test crate root.
+
+This keeps extraction assertions easier to scan while leaving the mock route corpus available to future owned extraction test splits.
+
+Validation:
+
+- `cargo fmt --check`
+- `cargo test homegrown_extractor_backend_covers_static_http_parity_slice --test mock_site_cli`
+- `cargo test`
+
+Confidence: High. This is a mechanical test-fixture split with no production behavior change.
+
 ## Open Questions
 
 - Can pure Rust browser automation provide reliable persistent profiles and CDP attach, or do we need a small Node/Playwright sidecar?

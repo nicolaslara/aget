@@ -2,6 +2,8 @@ mod support;
 
 #[path = "mock_site_cli/owned.rs"]
 mod owned;
+#[path = "mock_site_cli/owned_site.rs"]
+mod owned_site;
 
 use aget::OutputFormat;
 use assert_cmd::Command;
