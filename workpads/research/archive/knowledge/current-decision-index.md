@@ -50,6 +50,7 @@ This archive file keeps the denser decision routing that used to live in top-lev
 | D231 | `d231-custom-social-media-domains.md` | Crawl4AI `exclude_social_media_domains` custom link-domain cleanup option for owned extraction. |
 | D232 | `d232-archive-knowledge-bundle-split.md` | Split the largest historical knowledge bundles into smaller routed archive files without compacting tasks. |
 | D233 | `d233-main-content-chrome-ancestor-skip.md` | Crawl4AI pruning-filter-inspired page-chrome ancestor skip for default main-content candidates. |
+| D234 | `d234-remove-overlay-elements-option.md` | Explicit `crawl4ai.remove_overlay_elements` option support while preserving aget's default overlay cleanup. |
 
 ## Full Archive Routing
 
@@ -69,7 +70,7 @@ This archive file keeps the denser decision routing that used to live in top-lev
 | D151-D157 | `d151-d157-auth-and-browser-import.md` | OAuth-safe authorization API/CLI and conservative browser-neutral Chrome import surface. |
 | D158-D167 | `d158-d167-recent-migration-followups.md` | Recent source-backed extraction improvements and follow-up decomposition slices. |
 | D168-D176 | Per-decision files | Knowledge/reference compaction, engine-refactor planning, wrapper introduction, naming cleanup, and direct engine coverage. |
-| D177-D233 | Per-decision files | Module/test/support decomposition plus the latest owned extractor/browser parity improvements. |
+| D177-D234 | Per-decision files | Module/test/support decomposition plus the latest owned extractor/browser parity improvements. |
 
 ## Current Open Migration Gaps
 

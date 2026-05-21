@@ -15,6 +15,7 @@ pub(crate) struct OwnedExtractorOptions {
     pub(crate) excluded_tags: Vec<String>,
     pub(crate) target_elements: Vec<String>,
     pub(crate) only_text: bool,
+    pub(crate) remove_overlay_elements: bool,
     pub(crate) remove_forms: bool,
     pub(crate) keep_data_attributes: bool,
     pub(crate) exclude_all_images: bool,
@@ -41,6 +42,7 @@ impl Default for OwnedExtractorOptions {
             excluded_tags: Vec::new(),
             target_elements: Vec::new(),
             only_text: false,
+            remove_overlay_elements: true,
             remove_forms: false,
             keep_data_attributes: false,
             exclude_all_images: false,
@@ -90,6 +92,10 @@ pub(crate) fn validate_owned_extraction_options(
             }
             "only_text" => {
                 owned_options.only_text = parse_owned_bool("crawl4ai.only_text", &option.value)?;
+            }
+            "remove_overlay_elements" => {
+                owned_options.remove_overlay_elements =
+                    parse_owned_bool("crawl4ai.remove_overlay_elements", &option.value)?;
             }
             "remove_forms" => {
                 owned_options.remove_forms =
@@ -171,7 +177,7 @@ pub(crate) fn validate_owned_extraction_options(
             }
             _ => {
                 return Err(extraction_failed(format!(
-                    "owned extractor does not support backend option '{}'; supported options: crawl4ai.delay_before_return_html, crawl4ai.exclude_all_images, crawl4ai.exclude_domains, crawl4ai.exclude_external_images, crawl4ai.exclude_external_links, crawl4ai.exclude_social_media_domains, crawl4ai.exclude_social_media_links, crawl4ai.excluded_tags, crawl4ai.flatten_shadow_dom, crawl4ai.keep_data_attributes, crawl4ai.max_scroll_steps, crawl4ai.only_text, crawl4ai.page_timeout, crawl4ai.remove_forms, crawl4ai.scan_full_page, crawl4ai.scroll_delay, crawl4ai.target_elements, crawl4ai.wait_for_images, crawl4ai.wait_for_timeout, crawl4ai.wait_until, crawl4ai.word_count_threshold",
+                    "owned extractor does not support backend option '{}'; supported options: crawl4ai.delay_before_return_html, crawl4ai.exclude_all_images, crawl4ai.exclude_domains, crawl4ai.exclude_external_images, crawl4ai.exclude_external_links, crawl4ai.exclude_social_media_domains, crawl4ai.exclude_social_media_links, crawl4ai.excluded_tags, crawl4ai.flatten_shadow_dom, crawl4ai.keep_data_attributes, crawl4ai.max_scroll_steps, crawl4ai.only_text, crawl4ai.page_timeout, crawl4ai.remove_forms, crawl4ai.remove_overlay_elements, crawl4ai.scan_full_page, crawl4ai.scroll_delay, crawl4ai.target_elements, crawl4ai.wait_for_images, crawl4ai.wait_for_timeout, crawl4ai.wait_until, crawl4ai.word_count_threshold",
                     option.key
                 )));
             }

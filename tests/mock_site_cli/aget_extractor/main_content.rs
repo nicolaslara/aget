@@ -94,6 +94,23 @@ pub(super) fn assert_main_content_scoring(aget_home: &Path, site: &MockSite) {
     assert!(!overlay_html.content.contains("Newsletter modal text."));
     assert!(overlay_html.content.contains("Useful article text."));
 
+    let overlay_html_without_cleanup = Aget::new(aget_home)
+        .with_extractor_backend(AgetExtractorBackend::default())
+        .get(site.url("/overlay-content"))
+        .content_format(OutputFormat::Html)
+        .backend_option("crawl4ai.remove_overlay_elements", "false")
+        .run()
+        .unwrap();
+    assert!(overlay_html_without_cleanup
+        .content
+        .contains("Cookie banner text."));
+    assert!(overlay_html_without_cleanup
+        .content
+        .contains("Newsletter modal text."));
+    assert!(overlay_html_without_cleanup
+        .content
+        .contains("Useful article text."));
+
     let main_html = Aget::new(aget_home)
         .with_extractor_backend(AgetExtractorBackend::default())
         .get(site.url("/main-content"))

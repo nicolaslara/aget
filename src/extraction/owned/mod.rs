@@ -287,7 +287,9 @@ fn extract_owned_html(
         }
     }
 
-    document = remove_owned_overlay_elements(document)?;
+    if owned_options.remove_overlay_elements {
+        document = remove_owned_overlay_elements(document)?;
+    }
 
     if !owned_options.excluded_tags.is_empty() {
         document = remove_owned_excluded_tags(document, &owned_options.excluded_tags)?;
