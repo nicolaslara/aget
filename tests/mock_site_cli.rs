@@ -1622,6 +1622,7 @@ fn save_storage_session(home: &Path, name: &str, origin: &str, key: &str, value:
             name: key.to_string(),
             value: value.to_string(),
         }],
+        session_storage: Vec::new(),
         source_session: Some(name.to_string()),
     });
     store.save(&session).unwrap();

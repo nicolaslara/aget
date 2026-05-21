@@ -1462,6 +1462,24 @@ Validation:
 
 Confidence: Medium-high for this parity slice. The smoke uses local Chrome and a deterministic local site, but broader SPA readiness, current-tab attach, and real logged-in profile/keychain behavior remain open.
 
+### D85: I19e preserves owned browser sessionStorage state
+
+The next I19e state-parity slice ports the sessionStorage behavior that was still only partially represented in `aget`. Before changing the owned path, I19e re-inspected `references/repos/agent-browser/cli/src/native/state.rs`, where `StorageState` includes per-origin `sessionStorage`, state export collects `sessionStorage` through `Runtime.evaluate`, and state load navigates to each origin before calling `sessionStorage.setItem(...)`.
+
+`aget` now keeps sessionStorage as first-class scoped session state. `SessionOrigin` stores it beside localStorage, agent-browser/Playwright-state imports preserve it through the same allowlist filtering, composed state merges it with duplicate-key conflict checks, owned CDP fallback loading replays it after navigating to the origin, and CDP state export collects origins that contain either localStorage or sessionStorage. Live owned-login export now attaches to an existing non-internal page target before state export instead of creating a fresh tab, because sessionStorage is tab-scoped and would otherwise be lost. Normal session inspection and extraction redaction now treat sessionStorage values as credential-equivalent bearer material, while `--show-secrets` can still reveal them intentionally.
+
+Validation:
+
+- `cargo check`
+- `cargo test session_storage`
+- `cargo test --test session_cli session_import_chrome_saves_filtered_state_and_cleans_raw_file`
+- `cargo test browser_cdp::tests::parses_origin_storage_runtime_value`
+- `cargo test browser_cdp::tests::prefers_existing_non_internal_page_target`
+- `cargo test browser_cdp::tests::owned_chrome_import_exports_cookie_and_local_storage_from_profile_directory -- --ignored`
+- `cargo test browser_cdp::tests::owned_login_browser_exports_state_from_headed_profile_and_closes -- --ignored`
+
+Confidence: Medium-high. Deterministic tests cover import filtering, redaction, composition, JS expression quoting, target selection, and CDP result parsing. The local-Chrome ignored smokes cover persistent profile export plus live headed-login sessionStorage export, but current-tab attach and broader cross-platform browser-process behavior remain I19e follow-ups.
+
 ## Open Questions
 
 - Can pure Rust browser automation provide reliable persistent profiles and CDP attach, or do we need a small Node/Playwright sidecar?

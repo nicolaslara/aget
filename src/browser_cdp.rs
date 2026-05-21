@@ -185,16 +185,23 @@ pub(crate) fn export_login_browser_state(
     if let Some(mut client) =
         connect_existing_profile_browser(request.profile_dir, request.timeout)?
     {
-        let page = client.create_page(request.timeout)?;
+        let existing_page = client.attach_existing_page(request.timeout)?;
+        let created_page = existing_page.is_none();
+        let page = match existing_page {
+            Some(page) => page,
+            None => client.create_page(request.timeout)?,
+        };
         client.enable_page_domains(&page.session_id, request.timeout)?;
         let state =
             client.export_state(&page.session_id, request.allowed_domains, request.timeout)?;
-        let _ = client.send(
-            "Target.closeTarget",
-            Some(json!({ "targetId": page.target_id })),
-            None,
-            Duration::from_secs(1),
-        );
+        if created_page {
+            let _ = client.send(
+                "Target.closeTarget",
+                Some(json!({ "targetId": page.target_id })),
+                None,
+                Duration::from_secs(1),
+            );
+        }
         client.close_browser(request.timeout)?;
         wait_for_profile_browser_shutdown(request.profile_dir, Duration::from_secs(5));
         ensure_login_browser_exited(request.profile_dir, request.pid, Duration::from_secs(5))?;
@@ -445,6 +452,28 @@ impl CdpClient {
             timeout,
         )?;
         let target_id = string_field(&created, "targetId", "Target.createTarget")?;
+        self.attach_to_target(target_id, timeout)
+    }
+
+    fn attach_existing_page(
+        &mut self,
+        timeout: Duration,
+    ) -> Result<Option<PageSession>, AgetError> {
+        let targets = self.send("Target.getTargets", Some(json!({})), None, timeout)?;
+        let Some(target_infos) = targets.get("targetInfos").and_then(Value::as_array) else {
+            return Ok(None);
+        };
+        let Some(target_id) = preferred_page_target_id(target_infos) else {
+            return Ok(None);
+        };
+        self.attach_to_target(target_id, timeout).map(Some)
+    }
+
+    fn attach_to_target(
+        &mut self,
+        target_id: String,
+        timeout: Duration,
+    ) -> Result<PageSession, AgetError> {
         let attached = self.send(
             "Target.attachToTarget",
             Some(json!({
@@ -468,6 +497,12 @@ impl CdpClient {
     ) -> Result<(), AgetError> {
         self.send("Page.enable", None, Some(session_id), timeout)?;
         self.send("Runtime.enable", None, Some(session_id), timeout)?;
+        let _ = self.send(
+            "Runtime.runIfWaitingForDebugger",
+            None,
+            Some(session_id),
+            Duration::from_secs(1),
+        );
         self.send("Network.enable", None, Some(session_id), timeout)?;
         Ok(())
     }
@@ -488,13 +523,26 @@ impl CdpClient {
         }
 
         for origin in &state.origins {
-            if origin.local_storage.is_empty() {
+            if origin.local_storage.is_empty() && origin.session_storage.is_empty() {
                 continue;
             }
             let navigate_url = format!("{}/", origin.origin.trim_end_matches('/'));
             self.navigate_and_wait(session_id, &navigate_url, PageWaitUntil::Load, timeout)?;
             for entry in &origin.local_storage {
                 let expression = local_storage_set_expression(&entry.name, &entry.value)?;
+                self.send(
+                    "Runtime.evaluate",
+                    Some(json!({
+                        "expression": expression,
+                        "returnByValue": true,
+                        "awaitPromise": false,
+                    })),
+                    Some(session_id),
+                    timeout,
+                )?;
+            }
+            for entry in &origin.session_storage {
+                let expression = session_storage_set_expression(&entry.name, &entry.value)?;
                 self.send(
                     "Runtime.evaluate",
                     Some(json!({
@@ -587,7 +635,7 @@ impl CdpClient {
             let Some(origin) = origin_storage_from_runtime_result(&result) else {
                 continue;
             };
-            if !origin.local_storage.is_empty() {
+            if !origin.local_storage.is_empty() || !origin.session_storage.is_empty() {
                 origins.push(origin);
             }
         }
@@ -1169,9 +1217,14 @@ fn origin_storage_from_runtime_result(result: &Value) -> Option<PlaywrightOrigin
         .get("localStorage")
         .and_then(|storage| serde_json::from_value::<Vec<StorageEntry>>(storage.clone()).ok())
         .unwrap_or_default();
+    let session_storage = value
+        .get("sessionStorage")
+        .and_then(|storage| serde_json::from_value::<Vec<StorageEntry>>(storage.clone()).ok())
+        .unwrap_or_default();
     Some(PlaywrightOrigin {
         origin: origin.to_string(),
         local_storage,
+        session_storage,
     })
 }
 
@@ -1183,11 +1236,55 @@ fn local_storage_set_expression(name: &str, value: &str) -> Result<String, AgetE
     ))
 }
 
+fn session_storage_set_expression(name: &str, value: &str) -> Result<String, AgetError> {
+    Ok(format!(
+        "sessionStorage.setItem({}, {})",
+        serde_json::to_string(name).map_err(io_aget_error)?,
+        serde_json::to_string(value).map_err(io_aget_error)?
+    ))
+}
+
 fn selector_exists_expression(selector: &str) -> Result<String, AgetError> {
     Ok(format!(
         "document.querySelector({}) !== null",
         serde_json::to_string(selector).map_err(io_aget_error)?
     ))
+}
+
+fn preferred_page_target_id(target_infos: &[Value]) -> Option<String> {
+    let mut fallback = None;
+    for target in target_infos {
+        let Some((target_id, url)) = trackable_page_target(target) else {
+            continue;
+        };
+        fallback.get_or_insert_with(|| target_id.to_string());
+        if !url.is_empty() && url != "about:blank" {
+            return Some(target_id.to_string());
+        }
+    }
+    fallback
+}
+
+fn trackable_page_target(target: &Value) -> Option<(&str, &str)> {
+    let target_type = target.get("type").and_then(Value::as_str)?;
+    if target_type != "page" && target_type != "webview" {
+        return None;
+    }
+    let url = target
+        .get("url")
+        .and_then(Value::as_str)
+        .unwrap_or_default();
+    if is_internal_chrome_target(url) {
+        return None;
+    }
+    let target_id = target.get("targetId").and_then(Value::as_str)?;
+    Some((target_id, url))
+}
+
+fn is_internal_chrome_target(url: &str) -> bool {
+    url.starts_with("chrome://")
+        || url.starts_with("chrome-extension://")
+        || url.starts_with("devtools://")
 }
 
 fn string_field(value: &Value, field: &str, context: &str) -> Result<String, AgetError> {
@@ -1748,6 +1845,8 @@ mod tests {
         assert_eq!(origin.origin, "https://example.com");
         assert_eq!(origin.local_storage.len(), 1);
         assert_eq!(origin.local_storage[0].name, "token");
+        assert_eq!(origin.session_storage.len(), 1);
+        assert_eq!(origin.session_storage[0].name, "ignored");
     }
 
     #[test]
@@ -1817,6 +1916,18 @@ mod tests {
                     timeout,
                 )
                 .unwrap();
+            client
+                .send(
+                    "Runtime.evaluate",
+                    Some(json!({
+                        "expression": session_storage_set_expression("session-token", "session-secret").unwrap(),
+                        "returnByValue": true,
+                        "awaitPromise": false,
+                    })),
+                    Some(&page.session_id),
+                    timeout,
+                )
+                .unwrap();
             let _ = client.send("Browser.close", None, None, Duration::from_secs(1));
             chrome.wait_or_kill(Duration::from_secs(5));
         }
@@ -1866,7 +1977,10 @@ mod tests {
             let mut client = connect_existing_profile_browser(&profile, timeout)
                 .unwrap()
                 .expect("headed login browser should expose CDP");
-            let page = client.create_page(timeout).unwrap();
+            let page = client
+                .attach_existing_page(timeout)
+                .unwrap()
+                .unwrap_or_else(|| client.create_page(timeout).unwrap());
             client
                 .enable_page_domains(&page.session_id, timeout)
                 .unwrap();
@@ -1909,12 +2023,18 @@ mod tests {
                     timeout,
                 )
                 .unwrap();
-            let _ = client.send(
-                "Target.closeTarget",
-                Some(json!({ "targetId": page.target_id })),
-                None,
-                Duration::from_secs(1),
-            );
+            client
+                .send(
+                    "Runtime.evaluate",
+                    Some(json!({
+                        "expression": session_storage_set_expression("session-token", "login-session").unwrap(),
+                        "returnByValue": true,
+                        "awaitPromise": false,
+                    })),
+                    Some(&page.session_id),
+                    timeout,
+                )
+                .unwrap();
         }
 
         let exported = export_login_browser_state(BrowserLoginStateExportRequest {
@@ -1935,6 +2055,10 @@ mod tests {
                     .local_storage
                     .iter()
                     .any(|entry| entry.name == "token" && entry.value == "login-storage")
+                && origin
+                    .session_storage
+                    .iter()
+                    .any(|entry| entry.name == "session-token" && entry.value == "login-session")
         }));
         remove_dir_all_with_retries(&profile).unwrap();
     }
@@ -1948,6 +2072,40 @@ mod tests {
             expression,
             "localStorage.setItem(\"token\\\"name\", \"line\\nvalue</script>\")"
         );
+    }
+
+    #[test]
+    fn session_storage_expression_json_quotes_key_and_value() {
+        let expression =
+            session_storage_set_expression("token\"name", "line\nvalue</script>").unwrap();
+
+        assert_eq!(
+            expression,
+            "sessionStorage.setItem(\"token\\\"name\", \"line\\nvalue</script>\")"
+        );
+    }
+
+    #[test]
+    fn prefers_existing_non_internal_page_target() {
+        let target_id = preferred_page_target_id(&[
+            json!({
+                "targetId": "chrome",
+                "type": "page",
+                "url": "chrome://new-tab-page/"
+            }),
+            json!({
+                "targetId": "blank",
+                "type": "page",
+                "url": "about:blank"
+            }),
+            json!({
+                "targetId": "login",
+                "type": "page",
+                "url": "https://example.com/login"
+            }),
+        ]);
+
+        assert_eq!(target_id.as_deref(), Some("login"));
     }
 
     #[test]

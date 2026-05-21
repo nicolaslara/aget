@@ -630,12 +630,13 @@ fn sensitive_values(state: &PlaywrightState) -> Vec<String> {
         .cookies
         .iter()
         .map(|cookie| cookie.value.clone())
-        .chain(
-            state
-                .origins
+        .chain(state.origins.iter().flat_map(|origin| {
+            origin
+                .local_storage
                 .iter()
-                .flat_map(|origin| origin.local_storage.iter().map(|entry| entry.value.clone())),
-        )
+                .chain(origin.session_storage.iter())
+                .map(|entry| entry.value.clone())
+        }))
         .filter(|value| !value.is_empty())
         .collect()
 }

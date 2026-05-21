@@ -54,6 +54,8 @@ pub struct SessionCookie {
 pub struct SessionOrigin {
     pub origin: String,
     pub local_storage: Vec<StorageEntry>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub session_storage: Vec<StorageEntry>,
     pub source_session: Option<String>,
 }
 

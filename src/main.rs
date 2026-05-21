@@ -220,6 +220,9 @@ fn run_session(command: SessionSubcommand, json: bool) -> Result<(), ErrorRespon
                     for entry in origin.local_storage {
                         println!("  - localStorage {}={}", entry.name, entry.value);
                     }
+                    for entry in origin.session_storage {
+                        println!("  - sessionStorage {}={}", entry.name, entry.value);
+                    }
                 }
             }
             Ok(())
@@ -515,6 +518,7 @@ struct CookieView<'a> {
 struct OriginView<'a> {
     origin: &'a str,
     local_storage: Vec<StorageEntryView<'a>>,
+    session_storage: Vec<StorageEntryView<'a>>,
     source_session: &'a Option<String>,
 }
 
@@ -566,6 +570,11 @@ fn origin_view(origin: &aget::SessionOrigin, show_secrets: bool) -> OriginView<'
         origin: &origin.origin,
         local_storage: origin
             .local_storage
+            .iter()
+            .map(|entry| storage_entry_view(entry, show_secrets))
+            .collect(),
+        session_storage: origin
+            .session_storage
             .iter()
             .map(|entry| storage_entry_view(entry, show_secrets))
             .collect(),

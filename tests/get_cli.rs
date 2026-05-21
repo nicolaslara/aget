@@ -1444,6 +1444,7 @@ fn save_cookie_and_storage_session(
             name: storage_name.to_string(),
             value: storage_value.to_string(),
         }],
+        session_storage: Vec::new(),
         source_session: Some(name.to_string()),
     });
     store.save(&session).unwrap();

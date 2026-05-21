@@ -35,6 +35,12 @@ pub struct PlaywrightOrigin {
     pub origin: String,
     #[serde(rename = "localStorage")]
     pub local_storage: Vec<StorageEntry>,
+    #[serde(
+        rename = "sessionStorage",
+        default,
+        skip_serializing_if = "Vec::is_empty"
+    )]
+    pub session_storage: Vec<StorageEntry>,
 }
 
 #[derive(Debug)]
@@ -65,7 +71,7 @@ impl Drop for TempStateFile {
 
 pub fn compose_playwright_state(sessions: &[Session]) -> Result<PlaywrightState, AgetError> {
     let mut cookies_by_key = BTreeMap::<CookieKey, PlaywrightCookie>::new();
-    let mut origins_by_name = BTreeMap::<String, BTreeMap<String, StorageEntry>>::new();
+    let mut origins_by_name = BTreeMap::<String, OriginStorage>::new();
 
     for session in sessions {
         for cookie in &session.cookies {
@@ -99,8 +105,19 @@ pub fn compose_playwright_state(sessions: &[Session]) -> Result<PlaywrightState,
         }
 
         for origin in &session.origins {
-            let entries = origins_by_name.entry(origin.origin.clone()).or_default();
-            merge_storage_entries(&origin.origin, entries, &origin.local_storage)?;
+            let storage = origins_by_name.entry(origin.origin.clone()).or_default();
+            merge_storage_entries(
+                &origin.origin,
+                "localStorage",
+                &mut storage.local_storage,
+                &origin.local_storage,
+            )?;
+            merge_storage_entries(
+                &origin.origin,
+                "sessionStorage",
+                &mut storage.session_storage,
+                &origin.session_storage,
+            )?;
         }
     }
 
@@ -110,7 +127,8 @@ pub fn compose_playwright_state(sessions: &[Session]) -> Result<PlaywrightState,
             .into_iter()
             .map(|(origin, entries)| PlaywrightOrigin {
                 origin,
-                local_storage: entries.into_values().collect(),
+                local_storage: entries.local_storage.into_values().collect(),
+                session_storage: entries.session_storage.into_values().collect(),
             })
             .collect(),
     })
@@ -165,8 +183,15 @@ pub fn compose_session(name: &str, sessions: &[Session]) -> Result<Session, Aget
             composed_origin.sources.insert(source);
             merge_storage_entries(
                 &origin.origin,
+                "localStorage",
                 &mut composed_origin.local_storage,
                 &origin.local_storage,
+            )?;
+            merge_storage_entries(
+                &origin.origin,
+                "sessionStorage",
+                &mut composed_origin.session_storage,
+                &origin.session_storage,
             )?;
         }
     }
@@ -190,6 +215,7 @@ pub fn compose_session(name: &str, sessions: &[Session]) -> Result<Session, Aget
 struct ComposedOrigin {
     origin: String,
     local_storage: BTreeMap<String, StorageEntry>,
+    session_storage: BTreeMap<String, StorageEntry>,
     sources: BTreeSet<String>,
 }
 
@@ -198,6 +224,7 @@ impl ComposedOrigin {
         Self {
             origin: origin.to_string(),
             local_storage: BTreeMap::new(),
+            session_storage: BTreeMap::new(),
             sources: BTreeSet::new(),
         }
     }
@@ -211,13 +238,21 @@ impl ComposedOrigin {
         SessionOrigin {
             origin: self.origin,
             local_storage: self.local_storage.into_values().collect(),
+            session_storage: self.session_storage.into_values().collect(),
             source_session,
         }
     }
 }
 
+#[derive(Debug, Default)]
+struct OriginStorage {
+    local_storage: BTreeMap<String, StorageEntry>,
+    session_storage: BTreeMap<String, StorageEntry>,
+}
+
 fn merge_storage_entries(
     origin: &str,
+    storage_kind: &str,
     entries_by_name: &mut BTreeMap<String, StorageEntry>,
     entries: &[StorageEntry],
 ) -> Result<(), AgetError> {
@@ -227,7 +262,7 @@ fn merge_storage_entries(
                 return Err(AgetError::Stable {
                     code: ErrorCode::SessionConflict,
                     message: format!(
-                        "conflicting localStorage key '{}' for origin '{}'",
+                        "conflicting {storage_kind} key '{}' for origin '{}'",
                         entry.name, origin
                     ),
                 });
@@ -482,6 +517,23 @@ mod tests {
     }
 
     #[test]
+    fn composes_session_storage_into_playwright_state() {
+        let mut session = Session::new("a");
+        let mut origin = origin("https://example.com", "token", "first");
+        origin.session_storage.push(StorageEntry {
+            name: "session-token".to_string(),
+            value: "session-secret".to_string(),
+        });
+        session.origins.push(origin);
+
+        let state = compose_playwright_state(&[session]).unwrap();
+
+        assert_eq!(state.origins.len(), 1);
+        assert_eq!(state.origins[0].session_storage.len(), 1);
+        assert_eq!(state.origins[0].session_storage[0].name, "session-token");
+    }
+
+    #[test]
     fn temp_state_file_is_removed_on_drop() {
         let temp = tempfile::tempdir().unwrap();
         let state = compose_playwright_state(&[]).unwrap();
@@ -562,6 +614,30 @@ mod tests {
         assert_eq!(composed.origins.len(), 1);
         assert_eq!(composed.origins[0].origin, "https://example.com");
         assert_eq!(composed.origins[0].local_storage.len(), 2);
+        assert_eq!(composed.origins[0].source_session, None);
+    }
+
+    #[test]
+    fn composed_session_merges_disjoint_session_storage_keys() {
+        let mut session_a = Session::new("a");
+        let mut origin_a = origin("https://example.com", "token", "first");
+        origin_a.session_storage.push(StorageEntry {
+            name: "session-token".to_string(),
+            value: "first-session".to_string(),
+        });
+        session_a.origins.push(origin_a);
+        let mut session_b = Session::new("b");
+        let mut origin_b = origin("https://example.com", "theme", "dark");
+        origin_b.session_storage.push(StorageEntry {
+            name: "session-theme".to_string(),
+            value: "dark-session".to_string(),
+        });
+        session_b.origins.push(origin_b);
+
+        let composed = compose_session("combined", &[session_a, session_b]).unwrap();
+
+        assert_eq!(composed.origins.len(), 1);
+        assert_eq!(composed.origins[0].session_storage.len(), 2);
         assert_eq!(composed.origins[0].source_session, None);
     }
 
@@ -648,6 +724,7 @@ mod tests {
                 name: name.to_string(),
                 value: value.to_string(),
             }],
+            session_storage: Vec::new(),
             source_session: None,
         }
     }

@@ -47,7 +47,7 @@ struct AgentBrowserOrigin {
     #[serde(rename = "localStorage", default)]
     local_storage: Vec<StorageEntry>,
     #[serde(rename = "sessionStorage", default)]
-    _session_storage: Vec<StorageEntry>,
+    session_storage: Vec<StorageEntry>,
 }
 
 fn deserialize_agent_browser_expires<'de, D>(deserializer: D) -> Result<Option<i64>, D::Error>
@@ -249,6 +249,7 @@ pub(crate) fn filter_agent_browser_state(
         let session_origin = SessionOrigin {
             origin: origin.origin,
             local_storage: origin.local_storage,
+            session_storage: origin.session_storage,
             source_session: Some(filter.source_session.clone()),
         };
         match origins_by_name.get(&session_origin.origin) {
@@ -308,7 +309,7 @@ pub(crate) fn filter_playwright_state(
                 .map(|origin| AgentBrowserOrigin {
                     origin: origin.origin,
                     local_storage: origin.local_storage,
-                    _session_storage: Vec::new(),
+                    session_storage: origin.session_storage,
                 })
                 .collect(),
         },
@@ -475,6 +476,13 @@ mod tests {
             .origins
             .iter()
             .any(|origin| origin.origin == "https://docs.example.com:443"));
+        assert!(session.origins.iter().any(|origin| {
+            origin.origin == "https://example.com"
+                && origin
+                    .session_storage
+                    .iter()
+                    .any(|entry| entry.name == "session-token")
+        }));
         assert_eq!(
             session.source,
             SessionSource::ChromeProfile {
@@ -547,12 +555,20 @@ mod tests {
                         name: "token".to_string(),
                         value: "secret".to_string(),
                     }],
+                    session_storage: vec![StorageEntry {
+                        name: "session-token".to_string(),
+                        value: "session-secret".to_string(),
+                    }],
                 },
                 crate::session::PlaywrightOrigin {
                     origin: "https://example.com.evil".to_string(),
                     local_storage: vec![StorageEntry {
                         name: "token".to_string(),
                         value: "evil".to_string(),
+                    }],
+                    session_storage: vec![StorageEntry {
+                        name: "session-token".to_string(),
+                        value: "evil-session".to_string(),
                     }],
                 },
             ],
@@ -564,6 +580,8 @@ mod tests {
         assert_eq!(session.cookies[0].name, "sid");
         assert_eq!(session.origins.len(), 1);
         assert_eq!(session.origins[0].origin, "https://example.com");
+        assert_eq!(session.origins[0].session_storage.len(), 1);
+        assert_eq!(session.origins[0].session_storage[0].name, "session-token");
     }
 
     #[cfg(unix)]
@@ -634,7 +652,10 @@ mod tests {
                 name: "token".to_string(),
                 value: "secret".to_string(),
             }],
-            _session_storage: Vec::new(),
+            session_storage: vec![StorageEntry {
+                name: "session-token".to_string(),
+                value: "session-secret".to_string(),
+            }],
         }
     }
 }

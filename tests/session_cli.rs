@@ -289,6 +289,14 @@ fn session_import_chrome_saves_filtered_state_and_cleans_raw_file() {
                 .local_storage
                 .iter()
                 .any(|entry| entry.name == "token")));
+    assert!(session
+        .origins
+        .iter()
+        .any(|origin| origin.origin == "https://example.com"
+            && origin
+                .session_storage
+                .iter()
+                .any(|entry| entry.name == "session-token")));
     assert!(!session
         .origins
         .iter()
@@ -310,11 +318,16 @@ fn session_import_chrome_saves_filtered_state_and_cleans_raw_file() {
         .stdout
         .clone();
     let inspect_json = success_data(&inspect_output, "session.inspect");
-    assert_eq!(
-        inspect_json["origins"][0]["local_storage"][0]["value"],
-        "<redacted>"
-    );
+    let inspect_origin = inspect_json["origins"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|origin| origin["origin"] == "https://example.com")
+        .unwrap();
+    assert_eq!(inspect_origin["local_storage"][0]["value"], "<redacted>");
+    assert_eq!(inspect_origin["session_storage"][0]["value"], "<redacted>");
     assert!(!String::from_utf8_lossy(&inspect_output).contains("allowed-storage"));
+    assert!(!String::from_utf8_lossy(&inspect_output).contains("session-only"));
 
     let mut inspect_secrets = Command::cargo_bin("aget").unwrap();
     inspect_secrets
@@ -329,7 +342,8 @@ fn session_import_chrome_saves_filtered_state_and_cleans_raw_file() {
         ])
         .assert()
         .success()
-        .stdout(predicate::str::contains("allowed-storage"));
+        .stdout(predicate::str::contains("allowed-storage"))
+        .stdout(predicate::str::contains("session-only"));
 
     let log = fs::read_to_string(&log_path).unwrap();
     let calls = log
@@ -1729,7 +1743,7 @@ fn chrome_import_state() -> serde_json::Value {
             {"name": "evil", "value": "blocked-secret", "domain": "example.com.evil", "path": "/", "httpOnly": false, "secure": false}
         ],
         "origins": [
-            {"origin": "https://example.com", "localStorage": [{"name": "token", "value": "allowed-storage"}], "sessionStorage": [{"name": "ignored", "value": "session-only"}]},
+            {"origin": "https://example.com", "localStorage": [{"name": "token", "value": "allowed-storage"}], "sessionStorage": [{"name": "session-token", "value": "session-only"}]},
             {"origin": "https://docs.example.com:443", "localStorage": [{"name": "subtoken", "value": "sub-storage"}]},
             {"origin": "https://example.com.evil", "localStorage": [{"name": "evil", "value": "blocked-storage"}]}
         ]
@@ -1809,6 +1823,7 @@ fn session_origin(origin: &str, name: &str, value: &str) -> SessionOrigin {
             name: name.to_string(),
             value: value.to_string(),
         }],
+        session_storage: Vec::new(),
         source_session: None,
     }
 }
