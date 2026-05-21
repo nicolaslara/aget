@@ -1420,6 +1420,21 @@ Status note:
 
 - Completed with D234. Source inspection found Crawl4AI exposes `remove_overlay_elements`, and the aget PoC compatibility helper already forced it on by default. Owned extraction now keeps overlay cleanup on by default but supports `crawl4ai.remove_overlay_elements=false` to preserve overlay content when requested. The command helper allowlist, mock backend validation, README, and OpenCode tool text are aligned, with deterministic coverage for default cleanup and explicit opt-out.
 
+### ✅ Task I19br: Split owned HTML cleanup helpers by behavior
+
+Acceptance criteria:
+
+- Preserve current owned extractor HTML cleanup behavior while splitting `src/extraction/html_clean.rs` into smaller, behavior-owned modules.
+- Keep public/caller-facing extraction module paths stable.
+- Split at least attribute/empty-element cleanup from URL/domain/selector cleanup so future Crawl4AI option ports can load less code.
+- Do not compact `workpads/research/tasks.md`.
+- Record the mechanical split boundary in `knowledge.md`.
+- Verify with focused cleanup/owned-extractor coverage plus the standard check set.
+
+Status note:
+
+- Completed with D235. The former `src/extraction/html_clean.rs` module is now split into a stable `src/extraction/html_clean/mod.rs` facade plus `attributes.rs` for attribute/comment/base64/empty-element cleanup and `urls.rs` for external/domain/social URL cleanup. Caller-facing extraction paths and behavior are unchanged, and `workpads/research/tasks.md` remains intentionally un-compacted.
+
 ### ✅ Task I20: Design OAuth-safe browser login and profile import flow
 
 Acceptance criteria:

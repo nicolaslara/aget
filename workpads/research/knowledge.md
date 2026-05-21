@@ -17,7 +17,7 @@ Safety boundary remains unchanged: `aget` is a generic fetcher for content the u
 
 - Active workpad: `workpads/research/tasks.md`.
 - Main migration umbrella: I19 on branch `dep-migration-homegrown-backends`.
-- Completed migration phases include source clones/inventory, backend abstraction audit, parity tests, default owned runtime switch, PoC command-default demotion, engine naming cleanup, and module/test/support decomposition.
+- Completed migration phases include source clones/inventory, backend abstraction audit, parity tests, default owned runtime switch, PoC command-default demotion, engine naming cleanup, module/test/support decomposition, and follow-up cleanup-module splitting.
 - Still open: I19d, I19e, and I19h.
 - I19d remains open for full Crawl4AI-quality readability/markdown and still-richer rendered-page readiness after D234 made the used overlay cleanup option explicit across owned and compatibility backends.
 - I19e remains open for broader rendered JavaScript parity, manual real logged-in profile/keychain smoke execution, cross-platform close/process lifecycle parity, and still-fuller startup/error classification.
@@ -35,7 +35,7 @@ Safety boundary remains unchanged: `aget` is a generic fetcher for content the u
 | Original module-decomposition sequence | `archive/knowledge/d123-d150-module-decomposition.md` |
 | Auth/browser import and browser-choice design | `archive/knowledge/d151-d157-auth-and-browser-import.md` |
 | Recent migration follow-ups and source-backed extraction improvements | `archive/knowledge/d158-d167-recent-migration-followups.md` |
-| Latest individual decisions | `archive/knowledge/d168-workpad-knowledge-compaction.md` through `archive/knowledge/d234-remove-overlay-elements-option.md` |
+| Latest individual decisions | `archive/knowledge/d168-workpad-knowledge-compaction.md` through `archive/knowledge/d235-html-clean-module-split.md` |
 
 ## Historical Support Docs
 
