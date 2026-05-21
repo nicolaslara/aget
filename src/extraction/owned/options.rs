@@ -21,6 +21,7 @@ pub(crate) struct OwnedExtractorOptions {
     pub(crate) exclude_domains: Vec<String>,
     pub(crate) exclude_external_images: bool,
     pub(crate) exclude_external_links: bool,
+    pub(crate) exclude_social_media_domains: Vec<String>,
     pub(crate) exclude_social_media_links: bool,
     pub(crate) wait_until: PageWaitUntil,
     pub(crate) wait_for_images: bool,
@@ -46,6 +47,7 @@ impl Default for OwnedExtractorOptions {
             exclude_domains: Vec::new(),
             exclude_external_images: false,
             exclude_external_links: false,
+            exclude_social_media_domains: Vec::new(),
             exclude_social_media_links: false,
             wait_until: PageWaitUntil::Load,
             wait_for_images: false,
@@ -114,6 +116,14 @@ pub(crate) fn validate_owned_extraction_options(
                 owned_options.exclude_external_links =
                     parse_owned_bool("crawl4ai.exclude_external_links", &option.value)?;
             }
+            "exclude_social_media_domains" => {
+                owned_options
+                    .exclude_social_media_domains
+                    .extend(parse_owned_list(
+                        "crawl4ai.exclude_social_media_domains",
+                        &option.value,
+                    )?);
+            }
             "exclude_social_media_links" => {
                 owned_options.exclude_social_media_links =
                     parse_owned_bool("crawl4ai.exclude_social_media_links", &option.value)?;
@@ -161,7 +171,7 @@ pub(crate) fn validate_owned_extraction_options(
             }
             _ => {
                 return Err(extraction_failed(format!(
-                    "owned extractor does not support backend option '{}'; supported options: crawl4ai.delay_before_return_html, crawl4ai.exclude_all_images, crawl4ai.exclude_domains, crawl4ai.exclude_external_images, crawl4ai.exclude_external_links, crawl4ai.exclude_social_media_links, crawl4ai.excluded_tags, crawl4ai.flatten_shadow_dom, crawl4ai.keep_data_attributes, crawl4ai.max_scroll_steps, crawl4ai.only_text, crawl4ai.page_timeout, crawl4ai.remove_forms, crawl4ai.scan_full_page, crawl4ai.scroll_delay, crawl4ai.target_elements, crawl4ai.wait_for_images, crawl4ai.wait_for_timeout, crawl4ai.wait_until, crawl4ai.word_count_threshold",
+                    "owned extractor does not support backend option '{}'; supported options: crawl4ai.delay_before_return_html, crawl4ai.exclude_all_images, crawl4ai.exclude_domains, crawl4ai.exclude_external_images, crawl4ai.exclude_external_links, crawl4ai.exclude_social_media_domains, crawl4ai.exclude_social_media_links, crawl4ai.excluded_tags, crawl4ai.flatten_shadow_dom, crawl4ai.keep_data_attributes, crawl4ai.max_scroll_steps, crawl4ai.only_text, crawl4ai.page_timeout, crawl4ai.remove_forms, crawl4ai.scan_full_page, crawl4ai.scroll_delay, crawl4ai.target_elements, crawl4ai.wait_for_images, crawl4ai.wait_for_timeout, crawl4ai.wait_until, crawl4ai.word_count_threshold",
                     option.key
                 )));
             }

@@ -398,6 +398,7 @@ pub(crate) fn aget_extractor_parity_site() -> MockSite {
       <a id="kept-link" class="cta" href="/kept" title="Kept title" rel="nofollow" data-private="link-secret">Kept link</a>
       <a id="external-link" href="https://external.example/out">External link</a>
       <a id="social-link" href="https://www.linkedin.com/company/aget">Social link</a>
+      <a id="custom-social-link" href="https://social.example/company/aget">Custom social link</a>
       <img id="diagram" class="figure" src="/diagram.png" alt="Diagram" width="640" height="480" data-private="image-secret" style="display:none">
       <img id="remote-image" src="https://cdn.example/remote.png" alt="Remote image">
       <img id="social-image" src="https://www.linkedin.com/logo.png" alt="Social image">

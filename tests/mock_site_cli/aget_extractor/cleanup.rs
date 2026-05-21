@@ -35,6 +35,10 @@ pub(super) fn assert_cleanup_outputs(aget_home: &Path, site: &MockSite) {
     assert!(cleaned_html
         .content
         .contains("href=\"https://www.linkedin.com/company/aget\""));
+    assert!(cleaned_html.content.contains("id=\"custom-social-link\""));
+    assert!(cleaned_html
+        .content
+        .contains("href=\"https://social.example/company/aget\""));
     assert!(cleaned_html.content.contains("id=\"remote-image\""));
     assert!(cleaned_html
         .content
@@ -110,6 +114,9 @@ pub(super) fn assert_cleanup_outputs(aget_home: &Path, site: &MockSite) {
         .content
         .contains("https://external.example/out"));
     assert!(!no_external_links.content.contains("id=\"social-link\""));
+    assert!(!no_external_links
+        .content
+        .contains("id=\"custom-social-link\""));
     assert!(no_external_links.content.contains("id=\"remote-image\""));
     assert!(no_external_links.content.contains("id=\"social-image\""));
 
@@ -125,6 +132,9 @@ pub(super) fn assert_cleanup_outputs(aget_home: &Path, site: &MockSite) {
         .content
         .contains("href=\"https://external.example/out\""));
     assert!(no_external_images.content.contains("id=\"social-link\""));
+    assert!(no_external_images
+        .content
+        .contains("id=\"custom-social-link\""));
     assert!(no_external_images.content.contains("src=\"/diagram.png\""));
     assert!(!no_external_images.content.contains("id=\"remote-image\""));
     assert!(!no_external_images
@@ -141,12 +151,46 @@ pub(super) fn assert_cleanup_outputs(aget_home: &Path, site: &MockSite) {
         .unwrap();
     assert!(no_social_links.content.contains("href=\"/kept\""));
     assert!(no_social_links.content.contains("id=\"external-link\""));
+    assert!(no_social_links
+        .content
+        .contains("id=\"custom-social-link\""));
     assert!(no_social_links.content.contains("id=\"remote-image\""));
     assert!(no_social_links.content.contains("id=\"social-image\""));
     assert!(!no_social_links.content.contains("id=\"social-link\""));
     assert!(!no_social_links
         .content
         .contains("https://www.linkedin.com/company/aget"));
+
+    let no_custom_social_links = Aget::new(aget_home)
+        .with_extractor_backend(AgetExtractorBackend::default())
+        .get(site.url("/html-cleanup"))
+        .content_format(OutputFormat::Html)
+        .backend_option("crawl4ai.exclude_social_media_links", "true")
+        .backend_option("crawl4ai.exclude_social_media_domains", "social.example")
+        .run()
+        .unwrap();
+    assert!(no_custom_social_links.content.contains("href=\"/kept\""));
+    assert!(no_custom_social_links
+        .content
+        .contains("id=\"external-link\""));
+    assert!(no_custom_social_links
+        .content
+        .contains("id=\"remote-image\""));
+    assert!(no_custom_social_links
+        .content
+        .contains("id=\"social-image\""));
+    assert!(!no_custom_social_links
+        .content
+        .contains("id=\"social-link\""));
+    assert!(!no_custom_social_links
+        .content
+        .contains("https://www.linkedin.com/company/aget"));
+    assert!(!no_custom_social_links
+        .content
+        .contains("id=\"custom-social-link\""));
+    assert!(!no_custom_social_links
+        .content
+        .contains("https://social.example/company/aget"));
 
     let no_excluded_domains = Aget::new(aget_home)
         .with_extractor_backend(AgetExtractorBackend::default())

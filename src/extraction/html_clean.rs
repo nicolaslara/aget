@@ -225,11 +225,13 @@ pub(super) fn remove_owned_excluded_domain_urls(
 pub(super) fn remove_owned_social_media_links(
     document: Html,
     base_url: &str,
+    custom_social_domains: &[String],
 ) -> Result<Html, AgetError> {
-    let excluded_domains = CRAWL4AI_SOCIAL_MEDIA_DOMAINS
+    let mut excluded_domains = CRAWL4AI_SOCIAL_MEDIA_DOMAINS
         .iter()
         .map(|domain| (*domain).to_string())
         .collect::<Vec<_>>();
+    excluded_domains.extend(custom_social_domains.iter().cloned());
     remove_excluded_domain_url_elements(document, "a[href]", "href", base_url, &excluded_domains)
 }
 
@@ -493,17 +495,24 @@ mod tests {
 <main>
   <a id="guide" href="/guide">Guide</a>
   <a id="social-link" href="https://www.linkedin.com/company/aget">Social</a>
+  <a id="custom-social-link" href="https://social.example/company/aget">Custom social</a>
   <img id="social-image" src="https://www.linkedin.com/logo.png">
 </main>
 "#,
         );
 
         let cleaned = cleaned_html(
-            remove_owned_social_media_links(document, "https://docs.example.com/page").unwrap(),
+            remove_owned_social_media_links(
+                document,
+                "https://docs.example.com/page",
+                &["social.example".to_string()],
+            )
+            .unwrap(),
         );
 
         assert!(cleaned.contains("id=\"guide\""));
         assert!(cleaned.contains("id=\"social-image\""));
         assert!(!cleaned.contains("id=\"social-link\""));
+        assert!(!cleaned.contains("id=\"custom-social-link\""));
     }
 }

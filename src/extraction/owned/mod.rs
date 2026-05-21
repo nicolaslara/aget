@@ -318,7 +318,11 @@ fn extract_owned_html(
     }
 
     if owned_options.exclude_social_media_links {
-        document = remove_owned_social_media_links(document, &base_url)?;
+        document = remove_owned_social_media_links(
+            document,
+            &base_url,
+            &owned_options.exclude_social_media_domains,
+        )?;
     }
 
     if owned_options.exclude_external_images {
