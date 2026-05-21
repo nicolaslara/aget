@@ -54,6 +54,7 @@ This archive file keeps the denser decision routing that used to live in top-lev
 | D235 | `d235-html-clean-module-split.md` | Mechanical split of owned HTML cleanup helpers into behavior-owned modules. |
 | D236 | `d236-main-content-word-threshold.md` | Crawl4AI pruning-filter-inspired word-count threshold for default main-content candidates. |
 | D237 | `d237-only-text-cleaned-html.md` | Crawl4AI `only_text` inline-tag replacement for owned cleaned HTML. |
+| D238 | `d238-owned-text-block-boundaries.md` | Crawl4AI compatibility-helper-style block boundaries for owned text output. |
 
 ## Full Archive Routing
 
@@ -73,7 +74,7 @@ This archive file keeps the denser decision routing that used to live in top-lev
 | D151-D157 | `d151-d157-auth-and-browser-import.md` | OAuth-safe authorization API/CLI and conservative browser-neutral Chrome import surface. |
 | D158-D167 | `d158-d167-recent-migration-followups.md` | Recent source-backed extraction improvements and follow-up decomposition slices. |
 | D168-D176 | Per-decision files | Knowledge/reference compaction, engine-refactor planning, wrapper introduction, naming cleanup, and direct engine coverage. |
-| D177-D237 | Per-decision files | Module/test/support decomposition plus the latest owned extractor/browser parity improvements. |
+| D177-D238 | Per-decision files | Module/test/support decomposition plus the latest owned extractor/browser parity improvements. |
 
 ## Current Open Migration Gaps
 

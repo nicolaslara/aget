@@ -115,6 +115,6 @@ fn current_tab_uses_owned_backend_when_agent_browser_compat_env_is_set() {
     assert_eq!(json["ok"], true);
     assert_eq!(json["command"], "current-tab");
     assert_eq!(json["data"]["final_url"], "https://example.com/current-env");
-    assert_eq!(json["data"]["content"], "Env Tab Owned path wins.");
+    assert_eq!(json["data"]["content"], "Env Tab\nOwned path wins.");
     server.join().unwrap();
 }

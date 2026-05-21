@@ -11,7 +11,7 @@ pub(super) fn assert_main_content_scoring(aget_home: &Path, site: &MockSite) {
         .content_format(OutputFormat::Text)
         .run()
         .unwrap();
-    assert_eq!(main_text.content, "Main Story Useful body text.");
+    assert_eq!(main_text.content, "Main Story\nUseful body text.");
 
     let main_markdown = Aget::new(aget_home)
         .with_extractor_backend(AgetExtractorBackend::default())
@@ -95,7 +95,7 @@ pub(super) fn assert_main_content_scoring(aget_home: &Path, site: &MockSite) {
         .content_format(OutputFormat::Text)
         .run()
         .unwrap();
-    assert_eq!(overlay_text.content, "Overlay Story Useful article text.");
+    assert_eq!(overlay_text.content, "Overlay Story\nUseful article text.");
 
     let overlay_html = Aget::new(aget_home)
         .with_extractor_backend(AgetExtractorBackend::default())

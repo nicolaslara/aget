@@ -14,7 +14,7 @@ pub(super) fn assert_selector_and_target_options(aget_home: &Path, site: &MockSi
         .unwrap();
     assert_eq!(
         selector_miss.content,
-        "Selector Header Selector Main Selector body text. Selector Footer"
+        "Selector Header\nSelector Main\nSelector body text.\nSelector Footer"
     );
 
     let selector_invalid = Aget::new(aget_home)
@@ -26,7 +26,7 @@ pub(super) fn assert_selector_and_target_options(aget_home: &Path, site: &MockSi
         .unwrap();
     assert_eq!(
         selector_invalid.content,
-        "Selector Header Selector Main Selector body text. Selector Footer"
+        "Selector Header\nSelector Main\nSelector body text.\nSelector Footer"
     );
 
     let invalid_exclude_selector = Aget::new(aget_home)
@@ -39,7 +39,7 @@ pub(super) fn assert_selector_and_target_options(aget_home: &Path, site: &MockSi
         .unwrap();
     assert_eq!(
         invalid_exclude_selector.content,
-        "Format Heading Format body text. Promotional aside."
+        "Format Heading\nFormat body text.\nPromotional aside."
     );
 
     let selector_multiple = Aget::new(aget_home)
@@ -51,7 +51,7 @@ pub(super) fn assert_selector_and_target_options(aget_home: &Path, site: &MockSi
         .unwrap();
     assert_eq!(
         selector_multiple.content,
-        "First Result Alpha body. Second Result Beta body."
+        "First Result\nAlpha body.\nSecond Result\nBeta body."
     );
 
     let selector_multiple_html = Aget::new(aget_home)
@@ -75,7 +75,7 @@ pub(super) fn assert_selector_and_target_options(aget_home: &Path, site: &MockSi
         .backend_option("crawl4ai.target_elements", "p")
         .run()
         .unwrap();
-    assert_eq!(selector_scoped_targets.content, "Alpha body. Beta body.");
+    assert_eq!(selector_scoped_targets.content, "Alpha body.\nBeta body.");
 
     let excluded_tags = Aget::new(aget_home)
         .with_extractor_backend(AgetExtractorBackend::default())
@@ -84,7 +84,7 @@ pub(super) fn assert_selector_and_target_options(aget_home: &Path, site: &MockSi
         .backend_option("crawl4ai.excluded_tags", "aside,footer")
         .run()
         .unwrap();
-    assert_eq!(excluded_tags.content, "Tag Filtering Kept article body.");
+    assert_eq!(excluded_tags.content, "Tag Filtering\nKept article body.");
 
     let target_elements = Aget::new(aget_home)
         .with_extractor_backend(AgetExtractorBackend::default())
@@ -116,7 +116,7 @@ pub(super) fn assert_selector_and_target_options(aget_home: &Path, site: &MockSi
         .unwrap();
     assert_eq!(
         forms_by_default.content,
-        "Form Cleanup Private form label Kept content."
+        "Form Cleanup\nPrivate form label\nKept content."
     );
 
     let removed_forms = Aget::new(aget_home)
@@ -126,5 +126,5 @@ pub(super) fn assert_selector_and_target_options(aget_home: &Path, site: &MockSi
         .backend_option("crawl4ai.remove_forms", "true")
         .run()
         .unwrap();
-    assert_eq!(removed_forms.content, "Form Cleanup Kept content.");
+    assert_eq!(removed_forms.content, "Form Cleanup\nKept content.");
 }

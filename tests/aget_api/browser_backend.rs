@@ -80,7 +80,7 @@ fn aget_current_tab_api_renders_mock_cdp_page_without_agent_browser() {
     assert_eq!(result.final_url, "https://example.com/current");
     assert_eq!(result.extractor, "aget-owned-current-tab");
     assert_eq!(result.content_format, "text");
-    assert_eq!(result.content, "API Tab Owned current-tab content.");
+    assert_eq!(result.content, "API Tab\nOwned current-tab content.");
     assert!(result.sensitive);
     assert!(result.sessions.is_empty());
     server.join().unwrap();

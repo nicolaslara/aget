@@ -25,7 +25,7 @@ fn aget_browser_fallback_replays_cookie_backed_session_without_agent_browser() {
         .unwrap();
 
     assert_eq!(fallback.extractor, "aget-owned-browser-fallback");
-    assert_eq!(fallback.content, "Protected Account Private account body.");
+    assert_eq!(fallback.content, "Protected Account\nPrivate account body.");
     assert_eq!(
         fallback.warnings,
         vec!["aget-owned fallback used after primary extractor failed"]
@@ -72,7 +72,7 @@ fn aget_browser_fallback_renders_cookie_backed_scripted_page_with_chrome() {
         .unwrap();
 
     assert_eq!(fallback.extractor, "aget-owned-browser-fallback");
-    assert_eq!(fallback.content, "Client Shell Client Rendered");
+    assert_eq!(fallback.content, "Client Shell\nClient Rendered");
     assert!(site.received_cookie("/client-rendered", "app_session", "valid-app"));
 }
 
@@ -101,7 +101,7 @@ fn aget_browser_fallback_renders_local_storage_backed_session_with_chrome() {
         .unwrap();
 
     assert_eq!(fallback.extractor, "aget-owned-browser-fallback");
-    assert_eq!(fallback.content, "Storage App Shell Storage Protected");
+    assert_eq!(fallback.content, "Storage App Shell\nStorage Protected");
     assert!(site.received_header("/storage-api", "x-local-token", "storage-secret"));
 }
 
@@ -130,7 +130,7 @@ fn aget_extractor_backend_renders_local_storage_backed_session_with_chrome() {
         .unwrap();
 
     assert_eq!(extraction.extractor, "aget-owned-extractor");
-    assert_eq!(extraction.content, "Storage App Shell Storage Protected");
+    assert_eq!(extraction.content, "Storage App Shell\nStorage Protected");
     assert!(site.received_header("/storage-api", "x-local-token", "storage-secret"));
 }
 
@@ -192,7 +192,7 @@ fn aget_extractor_backend_renders_scripted_page_without_wait_with_chrome() {
         .unwrap();
 
     assert_eq!(extraction.extractor, "aget-owned-extractor");
-    assert_eq!(extraction.content, "Client Shell Client Rendered");
+    assert_eq!(extraction.content, "Client Shell\nClient Rendered");
 }
 
 #[test]
@@ -322,7 +322,7 @@ fn aget_extractor_backend_removes_rendered_style_overlays_with_chrome() {
     assert_eq!(extraction.extractor, "aget-owned-extractor");
     assert_eq!(
         extraction.content,
-        "Rendered Overlay Story Useful rendered article text."
+        "Rendered Overlay Story\nUseful rendered article text."
     );
 }
 

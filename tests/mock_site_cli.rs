@@ -110,7 +110,7 @@ fn default_cli_fetch_uses_local_backend_without_command_dependencies() {
 
     let json = success_data(&output, "get");
     assert_eq!(json["extractor"], "aget-owned-extractor");
-    assert_eq!(json["content"], "Public Main Visible public article.");
+    assert_eq!(json["content"], "Public Main\nVisible public article.");
 }
 
 #[test]

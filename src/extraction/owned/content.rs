@@ -2,6 +2,7 @@ use ego_tree::NodeId;
 use scraper::{ElementRef, Html};
 
 use super::options::OwnedExtractorOptions;
+use super::text::element_to_text;
 use crate::error::AgetError;
 
 use crate::extraction::extraction_failed;
@@ -84,7 +85,7 @@ fn extract_single_owned_element(
     ExtractedOwnedContent {
         html: element.inner_html(),
         markdown: element_to_markdown(element, base_url, owned_options.only_text),
-        text: normalize_text_pieces(element.text()),
+        text: element_to_text(element),
     }
 }
 
@@ -128,7 +129,12 @@ fn extract_target_owned_elements(
             .collect::<Vec<_>>()
             .join("\n\n"),
     );
-    let text = normalize_text_pieces(elements.iter().flat_map(|element| element.text()));
+    let text = elements
+        .iter()
+        .map(|element| element_to_text(*element))
+        .filter(|text| !text.is_empty())
+        .collect::<Vec<_>>()
+        .join("\n");
 
     Ok(ExtractedOwnedContent {
         html,

@@ -14,7 +14,7 @@ pub(super) fn assert_public_session_and_formats(aget_home: &Path, site: &MockSit
         .run()
         .unwrap();
     assert_eq!(public.extractor, "aget-owned-extractor");
-    assert_eq!(public.content, "Public Main Visible public article.");
+    assert_eq!(public.content, "Public Main\nVisible public article.");
 
     let protected = Aget::new(aget_home)
         .with_extractor_backend(AgetExtractorBackend::default())
@@ -34,7 +34,7 @@ pub(super) fn assert_public_session_and_formats(aget_home: &Path, site: &MockSit
         .exclude_selector("p.ad")
         .run()
         .unwrap();
-    assert_eq!(text.content, "Format Heading Format body text.");
+    assert_eq!(text.content, "Format Heading\nFormat body text.");
 
     let child_selector = Aget::new(aget_home)
         .with_extractor_backend(AgetExtractorBackend::default())
@@ -62,5 +62,5 @@ pub(super) fn assert_public_session_and_formats(aget_home: &Path, site: &MockSit
         .unwrap();
     let parsed: serde_json::Value = serde_json::from_str(&json.content).unwrap();
     assert_eq!(parsed["url"], site.url("/formats"));
-    assert_eq!(parsed["content"], "Format Heading Format body text.");
+    assert_eq!(parsed["content"], "Format Heading\nFormat body text.");
 }

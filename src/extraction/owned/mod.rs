@@ -22,6 +22,7 @@ use super::{
 
 mod content;
 mod options;
+mod text;
 
 use self::content::{extract_owned_content, markdown_base_url};
 pub(crate) use self::options::{validate_owned_extraction_options, OwnedExtractorOptions};
