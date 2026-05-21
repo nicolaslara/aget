@@ -9,6 +9,7 @@ const CRAWL4AI_IMPORTANT_ATTRS: &[&str] = &[
 const CRAWL4AI_EMPTY_ELEMENT_BYPASS_TAGS: &[&str] = &[
     "a", "img", "br", "hr", "input", "meta", "link", "source", "track", "wbr", "tr", "td", "th",
 ];
+const CRAWL4AI_EMPTY_ELEMENT_WORD_THRESHOLD: usize = 1;
 const CRAWL4AI_ONLY_TEXT_ELIGIBLE_TAGS: &[&str] = &[
     "b", "i", "u", "span", "del", "ins", "sub", "sup", "strong", "em", "code", "kbd", "var", "s",
     "q", "abbr", "cite", "dfn", "time", "small", "mark",
@@ -64,7 +65,6 @@ pub(in crate::extraction) fn remove_owned_empty_elements(
     document: Html,
     root_ids: &[NodeId],
     target_ids: &[NodeId],
-    word_count_threshold: usize,
 ) -> Html {
     let node_ids = document
         .tree
@@ -80,7 +80,7 @@ pub(in crate::extraction) fn remove_owned_empty_elements(
                 id,
                 root_ids,
                 target_ids,
-                word_count_threshold,
+                CRAWL4AI_EMPTY_ELEMENT_WORD_THRESHOLD,
             )
         };
         if should_remove {

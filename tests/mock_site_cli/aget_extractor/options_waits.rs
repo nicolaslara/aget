@@ -49,8 +49,22 @@ pub(super) fn assert_backend_options_redirects_and_waits(aget_home: &Path, site:
         .unwrap();
     assert_eq!(
         word_count_threshold.content,
-        "Keep this paragraph because it has enough useful words."
+        "Threshold Example Title\nKeep this paragraph because it has enough useful words.\nTiny caption\nShort link"
     );
+
+    let threshold_html = Aget::new(aget_home)
+        .with_extractor_backend(AgetExtractorBackend::default())
+        .get(site.url("/word-threshold"))
+        .content_format(OutputFormat::Html)
+        .selector("main.article")
+        .backend_option("crawl4ai.word_count_threshold", "9")
+        .run()
+        .unwrap();
+    assert!(threshold_html.content.contains("Tiny caption"));
+    assert!(threshold_html.content.contains("Short link"));
+    assert!(threshold_html
+        .content
+        .contains("<pre><code><span> </span></code></pre>"));
 
     let invalid_word_count_threshold = Aget::new(aget_home)
         .with_extractor_backend(AgetExtractorBackend::default())

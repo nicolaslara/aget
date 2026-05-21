@@ -85,7 +85,7 @@ pub(super) fn assert_main_content_scoring(aget_home: &Path, site: &MockSite) {
         .unwrap();
     assert_eq!(
         threshold_markdown.content,
-        "This fallback article has enough useful words to pass the configured threshold."
+        "# Long Article\n\nThis fallback article has enough useful words to pass the configured threshold."
     );
     assert!(!threshold_markdown.content.contains("Short Teaser"));
 

@@ -59,12 +59,7 @@ pub(super) fn extract_owned_content(
         document = replace_owned_only_text_elements(document, &root_ids, &target_ids);
     }
     document = clean_owned_base64_image_sources(document);
-    document = remove_owned_empty_elements(
-        document,
-        &root_ids,
-        &target_ids,
-        owned_options.word_count_threshold,
-    );
+    document = remove_owned_empty_elements(document, &root_ids, &target_ids);
     document = prune_owned_unwanted_attributes(document, owned_options.keep_data_attributes);
 
     if owned_options.target_elements.is_empty() {
