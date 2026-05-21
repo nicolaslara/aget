@@ -774,6 +774,21 @@ Status note:
 
 - Completed with D192 after I19z completed and committed. The mechanical split kept `tests/session_cli.rs` routing through `tests/session_cli/imports.rs` while moving browser import, command-backed Chrome import, owned Chrome startup classification, and ignored real-browser smoke coverage into focused submodules. Validation passed with focused import tests, `cargo fmt --check`, `cargo test`, and `git diff --check`.
 
+### ✅ Task I19ab: Split extraction public types and backend adapters
+
+Acceptance criteria:
+
+- Preserve current extraction API paths and default runtime behavior while reducing `src/extraction/mod.rs`.
+- Move public extraction request/result DTOs and backend traits into a focused submodule.
+- Move command/default backend adapter structs into a focused submodule.
+- Keep orchestration, replay-scope enforcement, artifact finalization, and error helpers in `src/extraction/mod.rs`.
+- Run focused extraction/API tests plus the standard validation set before committing.
+- Record the resulting module boundaries in `knowledge.md`.
+
+Status note:
+
+- Completed with D193 after I19aa completed and committed. The mechanical split kept public `aget::extraction::*` paths stable while moving extraction DTOs/traits into `src/extraction/types.rs` and backend adapter structs into `src/extraction/backends.rs`; orchestration stayed in `src/extraction/mod.rs`, which dropped to 380 lines. Validation passed with focused extraction/API/mock-site tests, `cargo fmt --check`, `cargo test`, and `git diff --check`. The first full-suite run hit a transient `session_cli::authorize` localhost connection refusal; the affected authorize subset and a second full-suite run passed.
+
 ### ✅ Task I20: Design OAuth-safe browser login and profile import flow
 
 Acceptance criteria:

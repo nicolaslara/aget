@@ -54,6 +54,7 @@ Safety boundary remains unchanged: `aget` is a generic fetcher for content the u
 - D190: session-backed get CLI tests were split into `tests/get_cli/session.rs` plus replay, fallback/redaction, and ignored real-smoke submodules without changing authenticated get behavior.
 - D191: Aget facade/backend API tests were split into `tests/aget_api.rs` plus support, extraction, authorization, session-backend, and default browser-backend submodules without changing backend contract coverage.
 - D192: session import CLI tests were split into `tests/session_cli/imports.rs` plus browser, command-backed Chrome, owned Chrome, and real-smoke submodules without changing import behavior.
+- D193: extraction public DTOs/traits and backend adapter structs were split into `src/extraction/types.rs` and `src/extraction/backends.rs` without changing extraction API paths or runtime behavior.
 
 ## Archive Index
 
@@ -90,6 +91,7 @@ Safety boundary remains unchanged: `aget` is a generic fetcher for content the u
 | D190 | `archive/knowledge/d190-get-session-test-split.md` | mechanical session-backed get CLI test split into replay, fallback/redaction, and real-smoke modules |
 | D191 | `archive/knowledge/d191-aget-api-test-split.md` | mechanical Aget facade/backend API test split into support, extraction, authorization, session backend, and default browser backend modules |
 | D192 | `archive/knowledge/d192-session-import-test-split.md` | mechanical session import CLI test split into browser, command-backed Chrome, owned Chrome, and real-smoke modules |
+| D193 | `archive/knowledge/d193-extraction-types-backends-split.md` | mechanical extraction split into public DTO/trait and backend adapter submodules |
 
 ## Current Verification Expectations
 

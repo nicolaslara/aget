@@ -1,4 +1,5 @@
 mod artifacts;
+mod backends;
 mod command;
 mod fallback_command;
 mod html_clean;
@@ -7,13 +8,12 @@ mod markdown;
 mod output;
 mod owned;
 mod replay_scope;
+mod types;
 
 use std::fs;
 use std::io;
-use std::path::{Path, PathBuf};
+use std::path::Path;
 use std::time::{Duration, Instant};
-
-use serde::{Deserialize, Serialize};
 
 #[cfg(test)]
 use self::artifacts::redact_values;
@@ -22,8 +22,9 @@ use self::artifacts::{
     sanitize_backend_error, sensitive_values, write_error_metadata, write_metadata,
     write_private_file,
 };
-use self::command::run_command_extractor_backend;
-use self::fallback_command::run_agent_browser_fallback;
+pub use self::backends::{
+    AgetExtractorBackend, CommandBrowserFallbackBackend, CommandExtractorBackend,
+};
 pub use self::output::OutputOptions;
 use self::output::{apply_limits, output_options};
 pub(crate) use self::owned::{
@@ -31,211 +32,21 @@ pub(crate) use self::owned::{
 };
 use self::replay_scope::domain_matches_host;
 use self::replay_scope::enforce_replay_scope;
+pub use self::types::{
+    Artifacts, BrowserFallbackBackend, BrowserFallbackRequest, BrowserFallbackResult,
+    ExtractionSessionStore, ExtractorBackend, ExtractorBackendResult, ExtractorRequest, GetOptions,
+    GetSuccess, Limits, TimingMs,
+};
 
 use crate::aget::AgetBrowserBackend;
-use crate::aget_extractor::AgetExtractor;
-use crate::cli::{ExtractorOption, OutputFormat};
 use crate::error::{AgetError, ErrorCode};
 use crate::session::{
     compose_playwright_state, PlaywrightState, Session, SessionStore, TempStateFile,
 };
 
 const DEFAULT_TIMEOUT: Duration = Duration::from_secs(60);
-const EXTRACTOR: &str = "crawl4ai";
 const FALLBACK_EXTRACTOR: &str = "agent-browser-fallback";
 const FALLBACK_WARNING: &str = "agent-browser fallback used after Crawl4AI failed";
-
-#[derive(Clone)]
-pub struct GetOptions {
-    pub url: String,
-    pub sessions: Vec<String>,
-    pub output: Option<PathBuf>,
-    pub home: Option<PathBuf>,
-    pub timeout: Option<Duration>,
-    pub content_format: OutputFormat,
-    pub selector: Option<String>,
-    pub exclude_selector: Option<String>,
-    pub wait_for_selector: Option<String>,
-    pub max_chars: Option<usize>,
-    pub backend_options: Vec<ExtractorOption>,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct GetSuccess {
-    pub ok: bool,
-    pub url: String,
-    pub final_url: String,
-    pub content_format: String,
-    pub extractor: String,
-    pub content: String,
-    pub artifacts: Artifacts,
-    pub sessions: Vec<String>,
-    pub sensitive: bool,
-    pub warnings: Vec<String>,
-    pub timing_ms: TimingMs,
-    pub limits: Limits,
-    pub output_options: OutputOptions,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct Artifacts {
-    pub content: String,
-    pub metadata: String,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct TimingMs {
-    pub total: u128,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct Limits {
-    pub max_chars: Option<usize>,
-    pub truncated: bool,
-    pub truncated_by: Option<String>,
-    pub content_chars_before_truncation: usize,
-    pub content_chars_after_truncation: usize,
-}
-
-pub struct ExtractorRequest<'a> {
-    pub url: &'a str,
-    // Structured session state lets in-process extractors avoid re-reading the
-    // temp Playwright file that exists for command-backed compatibility.
-    pub state: &'a PlaywrightState,
-    pub state_path: &'a Path,
-    pub content_path: &'a Path,
-    pub metadata_path: &'a Path,
-    pub options: &'a GetOptions,
-    pub timeout: Duration,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct ExtractorBackendResult {
-    pub ok: bool,
-    #[serde(default)]
-    pub final_url: Option<String>,
-    #[serde(default)]
-    pub content: Option<String>,
-    #[serde(default)]
-    pub warnings: Vec<String>,
-    #[serde(default)]
-    pub error: Option<String>,
-}
-
-pub trait ExtractorBackend {
-    // Extraction is the "URL plus session state to content" capability. The
-    // default implementation is AgetExtractor, but the rest of the
-    // pipeline should not know whether content came from an owned or compatibility
-    // backend.
-    fn name(&self) -> &'static str;
-    fn extract(&self, request: ExtractorRequest<'_>) -> Result<ExtractorBackendResult, AgetError>;
-}
-
-pub struct BrowserFallbackRequest<'a> {
-    pub tmp_dir: &'a Path,
-    pub url: &'a str,
-    // Keep the structured state alongside the temp file path so future browser
-    // backends can load cookies/storage without coupling to command adapter I/O.
-    pub state: &'a PlaywrightState,
-    pub state_path: &'a Path,
-    pub options: &'a GetOptions,
-    pub timeout: Duration,
-}
-
-#[derive(Debug, Clone)]
-pub struct BrowserFallbackResult {
-    pub final_url: String,
-    pub content: String,
-    pub warnings: Vec<String>,
-    pub extractor: String,
-}
-
-pub trait BrowserFallbackBackend {
-    // Fallback browser extraction handles authenticated pages when the primary
-    // extractor cannot consume the composed session state directly.
-    fn extract_with_state(
-        &self,
-        request: BrowserFallbackRequest<'_>,
-    ) -> Result<BrowserFallbackResult, AgetError>;
-}
-
-pub trait ExtractionSessionStore {
-    // `aget get` only needs scoped session lookup plus a local home for private
-    // run artifacts. Keeping this separate lets `AgetWith` use non-filesystem
-    // stores without changing the extraction pipeline.
-    fn home(&self) -> &Path;
-    fn load(&self, name: &str) -> io::Result<Session>;
-}
-
-impl ExtractionSessionStore for SessionStore {
-    fn home(&self) -> &Path {
-        self.home()
-    }
-
-    fn load(&self, name: &str) -> io::Result<Session> {
-        self.load(name)
-    }
-}
-
-#[derive(Debug, Clone)]
-pub struct CommandBrowserFallbackBackend;
-
-impl BrowserFallbackBackend for CommandBrowserFallbackBackend {
-    fn extract_with_state(
-        &self,
-        request: BrowserFallbackRequest<'_>,
-    ) -> Result<BrowserFallbackResult, AgetError> {
-        run_agent_browser_fallback(
-            request.tmp_dir,
-            request.url,
-            request.state_path,
-            request.options,
-            request.timeout,
-        )
-    }
-}
-
-#[derive(Debug, Clone)]
-pub struct CommandExtractorBackend {
-    command: Option<String>,
-}
-
-impl CommandExtractorBackend {
-    pub fn new(command: Option<String>) -> Self {
-        Self { command }
-    }
-}
-
-impl ExtractorBackend for CommandExtractorBackend {
-    fn name(&self) -> &'static str {
-        EXTRACTOR
-    }
-
-    fn extract(&self, request: ExtractorRequest<'_>) -> Result<ExtractorBackendResult, AgetError> {
-        run_command_extractor_backend(self.command.clone(), request)
-    }
-}
-
-#[derive(Debug, Clone, Default)]
-pub struct AgetExtractorBackend {
-    extractor: AgetExtractor,
-}
-
-impl AgetExtractorBackend {
-    pub fn new(extractor: AgetExtractor) -> Self {
-        Self { extractor }
-    }
-}
-
-impl ExtractorBackend for AgetExtractorBackend {
-    fn name(&self) -> &'static str {
-        self.extractor.name()
-    }
-
-    fn extract(&self, request: ExtractorRequest<'_>) -> Result<ExtractorBackendResult, AgetError> {
-        self.extractor.extract(request)
-    }
-}
 
 pub fn get_url(options: GetOptions) -> Result<GetSuccess, AgetError> {
     let extractor = AgetExtractorBackend::default();
