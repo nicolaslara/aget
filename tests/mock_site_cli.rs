@@ -353,6 +353,7 @@ fn homegrown_extractor_backend_covers_static_http_parity_slice() {
       <h1>Link Defaults</h1>
       <p>Read <a href="/guide" title="Guide &quot;title&quot;">the guide</a> or <a href="mailto:help@example.com">email support</a>.</p>
       <p>Canonical <a href="https://example.com/docs">https://example.com/docs</a>.</p>
+      <p>Asset <a href="/release(2026)">release notes</a> and <img src="/assets/diagram(1).png" alt="A [diagram] (v1)">.</p>
     </main>
   </body>
 </html>
@@ -497,11 +498,21 @@ fn homegrown_extractor_backend_covers_static_http_parity_slice() {
         .selector("main.article")
         .run()
         .unwrap();
+    let release_url = site
+        .url("/release(2026)")
+        .replace('(', "\\(")
+        .replace(')', "\\)");
+    let diagram_url = site
+        .url("/assets/diagram(1).png")
+        .replace('(', "\\(")
+        .replace(')', "\\)");
     assert_eq!(
         markdown_links.content,
         format!(
-            "# Link Defaults\n\nRead [the guide]({} \"Guide \\\"title\\\"\") or email support.\n\nCanonical <https://example.com/docs>.",
-            site.url("/guide")
+            "# Link Defaults\n\nRead [the guide]({} \"Guide \\\"title\\\"\") or email support.\n\nCanonical <https://example.com/docs>.\n\nAsset [release notes]({}) and ![A \\[diagram\\] \\(v1\\)]({}).",
+            site.url("/guide"),
+            release_url,
+            diagram_url
         )
     );
 

@@ -1777,6 +1777,21 @@ Validation:
 
 Confidence: High. The behavior is source-backed and covered by a deterministic fixture. It is limited to blockquote markdown rendering and does not alter extraction selection, browser rendering, or session replay.
 
+### D106: I19d escapes owned link and image markdown targets
+
+The next markdown-quality slice ports Crawl4AI/html2text escaping inside markdown link/image constructs. Before changing the owned renderer, I19d re-inspected `references/repos/crawl4ai/crawl4ai/html2text/__init__.py`, where link URLs and image alt/src values are passed through `escape_md`, and `references/repos/crawl4ai/crawl4ai/html2text/utils.py`, where `escape_md` backslash-escapes backslashes, square brackets, and parentheses.
+
+`OwnedExtractorBackend` now escapes those characters in rendered link destinations, image destinations, and image alt text. The same fixture also caught and fixed an owned inline-spacing edge case where image markdown beginning with `![]` was incorrectly treated as sentence-closing punctuation and joined to the preceding word. The static markdown parity fixture now covers parenthesized URLs and image alt text containing brackets and parentheses.
+
+Validation:
+
+- `cargo fmt --check`
+- `git diff --check`
+- `cargo test --test mock_site_cli homegrown_extractor_backend_covers_static_http_parity_slice`
+- `cargo test`
+
+Confidence: High. The behavior is source-backed and covered by deterministic markdown output. It is limited to markdown escaping/spacing inside link and image constructs and does not alter selection, auth/session handling, or browser rendering.
+
 ## Open Questions
 
 - Can pure Rust browser automation provide reliable persistent profiles and CDP attach, or do we need a small Node/Playwright sidecar?

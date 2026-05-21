@@ -2064,7 +2064,7 @@ fn render_link(node: NodeRef<'_, Node>, writer: &mut MarkdownWriter) {
     writer.push_inline(&format!(
         "[{}]({}{})",
         escape_link_text(label),
-        writer.resolve_url(href),
+        escape_markdown_link_target(&writer.resolve_url(href)),
         title
     ));
 }
@@ -2096,8 +2096,8 @@ fn render_image(node: NodeRef<'_, Node>, writer: &mut MarkdownWriter) {
     let alt = element.attr("alt").unwrap_or("");
     writer.push_inline(&format!(
         "![{}]({})",
-        escape_link_text(alt),
-        writer.resolve_url(src)
+        escape_markdown_link_target(alt),
+        escape_markdown_link_target(&writer.resolve_url(src))
     ));
 }
 
@@ -2182,6 +2182,9 @@ fn needs_space_before_inline(output: &str) -> bool {
 }
 
 fn starts_with_closing_punctuation(text: &str) -> bool {
+    if text.starts_with("![") {
+        return false;
+    }
     text.chars()
         .next()
         .is_some_and(|character| matches!(character, '.' | ',' | ':' | ';' | '!' | '?' | ')' | ']'))
@@ -2199,6 +2202,14 @@ fn trailing_newline_count(output: &str) -> usize {
 
 fn escape_link_text(text: &str) -> String {
     text.replace('[', "\\[").replace(']', "\\]")
+}
+
+fn escape_markdown_link_target(text: &str) -> String {
+    text.replace('\\', "\\\\")
+        .replace('[', "\\[")
+        .replace(']', "\\]")
+        .replace('(', "\\(")
+        .replace(')', "\\)")
 }
 
 fn escape_link_title(text: &str) -> String {
