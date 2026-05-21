@@ -1590,6 +1590,21 @@ Status note:
 
 - Completed with D245. Source inspection found agent-browser adds the default `--window-size=1280,720` only for headless Chrome launches without extensions. Owned Chrome launches now keep the default window size for headless extraction/rendering and omit it for headed visible login browsers while preserving startup URL, keychain, profile, platform, and SwiftShader behavior. Deterministic command-construction coverage locks both cases.
 
+### ✅ Task I19cc: Split Chrome process launch tests from production module
+
+Acceptance criteria:
+
+- Preserve current Chrome launch command behavior and deterministic test coverage.
+- Move launch-command unit tests out of `src/browser_cdp/chrome_process.rs` into a focused test module.
+- Keep private production helper access scoped to the browser CDP module; do not introduce public API just for tests.
+- Do not compact or remove planned tasks from `workpads/research/tasks.md`.
+- Record the mechanical split boundary in `knowledge.md`.
+- Verify with focused Chrome process tests plus the standard check set.
+
+Status note:
+
+- Completed with D246. `src/browser_cdp/chrome_process.rs` now keeps production Chrome launch/process lifecycle behavior, while deterministic launch-argument unit coverage lives in `src/browser_cdp/chrome_process/tests.rs`. The split preserves private helper access through the nested test module and leaves `workpads/research/tasks.md` un-compacted.
+
 ### ✅ Task I20: Design OAuth-safe browser login and profile import flow
 
 Acceptance criteria:
