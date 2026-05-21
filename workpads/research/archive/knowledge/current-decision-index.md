@@ -23,6 +23,7 @@ This archive file keeps the denser decision routing that used to live in top-lev
 | D204 | `d204-aget-extractor-parity-test-split.md` | Mechanical AgetExtractor parity test helper split by behavior. |
 | D205 | `d205-browser-cdp-chrome-test-split.md` | Mechanical browser CDP Chrome test split by behavior. |
 | D206 | `d206-attached-page-render.md` | agent-browser-inspired attached-page CDP renderer for current-tab groundwork. |
+| D207 | `d207-aget-browser-attached-page-seam.md` | AgetBrowser engine seam for attached-page CDP rendering. |
 
 ## Full Archive Routing
 
@@ -35,7 +36,7 @@ This archive file keeps the denser decision routing that used to live in top-lev
 | D151-D157 | `d151-d157-auth-and-browser-import.md` | OAuth-safe authorization API/CLI and conservative browser-neutral Chrome import surface. |
 | D158-D167 | `d158-d167-recent-migration-followups.md` | Recent source-backed extraction improvements and follow-up decomposition slices. |
 | D168-D176 | Per-decision files | Knowledge/reference compaction, engine-refactor planning, wrapper introduction, naming cleanup, and direct engine coverage. |
-| D177-D206 | Per-decision files | Module/test decomposition plus the latest owned extractor/browser parity improvements. |
+| D177-D207 | Per-decision files | Module/test decomposition plus the latest owned extractor/browser parity improvements. |
 
 ## Current Open Migration Gaps
 

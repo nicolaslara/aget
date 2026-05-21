@@ -17,7 +17,10 @@ pub(crate) use self::login::{
     close_login_browser, export_login_browser_state, start_login_browser, BrowserLoginCloseRequest,
     BrowserLoginStartRequest, BrowserLoginStateExportRequest,
 };
-pub(crate) use self::render::{render_page, BrowserRenderRequest, PageWaitUntil};
+pub(crate) use self::render::{
+    render_attached_page, render_page, BrowserAttachedPageRenderRequest, BrowserRenderRequest,
+    PageWaitUntil,
+};
 pub(crate) use self::state::{export_browser_state, BrowserStateExportRequest};
 use crate::error::{AgetError, ErrorCode};
 

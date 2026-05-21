@@ -981,6 +981,20 @@ Status note:
 
 - Completed with D206 after inspecting `agent-browser` existing-page attach and content behavior in `references/repos/agent-browser/cli/src/native/browser.rs`. The owned CDP layer now has a tested lower-level attached-page renderer that connects to an existing CDP WebSocket, attaches the preferred page, enables page/runtime/network domains, preserves selector/image/settle/overlay/shadow-DOM capture behavior, reads `location.href` plus document HTML, and does not create, navigate, close pages, or close the browser. This is a current-tab prerequisite and does not add a public CLI surface. Validation passed with focused browser CDP coverage, `cargo fmt --check`, `cargo test`, and `git diff --check`.
 
+### ✅ Task I19ap: Expose attached-page rendering at the AgetBrowser engine seam
+
+Acceptance criteria:
+
+- Preserve the public CLI/API surface; do not add a current-tab command before consent UX is chosen.
+- Keep the lower-level attached-page renderer available through `AgetBrowser`, not only private CDP tests.
+- Keep endpoint ownership explicit: callers must provide the CDP WebSocket URL.
+- Add direct `AgetBrowser` engine coverage that does not use the `Aget` facade or command backend.
+- Verify with focused AgetBrowser and browser CDP coverage plus the standard check set.
+
+Status note:
+
+- Completed with D207. `AgetBrowser` now has a crate-internal attached-page rendering seam that delegates to the owned CDP renderer, preserving the no-launch/no-navigation/no-close current-tab prerequisite behavior from D206 while keeping public CLI/API UX deferred. Direct engine coverage exercises the seam with a mock CDP WebSocket and no `Aget` facade or command backend. Validation passed with focused AgetBrowser coverage, focused attached-page CDP coverage, `cargo fmt --check`, `cargo test`, and `git diff --check`.
+
 ### ✅ Task I20: Design OAuth-safe browser login and profile import flow
 
 Acceptance criteria:
