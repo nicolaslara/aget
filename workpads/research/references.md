@@ -34,6 +34,7 @@ This compact file records current source routing. Detailed reference rows are ar
 | Binary session CLI execution | `src/main_session/` | Dispatches `aget session` commands and keeps command names, profile argument normalization, JSON envelope shaping, and inspect/redaction views split from `src/main.rs`. |
 | Agent-facing usage | `.cursor/skills/aget/SKILL.md`, `.opencode/tools/aget.ts`, `README.md` | Keep command/default-backend wording aligned with current runtime behavior. |
 | Mock-site integration coverage | `tests/support/mock_site.rs`, `tests/mock_site_cli/`, `tests/mock_site_browser.rs`, `tests/mock_site_sessions.rs`, `tests/mock_site_docs_contract.rs` | Local deterministic public/auth/session/rendering behavior. |
+| Get CLI coverage | `tests/get_cli.rs`, `tests/get_cli/`, `tests/support/get_cli.rs` | Public get command artifacts, output shaping, backend validation/failures, and session-backed replay coverage. |
 | Session CLI coverage | `tests/session_cli/`, `tests/support/session_cli.rs` | Session import, authorize, login lifecycle, and backend compatibility coverage. Login coverage is split under `tests/session_cli/login/`. |
 | Mock backend test tools | `tests/support/bin/aget_mock_backend.rs`, `tests/support/bin/aget_mock_backend/`, `tests/fixtures/mock-tools/` | Checked-in local mock binaries used by CLI/integration tests. |
 

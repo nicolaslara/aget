@@ -718,6 +718,20 @@ Status note:
 
 - Completed with D188 after I19v completed and committed. The mechanical split kept `tests/session_cli/login.rs` as the parent module route while moving start, finish, cancel, direct lifecycle API, and ignored real-smoke coverage into focused submodules. Validation passed with focused `session_cli` tests, `cargo fmt --check`, `cargo test`, and `git diff --check`.
 
+### ✅ Task I19x: Split get CLI non-session tests by behavior
+
+Acceptance criteria:
+
+- Preserve current `aget get` CLI test behavior while splitting non-session tests out of `tests/get_cli.rs`.
+- Keep the existing `tests/get_cli/session.rs` module route and shared test support route stable.
+- Split mechanically first, prioritizing success/artifact behavior, output limits/options, backend validation, and failure/timeout handling.
+- Run focused get CLI tests plus the standard validation set before committing.
+- Record the resulting module boundaries in `knowledge.md`.
+
+Status note:
+
+- Completed with D189 after I19w completed and committed. The mechanical split kept `tests/get_cli.rs` as the parent module route, preserved the existing session-backed get tests, and moved public success/artifacts, output limits/options, backend validation, and failure/timeout behavior into focused submodules. Validation passed with focused `get_cli` tests, `cargo fmt --check`, `cargo test`, and `git diff --check`.
+
 ### ✅ Task I20: Design OAuth-safe browser login and profile import flow
 
 Acceptance criteria:
