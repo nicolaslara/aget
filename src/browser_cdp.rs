@@ -19,6 +19,7 @@ use crate::session::{PlaywrightCookie, PlaywrightOrigin, PlaywrightState, Storag
 const CDP_READ_POLL: Duration = Duration::from_millis(100);
 const CHROME_SHUTDOWN_WAIT: Duration = Duration::from_secs(1);
 const NETWORK_IDLE_DURATION: Duration = Duration::from_millis(500);
+const CHROME_SANDBOX_STARTUP_HINT: &str = "Hint: Chrome sandbox/namespace startup failure; in containers or VMs, set AGET_CHROME_COMMAND to a Chrome/Chromium executable that can run with --no-sandbox";
 
 pub(crate) struct BrowserRenderRequest<'a> {
     pub(crate) tmp_dir: &'a Path,
@@ -1439,7 +1440,16 @@ fn relevant_chrome_stderr(stderr: &str) -> String {
             .collect::<Vec<_>>()
             .join("\n  ")
     } else {
-        relevant.join("\n  ")
+        append_chrome_startup_hint(relevant.join("\n  "))
+    }
+}
+
+fn append_chrome_startup_hint(detail: String) -> String {
+    let lower = detail.to_ascii_lowercase();
+    if lower.contains("sandbox") || lower.contains("namespace") {
+        format!("{detail}\n  {CHROME_SANDBOX_STARTUP_HINT}")
+    } else {
+        detail
     }
 }
 
@@ -2155,6 +2165,17 @@ more noise";
             devtools_ws_url_from_stderr(stderr).as_deref(),
             Some("ws://127.0.0.1:9222/devtools/browser/fallback")
         );
+    }
+
+    #[test]
+    fn chrome_stderr_detail_includes_sandbox_hint() {
+        let detail = relevant_chrome_stderr(
+            "Failed to move to new namespace: PID namespaces supported, Network namespace supported, but failed: errno = Operation not permitted",
+        );
+
+        assert!(detail.contains("Failed to move to new namespace"));
+        assert!(detail.contains("Chrome sandbox/namespace startup failure"));
+        assert!(detail.contains("AGET_CHROME_COMMAND"));
     }
 
     #[cfg(unix)]

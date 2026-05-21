@@ -1641,6 +1641,22 @@ Validation:
 
 Confidence: Medium-high. The behavior is source-backed and deterministically tested with a fake Chrome child process, without requiring local Chrome. Broader current-tab attach, real logged-in profile/keychain smoke coverage, and cross-platform process lifecycle checks remain open I19e work.
 
+### D97: I19e adds sandbox startup diagnostics for owned Chrome
+
+The next owned Chrome startup slice reuses the same `agent-browser` source path inspected for D96: `references/repos/agent-browser/cli/src/native/cdp/chrome.rs`. Its `chrome_launch_error` helper promotes Chrome stderr lines containing `sandbox` or `namespace` and adds an explicit container/VM hint instead of returning an opaque early-exit failure.
+
+`OwnedBrowserAutomationBackend` now appends an `AGET_CHROME_COMMAND`-oriented sandbox/namespace hint when Chrome startup stderr indicates a sandbox or namespace failure. The error code is unchanged, and profile-lock/user-action classification remains separate; this only makes non-user-action startup failures more actionable for local Chrome and CI/container environments.
+
+Validation:
+
+- `cargo fmt --check`
+- `git diff --check`
+- `cargo test browser_cdp::tests::chrome_stderr_detail_includes_sandbox_hint`
+- `cargo test --test session_cli owned_session_import_chrome_reports_sandbox_startup_hint`
+- `cargo test`
+
+Confidence: Medium-high. The behavior is source-backed and covered by deterministic helper and CLI tests using a fake Chrome executable. It still does not prove every platform-specific Chrome startup failure shape, so fuller cross-platform process/error classification remains an I19e follow-up.
+
 ## Open Questions
 
 - Can pure Rust browser automation provide reliable persistent profiles and CDP attach, or do we need a small Node/Playwright sidecar?
