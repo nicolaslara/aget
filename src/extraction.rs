@@ -2050,9 +2050,8 @@ fn render_link(node: NodeRef<'_, Node>, writer: &mut MarkdownWriter) {
         return;
     }
     let label = inline_markdown_from_children(node, writer);
-    let label = if label.is_empty() { href } else { &label };
     let title = element.attr("title").unwrap_or("").trim();
-    if title.is_empty() && label == href && is_absolute_http_url(href) {
+    if title.is_empty() && !label.is_empty() && label == href && is_absolute_http_url(href) {
         writer.push_inline(&format!("<{}>", href));
         return;
     }
@@ -2063,7 +2062,7 @@ fn render_link(node: NodeRef<'_, Node>, writer: &mut MarkdownWriter) {
     };
     writer.push_inline(&format!(
         "[{}]({}{})",
-        escape_link_text(label),
+        escape_link_text(&label),
         escape_markdown_link_target(&writer.resolve_url(href)),
         title
     ));

@@ -353,6 +353,7 @@ fn homegrown_extractor_backend_covers_static_http_parity_slice() {
       <h1>Link Defaults</h1>
       <p>Read <a href="/guide" title="Guide &quot;title&quot;">the guide</a> or <a href="mailto:help@example.com">email support</a>.</p>
       <p>Canonical <a href="https://example.com/docs">https://example.com/docs</a>.</p>
+      <p>Empty <a href="/empty"></a> marker.</p>
       <p>Asset <a href="/release(2026)">release notes</a> and <img src="/assets/diagram(1).png" alt="A [diagram] (v1)">.</p>
     </main>
   </body>
@@ -509,8 +510,9 @@ fn homegrown_extractor_backend_covers_static_http_parity_slice() {
     assert_eq!(
         markdown_links.content,
         format!(
-            "# Link Defaults\n\nRead [the guide]({} \"Guide \\\"title\\\"\") or email support.\n\nCanonical <https://example.com/docs>.\n\nAsset [release notes]({}) and ![A \\[diagram\\] \\(v1\\)]({}).",
+            "# Link Defaults\n\nRead [the guide]({} \"Guide \\\"title\\\"\") or email support.\n\nCanonical <https://example.com/docs>.\n\nEmpty []({}) marker.\n\nAsset [release notes]({}) and ![A \\[diagram\\] \\(v1\\)]({}).",
             site.url("/guide"),
+            site.url("/empty"),
             release_url,
             diagram_url
         )

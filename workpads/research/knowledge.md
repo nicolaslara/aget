@@ -1792,6 +1792,21 @@ Validation:
 
 Confidence: High. The behavior is source-backed and covered by deterministic markdown output. It is limited to markdown escaping/spacing inside link and image constructs and does not alter selection, auth/session handling, or browser rendering.
 
+### D107: I19d preserves empty markdown links
+
+The next markdown-quality slice ports a small Crawl4AI/html2text anchor edge case. Before changing the owned renderer, I19d re-inspected `references/repos/crawl4ai/crawl4ai/html2text/__init__.py`, where `HTML2Text.handle_tag` tracks `empty_link` and emits `[` before closing an otherwise empty inline link, resulting in `[](resolved-url)` instead of substituting the href as the label.
+
+`OwnedExtractorBackend` now keeps the empty child-label case empty while retaining automatic-link rendering for non-empty absolute URL labels. The static markdown parity fixture covers an empty anchor alongside titled links, `mailto:` suppression, automatic absolute links, and escaped link/image targets.
+
+Validation:
+
+- `cargo fmt --check`
+- `git diff --check`
+- `cargo test --test mock_site_cli homegrown_extractor_backend_covers_static_http_parity_slice`
+- `cargo test`
+
+Confidence: High. The behavior is directly source-backed, covered by deterministic markdown output, and limited to link-label rendering.
+
 ## Open Questions
 
 - Can pure Rust browser automation provide reliable persistent profiles and CDP attach, or do we need a small Node/Playwright sidecar?
