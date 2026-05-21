@@ -310,9 +310,11 @@ fn homegrown_extractor_backend_covers_static_http_parity_slice() {
     <style>.hidden { display: none; }</style>
   </head>
   <body>
-    <main>
+    <main id="cleanup-main" class="article" data-private="main-secret" style="color:red">
       <h1>Cleanup Main</h1>
-      <p>Visible body.</p>
+      <p data-select="summary" data-private="paragraph-secret" style="color:blue" onclick="steal()" aria-label="private label">Visible body.</p>
+      <a id="kept-link" class="cta" href="/kept" title="Kept title" rel="nofollow" data-private="link-secret">Kept link</a>
+      <img id="diagram" class="figure" src="/diagram.png" alt="Diagram" width="640" height="480" data-private="image-secret" style="display:none">
       <meta name="body-meta" content="remove me">
       <link rel="preload" href="/asset.css">
       <script>window.secret = "remove me";</script>
@@ -415,11 +417,34 @@ fn homegrown_extractor_backend_covers_static_http_parity_slice() {
         .content
         .contains("<title>Cleanup Title</title>"));
     assert!(cleaned_html.content.contains("<h1>Cleanup Main</h1>"));
+    assert!(cleaned_html.content.contains("id=\"cleanup-main\""));
+    assert!(cleaned_html.content.contains("class=\"article\""));
+    assert!(cleaned_html.content.contains("href=\"/kept\""));
+    assert!(cleaned_html.content.contains("title=\"Kept title\""));
+    assert!(cleaned_html.content.contains("src=\"/diagram.png\""));
+    assert!(cleaned_html.content.contains("alt=\"Diagram\""));
+    assert!(cleaned_html.content.contains("width=\"640\""));
+    assert!(cleaned_html.content.contains("height=\"480\""));
     assert!(!cleaned_html.content.contains("<meta"));
     assert!(!cleaned_html.content.contains("<link"));
     assert!(!cleaned_html.content.contains("<style"));
     assert!(!cleaned_html.content.contains("<script"));
     assert!(!cleaned_html.content.contains("<noscript"));
+    assert!(!cleaned_html.content.contains("data-private"));
+    assert!(!cleaned_html.content.contains("data-select"));
+    assert!(!cleaned_html.content.contains("style="));
+    assert!(!cleaned_html.content.contains("onclick="));
+    assert!(!cleaned_html.content.contains("aria-label="));
+    assert!(!cleaned_html.content.contains("rel=\"nofollow\""));
+
+    let selected_by_pruned_attr = Aget::new(&aget_home)
+        .with_extractor_backend(OwnedExtractorBackend)
+        .get(site.url("/html-cleanup"))
+        .content_format(OutputFormat::Text)
+        .selector(r#"[data-select="summary"]"#)
+        .run()
+        .unwrap();
+    assert_eq!(selected_by_pruned_attr.content, "Visible body.");
 
     let json = Aget::new(&aget_home)
         .with_extractor_backend(OwnedExtractorBackend)

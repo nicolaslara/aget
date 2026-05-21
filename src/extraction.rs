@@ -6,7 +6,7 @@ use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
 use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 
-use ego_tree::NodeRef;
+use ego_tree::{NodeId, NodeRef};
 use html5ever::tree_builder::TreeSink;
 use scraper::{ElementRef, Html, HtmlTreeSink, Node, Selector};
 use serde::{Deserialize, Serialize};
@@ -30,6 +30,9 @@ const FALLBACK_EXTRACTOR: &str = "agent-browser-fallback";
 const FALLBACK_WARNING: &str = "agent-browser fallback used after Crawl4AI failed";
 const OWNED_FALLBACK_WARNING: &str = "aget-owned fallback used after primary extractor failed";
 const DEFAULT_RENDER_SETTLE_DELAY: Duration = Duration::from_millis(100);
+const CRAWL4AI_IMPORTANT_ATTRS: &[&str] = &[
+    "src", "href", "alt", "title", "width", "height", "class", "id",
+];
 
 #[derive(Clone)]
 pub struct GetOptions {
@@ -984,7 +987,7 @@ fn extract_owned_html(
         && options.wait_for_selector.is_none()
         && options.content_format != OutputFormat::Html;
     let extracted = extract_owned_content(
-        &document,
+        document,
         selector,
         &base_url,
         prefer_main_content,
@@ -1278,35 +1281,41 @@ struct ExtractedOwnedContent {
 }
 
 fn extract_owned_content(
-    document: &Html,
+    mut document: Html,
     selector: Option<&str>,
     base_url: &str,
     prefer_main_content: bool,
     owned_options: &OwnedExtractorOptions,
 ) -> Result<ExtractedOwnedContent, AgetError> {
-    let root = if let Some(raw_selector) = selector {
+    let root_id = if let Some(raw_selector) = selector {
         let selector = parse_css_selector(raw_selector)?;
         document
             .select(&selector)
             .next()
             .unwrap_or_else(|| document.root_element())
+            .id()
     } else if !owned_options.target_elements.is_empty() {
-        document.root_element()
+        document.root_element().id()
     } else if prefer_main_content {
-        default_main_content_element(document)?
+        default_main_content_element(&document)?.id()
     } else {
-        document.root_element()
+        document.root_element().id()
+    };
+    let target_ids = if owned_options.target_elements.is_empty() {
+        Vec::new()
+    } else {
+        collect_target_owned_element_ids(&document, root_id, &owned_options.target_elements)?
     };
 
+    // Match Crawl4AI's cleanup order: selectors see original attributes, but
+    // serialized cleaned HTML keeps only its small important-attribute allowlist.
+    document = prune_owned_unwanted_attributes(document);
+
     if owned_options.target_elements.is_empty() {
+        let root = element_by_id(&document, root_id)?;
         return Ok(extract_single_owned_element(root, base_url, owned_options));
     }
-    extract_target_owned_elements(
-        root,
-        &owned_options.target_elements,
-        base_url,
-        owned_options,
-    )
+    extract_target_owned_elements(&document, &target_ids, base_url, owned_options)
 }
 
 fn extract_single_owned_element(
@@ -1321,17 +1330,30 @@ fn extract_single_owned_element(
     }
 }
 
-fn extract_target_owned_elements(
-    source: ElementRef<'_>,
+fn collect_target_owned_element_ids(
+    document: &Html,
+    source_id: NodeId,
     raw_selectors: &[String],
+) -> Result<Vec<NodeId>, AgetError> {
+    let source = element_by_id(document, source_id)?;
+    let mut ids = Vec::new();
+    for raw_selector in raw_selectors {
+        let selector = parse_css_selector(raw_selector)?;
+        ids.extend(source.select(&selector).map(|element| element.id()));
+    }
+    Ok(ids)
+}
+
+fn extract_target_owned_elements(
+    document: &Html,
+    element_ids: &[NodeId],
     base_url: &str,
     owned_options: &OwnedExtractorOptions,
 ) -> Result<ExtractedOwnedContent, AgetError> {
-    let mut elements = Vec::new();
-    for raw_selector in raw_selectors {
-        let selector = parse_css_selector(raw_selector)?;
-        elements.extend(source.select(&selector));
-    }
+    let elements = element_ids
+        .iter()
+        .map(|id| element_by_id(document, *id))
+        .collect::<Result<Vec<_>, _>>()?;
 
     let html = elements
         .iter()
@@ -1385,6 +1407,29 @@ fn first_selected_element<'a>(
 ) -> Result<Option<ElementRef<'a>>, AgetError> {
     let selector = parse_css_selector(raw_selector)?;
     Ok(document.select(&selector).next())
+}
+
+fn element_by_id(document: &Html, id: NodeId) -> Result<ElementRef<'_>, AgetError> {
+    document
+        .tree
+        .get(id)
+        .and_then(ElementRef::wrap)
+        .ok_or_else(|| extraction_failed("owned extractor lost a selected HTML element"))
+}
+
+fn prune_owned_unwanted_attributes(mut document: Html) -> Html {
+    for node in document.tree.values_mut() {
+        if let Node::Element(element) = node {
+            element
+                .attrs
+                .retain(|(name, _)| is_crawl4ai_important_attr(name.local.as_ref()));
+        }
+    }
+    document
+}
+
+fn is_crawl4ai_important_attr(name: &str) -> bool {
+    CRAWL4AI_IMPORTANT_ATTRS.contains(&name)
 }
 
 fn markdown_base_url(document: &Html, final_url: &str) -> Result<String, AgetError> {

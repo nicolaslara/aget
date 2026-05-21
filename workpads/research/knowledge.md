@@ -1504,7 +1504,22 @@ Validation:
 - `cargo fmt --check`
 - `cargo test --test mock_site_cli homegrown_extractor_backend_covers_static_http_parity_slice`
 
-Confidence: High for this narrow cleanup slice. The behavior is directly source-backed and deterministically covered; broader attribute pruning, media/link extraction metadata, and full readability remain separate I19d work.
+Confidence: High for this narrow cleanup slice. The behavior is directly source-backed and deterministically covered; broader media/link extraction metadata and full readability remain separate I19d work.
+
+### D88: I19d prunes owned cleaned-HTML attributes like Crawl4AI
+
+The next cleaned-output slice ports Crawl4AI's default attribute pruning. Before changing the owned path, I19d re-inspected `references/repos/crawl4ai/crawl4ai/content_scraping_strategy.py`, where `remove_unwanted_attributes_fast` clears every element's attributes except an important-attribute allowlist and keeps `data-*` only when `keep_data_attributes` is enabled, and `references/repos/crawl4ai/crawl4ai/config.py`, where `IMPORTANT_ATTRS` is `src`, `href`, `alt`, `title`, `width`, `height`, `class`, and `id`.
+
+`OwnedExtractorBackend` now records the selected root/target element IDs before cleanup, then strips non-important attributes before serializing cleaned output. This preserves selector and `crawl4ai.target_elements` matching against original page attributes while making HTML output drop `data-*`, inline style, event handler, ARIA, and relation attributes by default. The fixture proves the important attributes remain on cleaned output, unwanted attributes are absent, and a selector can still match a `data-*` attribute that is later pruned from the serialized content.
+
+Validation:
+
+- `cargo fmt --check`
+- `git diff --check`
+- `cargo test --test mock_site_cli homegrown_extractor_backend_covers_static_http_parity_slice`
+- `cargo test`
+
+Confidence: High for this attribute-pruning slice. The allowlist is source-backed, selection-before-cleanup is covered by a deterministic fixture, and no new backend option or authenticated-browser behavior was added.
 
 ## Open Questions
 
