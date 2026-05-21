@@ -870,7 +870,7 @@ fn homegrown_extractor_backend_covers_static_http_parity_slice() {
     assert!(unsupported_option
         .to_string()
         .contains(
-            "supported options: crawl4ai.delay_before_return_html, crawl4ai.excluded_tags, crawl4ai.only_text, crawl4ai.page_timeout, crawl4ai.target_elements, crawl4ai.wait_for_images, crawl4ai.wait_for_timeout, crawl4ai.wait_until, crawl4ai.word_count_threshold"
+            "supported options: crawl4ai.delay_before_return_html, crawl4ai.excluded_tags, crawl4ai.flatten_shadow_dom, crawl4ai.only_text, crawl4ai.page_timeout, crawl4ai.target_elements, crawl4ai.wait_for_images, crawl4ai.wait_for_timeout, crawl4ai.wait_until, crawl4ai.word_count_threshold"
         ));
 
     let redirect = Aget::new(&aget_home)
@@ -1084,6 +1084,54 @@ fn owned_extractor_backend_renders_scripted_page_without_wait_with_chrome() {
 
     assert_eq!(extraction.extractor, "aget-owned-extractor");
     assert_eq!(extraction.content, "Client Shell Client Rendered");
+}
+
+#[test]
+#[ignore = "requires local Chrome/Chromium; set AGET_CHROME_COMMAND if auto-discovery fails"]
+fn owned_extractor_backend_flattens_shadow_dom_with_chrome() {
+    let temp = tempfile::tempdir().unwrap();
+    let aget_home = temp.path().join("aget-home");
+    let site = MockSite::builder()
+        .route(
+            "/shadow-dom",
+            MockResponse::html(
+                r##"
+<html>
+  <body>
+    <main>
+      <h1>Shadow Shell</h1>
+      <shadow-card><span slot="detail">Projected Detail</span></shadow-card>
+    </main>
+    <script>
+      customElements.define("shadow-card", class extends HTMLElement {
+        constructor() {
+          super()
+          const root = this.attachShadow({ mode: "closed" })
+          root.innerHTML = "<style>p{color:red}</style><article><h2>Shadow Title</h2><slot name=\"detail\">Fallback Detail</slot></article>"
+        }
+      })
+    </script>
+  </body>
+</html>
+"##,
+            ),
+        )
+        .start();
+
+    let extraction = Aget::new(&aget_home)
+        .with_extractor_backend(OwnedExtractorBackend)
+        .get(site.url("/shadow-dom"))
+        .content_format(OutputFormat::Text)
+        .backend_option("crawl4ai.flatten_shadow_dom", "true")
+        .run()
+        .unwrap();
+
+    assert_eq!(extraction.extractor, "aget-owned-extractor");
+    assert_eq!(
+        extraction.content,
+        "Shadow Shell Shadow Title Projected Detail"
+    );
+    assert!(extraction.warnings.is_empty());
 }
 
 #[test]

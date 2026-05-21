@@ -892,6 +892,7 @@ fn extract_owned_rendered_page(
         wait_for_selector: options.wait_for_selector.as_deref(),
         wait_until: owned_options.wait_until,
         wait_for_images: owned_options.wait_for_images,
+        flatten_shadow_dom: owned_options.flatten_shadow_dom,
         settle_delay: owned_options.render_settle_delay,
         page_timeout: owned_options.page_timeout.unwrap_or(timeout),
         wait_for_timeout: owned_options.wait_for_timeout,
@@ -934,6 +935,7 @@ struct OwnedExtractorOptions {
     only_text: bool,
     wait_until: PageWaitUntil,
     wait_for_images: bool,
+    flatten_shadow_dom: bool,
     render_settle_delay: Duration,
     page_timeout: Option<Duration>,
     wait_for_timeout: Option<Duration>,
@@ -947,6 +949,7 @@ impl Default for OwnedExtractorOptions {
             only_text: false,
             wait_until: PageWaitUntil::Load,
             wait_for_images: false,
+            flatten_shadow_dom: false,
             render_settle_delay: DEFAULT_RENDER_SETTLE_DELAY,
             page_timeout: None,
             wait_for_timeout: None,
@@ -1093,9 +1096,13 @@ fn validate_owned_extraction_options(
                 owned_options.wait_for_images =
                     parse_owned_bool("crawl4ai.wait_for_images", &option.value)?;
             }
+            "flatten_shadow_dom" => {
+                owned_options.flatten_shadow_dom =
+                    parse_owned_bool("crawl4ai.flatten_shadow_dom", &option.value)?;
+            }
             _ => {
                 return Err(extraction_failed(format!(
-                    "owned extractor does not support backend option '{}'; supported options: crawl4ai.delay_before_return_html, crawl4ai.excluded_tags, crawl4ai.only_text, crawl4ai.page_timeout, crawl4ai.target_elements, crawl4ai.wait_for_images, crawl4ai.wait_for_timeout, crawl4ai.wait_until, crawl4ai.word_count_threshold",
+                    "owned extractor does not support backend option '{}'; supported options: crawl4ai.delay_before_return_html, crawl4ai.excluded_tags, crawl4ai.flatten_shadow_dom, crawl4ai.only_text, crawl4ai.page_timeout, crawl4ai.target_elements, crawl4ai.wait_for_images, crawl4ai.wait_for_timeout, crawl4ai.wait_until, crawl4ai.word_count_threshold",
                     option.key
                 )));
             }

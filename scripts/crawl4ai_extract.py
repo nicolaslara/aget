@@ -106,6 +106,7 @@ EXTRACTOR_OPTION_TYPES = {
     "wait_for_timeout": ("crawler", "int"),
     "delay_before_return_html": ("crawler", "float"),
     "wait_for_images": ("crawler", "bool"),
+    "flatten_shadow_dom": ("crawler", "bool"),
 }
 
 JS_WAIT_MARKERS = ("=>", "function(", "return ", ";")

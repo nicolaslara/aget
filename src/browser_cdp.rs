@@ -32,6 +32,7 @@ pub(crate) struct BrowserRenderRequest<'a> {
     pub(crate) wait_for_selector: Option<&'a str>,
     pub(crate) wait_until: PageWaitUntil,
     pub(crate) wait_for_images: bool,
+    pub(crate) flatten_shadow_dom: bool,
     pub(crate) settle_delay: Duration,
     pub(crate) page_timeout: Duration,
     pub(crate) wait_for_timeout: Option<Duration>,
@@ -98,6 +99,9 @@ pub(crate) fn render_page(request: BrowserRenderRequest<'_>) -> Result<RenderedP
     let mut client = CdpClient::connect(&chrome.ws_url, request.timeout)?;
     let page = client.create_page(request.page_timeout)?;
     client.enable_page_domains(&page.session_id, request.page_timeout)?;
+    if request.flatten_shadow_dom {
+        client.force_open_shadow_roots(&page.session_id, request.page_timeout)?;
+    }
     client.load_state(&page.session_id, request.state, request.page_timeout)?;
     client.navigate_and_wait(
         &page.session_id,
@@ -129,11 +133,42 @@ pub(crate) fn render_page(request: BrowserRenderRequest<'_>) -> Result<RenderedP
     }
     let final_url =
         client.evaluate_string(&page.session_id, "location.href", request.page_timeout)?;
-    let html = client.evaluate_string(
-        &page.session_id,
-        "document.documentElement.outerHTML || ''",
-        request.page_timeout,
-    )?;
+    let html = if request.flatten_shadow_dom {
+        match client.evaluate_string(
+            &page.session_id,
+            shadow_dom_flatten_expression(),
+            request.page_timeout,
+        ) {
+            Ok(html) if !html.trim().is_empty() => html,
+            Ok(_) => {
+                warnings.push(
+                    "shadow DOM flattening returned no content; falling back to outerHTML"
+                        .to_string(),
+                );
+                client.evaluate_string(
+                    &page.session_id,
+                    "document.documentElement.outerHTML || ''",
+                    request.page_timeout,
+                )?
+            }
+            Err(error) => {
+                warnings.push(format!(
+                    "shadow DOM flattening failed; falling back to outerHTML: {error}"
+                ));
+                client.evaluate_string(
+                    &page.session_id,
+                    "document.documentElement.outerHTML || ''",
+                    request.page_timeout,
+                )?
+            }
+        }
+    } else {
+        client.evaluate_string(
+            &page.session_id,
+            "document.documentElement.outerHTML || ''",
+            request.page_timeout,
+        )?
+    };
     let _ = client.send(
         "Target.closeTarget",
         Some(json!({ "targetId": page.target_id })),
@@ -562,6 +597,22 @@ impl CdpClient {
             Duration::from_secs(1),
         );
         self.send("Network.enable", None, Some(session_id), timeout)?;
+        Ok(())
+    }
+
+    fn force_open_shadow_roots(
+        &mut self,
+        session_id: &str,
+        timeout: Duration,
+    ) -> Result<(), AgetError> {
+        self.send(
+            "Page.addScriptToEvaluateOnNewDocument",
+            Some(json!({
+                "source": shadow_dom_attach_override_expression(),
+            })),
+            Some(session_id),
+            timeout,
+        )?;
         Ok(())
     }
 
@@ -1420,6 +1471,91 @@ fn rendered_overlay_cleanup_expression() -> &'static str {
         document.body.scrollIntoView(false);
         await new Promise((resolve) => setTimeout(resolve, 50));
         return removed;
+    })()"#
+}
+
+fn shadow_dom_attach_override_expression() -> &'static str {
+    r#"(() => {
+        if (Element.prototype.__agetOpenShadowRoots) {
+            return;
+        }
+        const originalAttachShadow = Element.prototype.attachShadow;
+        Object.defineProperty(Element.prototype, "__agetOpenShadowRoots", { value: true });
+        Element.prototype.attachShadow = function(init) {
+            return originalAttachShadow.call(this, { ...init, mode: "open" });
+        };
+    })()"#
+}
+
+fn shadow_dom_flatten_expression() -> &'static str {
+    r#"(() => {
+        const voidTags = new Set([
+            "area", "base", "br", "col", "embed", "hr", "img", "input",
+            "link", "meta", "param", "source", "track", "wbr"
+        ]);
+
+        const escapeAttr = (value) => String(value)
+            .replace(/&/g, "&amp;")
+            .replace(/"/g, "&quot;");
+
+        const attrs = (node) => {
+            let output = "";
+            for (const attr of Array.from(node.attributes || [])) {
+                output += ` ${attr.name}="${escapeAttr(attr.value)}"`;
+            }
+            return output;
+        };
+
+        const serialize = (node) => {
+            if (node.nodeType === Node.TEXT_NODE) {
+                return node.textContent || "";
+            }
+            if (node.nodeType === Node.COMMENT_NODE || node.nodeType !== Node.ELEMENT_NODE) {
+                return "";
+            }
+            const tag = node.tagName.toLowerCase();
+            const content = node.shadowRoot
+                ? serializeShadowRoot(node)
+                : Array.from(node.childNodes).map(serialize).join("");
+            if (voidTags.has(tag)) {
+                return `<${tag}${attrs(node)}>`;
+            }
+            return `<${tag}${attrs(node)}>${content}</${tag}>`;
+        };
+
+        const serializeShadowRoot = (host) =>
+            Array.from(host.shadowRoot.childNodes)
+                .map((child) => serializeShadowChild(child, host))
+                .join("");
+
+        const serializeShadowChild = (node, host) => {
+            if (node.nodeType === Node.TEXT_NODE) {
+                return node.textContent || "";
+            }
+            if (node.nodeType === Node.COMMENT_NODE || node.nodeType !== Node.ELEMENT_NODE) {
+                return "";
+            }
+            const tag = node.tagName.toLowerCase();
+            if (tag === "style") {
+                return "";
+            }
+            if (tag === "slot") {
+                const assigned = node.assignedNodes({ flatten: true });
+                const source = assigned.length > 0 ? assigned : Array.from(node.childNodes);
+                return Array.from(source)
+                    .map((child) => assigned.length > 0 ? serialize(child) : serializeShadowChild(child, host))
+                    .join("");
+            }
+            const content = node.shadowRoot
+                ? serializeShadowRoot(node)
+                : Array.from(node.childNodes).map((child) => serializeShadowChild(child, host)).join("");
+            if (voidTags.has(tag)) {
+                return `<${tag}${attrs(node)}>`;
+            }
+            return `<${tag}${attrs(node)}>${content}</${tag}>`;
+        };
+
+        return serialize(document.documentElement);
     })()"#
 }
 
@@ -2588,6 +2724,19 @@ mod tests {
         assert!(expression.contains("style.position === \"absolute\""));
         assert!(expression.contains("zIndex > 999"));
         assert!(!expression.contains("hellointerview"));
+    }
+
+    #[test]
+    fn shadow_dom_flatten_expression_resolves_slots_and_skips_styles() {
+        let attach_override = shadow_dom_attach_override_expression();
+        let flatten = shadow_dom_flatten_expression();
+
+        assert!(attach_override.contains("attachShadow"));
+        assert!(attach_override.contains("mode: \"open\""));
+        assert!(flatten.contains("shadowRoot"));
+        assert!(flatten.contains("assignedNodes({ flatten: true })"));
+        assert!(flatten.contains("tag === \"style\""));
+        assert!(flatten.contains("serialize(document.documentElement)"));
     }
 
     #[test]
