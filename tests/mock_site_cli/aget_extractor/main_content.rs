@@ -76,6 +76,19 @@ pub(super) fn assert_main_content_scoring(aget_home: &Path, site: &MockSite) {
         "# Primary Article\n\nThe primary article should win even when a noisy comments block has enough text to look important."
     );
 
+    let threshold_markdown = Aget::new(aget_home)
+        .with_extractor_backend(AgetExtractorBackend::default())
+        .get(site.url("/main-content-word-threshold"))
+        .content_format(OutputFormat::Markdown)
+        .backend_option("crawl4ai.word_count_threshold", "9")
+        .run()
+        .unwrap();
+    assert_eq!(
+        threshold_markdown.content,
+        "This fallback article has enough useful words to pass the configured threshold."
+    );
+    assert!(!threshold_markdown.content.contains("Short Teaser"));
+
     let overlay_text = Aget::new(aget_home)
         .with_extractor_backend(AgetExtractorBackend::default())
         .get(site.url("/overlay-content"))

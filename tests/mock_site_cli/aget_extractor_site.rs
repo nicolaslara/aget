@@ -165,6 +165,25 @@ pub(crate) fn aget_extractor_parity_site() -> MockSite {
             ),
         )
         .route(
+            "/main-content-word-threshold",
+            MockResponse::html(
+                r#"
+<html>
+  <body>
+    <article class="story">
+      <h1>Short Teaser</h1>
+      <p>Brief story wins normally.</p>
+    </article>
+    <div id="content" class="content">
+      <h1>Long Article</h1>
+      <p>This fallback article has enough useful words to pass the configured threshold.</p>
+    </div>
+  </body>
+</html>
+"#,
+            ),
+        )
+        .route(
             "/selector-miss",
             MockResponse::html(
                 r#"

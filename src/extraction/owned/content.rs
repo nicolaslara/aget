@@ -42,7 +42,7 @@ pub(super) fn extract_owned_content(
     } else if !owned_options.target_elements.is_empty() {
         vec![document.root_element().id()]
     } else if prefer_main_content {
-        vec![default_main_content_element(&document)?.id()]
+        vec![default_main_content_element(&document, owned_options.word_count_threshold)?.id()]
     } else {
         vec![document.root_element().id()]
     };
@@ -134,8 +134,11 @@ fn extract_target_owned_elements(
     })
 }
 
-fn default_main_content_element(document: &Html) -> Result<ElementRef<'_>, AgetError> {
-    if let Some(element) = best_main_content_candidate(document)? {
+fn default_main_content_element(
+    document: &Html,
+    word_count_threshold: usize,
+) -> Result<ElementRef<'_>, AgetError> {
+    if let Some(element) = best_main_content_candidate(document, word_count_threshold)? {
         return Ok(element);
     }
     if let Some(body) = first_selected_element(document, "body")? {
@@ -146,6 +149,7 @@ fn default_main_content_element(document: &Html) -> Result<ElementRef<'_>, AgetE
 
 fn best_main_content_candidate<'a>(
     document: &'a Html,
+    word_count_threshold: usize,
 ) -> Result<Option<ElementRef<'a>>, AgetError> {
     let mut best = None;
     for selector in ["main", r#"[role="main"]"#, "article", "section", "div"] {
@@ -154,7 +158,7 @@ fn best_main_content_candidate<'a>(
             if is_inside_crawl4ai_pruning_excluded_tag(element) {
                 continue;
             }
-            let score = score_main_content_candidate(element)?;
+            let score = score_main_content_candidate(element, word_count_threshold)?;
             if score <= 0 {
                 continue;
             }
@@ -191,9 +195,15 @@ fn is_inside_crawl4ai_pruning_excluded_tag(element: ElementRef<'_>) -> bool {
     })
 }
 
-fn score_main_content_candidate(element: ElementRef<'_>) -> Result<i64, AgetError> {
+fn score_main_content_candidate(
+    element: ElementRef<'_>,
+    word_count_threshold: usize,
+) -> Result<i64, AgetError> {
     let text_words = word_count(element.text());
     if text_words == 0 {
+        return Ok(0);
+    }
+    if word_count_threshold > 0 && text_words < word_count_threshold {
         return Ok(0);
     }
     let link_selector = parse_css_selector("a")?;
