@@ -84,6 +84,26 @@ fn homegrown_extractor_backend_covers_static_http_parity_slice() {
             ),
         )
         .route(
+            "/labeled-content",
+            MockResponse::html(
+                r#"
+<html>
+  <body>
+    <nav>Global docs nav</nav>
+    <div class="layout">
+      <section class="promo-sidebar">Related links and promotions</section>
+      <div id="article-content" class="story-body">
+        <h1>Labeled Story</h1>
+        <p>Useful labeled content should win default extraction without an explicit selector.</p>
+      </div>
+    </div>
+    <footer>Global footer links</footer>
+  </body>
+</html>
+"#,
+            ),
+        )
+        .route(
             "/selector-miss",
             MockResponse::html(
                 r#"
@@ -538,6 +558,17 @@ fn homegrown_extractor_backend_covers_static_http_parity_slice() {
     assert_eq!(
         multiple_articles.content,
         "# Deep Story\n\nThis article has enough useful body text to beat the promotional card.\n\nIt should be selected as the default main content candidate."
+    );
+
+    let labeled_markdown = Aget::new(&aget_home)
+        .with_extractor_backend(OwnedExtractorBackend)
+        .get(site.url("/labeled-content"))
+        .content_format(OutputFormat::Markdown)
+        .run()
+        .unwrap();
+    assert_eq!(
+        labeled_markdown.content,
+        "# Labeled Story\n\nUseful labeled content should win default extraction without an explicit selector."
     );
 
     let overlay_text = Aget::new(&aget_home)

@@ -629,7 +629,7 @@ fn best_main_content_candidate<'a>(
     document: &'a Html,
 ) -> Result<Option<ElementRef<'a>>, AgetError> {
     let mut best = None;
-    for selector in ["main", r#"[role="main"]"#, "article"] {
+    for selector in ["main", r#"[role="main"]"#, "article", "section", "div"] {
         let selector = parse_css_selector(selector)?;
         for element in document.select(&selector) {
             let score = score_main_content_candidate(element)?;
@@ -661,10 +661,19 @@ fn score_main_content_candidate(element: ElementRef<'_>) -> Result<i64, AgetErro
     let tag_bonus = match element.value().name() {
         "main" => 300,
         "article" => 250,
+        "section" => 125,
+        "div" => 75,
         _ => 150,
     };
+    let positive_label_bonus = content_label_bonus(element) as i64;
+    if matches!(element.value().name(), "div" | "section") && positive_label_bonus == 0 {
+        return Ok(0);
+    }
     let label_penalty = content_label_penalty(element) as i64;
-    Ok((text_words as i64 * 10) - (link_words as i64 * 8) + tag_bonus - label_penalty)
+    Ok(
+        (text_words as i64 * 10) - (link_words as i64 * 8) + tag_bonus + positive_label_bonus
+            - label_penalty,
+    )
 }
 
 fn word_count<'a>(pieces: impl IntoIterator<Item = &'a str>) -> usize {
@@ -690,6 +699,30 @@ fn content_label_penalty(element: ElementRef<'_>) -> usize {
     .filter(|needle| label.contains(needle))
     .count()
         * 200
+}
+
+fn content_label_bonus(element: ElementRef<'_>) -> usize {
+    let label = ["id", "class", "role", "aria-label"]
+        .into_iter()
+        .filter_map(|attribute| element.attr(attribute))
+        .collect::<Vec<_>>()
+        .join(" ")
+        .to_ascii_lowercase();
+    [
+        "article",
+        "body",
+        "content",
+        "doc",
+        "documentation",
+        "entry",
+        "main",
+        "post",
+        "story",
+    ]
+    .into_iter()
+    .filter(|needle| label.contains(needle))
+    .count()
+        * 150
 }
 
 fn first_selected_element<'a>(

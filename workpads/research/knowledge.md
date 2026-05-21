@@ -2646,6 +2646,20 @@ Validation:
 
 Confidence: Medium-high. This is source-backed and deterministic, but still a bounded cleanup option rather than full Crawl4AI readability filtering.
 
+### D160: I19d recognizes labeled content containers in owned main-content selection
+
+The next readability slice broadens the owned default main-content heuristic beyond `main`, `[role=main]`, and `article`. Source inspection for this slice re-used `references/repos/crawl4ai/crawl4ai/content_filter_strategy.py`, where `RelevantContentFilter` includes `section` and `div` as content-bearing structures, excludes nav/footer/header/sidebar-style noise, and uses negative class/id patterns as part of relevance filtering.
+
+`aget` now considers labeled `section` and `div` candidates when no explicit selector or wait selector is provided. Generic `section`/`div` elements only enter the default candidate set when their id/class/role/aria-label contains positive content labels such as `content`, `article`, `story`, `post`, `entry`, `doc`, or `main`; negative labels such as nav, footer, sidebar, ad, promo, comment, related, share, and social still penalize the score. This keeps the heuristic generic and avoids site-shaped paywall/login behavior while covering common pages that wrap the useful article in `<div id="article-content">` or similar containers instead of semantic `<main>`/`<article>`.
+
+Coverage in `tests/mock_site_cli/owned.rs` verifies that a labeled story container is selected by default while surrounding nav, sidebar/promo, and footer content are excluded.
+
+Validation:
+
+- `cargo test homegrown_extractor_backend_covers_static_http_parity_slice --test mock_site_cli`
+
+Confidence: Medium-high. The behavior is deterministic and source-backed, but it is still a bounded local heuristic rather than a full Crawl4AI pruning/readability port.
+
 ## Open Questions
 
 - Can pure Rust browser automation provide reliable persistent profiles and CDP attach, or do we need a small Node/Playwright sidecar?
