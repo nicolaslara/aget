@@ -760,6 +760,20 @@ Status note:
 
 - Completed with D191 after I19y completed and committed. The mechanical split kept `tests/aget_api.rs` as the integration-test route while moving shared fixtures, extraction wiring, authorization, session backend, and default browser backend behavior into focused submodules. Validation passed with focused `aget_api` tests, `cargo fmt --check`, `cargo test`, and `git diff --check`.
 
+### ✅ Task I19aa: Split session import CLI tests by behavior
+
+Acceptance criteria:
+
+- Preserve current `aget session import` CLI behavior while splitting `tests/session_cli/imports.rs`.
+- Keep the parent `tests/session_cli.rs` module route stable.
+- Split mechanically first, prioritizing command-backed Chrome import, generic browser import validation, owned Chrome startup classification, and ignored real-browser smoke coverage.
+- Run focused session CLI import tests plus the standard validation set before committing.
+- Record the resulting module boundaries in `knowledge.md`.
+
+Status note:
+
+- Completed with D192 after I19z completed and committed. The mechanical split kept `tests/session_cli.rs` routing through `tests/session_cli/imports.rs` while moving browser import, command-backed Chrome import, owned Chrome startup classification, and ignored real-browser smoke coverage into focused submodules. Validation passed with focused import tests, `cargo fmt --check`, `cargo test`, and `git diff --check`.
+
 ### ✅ Task I20: Design OAuth-safe browser login and profile import flow
 
 Acceptance criteria:

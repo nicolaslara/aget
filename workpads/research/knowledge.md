@@ -53,6 +53,7 @@ Safety boundary remains unchanged: `aget` is a generic fetcher for content the u
 - D189: non-session get CLI tests were split into `tests/get_cli.rs` plus success, output, validation, and failure submodules while keeping existing session get tests and support routing stable.
 - D190: session-backed get CLI tests were split into `tests/get_cli/session.rs` plus replay, fallback/redaction, and ignored real-smoke submodules without changing authenticated get behavior.
 - D191: Aget facade/backend API tests were split into `tests/aget_api.rs` plus support, extraction, authorization, session-backend, and default browser-backend submodules without changing backend contract coverage.
+- D192: session import CLI tests were split into `tests/session_cli/imports.rs` plus browser, command-backed Chrome, owned Chrome, and real-smoke submodules without changing import behavior.
 
 ## Archive Index
 
@@ -88,6 +89,7 @@ Safety boundary remains unchanged: `aget` is a generic fetcher for content the u
 | D189 | `archive/knowledge/d189-get-cli-test-split.md` | mechanical get CLI test split into success, output, validation, failure, and existing session modules |
 | D190 | `archive/knowledge/d190-get-session-test-split.md` | mechanical session-backed get CLI test split into replay, fallback/redaction, and real-smoke modules |
 | D191 | `archive/knowledge/d191-aget-api-test-split.md` | mechanical Aget facade/backend API test split into support, extraction, authorization, session backend, and default browser backend modules |
+| D192 | `archive/knowledge/d192-session-import-test-split.md` | mechanical session import CLI test split into browser, command-backed Chrome, owned Chrome, and real-smoke modules |
 
 ## Current Verification Expectations
 
