@@ -804,6 +804,20 @@ Status note:
 
 - Completed with D194 after I19ab completed and committed. The mechanical split kept markdown output behavior unchanged while moving renderer state/blank-line/abbreviation helpers into `src/extraction/markdown/writer.rs` and link/image/abbreviation/raw-text helpers into `src/extraction/markdown/inline.rs`; `src/extraction/markdown/mod.rs` now focuses on block/list/render dispatch and is 283 lines. Validation passed with focused markdown/extractor coverage, `cargo fmt --check`, `cargo test`, and `git diff --check`.
 
+### ✅ Task I19ad: Split browser CDP test modules by behavior
+
+Acceptance criteria:
+
+- Preserve current browser/CDP behavior coverage while reducing `src/browser_cdp/tests.rs`.
+- Keep existing discovery test submodule routing stable.
+- Split mechanically first, prioritizing CDP state conversion, Chrome/profile lifecycle tests, and page script expression tests.
+- Run focused browser CDP tests plus the standard validation set before committing.
+- Record the resulting module boundaries in `knowledge.md`.
+
+Status note:
+
+- Completed with D195 after I19ac completed and committed. The mechanical split kept discovery routing stable and moved CDP state conversion, Chrome/profile lifecycle smokes, and page-script expression tests into focused submodules; the parent `src/browser_cdp/tests.rs` now only routes modules and owns shared test helpers. Validation passed with focused browser CDP tests, `cargo fmt --check`, `cargo test`, and `git diff --check`.
+
 ### ✅ Task I20: Design OAuth-safe browser login and profile import flow
 
 Acceptance criteria:
