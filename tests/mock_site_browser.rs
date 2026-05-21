@@ -2,16 +2,14 @@ mod support;
 
 use std::time::Duration;
 
-use aget::{
-    Aget, AgetBrowserBackend, AgetExtractorBackend, OutputFormat, OwnedBrowserAutomationBackend,
-};
+use aget::{Aget, AgetBrowserBackend, AgetExtractorBackend, OutputFormat};
 use support::mock_site::{MockResponse, MockSite};
 use support::mock_site_cli::{
     save_cookie_session, save_storage_session, storage_rendered_site, FailingExtractor,
 };
 
 #[test]
-fn owned_browser_fallback_replays_cookie_backed_session_without_agent_browser() {
+fn aget_browser_fallback_replays_cookie_backed_session_without_agent_browser() {
     let temp = tempfile::tempdir().unwrap();
     let aget_home = temp.path().join("aget-home");
     let site = MockSite::start();
@@ -37,7 +35,7 @@ fn owned_browser_fallback_replays_cookie_backed_session_without_agent_browser() 
 
 #[test]
 #[ignore = "requires local Chrome/Chromium; set AGET_CHROME_COMMAND if auto-discovery fails"]
-fn owned_browser_fallback_renders_cookie_backed_scripted_page_with_chrome() {
+fn aget_browser_fallback_renders_cookie_backed_scripted_page_with_chrome() {
     let temp = tempfile::tempdir().unwrap();
     let aget_home = temp.path().join("aget-home");
     let site = MockSite::builder()
@@ -66,7 +64,7 @@ fn owned_browser_fallback_renders_cookie_backed_scripted_page_with_chrome() {
 
     let fallback = Aget::new(&aget_home)
         .with_extractor_backend(FailingExtractor)
-        .with_browser_automation_backend(OwnedBrowserAutomationBackend)
+        .with_browser_automation_backend(AgetBrowserBackend::default())
         .get(site.url("/client-rendered"))
         .session("app")
         .content_format(OutputFormat::Text)
@@ -80,7 +78,7 @@ fn owned_browser_fallback_renders_cookie_backed_scripted_page_with_chrome() {
 
 #[test]
 #[ignore = "requires local Chrome/Chromium; set AGET_CHROME_COMMAND if auto-discovery fails"]
-fn owned_browser_fallback_renders_local_storage_backed_session_with_chrome() {
+fn aget_browser_fallback_renders_local_storage_backed_session_with_chrome() {
     let temp = tempfile::tempdir().unwrap();
     let aget_home = temp.path().join("aget-home");
     let site = storage_rendered_site();
@@ -94,7 +92,7 @@ fn owned_browser_fallback_renders_local_storage_backed_session_with_chrome() {
 
     let fallback = Aget::new(&aget_home)
         .with_extractor_backend(FailingExtractor)
-        .with_browser_automation_backend(OwnedBrowserAutomationBackend)
+        .with_browser_automation_backend(AgetBrowserBackend::default())
         .get(site.url("/storage-rendered"))
         .session("storage")
         .content_format(OutputFormat::Text)
@@ -123,7 +121,7 @@ fn aget_extractor_backend_renders_local_storage_backed_session_with_chrome() {
 
     let extraction = Aget::new(&aget_home)
         .with_extractor_backend(AgetExtractorBackend::default())
-        .with_browser_automation_backend(OwnedBrowserAutomationBackend)
+        .with_browser_automation_backend(AgetBrowserBackend::default())
         .get(site.url("/storage-rendered"))
         .session("storage")
         .content_format(OutputFormat::Text)

@@ -102,7 +102,7 @@ If session composition reports a conflict, do not guess which secret wins. Ask t
 
 `aget session login start` does not currently accept `--session`. Do not pretend provider/app session composition is built into the login command.
 
-`aget session login start` is a fallback for non-OAuth or controlled test flows. It opens an automation-owned browser profile and may be rejected by OAuth providers. Do not use it as the first authenticated path for OAuth-backed sites when a real browser session can be imported.
+`aget session login start` is a fallback for non-OAuth or controlled test flows. It opens an AgetBrowser-managed profile and may be rejected by OAuth providers. Do not use it as the first authenticated path for OAuth-backed sites when a real browser session can be imported.
 
 If a login flow appears to require provider cookies beyond the relying-party session:
 

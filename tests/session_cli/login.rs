@@ -15,7 +15,7 @@ use crate::support::session_cli::{
 };
 
 #[test]
-fn session_login_start_opens_aget_owned_browser_and_records_pending_flow() {
+fn session_login_start_opens_aget_browser_profile_and_records_pending_flow() {
     let temp = tempfile::tempdir().unwrap();
     let aget_home = temp.path().join("aget-home");
     let log_path = temp.path().join("agent-browser.log");

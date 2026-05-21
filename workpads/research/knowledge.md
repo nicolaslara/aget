@@ -7,8 +7,8 @@ This compact file records the current decisions and routing context needed for a
 `aget` is a local-first, auth-aware URL-to-agent-context tool. The current implementation direction is a Rust CLI/library with pluggable capability boundaries:
 
 - Facade/orchestration in `src/aget.rs` wires extractor, browser automation/fallback, and session-store backends.
-- Owned extraction lives under `src/extraction/` and now covers static HTTP fetch, selector/exclusion handling, cleaned HTML, markdown/text/html/json output, artifacts, and selected Crawl4AI-compatible options.
-- Owned browser/CDP behavior lives under `src/browser_cdp/` and now covers temporary Chrome launch, CDP rendering, cookie/storage replay/export, Chrome profile import, login lifecycle, discovery diagnostics, and process cleanup.
+- AgetExtractor-backed extraction lives under `src/extraction/` and now covers static HTTP fetch, selector/exclusion handling, cleaned HTML, markdown/text/html/json output, artifacts, and selected Crawl4AI-compatible options.
+- AgetBrowser-backed CDP behavior lives under `src/browser_cdp/` and now covers temporary Chrome launch, CDP rendering, cookie/storage replay/export, Chrome profile import, login lifecycle, discovery diagnostics, and process cleanup.
 - Session model/store/import/login composition is split under `src/session/`.
 
 Safety boundary remains unchanged: `aget` is a generic fetcher for content the user is authorized to access. Authenticated state and content stay local by default. Site-specific paywall/login reasoning belongs to the caller or an agent-facing skill, not the binary.
@@ -31,9 +31,10 @@ Safety boundary remains unchanged: `aget` is a generic fetcher for content the u
 - D165-D167: follow-up test decomposition split owned mock-site fixtures, cmux session-import tests, and CDP discovery tests. This was done for agent ergonomics; behavior should remain unchanged.
 - D168: workpad knowledge history was compacted into archive files so active agents can load current routing context without reading the full append-only record.
 - D169: I19j now plans a mechanical rename/boundary refactor from migration-era `owned` backend names toward product engine names: `AgetExtractor`, `AgetExtractorBackend`, `AgetBrowser`, and `AgetBrowserBackend`.
-- D170: the first I19j code slice introduced `AgetBrowser` and `AgetBrowserBackend`; the default owned browser automation path now routes through this engine wrapper while legacy `OwnedBrowserAutomationBackend` remains as a compatibility shim.
+- D170: the first I19j code slice introduced `AgetBrowser` and `AgetBrowserBackend`; the default local browser automation path now routes through this engine wrapper while legacy `OwnedBrowserAutomationBackend` remains as a compatibility shim.
 - D171: the second I19j code slice introduced `AgetExtractor` and `AgetExtractorBackend`; default extraction and standalone `get_url` helpers now route through the extractor/browser engine wrappers while legacy `OwnedExtractorBackend` remains as a compatibility shim.
 - D172: `AgetExtractor` now has direct engine-level coverage that bypasses the `Aget` facade, and active mock-site extractor tests/docs use `AgetExtractor` naming instead of the migration-era `owned` label.
+- D173: `AgetBrowser` now has direct engine-level cancellation coverage without the `Aget` facade or command backend, and active browser fallback tests/docs use `AgetBrowser` naming where behavior is current rather than historical.
 
 ## Archive Index
 
@@ -50,6 +51,7 @@ Safety boundary remains unchanged: `aget` is a generic fetcher for content the u
 | D170 | `archive/knowledge/d170-aget-browser-wrapper.md` | first `AgetBrowser` wrapper and default browser backend wiring slice |
 | D171 | `archive/knowledge/d171-aget-extractor-wrapper.md` | first `AgetExtractor` wrapper and default extractor backend wiring slice |
 | D172 | `archive/knowledge/d172-aget-extractor-direct-test.md` | direct `AgetExtractor` unit test plus active extractor test/doc naming cleanup |
+| D173 | `archive/knowledge/d173-aget-browser-direct-test.md` | direct `AgetBrowser` cancellation test plus active browser test/doc naming cleanup |
 
 ## Current Verification Expectations
 
