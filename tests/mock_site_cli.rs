@@ -272,6 +272,7 @@ fn homegrown_extractor_backend_covers_static_http_parity_slice() {
         <li>Second <code>code</code></li>
       </ul>
       <table>
+        <caption>Data Table</caption>
         <thead><tr><th>Name</th><th>Value</th></tr></thead>
         <tbody><tr><td>Alpha</td><td><a href="/alpha">A|1</a></td></tr></tbody>
       </table>
@@ -443,7 +444,7 @@ fn homegrown_extractor_backend_covers_static_http_parity_slice() {
     assert_eq!(
         markdown.content,
         format!(
-            "# Guide\n\nIntro with **bold** and [docs]({}).\n\n- First item\n- Second `code`\n\n| Name | Value |\n| --- | --- |\n| Alpha | [A\\|1]({}) |\n\n```\nlet answer = 42;\n```",
+            "# Guide\n\nIntro with **bold** and [docs]({}).\n\n- First item\n- Second `code`\n\nData Table\n\n| Name | Value |\n| --- | --- |\n| Alpha | [A\\|1]({}) |\n\n```\nlet answer = 42;\n```",
             site.url("/docs"),
             site.url("/alpha")
         )
@@ -651,7 +652,7 @@ fn homegrown_extractor_backend_covers_static_http_parity_slice() {
     assert_eq!(
         only_text.content,
         format!(
-            "# Guide\n\nIntro with bold and [docs]({}).\n\n- First item\n- Second code\n\n| Name | Value |\n| --- | --- |\n| Alpha | [A\\|1]({}) |\n\n```\nlet answer = 42;\n```",
+            "# Guide\n\nIntro with bold and [docs]({}).\n\n- First item\n- Second code\n\nData Table\n\n| Name | Value |\n| --- | --- |\n| Alpha | [A\\|1]({}) |\n\n```\nlet answer = 42;\n```",
             site.url("/docs"),
             site.url("/alpha")
         )

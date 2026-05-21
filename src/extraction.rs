@@ -1872,12 +1872,23 @@ struct MarkdownTableRow {
 }
 
 fn render_table(node: NodeRef<'_, Node>, writer: &mut MarkdownWriter) {
+    let caption = table_caption_text(node, writer);
     let mut rows = Vec::new();
     collect_table_rows(node, writer, &mut rows);
     let Some(max_columns) = rows.iter().map(|row| row.cells.len()).max() else {
+        if !caption.is_empty() {
+            writer.ensure_blank_line();
+            writer.output.push_str(&caption);
+            writer.ensure_blank_line();
+        }
         return;
     };
     if max_columns == 0 {
+        if !caption.is_empty() {
+            writer.ensure_blank_line();
+            writer.output.push_str(&caption);
+            writer.ensure_blank_line();
+        }
         return;
     }
 
@@ -1894,6 +1905,10 @@ fn render_table(node: NodeRef<'_, Node>, writer: &mut MarkdownWriter) {
         .collect::<Vec<_>>();
 
     writer.ensure_blank_line();
+    if !caption.is_empty() {
+        writer.output.push_str(&caption);
+        writer.ensure_blank_line();
+    }
     writer.output.push_str(&markdown_table_line(&header));
     writer.output.push('\n');
     writer
@@ -1905,6 +1920,25 @@ fn render_table(node: NodeRef<'_, Node>, writer: &mut MarkdownWriter) {
         writer.output.push('\n');
     }
     writer.ensure_blank_line();
+}
+
+fn table_caption_text(node: NodeRef<'_, Node>, writer: &MarkdownWriter) -> String {
+    if let Some(element) = ElementRef::wrap(node) {
+        if element.value().name() == "caption" {
+            return inline_markdown_from_children(node, writer);
+        }
+    }
+
+    let mut child = node.first_child();
+    while let Some(current) = child {
+        let next = current.next_sibling();
+        let caption = table_caption_text(current, writer);
+        if !caption.is_empty() {
+            return caption;
+        }
+        child = next;
+    }
+    String::new()
 }
 
 fn collect_table_rows(

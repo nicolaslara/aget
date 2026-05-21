@@ -1611,6 +1611,21 @@ Validation:
 
 Confidence: Medium-high. The behavior is source-backed and deterministically covered for the absolute HTTP(S) case. The owned renderer intentionally keeps non-HTTP schemes and titled links on the existing explicit-link path.
 
+### D95: I19d preserves table captions in owned markdown
+
+The next markdown-quality slice ports Crawl4AI/html2text table-caption behavior. Before changing the owned renderer, I19d re-inspected `references/repos/crawl4ai/crawl4ai/html2text/__init__.py`, where `HTML2Text.handle_tag` emits caption text and a soft break before table rows when it sees `<caption>`.
+
+`OwnedExtractorBackend` now preserves the first table caption ahead of the generated GFM table. This closes a real content-loss case in the owned markdown renderer: previously captions were dropped because table rendering only collected `tr` rows. The deterministic mock-site fixture now verifies captions in normal markdown and `crawl4ai.only_text=true` markdown.
+
+Validation:
+
+- `cargo fmt --check`
+- `git diff --check`
+- `cargo test --test mock_site_cli homegrown_extractor_backend_covers_static_http_parity_slice`
+- `cargo test`
+
+Confidence: Medium-high. The behavior is source-backed and deterministic. It intentionally handles the primary caption text case without trying to reproduce every upstream whitespace variant for unusual nested table/caption shapes.
+
 ## Open Questions
 
 - Can pure Rust browser automation provide reliable persistent profiles and CDP attach, or do we need a small Node/Playwright sidecar?
