@@ -502,6 +502,20 @@ Status note:
 
 - Started with `knowledge.md` D76 after I19f/I19g stable commits. Full deterministic suite and local Chrome ignored smokes passed, and tracked-file hygiene audit found no dependency clones, raw browser state, `.aget` artifacts, private benchmark outputs, or logs tracked. I19h remains in progress because the review-subagent acceptance item is still pending; this Codex session may only spawn subagents when explicitly requested by the user.
 
+### 🚧 Task I19i: Split oversized extraction and CDP modules
+
+Acceptance criteria:
+
+- Preserve the current CLI/API, backend traits, and default owned runtime behavior while moving code into smaller Rust modules.
+- Split `src/extraction.rs` into behavior-owned submodules first, prioritizing markdown rendering, HTML cleanup, owned HTTP/static extraction, command adapters, fallback adapters, and artifacts.
+- Split `src/browser_cdp.rs` after the extraction split stabilizes, prioritizing public request/result types, Chrome process lifecycle, CDP client/session plumbing, page rendering, browser state, discovery, and process helpers.
+- Keep each split mechanical and separately committable, with no intentional behavior changes unless recorded as a separate follow-up.
+- Update workpad knowledge/references with the resulting boundaries and run focused plus full validation before each stable commit.
+
+Status note:
+
+- Started after D122 made `src/extraction.rs` and `src/browser_cdp.rs` the main agent-context bottlenecks. D123 made the first behavior-preserving extraction split: `src/extraction.rs` became `src/extraction/mod.rs`, and markdown rendering moved to `src/extraction/markdown.rs`. Remaining work is to keep carving extraction behavior modules before splitting `src/browser_cdp.rs`.
+
 ### 🚧 Task I20: Design OAuth-safe browser login and profile import flow
 
 Acceptance criteria:

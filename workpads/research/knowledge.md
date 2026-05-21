@@ -2039,6 +2039,20 @@ Validation:
 
 Confidence: Medium-high. The behavior is source-backed and covered by a deterministic script-contract test plus a local Chrome smoke that verifies projected shadow DOM text reaches extraction. It remains opt-in, and broader rendered-readiness behaviors such as virtual scrolling, app-specific readiness, and full Crawl4AI readability quality remain separate I19d work.
 
+### D123: I19i starts the extraction module split with markdown rendering
+
+The first decomposition slice is behavior-preserving. `src/extraction.rs` became `src/extraction/mod.rs`, keeping the public `aget::extraction` module path stable, and the owned HTML-to-markdown renderer moved into `src/extraction/markdown.rs`. The parent extraction module still owns orchestration, sessions, options, HTTP/static extraction, cleanup, adapters, and artifacts for now; the new markdown module owns MarkdownWriter, DOM-to-markdown traversal, inline escaping, table/list/link/image rendering, abbreviation definitions, and markdown URL resolution.
+
+Validation:
+
+- `cargo fmt`
+- `cargo fmt --check`
+- `git diff --check`
+- `cargo test --test mock_site_cli homegrown_extractor_backend_covers_static_http_parity_slice`
+- `cargo test`
+
+Confidence: High for the first physical split. The change is mechanical, preserves the public `aget::extraction` module path, and focused plus full-suite validation passed. The remaining I19i work is to keep carving `src/extraction/mod.rs` and then split `src/browser_cdp.rs`.
+
 ## Open Questions
 
 - Can pure Rust browser automation provide reliable persistent profiles and CDP attach, or do we need a small Node/Playwright sidecar?
