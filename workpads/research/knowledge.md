@@ -1943,6 +1943,22 @@ Validation:
 
 Confidence: High for transient early-exit retry behavior. The behavior is source-backed and covered by a deterministic fake-Chrome test that fails the first launch, writes `DevToolsActivePort` on the second launch, and proves the owned backend returns the discovered CDP URL. Broader real-Chrome/keychain smoke coverage remains separate I19e work.
 
+### D117: I19e removes stale DevToolsActivePort files after failed attach
+
+The next existing-profile attach slice ports `agent-browser`'s stale CDP runtime-file cleanup. Before changing the owned browser backend, I19e re-inspected `references/repos/agent-browser/cli/src/native/cdp/chrome.rs` at local commit `3bb1d43`, where `auto_connect_cdp` reads `DevToolsActivePort`, tries to resolve the live CDP endpoint, and removes the file when the port is dead so future discovery skips stale state.
+
+`OwnedBrowserAutomationBackend` now removes `DevToolsActivePort` from an owned/dedicated profile when `connect_existing_profile_browser` cannot connect through the exact WebSocket path or the `/json/version`, `/json/list`, and direct `/devtools/browser` discovery fallbacks. Non-CDP errors still propagate normally; only a dead/unavailable endpoint is treated as stale attach state.
+
+Validation:
+
+- `cargo fmt`
+- `cargo fmt --check`
+- `git diff --check`
+- `cargo test existing_profile_attach_removes_stale_devtools_active_port`
+- `cargo test`
+
+Confidence: High for dead-port stale-file cleanup. The behavior is source-backed and covered by a deterministic closed-port test; broader current-tab discovery and real-profile attach UX remain separate I19e work.
+
 ## Open Questions
 
 - Can pure Rust browser automation provide reliable persistent profiles and CDP attach, or do we need a small Node/Playwright sidecar?

@@ -1527,19 +1527,29 @@ fn connect_existing_profile_browser(
         }) => {
             let discovered_ws_url = match discover_cdp_ws_url(port, timeout) {
                 Ok(ws_url) => ws_url,
-                Err(_) => return Ok(None),
+                Err(_) => {
+                    remove_stale_devtools_active_port(profile_dir);
+                    return Ok(None);
+                }
             };
             match CdpClient::connect(&discovered_ws_url, timeout) {
                 Ok(client) => Ok(Some(client)),
                 Err(AgetError::Stable {
                     code: ErrorCode::BackendUnavailable,
                     ..
-                }) => Ok(None),
+                }) => {
+                    remove_stale_devtools_active_port(profile_dir);
+                    Ok(None)
+                }
                 Err(error) => Err(error),
             }
         }
         Err(error) => Err(error),
     }
+}
+
+fn remove_stale_devtools_active_port(profile_dir: &Path) {
+    let _ = fs::remove_file(profile_dir.join("DevToolsActivePort"));
 }
 
 fn discover_cdp_ws_url(port: u16, timeout: Duration) -> Result<String, AgetError> {
@@ -2509,6 +2519,22 @@ more noise";
             read_devtools_active_port(temp.path()),
             Some((49152, "/devtools/browser/abc".to_string()))
         );
+    }
+
+    #[test]
+    fn existing_profile_attach_removes_stale_devtools_active_port() {
+        let listener = std::net::TcpListener::bind(("127.0.0.1", 0)).unwrap();
+        let port = listener.local_addr().unwrap().port();
+        drop(listener);
+        let temp = tempfile::tempdir().unwrap();
+        let active_port = temp.path().join("DevToolsActivePort");
+        fs::write(&active_port, format!("{port}\n/devtools/browser/stale\n")).unwrap();
+
+        let client = connect_existing_profile_browser(temp.path(), Duration::from_millis(100))
+            .expect("stale CDP attach should not be fatal");
+
+        assert!(client.is_none());
+        assert!(!active_port.exists());
     }
 
     #[test]
