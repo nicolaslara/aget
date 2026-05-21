@@ -1435,6 +1435,21 @@ Validation:
 
 Confidence: Medium. The local Chrome smoke proves the owned network-idle wait for a delayed same-origin fetch, but this should still be treated as bounded parity rather than full Playwright readiness equivalence.
 
+### D83: I19e classifies Chrome profile-in-use startup as user action
+
+The next owned browser/session parity slice tightens Chrome startup diagnostics for profile imports. Before changing the owned path, I19e re-inspected `references/repos/agent-browser/cli/src/native/cdp/chrome.rs`, where `agent-browser` captures Chrome startup stderr, reports early `DevToolsActivePort` failures with stderr context, copies named profiles into temporary user-data-dir roots, and treats profile reuse/lock situations as launch failures that a caller can surface to the user.
+
+`OwnedBrowserAutomationBackend` now captures Chrome stderr in a private temp file during CDP startup. If Chrome exits before writing `DevToolsActivePort` and stderr indicates a profile-in-use or singleton/lock condition, the owned backend returns `requires_user_action` instead of a generic backend failure. Non-user-action startup failures still keep their original error code but include relevant Chrome stderr lines for diagnosis. This improves owned Chrome/profile import parity without touching the user's running browser or adding ambient current-browser access.
+
+Validation:
+
+- `cargo fmt --check`
+- `cargo test owned_session_import_chrome_classifies_profile_in_use_as_requires_user_action --test session_cli`
+- `cargo test browser_cdp::tests::parses_devtools_active_port_file`
+- `cargo test browser_cdp::tests::owned_chrome_import_exports_cookie_and_local_storage_from_profile_directory -- --ignored`
+
+Confidence: Medium-high. The new deterministic CLI test proves the classification and no-session-saved behavior with a fake Chrome executable. Real Chrome lock/keychain behavior still needs the ignored/manual smoke coverage tracked under I19e/I19h.
+
 ## Open Questions
 
 - Can pure Rust browser automation provide reliable persistent profiles and CDP attach, or do we need a small Node/Playwright sidecar?

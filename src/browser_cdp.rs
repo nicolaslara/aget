@@ -13,7 +13,7 @@ use tungstenite::stream::MaybeTlsStream;
 use tungstenite::{connect, Message, WebSocket};
 
 use crate::error::{AgetError, ErrorCode};
-use crate::process::configure_local_command;
+use crate::process::{configure_local_command, create_private_file, TempOutputFile};
 use crate::session::{PlaywrightCookie, PlaywrightOrigin, PlaywrightState, StorageEntry};
 
 const CDP_READ_POLL: Duration = Duration::from_millis(100);
@@ -229,6 +229,7 @@ struct ChromeProcess {
     user_data_dir: PathBuf,
     remove_user_data_dir: bool,
     terminated: bool,
+    _stderr_capture: TempOutputFile,
 }
 
 impl ChromeProcess {
@@ -303,6 +304,9 @@ impl ChromeProcess {
                 "{operation} could not find Chrome; set AGET_CHROME_COMMAND to a Chrome/Chromium executable"
             ),
         })?;
+        let stderr_capture =
+            TempOutputFile::new(&env::temp_dir(), "aget-chrome-stderr").map_err(io_aget_error)?;
+        let stderr = create_private_file(stderr_capture.path()).map_err(io_aget_error)?;
         let mut command = Command::new(&executable);
         command
             .arg("--remote-debugging-port=0")
@@ -319,7 +323,7 @@ impl ChromeProcess {
             .arg(format!("--user-data-dir={}", user_data_dir.display()))
             .stdin(Stdio::null())
             .stdout(Stdio::null())
-            .stderr(Stdio::null());
+            .stderr(Stdio::from(stderr));
         if headless {
             command
                 .arg("--headless=new")
@@ -356,7 +360,11 @@ impl ChromeProcess {
                 if remove_user_data_dir {
                     let _ = fs::remove_dir_all(&user_data_dir);
                 }
-                return Err(error);
+                return Err(classify_chrome_startup_error(
+                    operation,
+                    error,
+                    &stderr_capture,
+                ));
             }
         };
         Ok(Self {
@@ -365,6 +373,7 @@ impl ChromeProcess {
             user_data_dir,
             remove_user_data_dir,
             terminated: false,
+            _stderr_capture: stderr_capture,
         })
     }
 
@@ -1216,6 +1225,99 @@ fn wait_for_devtools_active_port(
         code: ErrorCode::Timeout,
         message: "owned browser fallback timed out waiting for Chrome CDP startup".to_string(),
     })
+}
+
+fn classify_chrome_startup_error(
+    operation: &str,
+    error: AgetError,
+    stderr_capture: &TempOutputFile,
+) -> AgetError {
+    let stderr = stderr_capture.read_to_string().unwrap_or_default();
+    let detail = relevant_chrome_stderr(&stderr);
+    let combined = format!("{}\n{}", error, detail);
+    if chrome_startup_requires_user_action(&combined) {
+        return AgetError::Stable {
+            code: ErrorCode::RequiresUserAction,
+            message: if detail.is_empty() {
+                format!("{operation} requires user action: {error}")
+            } else {
+                format!("{operation} requires user action: {error}; Chrome stderr: {detail}")
+            },
+        };
+    }
+
+    if detail.is_empty() {
+        return error;
+    }
+
+    match error {
+        AgetError::Stable { code, message } => AgetError::Stable {
+            code,
+            message: format!("{message}; Chrome stderr: {detail}"),
+        },
+    }
+}
+
+fn chrome_startup_requires_user_action(output: &str) -> bool {
+    let output = output.to_ascii_lowercase();
+    [
+        "opening in existing browser session",
+        "profile lock",
+        "profile is locked",
+        "profile in use",
+        "profile appears to be in use",
+        "already running",
+        "processsingleton",
+        "singletonlock",
+        "chrome must be quit",
+        "quit chrome",
+        "close chrome",
+    ]
+    .iter()
+    .any(|needle| output.contains(needle))
+}
+
+fn relevant_chrome_stderr(stderr: &str) -> String {
+    let relevant = stderr
+        .lines()
+        .map(str::trim)
+        .filter(|line| !line.is_empty())
+        .filter(|line| {
+            let lower = line.to_ascii_lowercase();
+            [
+                "error",
+                "fatal",
+                "sandbox",
+                "namespace",
+                "permission",
+                "cannot",
+                "failed",
+                "abort",
+                "profile",
+                "singleton",
+                "already running",
+                "opening in existing browser session",
+            ]
+            .iter()
+            .any(|needle| lower.contains(needle))
+        })
+        .take(5)
+        .collect::<Vec<_>>();
+    if relevant.is_empty() {
+        stderr
+            .lines()
+            .map(str::trim)
+            .filter(|line| !line.is_empty())
+            .rev()
+            .take(3)
+            .collect::<Vec<_>>()
+            .into_iter()
+            .rev()
+            .collect::<Vec<_>>()
+            .join("\n  ")
+    } else {
+        relevant.join("\n  ")
+    }
 }
 
 fn read_devtools_active_port(user_data_dir: &Path) -> Option<(u16, String)> {
