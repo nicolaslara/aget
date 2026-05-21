@@ -1581,6 +1581,21 @@ Validation:
 
 Confidence: Medium. The behavior is source-inspired and deterministic, but it intentionally implements a compact CommonMark-readable indentation rather than claiming byte-for-byte `html2text` whitespace parity for every nested-list shape.
 
+### D93: I19d aligns owned markdown link title and mailto defaults
+
+The next markdown-quality slice ports Crawl4AI's default link behavior. Before changing the owned renderer, I19d re-inspected `references/repos/crawl4ai/crawl4ai/markdown_generation_strategy.py`, where the default generator uses inline links, and `references/repos/crawl4ai/crawl4ai/html2text/__init__.py`, where `CustomHTML2Text` sets `ignore_mailto_links = True` and `HTML2Text.handle_tag` appends an escaped title string to inline links when the `<a>` has a non-empty `title`.
+
+`OwnedExtractorBackend` now includes link titles in markdown as `[label](url "title")` and renders `mailto:` anchors as plain child text rather than clickable links. This improves markdown fidelity without changing URL fetching, session replay, or the generic safety boundary.
+
+Validation:
+
+- `cargo fmt --check`
+- `git diff --check`
+- `cargo test --test mock_site_cli homegrown_extractor_backend_covers_static_http_parity_slice`
+- `cargo test`
+
+Confidence: Medium-high. The behavior is source-backed and deterministically covered for escaped title text plus default `mailto:` suppression. It does not claim full `html2text` link-reference or automatic-link parity.
+
 ## Open Questions
 
 - Can pure Rust browser automation provide reliable persistent profiles and CDP attach, or do we need a small Node/Playwright sidecar?

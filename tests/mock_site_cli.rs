@@ -342,6 +342,21 @@ fn homegrown_extractor_backend_covers_static_http_parity_slice() {
             ),
         )
         .route(
+            "/markdown-links",
+            MockResponse::html(
+                r#"
+<html>
+  <body>
+    <main class="article">
+      <h1>Link Defaults</h1>
+      <p>Read <a href="/guide" title="Guide &quot;title&quot;">the guide</a> or <a href="mailto:help@example.com">email support</a>.</p>
+    </main>
+  </body>
+</html>
+"#,
+            ),
+        )
+        .route(
             "/html-cleanup",
             MockResponse::html(
                 r#"
@@ -470,6 +485,21 @@ fn homegrown_extractor_backend_covers_static_http_parity_slice() {
     assert_eq!(
         markdown_nested_lists.content,
         "# Nested Steps\n\n1. Install\n  - Open settings\n  - Confirm access\n2. Run fetch"
+    );
+
+    let markdown_links = Aget::new(&aget_home)
+        .with_extractor_backend(OwnedExtractorBackend)
+        .get(site.url("/markdown-links"))
+        .content_format(OutputFormat::Markdown)
+        .selector("main.article")
+        .run()
+        .unwrap();
+    assert_eq!(
+        markdown_links.content,
+        format!(
+            "# Link Defaults\n\nRead [the guide]({} \"Guide \\\"title\\\"\") or email support.",
+            site.url("/guide")
+        )
     );
 
     let html = Aget::new(&aget_home)

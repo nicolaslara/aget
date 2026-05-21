@@ -1974,12 +1974,23 @@ fn render_link(node: NodeRef<'_, Node>, writer: &mut MarkdownWriter) {
         render_children(node, writer);
         return;
     };
+    if href.starts_with("mailto:") {
+        render_children(node, writer);
+        return;
+    }
     let label = inline_markdown_from_children(node, writer);
     let label = if label.is_empty() { href } else { &label };
+    let title = element.attr("title").unwrap_or("").trim();
+    let title = if title.is_empty() {
+        String::new()
+    } else {
+        format!(" \"{}\"", escape_link_title(title))
+    };
     writer.push_inline(&format!(
-        "[{}]({})",
+        "[{}]({}{})",
         escape_link_text(label),
-        writer.resolve_url(href)
+        writer.resolve_url(href),
+        title
     ));
 }
 
@@ -2093,6 +2104,10 @@ fn trailing_newline_count(output: &str) -> usize {
 
 fn escape_link_text(text: &str) -> String {
     text.replace('[', "\\[").replace(']', "\\]")
+}
+
+fn escape_link_title(text: &str) -> String {
+    text.replace('\\', "\\\\").replace('"', "\\\"")
 }
 
 fn escape_table_cell(text: &str) -> String {
