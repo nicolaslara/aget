@@ -2430,6 +2430,20 @@ Validation:
 
 Confidence: High for the session-backed get-test split. The move is mechanical, the affected integration target passed, and the full standard suite is green.
 
+### D149: I19i splits owned mock-site extractor parity tests
+
+The next mock-site CLI decomposition slice moved the long owned static extractor parity test from `tests/mock_site_cli.rs` into `tests/mock_site_cli/owned.rs`. The root mock-site CLI test target now declares the owned behavior module with an explicit path and keeps command-backed redirect/output-shaping/default-backend/content-format parity smokes in the root file.
+
+Validation:
+
+- `cargo fmt`
+- `cargo test --test mock_site_cli`
+- `cargo fmt --check`
+- `git diff --check`
+- `cargo test`
+
+Confidence: High for the owned mock-site split. The move is mechanical, the affected integration target passed, and the full standard suite is green.
+
 ## Open Questions
 
 - Can pure Rust browser automation provide reliable persistent profiles and CDP attach, or do we need a small Node/Playwright sidecar?
