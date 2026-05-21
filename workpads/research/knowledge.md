@@ -2156,6 +2156,21 @@ Validation:
 
 Confidence: High for the CDP discovery split. The split is mechanical, focused discovery/startup coverage passed, and the full standard suite is green.
 
+### D131: I19i splits Chrome process launch ownership
+
+The next `browser_cdp` decomposition slice moved Chrome launch/profile process ownership from `src/browser_cdp.rs` to `src/browser_cdp/chrome_process.rs`. The new module owns temporary-profile directory allocation, Chrome binary discovery, launch command construction, launch retry behavior, `DevToolsActivePort` startup waiting through the discovery module, process detach, shutdown waiting, and temporary user-data-dir cleanup. The main `browser_cdp` module still owns public request/result types and high-level orchestration; CDP protocol client/session helpers remain a larger follow-up boundary.
+
+Validation:
+
+- `cargo fmt`
+- `cargo fmt --check`
+- `git diff --check`
+- `cargo test browser_cdp::tests::chrome_launch_retries_after_early_startup_exit`
+- `cargo test browser_cdp::tests::wait_for_devtools_active_port_uses_stderr_fallback`
+- `cargo test`
+
+Confidence: High for the Chrome process split. The split is mechanical, focused Chrome startup coverage passed, and the full standard suite is green.
+
 ## Open Questions
 
 - Can pure Rust browser automation provide reliable persistent profiles and CDP attach, or do we need a small Node/Playwright sidecar?
