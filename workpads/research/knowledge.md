@@ -1912,6 +1912,21 @@ Validation:
 
 Confidence: High for start-of-line marker protection. The behavior is source-backed and deterministically covered; broader html2text escaping such as backslash preservation remains a separate markdown-quality follow-up.
 
+### D115: I19d preserves literal backslashes before Markdown constructs
+
+The next markdown text-escaping slice ports another Crawl4AI/html2text plain-text default. Before changing the owned renderer, I19d re-inspected `references/repos/crawl4ai/crawl4ai/html2text/utils.py`, where `escape_md_section` first applies `RE_MD_BACKSLASH_MATCHER` to double a literal backslash when it precedes Markdown-sensitive characters, and `references/repos/crawl4ai/crawl4ai/html2text/__init__.py`, where `handle_data` calls `escape_md_section` for non-code, non-pre text with that default enabled.
+
+`OwnedExtractorBackend` now doubles literal backslashes in raw text nodes when they precede Markdown-sensitive characters such as `*`, `[`, or `]`. This preserves source text like `\*stars\*` as literal backslash-plus-marker text instead of allowing Markdown parsing to consume the backslash as only an escape. Generated Markdown constructs are unchanged because the escaping is only applied in the raw text path.
+
+Validation:
+
+- `cargo fmt --check`
+- `git diff --check`
+- `cargo test --test mock_site_cli homegrown_extractor_backend_covers_static_http_parity_slice`
+- `cargo test`
+
+Confidence: High for text-node backslash preservation. The behavior is source-backed and covered in the deterministic markdown fixture; this intentionally does not alter generated links, images, emphasis, code, or tables.
+
 ## Open Questions
 
 - Can pure Rust browser automation provide reliable persistent profiles and CDP attach, or do we need a small Node/Playwright sidecar?

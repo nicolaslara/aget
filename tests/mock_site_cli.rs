@@ -332,6 +332,7 @@ fn homegrown_extractor_backend_covers_static_http_parity_slice() {
       <p>1. Not a generated list.</p>
       <p>- Not a generated bullet.</p>
       <p>+ Not a generated plus bullet.</p>
+      <p>Literal \*stars\* and \[brackets\].</p>
       <hr>
       <blockquote><p>Quoted <strong>block</strong>.</p><p>Second line.</p></blockquote>
       <dl>
@@ -502,7 +503,7 @@ fn homegrown_extractor_backend_covers_static_http_parity_slice() {
         .unwrap();
     assert_eq!(
         markdown_inline_blocks.content,
-        "# Reference Bits\n\nStatus: ~~removed~~, _soft_, _under_, `Cmd K`, `TTY`, \"quoted\", HTML.\n\n1\\. Not a generated list.\n\n\\- Not a generated bullet.\n\n\\+ Not a generated plus bullet.\n\n* * *\n\n> Quoted **block**.\n>\n> Second line.\n\nTerm\n    Definition with **detail**.\n\n  *[HTML]: HyperText Markup Language"
+        "# Reference Bits\n\nStatus: ~~removed~~, _soft_, _under_, `Cmd K`, `TTY`, \"quoted\", HTML.\n\n1\\. Not a generated list.\n\n\\- Not a generated bullet.\n\n\\+ Not a generated plus bullet.\n\nLiteral \\\\*stars\\\\* and \\\\[brackets\\\\].\n\n* * *\n\n> Quoted **block**.\n>\n> Second line.\n\nTerm\n    Definition with **detail**.\n\n  *[HTML]: HyperText Markup Language"
     );
 
     let markdown_nested_lists = Aget::new(&aget_home)

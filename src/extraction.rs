@@ -1634,6 +1634,7 @@ impl MarkdownWriter {
 
     fn push_text(&mut self, text: &str) {
         let mut text = normalize_inline_markdown(text);
+        text = escape_markdown_text_backslashes(&text);
         if is_markdown_line_start(&self.output) {
             text = escape_markdown_line_start(&text);
         }
@@ -2221,6 +2222,29 @@ fn starts_with_closing_punctuation(text: &str) -> bool {
 
 fn is_markdown_line_start(output: &str) -> bool {
     output.is_empty() || output.ends_with('\n')
+}
+
+fn escape_markdown_text_backslashes(text: &str) -> String {
+    let chars = text.chars().collect::<Vec<_>>();
+    let mut output = String::with_capacity(text.len());
+    for (index, character) in chars.iter().copied().enumerate() {
+        if character == '\\'
+            && chars
+                .get(index + 1)
+                .is_some_and(|next| is_markdown_backslash_sensitive(*next))
+        {
+            output.push('\\');
+        }
+        output.push(character);
+    }
+    output
+}
+
+fn is_markdown_backslash_sensitive(character: char) -> bool {
+    matches!(
+        character,
+        '\\' | '`' | '*' | '_' | '{' | '}' | '[' | ']' | '(' | ')' | '#' | '+' | '-' | '.' | '!'
+    )
 }
 
 fn escape_markdown_line_start(text: &str) -> String {
