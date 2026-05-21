@@ -634,6 +634,20 @@ Status note:
 
 - Completed with D182 after I19p completed and committed. The mechanical split kept `src/aget/mod.rs` as the public facade/orchestration surface while moving authorization DTOs/helpers, backend adapters, `GetRequest`, and session-store adapter code into focused submodules. Validation passed with focused `aget_api` tests, `cargo fmt --check`, a rerun of one transiently failed loopback `session_cli` authorization test, full `cargo test`, and `git diff --check`.
 
+### ✅ Task I19r: Split agent-browser compatibility session helpers
+
+Acceptance criteria:
+
+- Preserve current compatibility command, session filtering, domain matching, and raw-state temp-file behavior while splitting `src/session/agent_browser.rs`.
+- Keep existing `crate::session::agent_browser::*` internal paths unchanged for callers.
+- Split mechanically first, prioritizing command execution/failure classification, state filtering/domain helpers, raw state files, and tests because they are cohesive subdomains.
+- Run focused agent-browser/session compatibility tests plus the standard validation set before committing.
+- Record the resulting module boundaries in `knowledge.md`.
+
+Status note:
+
+- Completed with D183 after I19q completed and committed. The mechanical split kept `crate::session::agent_browser::*` as the compatibility surface while moving subprocess execution/failure classification, state filtering/domain helpers, raw-state temp files, and existing tests into focused submodules. Validation passed with focused `session::agent_browser` tests, `cargo fmt --check`, `cargo test`, and `git diff --check`.
+
 ### ✅ Task I20: Design OAuth-safe browser login and profile import flow
 
 Acceptance criteria:
