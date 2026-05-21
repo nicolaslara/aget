@@ -100,6 +100,7 @@ EXTRACTOR_OPTION_TYPES = {
     "target_elements": ("crawler", "list"),
     "excluded_tags": ("crawler", "list"),
     "only_text": ("crawler", "bool"),
+    "remove_forms": ("crawler", "bool"),
     "word_count_threshold": ("crawler", "int"),
     "wait_until": ("crawler", "str"),
     "page_timeout": ("crawler", "int"),

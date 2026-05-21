@@ -296,6 +296,10 @@ fn extract_owned_html(
         document = remove_selected_elements(document, exclude_selector)?;
     }
 
+    if owned_options.remove_forms {
+        document = remove_selected_elements(document, "form")?;
+    }
+
     let selector = options.selector.as_deref().or(fallback_selector);
     let base_url = markdown_base_url(&document, &final_url)?;
     let prefer_main_content = selector.is_none()

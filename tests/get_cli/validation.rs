@@ -17,7 +17,8 @@ fn get_command_backend_accepts_scan_full_page_options() {
             "expect_extractor_options": [
                 "crawl4ai.scan_full_page=true",
                 "crawl4ai.scroll_delay=0.3",
-                "crawl4ai.max_scroll_steps=5"
+                "crawl4ai.max_scroll_steps=5",
+                "crawl4ai.remove_forms=true"
             ]
         }),
     );
@@ -36,6 +37,8 @@ fn get_command_backend_accepts_scan_full_page_options() {
             "crawl4ai.scroll_delay=0.3",
             "--backend-option",
             "crawl4ai.max_scroll_steps=5",
+            "--backend-option",
+            "crawl4ai.remove_forms=true",
         ])
         .assert()
         .success();

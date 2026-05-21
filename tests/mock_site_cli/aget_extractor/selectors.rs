@@ -97,4 +97,24 @@ pub(super) fn assert_selector_and_target_options(aget_home: &Path, site: &MockSi
         target_elements.content,
         "# Tag Filtering\n\nKept article body."
     );
+
+    let forms_by_default = Aget::new(aget_home)
+        .with_extractor_backend(AgetExtractorBackend::default())
+        .get(site.url("/remove-forms"))
+        .content_format(OutputFormat::Text)
+        .run()
+        .unwrap();
+    assert_eq!(
+        forms_by_default.content,
+        "Form Cleanup Private form label Kept content."
+    );
+
+    let removed_forms = Aget::new(aget_home)
+        .with_extractor_backend(AgetExtractorBackend::default())
+        .get(site.url("/remove-forms"))
+        .content_format(OutputFormat::Text)
+        .backend_option("crawl4ai.remove_forms", "true")
+        .run()
+        .unwrap();
+    assert_eq!(removed_forms.content, "Form Cleanup Kept content.");
 }

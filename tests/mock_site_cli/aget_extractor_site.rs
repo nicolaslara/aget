@@ -197,6 +197,25 @@ pub(crate) fn aget_extractor_parity_site() -> MockSite {
             ),
         )
         .route(
+            "/remove-forms",
+            MockResponse::html(
+                r#"
+<html>
+  <body>
+    <main>
+      <h1>Form Cleanup</h1>
+      <form>
+        <label>Private form label</label>
+        <input name="secret" value="do-not-keep">
+      </form>
+      <p>Kept content.</p>
+    </main>
+  </body>
+</html>
+"#,
+            ),
+        )
+        .route(
             "/word-threshold",
             MockResponse::html(
                 r#"

@@ -15,6 +15,7 @@ pub(crate) struct OwnedExtractorOptions {
     pub(crate) excluded_tags: Vec<String>,
     pub(crate) target_elements: Vec<String>,
     pub(crate) only_text: bool,
+    pub(crate) remove_forms: bool,
     pub(crate) wait_until: PageWaitUntil,
     pub(crate) wait_for_images: bool,
     pub(crate) scan_full_page: bool,
@@ -33,6 +34,7 @@ impl Default for OwnedExtractorOptions {
             excluded_tags: Vec::new(),
             target_elements: Vec::new(),
             only_text: false,
+            remove_forms: false,
             wait_until: PageWaitUntil::Load,
             wait_for_images: false,
             scan_full_page: false,
@@ -74,6 +76,10 @@ pub(crate) fn validate_owned_extraction_options(
             }
             "only_text" => {
                 owned_options.only_text = parse_owned_bool("crawl4ai.only_text", &option.value)?;
+            }
+            "remove_forms" => {
+                owned_options.remove_forms =
+                    parse_owned_bool("crawl4ai.remove_forms", &option.value)?;
             }
             "word_count_threshold" => {
                 owned_options.word_count_threshold =
@@ -118,7 +124,7 @@ pub(crate) fn validate_owned_extraction_options(
             }
             _ => {
                 return Err(extraction_failed(format!(
-                    "owned extractor does not support backend option '{}'; supported options: crawl4ai.delay_before_return_html, crawl4ai.excluded_tags, crawl4ai.flatten_shadow_dom, crawl4ai.max_scroll_steps, crawl4ai.only_text, crawl4ai.page_timeout, crawl4ai.scan_full_page, crawl4ai.scroll_delay, crawl4ai.target_elements, crawl4ai.wait_for_images, crawl4ai.wait_for_timeout, crawl4ai.wait_until, crawl4ai.word_count_threshold",
+                    "owned extractor does not support backend option '{}'; supported options: crawl4ai.delay_before_return_html, crawl4ai.excluded_tags, crawl4ai.flatten_shadow_dom, crawl4ai.max_scroll_steps, crawl4ai.only_text, crawl4ai.page_timeout, crawl4ai.remove_forms, crawl4ai.scan_full_page, crawl4ai.scroll_delay, crawl4ai.target_elements, crawl4ai.wait_for_images, crawl4ai.wait_for_timeout, crawl4ai.wait_until, crawl4ai.word_count_threshold",
                     option.key
                 )));
             }
