@@ -2672,6 +2672,19 @@ Validation:
 
 Confidence: High. The moved parser tests passed after the split, and the change preserves the same derive-based clap surfaces.
 
+### D162: Follow-up binary orchestration split isolates session CLI execution
+
+The next decomposition slice moved session-command execution out of `src/main.rs` into `src/main_session.rs`. The binary entrypoint now keeps process exit handling, top-level command parsing, get-command request assembly, structured envelope helpers, and error translation. The new session module owns session subcommand dispatch, browser/profile CLI argument resolution, login/import/authorize human output, session inspection redaction views, and session command timing.
+
+This is a mechanical split only. It does not intentionally change command names, output envelopes, human text, profile validation, redaction, or backend selection.
+
+Validation:
+
+- `cargo test --test cli`
+- `cargo test --test session_cli session_list_json_has_stable_shape`
+
+Confidence: High. The moved code remains inside the binary crate, preserves the same private helper access through the parent module, and focused CLI/session tests pass.
+
 ## Open Questions
 
 - Can pure Rust browser automation provide reliable persistent profiles and CDP attach, or do we need a small Node/Playwright sidecar?
