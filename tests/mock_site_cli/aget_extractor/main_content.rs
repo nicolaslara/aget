@@ -43,6 +43,17 @@ pub(super) fn assert_main_content_scoring(aget_home: &Path, site: &MockSite) {
         "# Labeled Story\n\nUseful labeled content should win default extraction without an explicit selector."
     );
 
+    let page_chrome_markdown = Aget::new(aget_home)
+        .with_extractor_backend(AgetExtractorBackend::default())
+        .get(site.url("/main-content-page-chrome"))
+        .content_format(OutputFormat::Markdown)
+        .run()
+        .unwrap();
+    assert_eq!(
+        page_chrome_markdown.content,
+        "# Real Article\n\nThe real article should win because Crawl4AI-style pruning ignores candidates inside page chrome."
+    );
+
     let link_dense_markdown = Aget::new(aget_home)
         .with_extractor_backend(AgetExtractorBackend::default())
         .get(site.url("/main-content-link-density"))

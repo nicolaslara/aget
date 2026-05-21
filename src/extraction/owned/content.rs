@@ -151,6 +151,9 @@ fn best_main_content_candidate<'a>(
     for selector in ["main", r#"[role="main"]"#, "article", "section", "div"] {
         let selector = parse_css_selector(selector)?;
         for element in document.select(&selector) {
+            if is_inside_crawl4ai_pruning_excluded_tag(element) {
+                continue;
+            }
             let score = score_main_content_candidate(element)?;
             if score <= 0 {
                 continue;
@@ -165,6 +168,27 @@ fn best_main_content_candidate<'a>(
         }
     }
     best.map(|(_, id)| element_by_id(document, id)).transpose()
+}
+
+fn is_inside_crawl4ai_pruning_excluded_tag(element: ElementRef<'_>) -> bool {
+    element.ancestors().any(|ancestor| {
+        ElementRef::wrap(ancestor)
+            .map(|ancestor| {
+                matches!(
+                    ancestor.value().name(),
+                    "nav"
+                        | "footer"
+                        | "header"
+                        | "aside"
+                        | "script"
+                        | "style"
+                        | "form"
+                        | "iframe"
+                        | "noscript"
+                )
+            })
+            .unwrap_or(false)
+    })
 }
 
 fn score_main_content_candidate(element: ElementRef<'_>) -> Result<i64, AgetError> {

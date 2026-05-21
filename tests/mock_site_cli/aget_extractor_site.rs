@@ -98,6 +98,28 @@ pub(crate) fn aget_extractor_parity_site() -> MockSite {
             ),
         )
         .route(
+            "/main-content-page-chrome",
+            MockResponse::html(
+                r#"
+<html>
+  <body>
+    <header>
+      <section id="content" class="story-body">
+        <h1>Header Content Teaser</h1>
+        <p>This header block uses content labels and many words that could otherwise look like the article body.</p>
+        <p>Navigation chrome should not win default extraction even when it looks content-heavy.</p>
+      </section>
+    </header>
+    <article class="story">
+      <h1>Real Article</h1>
+      <p>The real article should win because Crawl4AI-style pruning ignores candidates inside page chrome.</p>
+    </article>
+  </body>
+</html>
+"#,
+            ),
+        )
+        .route(
             "/main-content-link-density",
             MockResponse::html(
                 r#"
