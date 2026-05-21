@@ -11,7 +11,8 @@ use crate::session::PlaywrightState;
 use super::artifacts::write_private_file;
 use super::html_clean::{
     parse_css_selector, remove_owned_comments, remove_owned_excluded_tags,
-    remove_owned_overlay_elements, remove_selected_elements,
+    remove_owned_external_images, remove_owned_external_links, remove_owned_overlay_elements,
+    remove_selected_elements,
 };
 use super::http::{owned_fetch, OwnedHttpResponse};
 use super::{
@@ -306,6 +307,15 @@ fn extract_owned_html(
 
     let selector = options.selector.as_deref().or(fallback_selector);
     let base_url = markdown_base_url(&document, &final_url)?;
+
+    if owned_options.exclude_external_links {
+        document = remove_owned_external_links(document, &base_url)?;
+    }
+
+    if owned_options.exclude_external_images {
+        document = remove_owned_external_images(document, &base_url)?;
+    }
+
     let prefer_main_content = selector.is_none()
         && options.wait_for_selector.is_none()
         && options.content_format != OutputFormat::Html;

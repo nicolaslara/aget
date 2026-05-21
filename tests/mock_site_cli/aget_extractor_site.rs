@@ -396,7 +396,9 @@ pub(crate) fn aget_extractor_parity_site() -> MockSite {
       <!-- debug-secret should not survive owned cleanup -->
       <p data-select="summary" data-private="paragraph-secret" style="color:blue" onclick="steal()" aria-label="private label">Visible body.</p>
       <a id="kept-link" class="cta" href="/kept" title="Kept title" rel="nofollow" data-private="link-secret">Kept link</a>
+      <a id="external-link" href="https://external.example/out">External link</a>
       <img id="diagram" class="figure" src="/diagram.png" alt="Diagram" width="640" height="480" data-private="image-secret" style="display:none">
+      <img id="remote-image" src="https://cdn.example/remote.png" alt="Remote image">
       <img id="inline-image" src="data:image/png;base64,QUJDRA==" alt="Inline image">
       <section id="empty-wrapper"><span id="empty-span"></span></section>
       <a id="empty-anchor" href="/empty"></a>

@@ -100,6 +100,8 @@ EXTRACTOR_OPTION_TYPES = {
     "target_elements": ("crawler", "list"),
     "excluded_tags": ("crawler", "list"),
     "exclude_all_images": ("crawler", "bool"),
+    "exclude_external_images": ("crawler", "bool"),
+    "exclude_external_links": ("crawler", "bool"),
     "only_text": ("crawler", "bool"),
     "remove_forms": ("crawler", "bool"),
     "keep_data_attributes": ("crawler", "bool"),

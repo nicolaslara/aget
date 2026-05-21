@@ -1,6 +1,7 @@
 use ego_tree::NodeId;
 use html5ever::tree_builder::TreeSink;
 use scraper::{ElementRef, Html, HtmlTreeSink, Node, Selector};
+use url::Url;
 
 use crate::error::AgetError;
 
@@ -171,6 +172,42 @@ pub(super) fn remove_owned_overlay_elements(document: Html) -> Result<Html, Aget
     remove_selected_elements(document, &CRAWL4AI_OVERLAY_SELECTORS.join(","))
 }
 
+pub(super) fn remove_owned_external_links(
+    document: Html,
+    base_url: &str,
+) -> Result<Html, AgetError> {
+    remove_external_url_elements(document, "a[href]", "href", base_url)
+}
+
+pub(super) fn remove_owned_external_images(
+    document: Html,
+    base_url: &str,
+) -> Result<Html, AgetError> {
+    remove_external_url_elements(document, "img[src]", "src", base_url)
+}
+
+fn remove_external_url_elements(
+    document: Html,
+    selector_list: &str,
+    attribute: &str,
+    base_url: &str,
+) -> Result<Html, AgetError> {
+    let selector = parse_css_selector(selector_list)?;
+    let base_domain = crawl4ai_like_base_domain(base_url);
+    let node_ids = document
+        .select(&selector)
+        .filter_map(|element| {
+            let value = element.value().attr(attribute)?;
+            is_crawl4ai_like_external_url(value, base_url, &base_domain).then_some(element.id())
+        })
+        .collect::<Vec<_>>();
+    let tree = HtmlTreeSink::new(document);
+    for id in node_ids {
+        tree.remove_from_parent(&id);
+    }
+    Ok(tree.finish())
+}
+
 pub(super) fn remove_selected_elements(
     document: Html,
     selector_list: &str,
@@ -201,4 +238,121 @@ pub(super) fn parse_css_selector(raw: &str) -> Result<Selector, AgetError> {
             "owned extractor could not parse CSS selector '{raw}': {error:?}"
         ))
     })
+}
+
+fn is_crawl4ai_like_external_url(raw_url: &str, base_url: &str, base_domain: &str) -> bool {
+    let raw_url = raw_url.trim();
+    if is_crawl4ai_special_url(raw_url) {
+        return true;
+    }
+    let Ok(url) = Url::parse(raw_url)
+        .or_else(|_| Url::parse(base_url).and_then(|base_url| base_url.join(raw_url)))
+    else {
+        return false;
+    };
+    let Some(url_host) = url.host_str() else {
+        return false;
+    };
+    let url_domain = normalize_crawl4ai_domain(url_host);
+    !url_domain.ends_with(base_domain)
+}
+
+fn is_crawl4ai_special_url(raw_url: &str) -> bool {
+    let lower = raw_url.to_ascii_lowercase();
+    ["mailto:", "tel:", "ftp:", "file:", "data:", "javascript:"]
+        .iter()
+        .any(|prefix| lower.starts_with(prefix))
+}
+
+fn crawl4ai_like_base_domain(raw_url: &str) -> String {
+    Url::parse(raw_url)
+        .ok()
+        .and_then(|url| url.host_str().map(normalize_crawl4ai_domain))
+        .map(|domain| {
+            let parts = domain.split('.').collect::<Vec<_>>();
+            if parts.len() > 2
+                && matches!(
+                    parts[parts.len() - 2],
+                    "co" | "com"
+                        | "org"
+                        | "gov"
+                        | "edu"
+                        | "net"
+                        | "mil"
+                        | "int"
+                        | "ac"
+                        | "ad"
+                        | "ae"
+                        | "af"
+                        | "ag"
+                )
+            {
+                parts[parts.len() - 3..].join(".")
+            } else if parts.len() >= 2 {
+                parts[parts.len() - 2..].join(".")
+            } else {
+                domain
+            }
+        })
+        .unwrap_or_default()
+}
+
+fn normalize_crawl4ai_domain(host: &str) -> String {
+    let domain = host.trim_end_matches('.').to_ascii_lowercase();
+    domain.strip_prefix("www.").unwrap_or(&domain).to_string()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn cleaned_html(document: Html) -> String {
+        document.root_element().html()
+    }
+
+    #[test]
+    fn external_link_cleanup_keeps_relative_and_same_base_domain_links() {
+        let document = Html::parse_document(
+            r#"
+<main>
+  <a id="relative" href="/guide">Relative</a>
+  <a id="same-domain" href="https://www.example.com/docs">Same domain</a>
+  <a id="external" href="https://other.test/docs">External</a>
+  <a id="mailto" href="mailto:help@example.com">Mail</a>
+</main>
+"#,
+        );
+
+        let cleaned = cleaned_html(
+            remove_owned_external_links(document, "https://docs.example.com/page").unwrap(),
+        );
+
+        assert!(cleaned.contains("id=\"relative\""));
+        assert!(cleaned.contains("id=\"same-domain\""));
+        assert!(!cleaned.contains("id=\"external\""));
+        assert!(!cleaned.contains("id=\"mailto\""));
+    }
+
+    #[test]
+    fn external_image_cleanup_keeps_relative_and_same_base_domain_images() {
+        let document = Html::parse_document(
+            r#"
+<main>
+  <img id="relative" src="/image.png">
+  <img id="same-domain" src="https://assets.example.com/image.png">
+  <img id="external" src="https://cdn.other.test/image.png">
+  <img id="data" src="data:image/png;base64,AAAA">
+</main>
+"#,
+        );
+
+        let cleaned = cleaned_html(
+            remove_owned_external_images(document, "https://docs.example.com/page").unwrap(),
+        );
+
+        assert!(cleaned.contains("id=\"relative\""));
+        assert!(cleaned.contains("id=\"same-domain\""));
+        assert!(!cleaned.contains("id=\"external\""));
+        assert!(!cleaned.contains("id=\"data\""));
+    }
 }

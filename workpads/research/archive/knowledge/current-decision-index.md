@@ -44,6 +44,7 @@ This archive file keeps the denser decision routing that used to live in top-lev
 | D225 | `d225-session-store-split.md` | Mechanical split of session store layout, permissions, cleanup, and tests. |
 | D226 | `d226-keep-data-attributes-cleanup.md` | Crawl4AI `keep_data_attributes` cleanup option for owned cleaned HTML. |
 | D227 | `d227-exclude-all-images-cleanup.md` | Crawl4AI `exclude_all_images` cleanup option for owned extraction. |
+| D228 | `d228-external-link-image-cleanup.md` | Crawl4AI external link and image cleanup options for owned extraction. |
 
 ## Full Archive Routing
 
@@ -56,7 +57,7 @@ This archive file keeps the denser decision routing that used to live in top-lev
 | D151-D157 | `d151-d157-auth-and-browser-import.md` | OAuth-safe authorization API/CLI and conservative browser-neutral Chrome import surface. |
 | D158-D167 | `d158-d167-recent-migration-followups.md` | Recent source-backed extraction improvements and follow-up decomposition slices. |
 | D168-D176 | Per-decision files | Knowledge/reference compaction, engine-refactor planning, wrapper introduction, naming cleanup, and direct engine coverage. |
-| D177-D227 | Per-decision files | Module/test decomposition plus the latest owned extractor/browser parity improvements. |
+| D177-D228 | Per-decision files | Module/test decomposition plus the latest owned extractor/browser parity improvements. |
 
 ## Current Open Migration Gaps
 
