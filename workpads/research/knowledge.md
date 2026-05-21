@@ -2444,6 +2444,30 @@ Validation:
 
 Confidence: High for the owned mock-site split. The move is mechanical, the affected integration target passed, and the full standard suite is green.
 
+### D150: I19i completed oversized module split
+
+I19i is complete. The original production bottlenecks are now decomposed into behavior-owned extraction and CDP modules, and the largest integration-test bottlenecks are split into shared support helpers plus behavior modules. The current largest files in the touched surface are around 600-750 lines, instead of the original 2k-3k line extraction/CDP/test files. The remaining medium-sized files are coherent enough for follow-up feature work and do not need more physical splitting before moving to the next workpad task.
+
+Final size evidence:
+
+- `src/browser_cdp/client.rs`: 753 lines
+- `src/extraction/mod.rs`: 733 lines
+- `src/extraction/owned.rs`: 669 lines
+- `tests/mock_site_cli/owned.rs`: 725 lines
+- `tests/get_cli.rs`: 709 lines
+- `tests/get_cli/session.rs`: 599 lines
+- `tests/session_cli/login.rs`: 734 lines
+- `tests/session_cli/imports.rs`: 652 lines
+- `tests/session_cli.rs`: 417 lines
+
+Validation:
+
+- `cargo fmt --check`
+- `git diff --check`
+- `cargo test`
+
+Confidence: High. Each split was committed separately after focused validation plus the full standard gate, and no intentional behavior changes were introduced.
+
 ## Open Questions
 
 - Can pure Rust browser automation provide reliable persistent profiles and CDP attach, or do we need a small Node/Playwright sidecar?
