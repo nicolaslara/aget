@@ -1043,6 +1043,20 @@ Status note:
 
 - Completed with D210 after inspecting `agent-browser` external CDP connection and current-page capture behavior in `references/repos/agent-browser/cli/src/native/browser.rs`. `aget current-tab` and `Aget::current_tab` now use owned CDP/browser and owned HTML-to-content conversion, require explicit `--cdp-port` plus `--allow-private-content`, avoid ambient scanning/navigation/page creation/browser close, return the standard `GetSuccess`/JSON envelope shape, and mark results sensitive so `--inline-content auto` omits content. README and the local aget skill now document the consent boundary. Validation passed with focused parser/API/CLI current-tab coverage, `cargo fmt --check`, `cargo test`, and `git diff --check`.
 
+### ✅ Task I19at: Keep current-tab on owned backend under compatibility env
+
+Acceptance criteria:
+
+- Inspect `agent-browser` source for external-CDP/current-page behavior before changing dispatch.
+- Preserve explicit compatibility command adapters for login/import/fallback behavior.
+- Ensure `aget current-tab` and `Aget::current_tab` keep using the owned browser/CDP path even when `AGET_AGENT_BROWSER_COMMAND` is set for other compatibility surfaces.
+- Add deterministic mock-CDP coverage proving current-tab still works under `AGET_AGENT_BROWSER_COMMAND` without invoking `agent-browser`.
+- Verify with focused current-tab tests plus the standard check set.
+
+Status note:
+
+- Completed with D211 after re-checking `agent-browser` external-CDP/current-page behavior in `references/repos/agent-browser/cli/src/native/browser.rs`. `Aget::current_tab` now keeps using the owned browser/CDP engine when `AGET_AGENT_BROWSER_COMMAND` is set for login/import/fallback compatibility adapters, and deterministic CLI coverage proves a nonexistent compatibility command does not affect `aget current-tab`. Validation passed with focused current-tab coverage plus the standard check set.
+
 ### ✅ Task I20: Design OAuth-safe browser login and profile import flow
 
 Acceptance criteria:

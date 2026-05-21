@@ -27,6 +27,7 @@ This archive file keeps the denser decision routing that used to live in top-lev
 | D208 | `d208-aget-browser-cdp-endpoint-discovery.md` | AgetBrowser engine seam for explicit local CDP endpoint discovery. |
 | D209 | `d209-aget-browser-current-tab-engine.md` | AgetBrowser engine seam composing explicit-port CDP discovery and attached-page rendering. |
 | D210 | `d210-consent-gated-current-tab.md` | Public consent-gated current-tab CLI/API on owned browser and extraction paths. |
+| D211 | `d211-current-tab-compat-env.md` | Current-tab stays on the owned browser/CDP engine when compatibility command env is set. |
 
 ## Full Archive Routing
 
@@ -39,7 +40,7 @@ This archive file keeps the denser decision routing that used to live in top-lev
 | D151-D157 | `d151-d157-auth-and-browser-import.md` | OAuth-safe authorization API/CLI and conservative browser-neutral Chrome import surface. |
 | D158-D167 | `d158-d167-recent-migration-followups.md` | Recent source-backed extraction improvements and follow-up decomposition slices. |
 | D168-D176 | Per-decision files | Knowledge/reference compaction, engine-refactor planning, wrapper introduction, naming cleanup, and direct engine coverage. |
-| D177-D210 | Per-decision files | Module/test decomposition plus the latest owned extractor/browser parity improvements. |
+| D177-D211 | Per-decision files | Module/test decomposition plus the latest owned extractor/browser parity improvements. |
 
 ## Current Open Migration Gaps
 

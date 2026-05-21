@@ -159,7 +159,10 @@ impl BrowserCurrentTabBackend for DefaultBrowserAutomationBackend {
     ) -> Result<BrowserCurrentTabResult, AgetError> {
         match self {
             Self::Aget(backend) => backend.render_current_tab(request),
-            Self::Command(backend) => backend.render_current_tab(request),
+            // Compatibility command adapters remain available for login/import
+            // and fallback extraction, but current-tab is implemented only by
+            // the owned browser/CDP engine so it is not disabled by env config.
+            Self::Command(_) => AgetBrowserBackend::default().render_current_tab(request),
         }
     }
 }
