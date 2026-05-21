@@ -219,6 +219,23 @@ fn homegrown_extractor_backend_covers_static_http_parity_slice() {
             ),
         )
         .route(
+            "/overlay-content",
+            MockResponse::html(
+                r#"
+<html>
+  <body>
+    <main class="story">
+      <h1>Overlay Story</h1>
+      <div class="cookie-banner">Cookie banner text.</div>
+      <section role="dialog">Newsletter modal text.</section>
+      <p>Useful article text.</p>
+    </main>
+  </body>
+</html>
+"#,
+            ),
+        )
+        .route(
             "/selector-miss",
             MockResponse::html(
                 r#"
@@ -638,6 +655,24 @@ fn homegrown_extractor_backend_covers_static_http_parity_slice() {
         .run()
         .unwrap();
     assert_eq!(main_markdown.content, "# Main Story\n\nUseful body text.");
+
+    let overlay_text = Aget::new(&aget_home)
+        .with_extractor_backend(OwnedExtractorBackend)
+        .get(site.url("/overlay-content"))
+        .content_format(OutputFormat::Text)
+        .run()
+        .unwrap();
+    assert_eq!(overlay_text.content, "Overlay Story Useful article text.");
+
+    let overlay_html = Aget::new(&aget_home)
+        .with_extractor_backend(OwnedExtractorBackend)
+        .get(site.url("/overlay-content"))
+        .content_format(OutputFormat::Html)
+        .run()
+        .unwrap();
+    assert!(!overlay_html.content.contains("Cookie banner text."));
+    assert!(!overlay_html.content.contains("Newsletter modal text."));
+    assert!(overlay_html.content.contains("Useful article text."));
 
     let main_html = Aget::new(&aget_home)
         .with_extractor_backend(OwnedExtractorBackend)

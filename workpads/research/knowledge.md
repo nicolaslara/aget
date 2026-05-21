@@ -1975,6 +1975,22 @@ Validation:
 
 Confidence: High for silent-startup classification. The behavior is source-backed and covered at the classifier boundary; platform-specific real Chrome crashes still need opt-in smoke coverage.
 
+### D119: I19d removes generic overlays before owned extraction
+
+The next extraction-cleanup slice ports behavior that `aget` currently requested from Crawl4AI through `scripts/crawl4ai_extract.py`: `CrawlerRunConfig(remove_overlay_elements=True)`. Before changing the owned extractor, I19d re-inspected `references/repos/crawl4ai/crawl4ai/async_crawler_strategy.py` and `references/repos/crawl4ai/crawl4ai/js_snippet/remove_overlay_elements.js` at local commit `1debe5f`. Crawl4AI removes generic popup/modal/cookie overlay elements before capturing HTML; the JS snippet includes generic close-button, cookie-banner/consent, newsletter/subscribe, popup/modal/overlay/dialog, and dialog-role selectors.
+
+`OwnedExtractorBackend` now applies the same generic selector cleanup before selector/exclusion extraction and before HTML/markdown/text serialization. This is intentionally generic and not site-specific: it removes DOM elements matching broad overlay/modal/cookie/dialog patterns, but it does not add built-in site names or paywall/login handling.
+
+Validation:
+
+- `cargo fmt`
+- `cargo fmt --check`
+- `git diff --check`
+- `cargo test --test mock_site_cli homegrown_extractor_backend_covers_static_http_parity_slice`
+- `cargo test`
+
+Confidence: High for generic selector-backed overlay removal. The behavior is source-backed and covered by a deterministic fixture that places cookie-banner and dialog-role elements inside the selected `<main>` and verifies both text and HTML outputs remove them. Style/z-index-based overlay removal from Crawl4AI's browser JS remains a rendered-page parity follow-up.
+
 ## Open Questions
 
 - Can pure Rust browser automation provide reliable persistent profiles and CDP attach, or do we need a small Node/Playwright sidecar?

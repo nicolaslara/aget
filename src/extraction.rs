@@ -38,6 +38,26 @@ const CRAWL4AI_IMPORTANT_ATTRS: &[&str] = &[
 const CRAWL4AI_EMPTY_ELEMENT_BYPASS_TAGS: &[&str] = &[
     "a", "img", "br", "hr", "input", "meta", "link", "source", "track", "wbr", "tr", "td", "th",
 ];
+const CRAWL4AI_OVERLAY_SELECTORS: &[&str] = &[
+    r#"button[class*="close" i]"#,
+    r#"button[class*="dismiss" i]"#,
+    r#"button[aria-label*="close" i]"#,
+    r#"button[title*="close" i]"#,
+    r#"a[class*="close" i]"#,
+    r#"span[class*="close" i]"#,
+    r#"[class*="cookie-banner" i]"#,
+    r#"[id*="cookie-banner" i]"#,
+    r#"[class*="cookie-consent" i]"#,
+    r#"[id*="cookie-consent" i]"#,
+    r#"[class*="newsletter" i]"#,
+    r#"[class*="subscribe" i]"#,
+    r#"[class*="popup" i]"#,
+    r#"[class*="modal" i]"#,
+    r#"[class*="overlay" i]"#,
+    r#"[class*="dialog" i]"#,
+    r#"[role="dialog"]"#,
+    r#"[role="alertdialog"]"#,
+];
 
 #[derive(Clone)]
 pub struct GetOptions {
@@ -978,6 +998,8 @@ fn extract_owned_html(
         }
     }
 
+    document = remove_owned_overlay_elements(document)?;
+
     if !owned_options.excluded_tags.is_empty() {
         document = remove_owned_excluded_tags(document, &owned_options.excluded_tags)?;
     }
@@ -1550,6 +1572,10 @@ fn remove_owned_excluded_tags(document: Html, tags: &[String]) -> Result<Html, A
         return Ok(document);
     }
     remove_selected_elements(document, &tags.join(","))
+}
+
+fn remove_owned_overlay_elements(document: Html) -> Result<Html, AgetError> {
+    remove_selected_elements(document, &CRAWL4AI_OVERLAY_SELECTORS.join(","))
 }
 
 fn remove_selected_elements(document: Html, selector_list: &str) -> Result<Html, AgetError> {
