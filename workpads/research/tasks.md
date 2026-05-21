@@ -514,7 +514,7 @@ Acceptance criteria:
 
 Status note:
 
-- Started after D122 made `src/extraction.rs` and `src/browser_cdp.rs` the main agent-context bottlenecks. D123 made the first behavior-preserving extraction split: `src/extraction.rs` became `src/extraction/mod.rs`, and markdown rendering moved to `src/extraction/markdown.rs`. D124 moved the Crawl4AI compatibility process adapter to `src/extraction/command.rs`. Remaining work is to keep carving extraction behavior modules before splitting `src/browser_cdp.rs`.
+- Started after D122 made `src/extraction.rs` and `src/browser_cdp.rs` the main agent-context bottlenecks. D123 made the first behavior-preserving extraction split: `src/extraction.rs` became `src/extraction/mod.rs`, and markdown rendering moved to `src/extraction/markdown.rs`. D124 moved the Crawl4AI compatibility process adapter to `src/extraction/command.rs`. D125 moved the legacy `agent-browser` fallback adapter to `src/extraction/fallback_command.rs`. Remaining work is to keep carving extraction behavior modules before splitting `src/browser_cdp.rs`.
 
 ### 🚧 Task I20: Design OAuth-safe browser login and profile import flow
 

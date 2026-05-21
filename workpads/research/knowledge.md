@@ -2067,6 +2067,20 @@ Validation:
 
 Confidence: High for the command-adapter split. This is another mechanical split, the focused compatibility-adapter test passed, and the full standard suite is green.
 
+### D125: I19i splits the agent-browser fallback adapter
+
+The third decomposition slice moved the legacy `agent-browser` fallback adapter from `src/extraction/mod.rs` to `src/extraction/fallback_command.rs`. The new module owns fallback profile/session naming, state load/open/get/close command orchestration, temporary fallback profile cleanup, temporary stdout/stderr files, fallback HTML-to-text conversion, and agent-browser exit classification. The parent extraction module still owns the public `CommandBrowserFallbackBackend` type and delegates to this compatibility module.
+
+Validation:
+
+- `cargo fmt`
+- `cargo fmt --check`
+- `git diff --check`
+- `cargo test --test get_cli get_session_backend_failure_uses_agent_browser_fallback_with_composed_state`
+- `cargo test`
+
+Confidence: High for the fallback-adapter split. The focused fallback test passed after the mechanical split, and the full standard suite is green.
+
 ## Open Questions
 
 - Can pure Rust browser automation provide reliable persistent profiles and CDP attach, or do we need a small Node/Playwright sidecar?
