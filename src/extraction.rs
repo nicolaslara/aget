@@ -2212,7 +2212,7 @@ fn escape_markdown_link_target(text: &str) -> String {
 }
 
 fn escape_link_title(text: &str) -> String {
-    text.replace('\\', "\\\\").replace('"', "\\\"")
+    escape_markdown_link_target(text).replace('"', "\\\"")
 }
 
 fn is_absolute_http_url(value: &str) -> bool {

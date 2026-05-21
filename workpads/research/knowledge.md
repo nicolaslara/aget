@@ -1807,6 +1807,21 @@ Validation:
 
 Confidence: High. The behavior is directly source-backed, covered by deterministic markdown output, and limited to link-label rendering.
 
+### D108: I19d escapes markdown constructs in link titles
+
+The next markdown-quality slice tightens link title escaping. Before changing the owned renderer, I19d re-inspected `references/repos/crawl4ai/crawl4ai/html2text/__init__.py`, where inline link titles are passed through `escape_md` before being appended to the markdown link. `escape_md` backslash-escapes backslashes, square brackets, and parentheses.
+
+`OwnedExtractorBackend` now applies the same Markdown-construct escaping to link titles while retaining its existing quote escaping for the quoted title delimiter. The static markdown parity fixture covers a link title containing quotes, square brackets, and parentheses.
+
+Validation:
+
+- `cargo fmt --check`
+- `git diff --check`
+- `cargo test --test mock_site_cli homegrown_extractor_backend_covers_static_http_parity_slice`
+- `cargo test`
+
+Confidence: High. The behavior is directly source-backed and deterministic, and the change is limited to rendered markdown link titles.
+
 ## Open Questions
 
 - Can pure Rust browser automation provide reliable persistent profiles and CDP attach, or do we need a small Node/Playwright sidecar?
