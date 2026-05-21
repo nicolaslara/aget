@@ -1309,6 +1309,7 @@ fn extract_owned_content(
 
     // Match Crawl4AI's cleanup order: selectors see original attributes, but
     // serialized cleaned HTML keeps only its small important-attribute allowlist.
+    document = clean_owned_base64_image_sources(document);
     document = prune_owned_unwanted_attributes(document);
 
     if owned_options.target_elements.is_empty() {
@@ -1426,6 +1427,33 @@ fn prune_owned_unwanted_attributes(mut document: Html) -> Html {
         }
     }
     document
+}
+
+fn clean_owned_base64_image_sources(mut document: Html) -> Html {
+    for node in document.tree.values_mut() {
+        let Node::Element(element) = node else {
+            continue;
+        };
+        if element.name.local.as_ref() != "img" {
+            continue;
+        }
+        for (name, value) in &mut element.attrs {
+            if name.local.as_ref() == "src" && is_base64_image_src(value.as_ref()) {
+                value.clear();
+            }
+        }
+    }
+    document
+}
+
+fn is_base64_image_src(src: &str) -> bool {
+    let Some(after_prefix) = src.strip_prefix("data:image/") else {
+        return false;
+    };
+    let Some((mime_type, after_mime_type)) = after_prefix.split_once(';') else {
+        return false;
+    };
+    !mime_type.is_empty() && after_mime_type.starts_with("base64,")
 }
 
 fn is_crawl4ai_important_attr(name: &str) -> bool {
@@ -1823,6 +1851,9 @@ fn render_image(node: NodeRef<'_, Node>, writer: &mut MarkdownWriter) {
     let Some(src) = element.attr("src") else {
         return;
     };
+    if src.trim().is_empty() {
+        return;
+    }
     let alt = element.attr("alt").unwrap_or("");
     writer.push_inline(&format!(
         "![{}]({})",

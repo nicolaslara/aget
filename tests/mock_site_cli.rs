@@ -315,6 +315,7 @@ fn homegrown_extractor_backend_covers_static_http_parity_slice() {
       <p data-select="summary" data-private="paragraph-secret" style="color:blue" onclick="steal()" aria-label="private label">Visible body.</p>
       <a id="kept-link" class="cta" href="/kept" title="Kept title" rel="nofollow" data-private="link-secret">Kept link</a>
       <img id="diagram" class="figure" src="/diagram.png" alt="Diagram" width="640" height="480" data-private="image-secret" style="display:none">
+      <img id="inline-image" src="data:image/png;base64,QUJDRA==" alt="Inline image">
       <meta name="body-meta" content="remove me">
       <link rel="preload" href="/asset.css">
       <script>window.secret = "remove me";</script>
@@ -425,6 +426,8 @@ fn homegrown_extractor_backend_covers_static_http_parity_slice() {
     assert!(cleaned_html.content.contains("alt=\"Diagram\""));
     assert!(cleaned_html.content.contains("width=\"640\""));
     assert!(cleaned_html.content.contains("height=\"480\""));
+    assert!(cleaned_html.content.contains("id=\"inline-image\""));
+    assert!(cleaned_html.content.contains("alt=\"Inline image\""));
     assert!(!cleaned_html.content.contains("<meta"));
     assert!(!cleaned_html.content.contains("<link"));
     assert!(!cleaned_html.content.contains("<style"));
@@ -436,6 +439,8 @@ fn homegrown_extractor_backend_covers_static_http_parity_slice() {
     assert!(!cleaned_html.content.contains("onclick="));
     assert!(!cleaned_html.content.contains("aria-label="));
     assert!(!cleaned_html.content.contains("rel=\"nofollow\""));
+    assert!(!cleaned_html.content.contains("data:image/png;base64"));
+    assert!(!cleaned_html.content.contains("QUJDRA"));
 
     let selected_by_pruned_attr = Aget::new(&aget_home)
         .with_extractor_backend(OwnedExtractorBackend)
@@ -445,6 +450,15 @@ fn homegrown_extractor_backend_covers_static_http_parity_slice() {
         .run()
         .unwrap();
     assert_eq!(selected_by_pruned_attr.content, "Visible body.");
+
+    let cleanup_markdown = Aget::new(&aget_home)
+        .with_extractor_backend(OwnedExtractorBackend)
+        .get(site.url("/html-cleanup"))
+        .content_format(OutputFormat::Markdown)
+        .run()
+        .unwrap();
+    assert!(!cleanup_markdown.content.contains("data:image"));
+    assert!(!cleanup_markdown.content.contains("![Inline image]"));
 
     let json = Aget::new(&aget_home)
         .with_extractor_backend(OwnedExtractorBackend)

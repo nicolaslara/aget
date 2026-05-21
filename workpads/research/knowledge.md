@@ -1521,6 +1521,21 @@ Validation:
 
 Confidence: High for this attribute-pruning slice. The allowlist is source-backed, selection-before-cleanup is covered by a deterministic fixture, and no new backend option or authenticated-browser behavior was added.
 
+### D89: I19d strips base64 image payloads from owned cleaned output
+
+The next cleaned-output slice ports Crawl4AI's base64 image cleanup. Before changing the owned path, I19d re-inspected `references/repos/crawl4ai/crawl4ai/content_scraping_strategy.py`, where `LXMLWebScrapingStrategy` compiles `BASE64_PATTERN = data:image/[^;]+;base64,...` and, before empty-element and attribute cleanup, replaces matching `<img src="...">` payloads with an empty `src`.
+
+`OwnedExtractorBackend` now blanks `src` on image elements whose value starts with the same `data:image/<mime>;base64,` shape before serialized cleaned output is produced. The markdown renderer also skips images whose cleaned `src` is empty, which prevents the owned URL resolver from turning an emptied image source into a page-URL image reference. The fixture proves base64 payload text is absent from HTML output and does not reappear in markdown image syntax.
+
+Validation:
+
+- `cargo fmt --check`
+- `git diff --check`
+- `cargo test --test mock_site_cli homegrown_extractor_backend_covers_static_http_parity_slice`
+- `cargo test`
+
+Confidence: High for this narrow privacy/output-size slice. The behavior is source-backed, deterministic, and only removes inline image payloads from output; it does not fetch or interpret images.
+
 ## Open Questions
 
 - Can pure Rust browser automation provide reliable persistent profiles and CDP attach, or do we need a small Node/Playwright sidecar?
