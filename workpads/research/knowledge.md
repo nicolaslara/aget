@@ -2171,6 +2171,21 @@ Validation:
 
 Confidence: High for the Chrome process split. The split is mechanical, focused Chrome startup coverage passed, and the full standard suite is green.
 
+### D132: I19i splits CDP client and session plumbing
+
+The next `browser_cdp` decomposition slice moved CDP protocol client/session plumbing from `src/browser_cdp.rs` to `src/browser_cdp/client.rs`. The new module owns `CdpClient`, `PageSession`, WebSocket connect/send/read handling, target creation/attachment, domain enablement, navigation waits including network-idle tracking, selector/image waits, runtime string evaluation, rendered overlay cleanup command dispatch, Playwright-state cookie/storage load and export, CDP cookie conversion, storage-origin probing, and page-target selection. The main `browser_cdp` module now keeps the public request/result API and high-level orchestration while delegating protocol details to the client module.
+
+Validation:
+
+- `cargo check`
+- `cargo fmt`
+- `cargo fmt --check`
+- `git diff --check`
+- `cargo test browser_cdp::tests::`
+- `cargo test`
+
+Confidence: High for the CDP client split. The split is mechanical, the CDP-focused unit slice passed, and the full standard suite is green.
+
 ## Open Questions
 
 - Can pure Rust browser automation provide reliable persistent profiles and CDP attach, or do we need a small Node/Playwright sidecar?
