@@ -353,6 +353,7 @@ pub(crate) fn aget_extractor_parity_site() -> MockSite {
   <body>
     <main id="cleanup-main" class="article" data-private="main-secret" style="color:red">
       <h1>Cleanup Main</h1>
+      <!-- debug-secret should not survive owned cleanup -->
       <p data-select="summary" data-private="paragraph-secret" style="color:blue" onclick="steal()" aria-label="private label">Visible body.</p>
       <a id="kept-link" class="cta" href="/kept" title="Kept title" rel="nofollow" data-private="link-secret">Kept link</a>
       <img id="diagram" class="figure" src="/diagram.png" alt="Diagram" width="640" height="480" data-private="image-secret" style="display:none">

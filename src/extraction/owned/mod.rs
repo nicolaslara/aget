@@ -10,8 +10,8 @@ use crate::session::PlaywrightState;
 
 use super::artifacts::write_private_file;
 use super::html_clean::{
-    parse_css_selector, remove_owned_excluded_tags, remove_owned_overlay_elements,
-    remove_selected_elements,
+    parse_css_selector, remove_owned_comments, remove_owned_excluded_tags,
+    remove_owned_overlay_elements, remove_selected_elements,
 };
 use super::http::{owned_fetch, OwnedHttpResponse};
 use super::{
@@ -238,6 +238,7 @@ fn extract_owned_html(
     owned_options: &OwnedExtractorOptions,
 ) -> Result<OwnedPageExtraction, AgetError> {
     let mut document = Html::parse_document(&body);
+    document = remove_owned_comments(document);
     document = remove_selected_elements(document, "script,style,link,meta,noscript")?;
 
     if let Some(wait_for) = &options.wait_for_selector {

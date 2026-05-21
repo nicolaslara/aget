@@ -923,6 +923,21 @@ Status note:
 
 - Completed with D202 after inspecting `agent-browser` `poll_network_idle` behavior in `references/repos/agent-browser/cli/src/native/browser.rs`. The owned CDP `networkidle` wait now starts its quiet window from either `Page.domContentEventFired` or `Page.loadEventFired` when no requests are in flight, while preserving request tracking. Validation passed with focused browser CDP coverage, `cargo fmt --check`, `cargo test`, and `git diff --check`.
 
+### ✅ Task I19al: Remove HTML comments during owned cleanup
+
+Acceptance criteria:
+
+- Inspect Crawl4AI source for comment cleanup behavior before changing owned extraction.
+- Preserve current `AgetExtractor` public behavior while removing HTML comments from cleaned output.
+- Ensure `--content-format html` does not retain comment-only private/debug text.
+- Preserve markdown/text behavior.
+- Add deterministic mocked coverage for comment removal.
+- Verify with focused extractor coverage plus the standard check set.
+
+Status note:
+
+- Completed with D203 after inspecting Crawl4AI comment cleanup in `references/repos/crawl4ai/crawl4ai/utils.py` and `references/repos/crawl4ai/crawl4ai/content_filter_strategy.py`. The owned cleanup path now removes HTML comment nodes before selector and output shaping, so `--content-format html` does not retain comment-only debug/private text while markdown/text behavior remains unchanged. Validation passed with focused owned-extractor coverage, `cargo fmt --check`, `cargo test`, and `git diff --check`.
+
 ### ✅ Task I20: Design OAuth-safe browser login and profile import flow
 
 Acceptance criteria:

@@ -179,6 +179,7 @@ fn aget_extractor_backend_covers_static_http_parity_slice() {
     assert!(!cleaned_html.content.contains("<style"));
     assert!(!cleaned_html.content.contains("<script"));
     assert!(!cleaned_html.content.contains("<noscript"));
+    assert!(!cleaned_html.content.contains("debug-secret"));
     assert!(!cleaned_html.content.contains("data-private"));
     assert!(!cleaned_html.content.contains("data-select"));
     assert!(!cleaned_html.content.contains("style="));
