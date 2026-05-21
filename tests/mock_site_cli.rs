@@ -1,9 +1,9 @@
 mod support;
 
-#[path = "mock_site_cli/owned.rs"]
-mod owned;
-#[path = "mock_site_cli/owned_site.rs"]
-mod owned_site;
+#[path = "mock_site_cli/aget_extractor.rs"]
+mod aget_extractor;
+#[path = "mock_site_cli/aget_extractor_site.rs"]
+mod aget_extractor_site;
 
 use aget::OutputFormat;
 use assert_cmd::Command;
@@ -78,7 +78,7 @@ fn mock_site_fetch_handles_redirect_output_shaping_and_waits() {
 }
 
 #[test]
-fn default_cli_fetch_uses_owned_backend_without_command_dependencies() {
+fn default_cli_fetch_uses_local_backend_without_command_dependencies() {
     let temp = tempfile::tempdir().unwrap();
     let aget_home = temp.path().join("aget-home");
     let site = MockSite::start();

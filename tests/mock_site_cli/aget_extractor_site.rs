@@ -1,6 +1,6 @@
 use crate::support::mock_site::{MockResponse, MockSite};
 
-pub(crate) fn owned_parity_site() -> MockSite {
+pub(crate) fn aget_extractor_parity_site() -> MockSite {
     MockSite::builder()
         .route(
             "/formats",

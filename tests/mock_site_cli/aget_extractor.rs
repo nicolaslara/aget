@@ -1,13 +1,13 @@
 use aget::{Aget, AgetExtractorBackend, ErrorCode, OutputFormat};
 
-use crate::owned_site::owned_parity_site;
+use crate::aget_extractor_site::aget_extractor_parity_site;
 use crate::support::mock_site_cli::save_cookie_session;
 
 #[test]
-fn homegrown_extractor_backend_covers_static_http_parity_slice() {
+fn aget_extractor_backend_covers_static_http_parity_slice() {
     let temp = tempfile::tempdir().unwrap();
     let aget_home = temp.path().join("aget-home");
-    let site = owned_parity_site();
+    let site = aget_extractor_parity_site();
     save_cookie_session(&aget_home, "app", &site.host(), "app_session", "valid-app");
 
     let public = Aget::new(&aget_home)

@@ -234,7 +234,7 @@ fn authorize_chrome_session_preserves_requires_user_action_after_baseline_fetch(
 }
 
 #[test]
-fn owned_browser_backend_does_not_save_failed_profile_path_import() {
+fn aget_browser_backend_does_not_save_failed_profile_path_import() {
     let temp = tempfile::tempdir().unwrap();
     let home = temp.path().join("aget-home");
     let missing_profile = temp.path().join("missing-profile");
@@ -254,7 +254,7 @@ fn owned_browser_backend_does_not_save_failed_profile_path_import() {
 }
 
 #[test]
-fn owned_browser_backend_cancels_pending_login_without_agent_browser() {
+fn aget_browser_backend_cancels_pending_login_without_agent_browser() {
     let temp = tempfile::tempdir().unwrap();
     let home = temp.path().join("aget-home");
     let tmp_dir = home.join("tmp");

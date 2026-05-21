@@ -109,7 +109,7 @@ fn owned_browser_fallback_renders_local_storage_backed_session_with_chrome() {
 
 #[test]
 #[ignore = "requires local Chrome/Chromium; set AGET_CHROME_COMMAND if auto-discovery fails"]
-fn owned_extractor_backend_renders_local_storage_backed_session_with_chrome() {
+fn aget_extractor_backend_renders_local_storage_backed_session_with_chrome() {
     let temp = tempfile::tempdir().unwrap();
     let aget_home = temp.path().join("aget-home");
     let site = storage_rendered_site();
@@ -138,7 +138,7 @@ fn owned_extractor_backend_renders_local_storage_backed_session_with_chrome() {
 
 #[test]
 #[ignore = "requires local Chrome/Chromium; set AGET_CHROME_COMMAND if auto-discovery fails"]
-fn owned_extractor_backend_renders_waited_javascript_page_with_chrome() {
+fn aget_extractor_backend_renders_waited_javascript_page_with_chrome() {
     let temp = tempfile::tempdir().unwrap();
     let aget_home = temp.path().join("aget-home");
     let site = MockSite::start();
@@ -160,7 +160,7 @@ fn owned_extractor_backend_renders_waited_javascript_page_with_chrome() {
 
 #[test]
 #[ignore = "requires local Chrome/Chromium; set AGET_CHROME_COMMAND if auto-discovery fails"]
-fn owned_extractor_backend_renders_scripted_page_without_wait_with_chrome() {
+fn aget_extractor_backend_renders_scripted_page_without_wait_with_chrome() {
     let temp = tempfile::tempdir().unwrap();
     let aget_home = temp.path().join("aget-home");
     let site = MockSite::builder()
@@ -199,7 +199,7 @@ fn owned_extractor_backend_renders_scripted_page_without_wait_with_chrome() {
 
 #[test]
 #[ignore = "requires local Chrome/Chromium; set AGET_CHROME_COMMAND if auto-discovery fails"]
-fn owned_extractor_backend_flattens_shadow_dom_with_chrome() {
+fn aget_extractor_backend_flattens_shadow_dom_with_chrome() {
     let temp = tempfile::tempdir().unwrap();
     let aget_home = temp.path().join("aget-home");
     let site = MockSite::builder()
@@ -247,7 +247,7 @@ fn owned_extractor_backend_flattens_shadow_dom_with_chrome() {
 
 #[test]
 #[ignore = "requires local Chrome/Chromium; set AGET_CHROME_COMMAND if auto-discovery fails"]
-fn owned_extractor_backend_honors_render_delay_option_with_chrome() {
+fn aget_extractor_backend_honors_render_delay_option_with_chrome() {
     let temp = tempfile::tempdir().unwrap();
     let aget_home = temp.path().join("aget-home");
     let site = MockSite::builder()
@@ -287,7 +287,7 @@ fn owned_extractor_backend_honors_render_delay_option_with_chrome() {
 
 #[test]
 #[ignore = "requires local Chrome/Chromium; set AGET_CHROME_COMMAND if auto-discovery fails"]
-fn owned_extractor_backend_removes_rendered_style_overlays_with_chrome() {
+fn aget_extractor_backend_removes_rendered_style_overlays_with_chrome() {
     let temp = tempfile::tempdir().unwrap();
     let aget_home = temp.path().join("aget-home");
     let site = MockSite::builder()
@@ -330,7 +330,7 @@ fn owned_extractor_backend_removes_rendered_style_overlays_with_chrome() {
 
 #[test]
 #[ignore = "requires local Chrome/Chromium; set AGET_CHROME_COMMAND if auto-discovery fails"]
-fn owned_extractor_backend_honors_wait_for_images_option_with_chrome() {
+fn aget_extractor_backend_honors_wait_for_images_option_with_chrome() {
     let temp = tempfile::tempdir().unwrap();
     let aget_home = temp.path().join("aget-home");
     let site = MockSite::builder()
@@ -383,7 +383,7 @@ fn owned_extractor_backend_honors_wait_for_images_option_with_chrome() {
 
 #[test]
 #[ignore = "requires local Chrome/Chromium; set AGET_CHROME_COMMAND if auto-discovery fails"]
-fn owned_extractor_backend_honors_networkidle_wait_until_with_chrome() {
+fn aget_extractor_backend_honors_networkidle_wait_until_with_chrome() {
     let temp = tempfile::tempdir().unwrap();
     let aget_home = temp.path().join("aget-home");
     let site = MockSite::builder()
