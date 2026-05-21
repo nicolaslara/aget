@@ -51,6 +51,9 @@ fn render_element(node: NodeRef<'_, Node>, tag: &str, writer: &mut MarkdownWrite
         "dl" => render_definition_list(node, writer),
         "table" => render_table(node, writer),
         "pre" => render_code_block(node, writer),
+        "code" | "kbd" | "tt" if writer.inside_link => {
+            writer.push_inline(&inline_text_from_node(node));
+        }
         "code" | "kbd" | "tt" => writer.push_inline(&format!("`{}`", inline_text_from_node(node))),
         "address" | "details" | "figcaption" | "figure" | "summary" => render_block(node, writer),
         "strong" | "b" => {

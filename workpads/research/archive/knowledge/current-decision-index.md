@@ -56,6 +56,7 @@ This archive file keeps the denser decision routing that used to live in top-lev
 | D237 | `d237-only-text-cleaned-html.md` | Crawl4AI `only_text` inline-tag replacement for owned cleaned HTML. |
 | D238 | `d238-owned-text-block-boundaries.md` | Crawl4AI compatibility-helper-style block boundaries for owned text output. |
 | D239 | `d239-empty-pruning-threshold-boundary.md` | Keep Crawl4AI `word_count_threshold` out of cleaned-HTML empty-leaf pruning. |
+| D240 | `d240-link-label-code-markdown.md` | Crawl4AI `CustomHTML2Text` link-label handling for inline code in owned markdown. |
 
 ## Full Archive Routing
 
@@ -75,7 +76,7 @@ This archive file keeps the denser decision routing that used to live in top-lev
 | D151-D157 | `d151-d157-auth-and-browser-import.md` | OAuth-safe authorization API/CLI and conservative browser-neutral Chrome import surface. |
 | D158-D167 | `d158-d167-recent-migration-followups.md` | Recent source-backed extraction improvements and follow-up decomposition slices. |
 | D168-D176 | Per-decision files | Knowledge/reference compaction, engine-refactor planning, wrapper introduction, naming cleanup, and direct engine coverage. |
-| D177-D239 | Per-decision files | Module/test/support decomposition plus the latest owned extractor/browser parity improvements. |
+| D177-D240 | Per-decision files | Module/test/support decomposition plus the latest owned extractor/browser parity improvements. |
 
 ## Current Open Migration Gaps
 

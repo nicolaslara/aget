@@ -40,7 +40,7 @@ pub(super) fn render_link(node: NodeRef<'_, Node>, writer: &mut MarkdownWriter) 
         }
     }
 
-    let label = inline_markdown_from_children(node, writer);
+    let label = link_label_markdown_from_children(node, writer);
     if !label.is_empty() && label == href && is_absolute_http_url(href) {
         writer.push_inline(&format!("<{}>", href));
         return;
@@ -109,6 +109,12 @@ pub(super) fn inline_markdown_from_children(
     parent: &MarkdownWriter,
 ) -> String {
     let mut writer = parent.child();
+    render_children(node, &mut writer);
+    normalize_inline_markdown(&writer.output)
+}
+
+fn link_label_markdown_from_children(node: NodeRef<'_, Node>, parent: &MarkdownWriter) -> String {
+    let mut writer = parent.link_child();
     render_children(node, &mut writer);
     normalize_inline_markdown(&writer.output)
 }

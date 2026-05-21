@@ -13,6 +13,7 @@ pub(super) struct MarkdownWriter {
     pub(super) output: String,
     base_url: Option<Url>,
     pub(super) only_text: bool,
+    pub(super) inside_link: bool,
     pub(super) list_depth: usize,
     abbreviations: Rc<RefCell<Vec<(String, String)>>>,
 }
@@ -23,6 +24,7 @@ impl MarkdownWriter {
             output: String::new(),
             base_url: Url::parse(base_url).ok(),
             only_text,
+            inside_link: false,
             list_depth: 0,
             abbreviations: Rc::new(RefCell::new(Vec::new())),
         }
@@ -33,9 +35,16 @@ impl MarkdownWriter {
             output: String::new(),
             base_url: self.base_url.clone(),
             only_text: self.only_text,
+            inside_link: self.inside_link,
             list_depth: self.list_depth,
             abbreviations: Rc::clone(&self.abbreviations),
         }
+    }
+
+    pub(super) fn link_child(&self) -> Self {
+        let mut child = self.child();
+        child.inside_link = true;
+        child
     }
 
     pub(super) fn resolve_url(&self, raw: &str) -> String {

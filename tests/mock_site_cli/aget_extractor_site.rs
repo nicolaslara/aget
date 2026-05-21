@@ -390,6 +390,7 @@ pub(crate) fn aget_extractor_parity_site() -> MockSite {
       <p>Read <a href="/guide" title="Guide &quot;title&quot; [v1] (draft)">the guide</a> or <a href="mailto:help@example.com">email support</a>.</p>
       <p>Canonical <a href="https://example.com/docs" title="Docs title">https://example.com/docs</a>.</p>
       <p>Jump <a href="#details">within page</a>.</p>
+      <p>Link label <a href="/api"><code>API v1</code></a> and standalone <code>inline_code</code>.</p>
       <p>Empty <a href="/empty"></a> marker.</p>
       <p>Asset <a href="/release(2026)">release notes</a> and <img src="/assets/diagram(1).png" alt="A [diagram] (v1)">.</p>
       <p>Icon <a href="/download"><img src="/icons/app(1).svg" alt="Download [app]"></a>.</p>

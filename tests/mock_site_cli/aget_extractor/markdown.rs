@@ -85,9 +85,10 @@ pub(super) fn assert_markdown_rendering(aget_home: &Path, site: &MockSite) {
     assert_eq!(
         markdown_links.content,
         format!(
-            "# Link Defaults\n\nRead [the guide]({} \"Guide \\\"title\\\" \\[v1\\] \\(draft\\)\") or email support.\n\nCanonical <https://example.com/docs>.\n\nJump [within page]({}).\n\nEmpty []({}) marker.\n\nAsset [release notes]({}) and ![A \\[diagram\\] \\(v1\\)]({}).\n\nIcon [![Download \\[app\\]]({})]({}).",
+            "# Link Defaults\n\nRead [the guide]({} \"Guide \\\"title\\\" \\[v1\\] \\(draft\\)\") or email support.\n\nCanonical <https://example.com/docs>.\n\nJump [within page]({}).\n\nLink label [API v1]({}) and standalone `inline_code`.\n\nEmpty []({}) marker.\n\nAsset [release notes]({}) and ![A \\[diagram\\] \\(v1\\)]({}).\n\nIcon [![Download \\[app\\]]({})]({}).",
             site.url("/guide"),
             site.url("/markdown-links#details"),
+            site.url("/api"),
             site.url("/empty"),
             release_url,
             diagram_url,
