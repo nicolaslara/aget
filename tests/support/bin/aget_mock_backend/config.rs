@@ -65,6 +65,7 @@ fn validate_crawl4ai_options(args: &Args) -> Result<(), String> {
         "exclude_domains",
         "exclude_external_images",
         "exclude_external_links",
+        "exclude_social_media_links",
         "only_text",
         "remove_forms",
         "keep_data_attributes",

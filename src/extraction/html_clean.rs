@@ -33,6 +33,17 @@ const CRAWL4AI_OVERLAY_SELECTORS: &[&str] = &[
     r#"[role="dialog"]"#,
     r#"[role="alertdialog"]"#,
 ];
+const CRAWL4AI_SOCIAL_MEDIA_DOMAINS: &[&str] = &[
+    "facebook.com",
+    "twitter.com",
+    "x.com",
+    "linkedin.com",
+    "instagram.com",
+    "pinterest.com",
+    "tiktok.com",
+    "snapchat.com",
+    "reddit.com",
+];
 
 pub(super) fn prune_owned_unwanted_attributes(
     mut document: Html,
@@ -209,6 +220,17 @@ pub(super) fn remove_owned_excluded_domain_urls(
         &excluded_domains,
     )?;
     remove_excluded_domain_url_elements(document, "img[src]", "src", base_url, &excluded_domains)
+}
+
+pub(super) fn remove_owned_social_media_links(
+    document: Html,
+    base_url: &str,
+) -> Result<Html, AgetError> {
+    let excluded_domains = CRAWL4AI_SOCIAL_MEDIA_DOMAINS
+        .iter()
+        .map(|domain| (*domain).to_string())
+        .collect::<Vec<_>>();
+    remove_excluded_domain_url_elements(document, "a[href]", "href", base_url, &excluded_domains)
 }
 
 fn remove_external_url_elements(
@@ -462,5 +484,26 @@ mod tests {
         assert!(cleaned.contains("id=\"same-domain\""));
         assert!(!cleaned.contains("id=\"blocked-link\""));
         assert!(!cleaned.contains("id=\"blocked-image\""));
+    }
+
+    #[test]
+    fn social_media_link_cleanup_removes_social_anchors_only() {
+        let document = Html::parse_document(
+            r#"
+<main>
+  <a id="guide" href="/guide">Guide</a>
+  <a id="social-link" href="https://www.linkedin.com/company/aget">Social</a>
+  <img id="social-image" src="https://www.linkedin.com/logo.png">
+</main>
+"#,
+        );
+
+        let cleaned = cleaned_html(
+            remove_owned_social_media_links(document, "https://docs.example.com/page").unwrap(),
+        );
+
+        assert!(cleaned.contains("id=\"guide\""));
+        assert!(cleaned.contains("id=\"social-image\""));
+        assert!(!cleaned.contains("id=\"social-link\""));
     }
 }
