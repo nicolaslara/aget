@@ -1669,7 +1669,7 @@ fn render_element(node: NodeRef<'_, Node>, tag: &str, writer: &mut MarkdownWrite
             let inner = inline_markdown_from_children(node, writer);
             writer.push_inline(&format!("**{inner}**"));
         }
-        "em" | "i" => {
+        "em" | "i" | "u" => {
             let inner = inline_markdown_from_children(node, writer);
             writer.push_inline(&format!("_{inner}_"));
         }

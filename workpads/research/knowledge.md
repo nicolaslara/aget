@@ -1672,6 +1672,21 @@ Validation:
 
 Confidence: High. The behavior is source-backed, deterministic, and limited to equivalent Markdown emphasis syntax. It does not affect strong emphasis, links, tables, session replay, or browser rendering.
 
+### D99: I19d treats underline tags as emphasis
+
+The next markdown-quality slice ports another Crawl4AI/html2text inline-tag behavior that survives the default cleaned-HTML pipeline. Before changing the owned renderer, I19d re-inspected `references/repos/crawl4ai/crawl4ai/html2text/__init__.py`, where `HTML2Text.handle_tag` treats `em`, `i`, and `u` the same when emphasis is enabled, and `HTML2Text.__init__` sets the emphasis marker to `_`.
+
+`OwnedExtractorBackend` now renders `<u>` with underscore emphasis, matching the already-owned `<em>`/`<i>` marker behavior. The static markdown parity fixture now covers underlined text beside deletion, emphasis, inline-code, quote, horizontal-rule, and definition-list cases.
+
+Validation:
+
+- `cargo fmt --check`
+- `git diff --check`
+- `cargo test --test mock_site_cli homegrown_extractor_backend_covers_static_http_parity_slice`
+- `cargo test`
+
+Confidence: High. The behavior is source-backed, deterministic, and limited to equivalent Markdown emphasis syntax for one inline tag. It does not affect strong emphasis, links, tables, session replay, or browser rendering.
+
 ## Open Questions
 
 - Can pure Rust browser automation provide reliable persistent profiles and CDP attach, or do we need a small Node/Playwright sidecar?
