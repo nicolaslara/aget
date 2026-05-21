@@ -704,6 +704,20 @@ Status note:
 
 - Completed with D187 after I19u completed and committed. The mechanical split kept the Cargo mock-tool binary path stable while moving argument parsing, configured behavior execution, JSON config/expectation validation, loopback HTTP helpers, and result printing into focused support modules. The first focused run caught module discovery through the relative mock-tool `path`; explicit `#[path = "aget_mock_backend/..."]` module paths fixed it. Validation passed with focused get/mock-site tests, `cargo fmt --check`, `cargo test`, and `git diff --check`.
 
+### ✅ Task I19w: Split session login CLI tests by behavior
+
+Acceptance criteria:
+
+- Preserve current session login CLI and direct login lifecycle test behavior while splitting `tests/session_cli/login.rs`.
+- Keep the parent `tests/session_cli.rs` test module routing stable.
+- Split mechanically first, prioritizing login start, finish, cancel, direct lifecycle API, and ignored real-smoke coverage because they are cohesive subdomains.
+- Run focused session CLI tests plus the standard validation set before committing.
+- Record the resulting module boundaries in `knowledge.md`.
+
+Status note:
+
+- Completed with D188 after I19v completed and committed. The mechanical split kept `tests/session_cli/login.rs` as the parent module route while moving start, finish, cancel, direct lifecycle API, and ignored real-smoke coverage into focused submodules. Validation passed with focused `session_cli` tests, `cargo fmt --check`, `cargo test`, and `git diff --check`.
+
 ### ✅ Task I20: Design OAuth-safe browser login and profile import flow
 
 Acceptance criteria:
