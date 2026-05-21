@@ -2081,6 +2081,20 @@ Validation:
 
 Confidence: High for the fallback-adapter split. The focused fallback test passed after the mechanical split, and the full standard suite is green.
 
+### D126: I19i splits CDP page scripts
+
+The first `browser_cdp` decomposition slice moved embedded page JavaScript helpers from `src/browser_cdp.rs` to `src/browser_cdp/page_scripts.rs`. The new module owns runtime expressions for localStorage/sessionStorage loading, selector existence waits, rendered overlay cleanup, shadow-root attach override, and shadow DOM flattening. The CDP client/rendering code still calls the same helper names through module imports, so behavior is unchanged.
+
+Validation:
+
+- `cargo fmt`
+- `cargo fmt --check`
+- `git diff --check`
+- `cargo test browser_cdp::tests::shadow_dom_flatten_expression_resolves_slots_and_skips_styles`
+- `cargo test`
+
+Confidence: High for the first CDP split. The split is mechanical, the script-contract test passed, and the full standard suite is green.
+
 ## Open Questions
 
 - Can pure Rust browser automation provide reliable persistent profiles and CDP attach, or do we need a small Node/Playwright sidecar?
