@@ -350,6 +350,7 @@ fn homegrown_extractor_backend_covers_static_http_parity_slice() {
     <main class="article">
       <h1>Link Defaults</h1>
       <p>Read <a href="/guide" title="Guide &quot;title&quot;">the guide</a> or <a href="mailto:help@example.com">email support</a>.</p>
+      <p>Canonical <a href="https://example.com/docs">https://example.com/docs</a>.</p>
     </main>
   </body>
 </html>
@@ -497,7 +498,7 @@ fn homegrown_extractor_backend_covers_static_http_parity_slice() {
     assert_eq!(
         markdown_links.content,
         format!(
-            "# Link Defaults\n\nRead [the guide]({} \"Guide \\\"title\\\"\") or email support.",
+            "# Link Defaults\n\nRead [the guide]({} \"Guide \\\"title\\\"\") or email support.\n\nCanonical <https://example.com/docs>.",
             site.url("/guide")
         )
     );

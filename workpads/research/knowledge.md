@@ -1596,6 +1596,21 @@ Validation:
 
 Confidence: Medium-high. The behavior is source-backed and deterministically covered for escaped title text plus default `mailto:` suppression. It does not claim full `html2text` link-reference or automatic-link parity.
 
+### D94: I19d emits automatic absolute links in owned markdown
+
+The next markdown-quality slice ports Crawl4AI/html2text automatic-link behavior. Before changing the owned renderer, I19d re-inspected `references/repos/crawl4ai/crawl4ai/html2text/config.py`, where `USE_AUTOMATIC_LINKS` defaults to true, and `references/repos/crawl4ai/crawl4ai/html2text/__init__.py`, where `HTML2Text.handle_data` emits `<absolute-url>` when the link text exactly matches the absolute URL and automatic links are enabled.
+
+`OwnedExtractorBackend` now renders an untitled HTTP(S) anchor whose label exactly equals its href as `<https://...>` instead of `[https://...](https://...)`. Other links still use normal inline markdown with resolved base URLs and optional titles.
+
+Validation:
+
+- `cargo fmt --check`
+- `git diff --check`
+- `cargo test --test mock_site_cli homegrown_extractor_backend_covers_static_http_parity_slice`
+- `cargo test`
+
+Confidence: Medium-high. The behavior is source-backed and deterministically covered for the absolute HTTP(S) case. The owned renderer intentionally keeps non-HTTP schemes and titled links on the existing explicit-link path.
+
 ## Open Questions
 
 - Can pure Rust browser automation provide reliable persistent profiles and CDP attach, or do we need a small Node/Playwright sidecar?

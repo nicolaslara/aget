@@ -1981,6 +1981,10 @@ fn render_link(node: NodeRef<'_, Node>, writer: &mut MarkdownWriter) {
     let label = inline_markdown_from_children(node, writer);
     let label = if label.is_empty() { href } else { &label };
     let title = element.attr("title").unwrap_or("").trim();
+    if title.is_empty() && label == href && is_absolute_http_url(href) {
+        writer.push_inline(&format!("<{}>", href));
+        return;
+    }
     let title = if title.is_empty() {
         String::new()
     } else {
@@ -2108,6 +2112,10 @@ fn escape_link_text(text: &str) -> String {
 
 fn escape_link_title(text: &str) -> String {
     text.replace('\\', "\\\\").replace('"', "\\\"")
+}
+
+fn is_absolute_http_url(value: &str) -> bool {
+    value.starts_with("http://") || value.starts_with("https://")
 }
 
 fn escape_table_cell(text: &str) -> String {
