@@ -592,6 +592,20 @@ Status note:
 
 - Completed with D179 after I19m completed and committed. The mechanical split moved CDP client internals into `src/browser_cdp/client/`, keeping target/session setup in `mod.rs` and extracting transport/send-read plumbing, navigation/wait behavior, and state load/export helpers into smaller modules. Validation passed with focused CDP tests, `cargo fmt --check`, `cargo test`, and `git diff --check`.
 
+### ✅ Task I19o: Split extraction orchestration helper internals
+
+Acceptance criteria:
+
+- Preserve current `aget get` behavior while splitting helper subdomains out of `src/extraction/mod.rs`.
+- Keep the existing `extraction` module interface unchanged for callers.
+- Split mechanically first, prioritizing replay-scope enforcement and output/limit metadata helpers because they are cohesive and low-risk.
+- Run focused extraction/get tests plus the standard validation set before committing.
+- Record the resulting module boundaries in `knowledge.md`.
+
+Status note:
+
+- Completed with D180 after I19n completed and committed. The mechanical split kept `src/extraction/mod.rs` as the `aget get` orchestration surface while moving output/limit metadata helpers into `src/extraction/output.rs` and replay-scope enforcement into `src/extraction/replay_scope.rs`. Validation passed with focused extraction/replay-scope tests, `cargo fmt --check`, `cargo test`, and `git diff --check`.
+
 ### ✅ Task I20: Design OAuth-safe browser login and profile import flow
 
 Acceptance criteria:

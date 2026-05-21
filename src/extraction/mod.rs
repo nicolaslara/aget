@@ -4,9 +4,10 @@ mod fallback_command;
 mod html_clean;
 mod http;
 mod markdown;
+mod output;
 mod owned;
+mod replay_scope;
 
-use std::collections::BTreeMap;
 use std::fs;
 use std::io;
 use std::path::{Path, PathBuf};
@@ -23,15 +24,18 @@ use self::artifacts::{
 };
 use self::command::run_command_extractor_backend;
 use self::fallback_command::run_agent_browser_fallback;
+pub use self::output::OutputOptions;
+use self::output::{apply_limits, output_options};
 pub(crate) use self::owned::{
     run_owned_browser_fallback, run_owned_extractor_backend, OWNED_EXTRACTOR,
 };
+use self::replay_scope::domain_matches_host;
+use self::replay_scope::enforce_replay_scope;
 
 use crate::aget::AgetBrowserBackend;
 use crate::aget_extractor::AgetExtractor;
 use crate::cli::{ExtractorOption, OutputFormat};
 use crate::error::{AgetError, ErrorCode};
-use crate::session::agent_browser::origin_host;
 use crate::session::{
     compose_playwright_state, PlaywrightState, Session, SessionStore, TempStateFile,
 };
@@ -91,15 +95,6 @@ pub struct Limits {
     pub truncated_by: Option<String>,
     pub content_chars_before_truncation: usize,
     pub content_chars_after_truncation: usize,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct OutputOptions {
-    pub content_format: OutputFormat,
-    pub selector: Option<String>,
-    pub exclude_selector: Option<String>,
-    pub wait_for_selector: Option<String>,
-    pub backend_options: BTreeMap<String, String>,
 }
 
 pub struct ExtractorRequest<'a> {
@@ -515,134 +510,6 @@ fn load_selected_sessions(
         .collect()
 }
 
-fn enforce_replay_scope(url: &str, sessions: &[Session]) -> Result<(), AgetError> {
-    if sessions.is_empty() {
-        return Ok(());
-    }
-
-    let target_host = origin_host(url).ok_or_else(|| AgetError::Stable {
-        code: ErrorCode::UsageError,
-        message: format!("invalid request URL '{url}'"),
-    })?;
-
-    for session in sessions {
-        if let Some(scope_error) = session_replay_scope_error(session, &target_host) {
-            return Err(AgetError::Stable {
-                code: ErrorCode::PrivacyPolicyBlocked,
-                message: scope_error,
-            });
-        }
-    }
-
-    Ok(())
-}
-
-fn session_replay_scope_error(session: &Session, target_host: &str) -> Option<String> {
-    let mut has_matching_scope = session
-        .allowed_cookie_domains
-        .iter()
-        .any(|domain| domain_matches_host(target_host, domain));
-
-    for cookie in &session.cookies {
-        if domain_matches_host(target_host, &cookie.domain) {
-            has_matching_scope = true;
-        } else {
-            return Some(format!(
-                "session '{}' contains cookie state for '{}' outside request host '{}'",
-                session.name,
-                normalize_domain(&cookie.domain),
-                target_host
-            ));
-        }
-    }
-
-    for origin in &session.allowed_storage_origins {
-        if let Some(host) = origin_host(origin) {
-            has_matching_scope |= domain_matches_host(target_host, &host);
-        }
-    }
-
-    for origin in &session.origins {
-        let host = origin_host(&origin.origin).unwrap_or_else(|| origin.origin.clone());
-        if domain_matches_host(target_host, &host) {
-            has_matching_scope = true;
-        } else {
-            return Some(format!(
-                "session '{}' contains storage state for '{}' outside request host '{}'",
-                session.name, origin.origin, target_host
-            ));
-        }
-    }
-
-    if has_matching_scope {
-        None
-    } else {
-        Some(format!(
-            "session '{}' is not scoped for request host '{}'",
-            session.name, target_host
-        ))
-    }
-}
-
-fn domain_matches_host(host: &str, allowed_domain: &str) -> bool {
-    let host = normalize_domain(host);
-    let allowed = normalize_domain(allowed_domain);
-    if host.is_empty() || allowed.is_empty() {
-        return false;
-    }
-
-    host == allowed || host.ends_with(&format!(".{allowed}"))
-}
-
-fn normalize_domain(domain: &str) -> String {
-    domain
-        .trim()
-        .trim_start_matches('.')
-        .trim_end_matches('.')
-        .to_ascii_lowercase()
-}
-
-struct LimitApplication {
-    content: String,
-    metadata: Limits,
-}
-
-fn apply_limits(content: String, max_chars: Option<usize>) -> LimitApplication {
-    let before = content.chars().count();
-    let (content, truncated) = match max_chars {
-        Some(max_chars) if before > max_chars => (content.chars().take(max_chars).collect(), true),
-        _ => (content, false),
-    };
-    let after = content.chars().count();
-
-    LimitApplication {
-        content,
-        metadata: Limits {
-            max_chars,
-            truncated,
-            truncated_by: truncated.then(|| "max_chars".to_string()),
-            content_chars_before_truncation: before,
-            content_chars_after_truncation: after,
-        },
-    }
-}
-
-fn output_options(options: &GetOptions) -> OutputOptions {
-    let backend_options = options
-        .backend_options
-        .iter()
-        .map(|option| (option.key.clone(), option.value.clone()))
-        .collect();
-
-    OutputOptions {
-        content_format: options.content_format,
-        selector: options.selector.clone(),
-        exclude_selector: options.exclude_selector.clone(),
-        wait_for_selector: options.wait_for_selector.clone(),
-        backend_options,
-    }
-}
-
 fn extraction_failed(message: impl Into<String>) -> AgetError {
     AgetError::Stable {
         code: ErrorCode::ExtractionFailed,
@@ -698,47 +565,5 @@ mod tests {
         assert!(!redacted.contains("abcdef"));
         assert!(!redacted.contains("abc"));
         assert!(!redacted.contains("<redacted>def"));
-    }
-
-    #[test]
-    fn replay_scope_allows_subdomains_and_rejects_unrelated_hosts() {
-        let mut session = Session::new("docs");
-        session
-            .allowed_cookie_domains
-            .push("example.com".to_string());
-
-        assert!(session_replay_scope_error(&session, "docs.example.com").is_none());
-        assert!(session_replay_scope_error(&session, "example.com.evil").is_some());
-    }
-
-    #[test]
-    fn replay_scope_rejects_mixed_domain_session_state() {
-        let mut session = Session::new("mixed");
-        session.cookies.push(crate::session::SessionCookie {
-            name: "app".to_string(),
-            value: "app-secret".to_string(),
-            domain: "app.example.com".to_string(),
-            path: "/".to_string(),
-            expires: None,
-            http_only: true,
-            secure: true,
-            same_site: None,
-            source_session: None,
-        });
-        session.cookies.push(crate::session::SessionCookie {
-            name: "provider".to_string(),
-            value: "provider-secret".to_string(),
-            domain: "provider.example.com".to_string(),
-            path: "/".to_string(),
-            expires: None,
-            http_only: true,
-            secure: true,
-            same_site: None,
-            source_session: None,
-        });
-
-        let error = session_replay_scope_error(&session, "app.example.com").unwrap();
-
-        assert!(error.contains("provider.example.com"));
     }
 }

@@ -41,6 +41,7 @@ Safety boundary remains unchanged: `aget` is a generic fetcher for content the u
 - D177: the markdown renderer was split into `src/extraction/markdown/mod.rs`, `normalize.rs`, and `table.rs` without changing the extraction module interface.
 - D178: owned extraction orchestration was split into `src/extraction/owned/mod.rs`, `options.rs`, and `content.rs` without changing the extraction module interface.
 - D179: CDP client internals were split into `src/browser_cdp/client/mod.rs`, `transport.rs`, `navigation.rs`, and `state.rs` without changing the browser CDP module interface.
+- D180: extraction orchestration helpers were split into `src/extraction/output.rs` and `replay_scope.rs` without changing the extraction module interface.
 
 ## Archive Index
 
@@ -64,6 +65,7 @@ Safety boundary remains unchanged: `aget` is a generic fetcher for content the u
 | D177 | `archive/knowledge/d177-markdown-module-split.md` | mechanical markdown renderer split into core, normalization, and table modules |
 | D178 | `archive/knowledge/d178-owned-extraction-module-split.md` | mechanical owned extraction split into orchestration, option parsing, and content selection modules |
 | D179 | `archive/knowledge/d179-cdp-client-module-split.md` | mechanical CDP client split into core, transport, navigation, and state modules |
+| D180 | `archive/knowledge/d180-extraction-helper-module-split.md` | mechanical extraction orchestration helper split into output and replay-scope modules |
 
 ## Current Verification Expectations
 
