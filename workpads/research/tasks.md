@@ -732,6 +732,20 @@ Status note:
 
 - Completed with D189 after I19w completed and committed. The mechanical split kept `tests/get_cli.rs` as the parent module route, preserved the existing session-backed get tests, and moved public success/artifacts, output limits/options, backend validation, and failure/timeout behavior into focused submodules. Validation passed with focused `get_cli` tests, `cargo fmt --check`, `cargo test`, and `git diff --check`.
 
+### ✅ Task I19y: Split get CLI session-backed tests by behavior
+
+Acceptance criteria:
+
+- Preserve current session-backed `aget get` CLI behavior while splitting `tests/get_cli/session.rs`.
+- Keep the parent `tests/get_cli.rs` module route stable.
+- Split mechanically first, prioritizing replay/scope behavior, fallback/redaction behavior, and ignored real Crawl4AI replay smoke coverage.
+- Run focused get CLI tests plus the standard validation set before committing.
+- Record the resulting module boundaries in `knowledge.md`.
+
+Status note:
+
+- Completed with D190 after I19x completed and committed. The mechanical split kept `tests/get_cli/session.rs` as the parent route while moving session replay/scope, fallback/redaction, and ignored real Crawl4AI replay smoke coverage into focused submodules. Validation passed with focused `get_cli` tests, `cargo fmt --check`, `cargo test`, and `git diff --check`.
+
 ### ✅ Task I20: Design OAuth-safe browser login and profile import flow
 
 Acceptance criteria:
