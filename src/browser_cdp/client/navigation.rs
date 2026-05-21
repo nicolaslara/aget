@@ -24,7 +24,7 @@ impl CdpClient {
         let navigate_id = self.send_no_wait(
             "Page.navigate",
             Some(json!({ "url": url })),
-            Some(session_id),
+            self.session_param(session_id),
         )?;
 
         let deadline = Instant::now() + timeout;
@@ -43,7 +43,7 @@ impl CdpClient {
                 }
                 continue;
             }
-            if message.get("sessionId").and_then(Value::as_str) != Some(session_id) {
+            if !self.message_matches_session(&message, session_id) {
                 continue;
             }
 
@@ -64,7 +64,7 @@ impl CdpClient {
                                 ],
                                 "body": "PGh0bWw+PC9odG1sPg=="
                             })),
-                            Some(session_id),
+                            self.session_param(session_id),
                         )?;
                     }
                 }
@@ -84,7 +84,7 @@ impl CdpClient {
         let navigate_id = self.send_no_wait(
             "Page.navigate",
             Some(json!({ "url": url })),
-            Some(session_id),
+            self.session_param(session_id),
         )?;
         match wait_until.lifecycle_event_name() {
             Some(event_name) => {
@@ -111,7 +111,7 @@ impl CdpClient {
             if message.get("method").and_then(Value::as_str) != Some(event_name) {
                 continue;
             }
-            if message.get("sessionId").and_then(Value::as_str) == Some(session_id) {
+            if self.message_matches_session(&message, session_id) {
                 return Ok(());
             }
         }
@@ -150,7 +150,7 @@ impl CdpClient {
                 }
                 continue;
             }
-            if message.get("sessionId").and_then(Value::as_str) != Some(session_id) {
+            if !self.message_matches_session(&message, session_id) {
                 continue;
             }
 
@@ -210,7 +210,7 @@ impl CdpClient {
                     "returnByValue": true,
                     "awaitPromise": false,
                 })),
-                Some(session_id),
+                self.session_param(session_id),
                 remaining(deadline),
             )?;
             if result
@@ -249,7 +249,7 @@ impl CdpClient {
                     "returnByValue": true,
                     "awaitPromise": false,
                 })),
-                Some(session_id),
+                self.session_param(session_id),
                 remaining(deadline),
             )?;
             if result
@@ -276,7 +276,7 @@ impl CdpClient {
                 "returnByValue": true,
                 "awaitPromise": true,
             })),
-            Some(session_id),
+            self.session_param(session_id),
             timeout,
         )?;
         Ok(())
@@ -295,7 +295,7 @@ impl CdpClient {
                 "returnByValue": true,
                 "awaitPromise": false,
             })),
-            Some(session_id),
+            self.session_param(session_id),
             timeout,
         )?;
         Ok(result
@@ -304,6 +304,17 @@ impl CdpClient {
             .and_then(Value::as_str)
             .unwrap_or_default()
             .to_string())
+    }
+}
+
+impl CdpClient {
+    fn message_matches_session(&self, message: &Value, session_id: &str) -> bool {
+        match self.session_param(session_id) {
+            Some(session_id) => {
+                message.get("sessionId").and_then(Value::as_str) == Some(session_id)
+            }
+            None => message.get("sessionId").is_none(),
+        }
     }
 }
 

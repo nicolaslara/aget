@@ -1,8 +1,11 @@
 use std::fs;
+use std::net::TcpListener;
 use std::path::PathBuf;
+use std::thread;
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
 use serde_json::json;
+use tungstenite::Message;
 
 use super::super::chrome_process::ChromeProcess;
 use super::super::client::CdpClient;
@@ -10,6 +13,53 @@ use super::super::discovery::connect_existing_profile_browser;
 use super::super::page_scripts::{local_storage_set_expression, session_storage_set_expression};
 use super::super::*;
 use super::{remove_dir_all_with_retries, EnvVarGuard, ENV_LOCK};
+
+#[test]
+fn direct_page_cdp_connection_enables_domains_without_session_ids() {
+    let listener = TcpListener::bind(("127.0.0.1", 0)).unwrap();
+    let port = listener.local_addr().unwrap().port();
+    let handle = thread::spawn(move || {
+        let (stream, _) = listener.accept().unwrap();
+        let mut websocket = tungstenite::accept(stream).unwrap();
+        for expected_method in [
+            "Page.enable",
+            "Runtime.enable",
+            "Runtime.runIfWaitingForDebugger",
+            "Network.enable",
+        ] {
+            let Message::Text(text) = websocket.read().unwrap() else {
+                panic!("expected text CDP command");
+            };
+            let request: serde_json::Value = serde_json::from_str(text.as_ref()).unwrap();
+            assert_eq!(request["method"], expected_method);
+            assert!(request.get("sessionId").is_none());
+            let id = request
+                .get("id")
+                .and_then(serde_json::Value::as_u64)
+                .unwrap();
+            websocket
+                .send(Message::Text(
+                    json!({ "id": id, "result": {} }).to_string().into(),
+                ))
+                .unwrap();
+        }
+        let _ = websocket.close(None);
+    });
+
+    let mut client = CdpClient::connect(
+        &format!("ws://127.0.0.1:{port}/devtools/page/direct"),
+        Duration::from_secs(2),
+    )
+    .unwrap();
+    let page = client.attach_existing_page(Duration::from_secs(2)).unwrap();
+    let page = page.expect("direct page connection should expose current page");
+    assert!(page.target_id.is_empty());
+    assert!(page.session_id.is_empty());
+    client
+        .enable_page_domains(&page.session_id, Duration::from_secs(2))
+        .unwrap();
+    handle.join().unwrap();
+}
 
 #[cfg(unix)]
 #[test]

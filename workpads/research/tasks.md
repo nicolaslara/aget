@@ -862,6 +862,22 @@ Status note:
 
 - Completed with D198 after inspecting Crawl4AI `PruningContentFilter._compute_class_id_weight` and `RelevantContentFilter.negative_patterns` in `references/repos/crawl4ai/crawl4ai/content_filter_strategy.py`. `AgetExtractor` main-content scoring now applies a generic class/id noise penalty for Crawl4AI-style navigation, advertising, comments, promo, social, and sharing labels, and mocked coverage verifies that a dense comments block does not beat a primary article. Validation passed with focused extractor coverage, `cargo fmt --check`, `cargo test`, and `git diff --check`.
 
+### ✅ Task I19ah: Support direct page CDP sessions for existing-page attach
+
+Acceptance criteria:
+
+- Inspect `agent-browser` source for direct-page CDP connection behavior before changing the CDP client.
+- Preserve current browser-level CDP behavior while adding direct page WebSocket support for discovered page targets.
+- Ensure direct page sessions enable page/runtime/network domains without flattened `sessionId` parameters.
+- Keep browser-level target creation/attach/close behavior unchanged.
+- Add deterministic CDP mock coverage for direct page domain enabling.
+- Run focused browser CDP coverage plus the standard validation set before committing.
+- Record source paths, behavior boundaries, and validation in `knowledge.md`.
+
+Status note:
+
+- Completed with D199 after inspecting `agent-browser` direct-page CDP handling in `references/repos/agent-browser/cli/src/native/browser.rs`. The owned CDP client now detects direct page/webview WebSocket connections, treats them as already attached page sessions, enables Page/Runtime/Network without flattened `sessionId`, and keeps browser-level target creation/attach/close unchanged. This is a lower-level prerequisite for current-tab/existing-page extraction and does not add a public CLI surface. Validation passed with focused browser CDP coverage, `cargo fmt --check`, `cargo test`, and `git diff --check`.
+
 ### ✅ Task I20: Design OAuth-safe browser login and profile import flow
 
 Acceptance criteria:

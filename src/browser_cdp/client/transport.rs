@@ -21,7 +21,11 @@ impl CdpClient {
             message: format!("owned browser fallback could not connect to Chrome CDP: {error}"),
         })?;
         configure_socket_timeout(&mut socket, timeout)?;
-        Ok(Self { socket, next_id: 1 })
+        Ok(Self {
+            socket,
+            next_id: 1,
+            direct_page_connection: is_direct_page_ws_url(ws_url),
+        })
     }
 
     pub(in crate::browser_cdp) fn send(
@@ -199,4 +203,8 @@ fn cdp_io_error(error: tungstenite::Error) -> AgetError {
         code: ErrorCode::ExtractionFailed,
         message: format!("owned browser fallback Chrome CDP I/O failed: {error}"),
     }
+}
+
+fn is_direct_page_ws_url(ws_url: &str) -> bool {
+    ws_url.contains("/devtools/page/") || ws_url.contains("/devtools/webview/")
 }

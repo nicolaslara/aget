@@ -25,7 +25,7 @@ impl CdpClient {
             self.send(
                 "Network.setCookies",
                 Some(json!({ "cookies": cdp_cookies(&state.cookies) })),
-                Some(session_id),
+                self.session_param(session_id),
                 timeout,
             )?;
         }
@@ -45,7 +45,7 @@ impl CdpClient {
                         "returnByValue": true,
                         "awaitPromise": false,
                     })),
-                    Some(session_id),
+                    self.session_param(session_id),
                     timeout,
                 )?;
             }
@@ -58,7 +58,7 @@ impl CdpClient {
                         "returnByValue": true,
                         "awaitPromise": false,
                     })),
-                    Some(session_id),
+                    self.session_param(session_id),
                     timeout,
                 )?;
             }
@@ -83,7 +83,12 @@ impl CdpClient {
         allowed_domains: &[String],
         timeout: Duration,
     ) -> Result<Vec<PlaywrightCookie>, AgetError> {
-        let result = self.send("Network.getAllCookies", None, Some(session_id), timeout)?;
+        let result = self.send(
+            "Network.getAllCookies",
+            None,
+            self.session_param(session_id),
+            timeout,
+        )?;
         let mut cookies = playwright_cookies_from_cdp(&result);
 
         let urls = storage_candidate_origins(allowed_domains)
@@ -94,14 +99,19 @@ impl CdpClient {
             let result = self.send(
                 "Network.getCookies",
                 Some(json!({ "urls": urls })),
-                Some(session_id),
+                self.session_param(session_id),
                 timeout,
             )?;
             cookies.extend(playwright_cookies_from_cdp(&result));
         }
 
         if cookies.is_empty() {
-            let result = self.send("Storage.getCookies", None, Some(session_id), timeout)?;
+            let result = self.send(
+                "Storage.getCookies",
+                None,
+                self.session_param(session_id),
+                timeout,
+            )?;
             cookies.extend(playwright_cookies_from_cdp(&result));
         }
 
@@ -122,7 +132,7 @@ impl CdpClient {
         self.send(
             "Fetch.enable",
             Some(json!({ "patterns": [{ "urlPattern": "*" }] })),
-            Some(session_id),
+            self.session_param(session_id),
             timeout,
         )?;
 
@@ -137,7 +147,7 @@ impl CdpClient {
                     "returnByValue": true,
                     "awaitPromise": false,
                 })),
-                Some(session_id),
+                self.session_param(session_id),
                 timeout,
             )?;
             let Some(origin) = origin_storage_from_runtime_result(&result) else {
@@ -151,7 +161,7 @@ impl CdpClient {
         let _ = self.send(
             "Fetch.disable",
             None,
-            Some(session_id),
+            self.session_param(session_id),
             Duration::from_secs(1),
         );
         Ok(origins)

@@ -1,8 +1,6 @@
 use std::path::Path;
 use std::time::Duration;
 
-use serde_json::json;
-
 use crate::error::AgetError;
 use crate::session::PlaywrightState;
 
@@ -66,12 +64,7 @@ pub(crate) fn export_login_browser_state(
         let state =
             client.export_state(&page.session_id, request.allowed_domains, request.timeout)?;
         if created_page {
-            let _ = client.send(
-                "Target.closeTarget",
-                Some(json!({ "targetId": page.target_id })),
-                None,
-                Duration::from_secs(1),
-            );
+            let _ = client.close_page(&page, Duration::from_secs(1));
         }
         client.close_browser(request.timeout)?;
         wait_for_profile_browser_shutdown(request.profile_dir, Duration::from_secs(5));

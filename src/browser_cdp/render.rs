@@ -2,8 +2,6 @@ use std::path::Path;
 use std::thread;
 use std::time::Duration;
 
-use serde_json::json;
-
 use crate::error::AgetError;
 use crate::session::PlaywrightState;
 
@@ -125,13 +123,8 @@ pub(crate) fn render_page(request: BrowserRenderRequest<'_>) -> Result<RenderedP
             request.page_timeout,
         )?
     };
-    let _ = client.send(
-        "Target.closeTarget",
-        Some(json!({ "targetId": page.target_id })),
-        None,
-        Duration::from_secs(1),
-    );
-    let _ = client.send("Browser.close", None, None, Duration::from_secs(1));
+    let _ = client.close_page(&page, Duration::from_secs(1));
+    let _ = client.close_browser(Duration::from_secs(1));
     chrome.wait_or_kill(CHROME_SHUTDOWN_WAIT);
     Ok(RenderedPage {
         final_url,

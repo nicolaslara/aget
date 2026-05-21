@@ -18,6 +18,8 @@ mod state;
 mod transport;
 
 pub(super) struct PageSession {
+    /// Empty for direct page WebSocket connections, where CDP commands already
+    /// target the page and Chrome does not return a flattened target session.
     pub(super) target_id: String,
     pub(super) session_id: String,
 }
@@ -25,10 +27,14 @@ pub(super) struct PageSession {
 pub(super) struct CdpClient {
     socket: WebSocket<MaybeTlsStream<TcpStream>>,
     next_id: u64,
+    direct_page_connection: bool,
 }
 
 impl CdpClient {
     pub(super) fn create_page(&mut self, timeout: Duration) -> Result<PageSession, AgetError> {
+        if self.direct_page_connection {
+            return Ok(direct_page_session());
+        }
         let created = self.send(
             "Target.createTarget",
             Some(json!({ "url": "about:blank" })),
@@ -43,6 +49,9 @@ impl CdpClient {
         &mut self,
         timeout: Duration,
     ) -> Result<Option<PageSession>, AgetError> {
+        if self.direct_page_connection {
+            return Ok(Some(direct_page_session()));
+        }
         let targets = self.send("Target.getTargets", Some(json!({})), None, timeout)?;
         let Some(target_infos) = targets.get("targetInfos").and_then(Value::as_array) else {
             return Ok(None);
@@ -79,15 +88,25 @@ impl CdpClient {
         session_id: &str,
         timeout: Duration,
     ) -> Result<(), AgetError> {
-        self.send("Page.enable", None, Some(session_id), timeout)?;
-        self.send("Runtime.enable", None, Some(session_id), timeout)?;
+        self.send("Page.enable", None, self.session_param(session_id), timeout)?;
+        self.send(
+            "Runtime.enable",
+            None,
+            self.session_param(session_id),
+            timeout,
+        )?;
         let _ = self.send(
             "Runtime.runIfWaitingForDebugger",
             None,
-            Some(session_id),
+            self.session_param(session_id),
             Duration::from_secs(1),
         );
-        self.send("Network.enable", None, Some(session_id), timeout)?;
+        self.send(
+            "Network.enable",
+            None,
+            self.session_param(session_id),
+            timeout,
+        )?;
         Ok(())
     }
 
@@ -101,15 +120,50 @@ impl CdpClient {
             Some(json!({
                 "source": shadow_dom_attach_override_expression(),
             })),
-            Some(session_id),
+            self.session_param(session_id),
             timeout,
         )?;
         Ok(())
     }
 
     pub(super) fn close_browser(&mut self, timeout: Duration) -> Result<(), AgetError> {
+        if self.direct_page_connection {
+            return Ok(());
+        }
         self.send("Browser.close", None, None, timeout)?;
         Ok(())
+    }
+
+    pub(super) fn close_page(
+        &mut self,
+        page: &PageSession,
+        timeout: Duration,
+    ) -> Result<(), AgetError> {
+        if page.target_id.is_empty() {
+            return Ok(());
+        }
+        self.send(
+            "Target.closeTarget",
+            Some(json!({ "targetId": page.target_id })),
+            None,
+            timeout,
+        )?;
+        Ok(())
+    }
+
+    pub(super) fn session_param<'a>(&self, session_id: &'a str) -> Option<&'a str> {
+        if session_id.is_empty() {
+            None
+        } else {
+            Some(session_id)
+        }
+    }
+}
+
+fn direct_page_session() -> PageSession {
+    PageSession {
+        target_id: String::new(),
+        session_id: String::new(),
     }
 }
 

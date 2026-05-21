@@ -15,6 +15,7 @@ This archive file keeps the denser decision routing that used to live in top-lev
 | D196 | `d196-main-content-density-scoring.md` | Crawl4AI `PruningContentFilter`-inspired main-content scoring. |
 | D197 | `d197-support-file-compaction.md` | Top-level support-file compaction without task compaction. |
 | D198 | `d198-class-id-noise-scoring.md` | Crawl4AI-inspired class/id noise penalty for main-content candidates. |
+| D199 | `d199-direct-page-cdp-session.md` | agent-browser-inspired direct page CDP session support. |
 
 ## Full Archive Routing
 
@@ -27,7 +28,7 @@ This archive file keeps the denser decision routing that used to live in top-lev
 | D151-D157 | `d151-d157-auth-and-browser-import.md` | OAuth-safe authorization API/CLI and conservative browser-neutral Chrome import surface. |
 | D158-D167 | `d158-d167-recent-migration-followups.md` | Recent source-backed extraction improvements and follow-up decomposition slices. |
 | D168-D176 | Per-decision files | Knowledge/reference compaction, engine-refactor planning, wrapper introduction, naming cleanup, and direct engine coverage. |
-| D177-D198 | Per-decision files | Module/test decomposition plus the latest owned main-content scoring improvements. |
+| D177-D199 | Per-decision files | Module/test decomposition plus the latest owned extractor/browser parity improvements. |
 
 ## Current Open Migration Gaps
 
