@@ -1480,6 +1480,19 @@ Validation:
 
 Confidence: Medium-high. Deterministic tests cover import filtering, redaction, composition, JS expression quoting, target selection, and CDP result parsing. The local-Chrome ignored smokes cover persistent profile export plus live headed-login sessionStorage export, but current-tab attach and broader cross-platform browser-process behavior remain I19e follow-ups.
 
+### D86: I19d matches Crawl4AI selector miss fallback
+
+The next owned extraction parity slice tightens `css_selector` behavior. Before changing the owned path, I19d re-inspected `references/repos/crawl4ai/crawl4ai/content_scraping_strategy.py`, where `LXMLWebScrapingStrategy._scrap` builds a selected content wrapper when `css_selector` matches but falls back to the full parsed document when the selector has no matches or errors.
+
+`OwnedExtractorBackend` now preserves that no-match behavior for `GetOptions.selector`: a valid selector with no matches falls back to the full document instead of returning `extraction_failed`. This is intentionally different from the default no-selector path, which still uses `aget`'s conservative main-content heuristic, and from `wait_for_selector`, which still must fail when the waited element is absent. The fixture verifies this by selecting a missing class on a page that has `main` plus header/footer; the result includes header and footer rather than using main-content cleanup.
+
+Validation:
+
+- `cargo fmt --check`
+- `cargo test --test mock_site_cli homegrown_extractor_backend_covers_static_http_parity_slice`
+
+Confidence: Medium-high. The behavior is source-faithful for the concrete selector miss case and deterministically covered. Invalid selector handling and broader Crawl4AI cleaned-HTML/readability behavior remain separate I19d follow-ups.
+
 ## Open Questions
 
 - Can pure Rust browser automation provide reliable persistent profiles and CDP attach, or do we need a small Node/Playwright sidecar?

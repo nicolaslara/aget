@@ -1286,11 +1286,10 @@ fn extract_owned_content(
 ) -> Result<ExtractedOwnedContent, AgetError> {
     let root = if let Some(raw_selector) = selector {
         let selector = parse_css_selector(raw_selector)?;
-        document.select(&selector).next().ok_or_else(|| {
-            extraction_failed(format!(
-                "selector '{raw_selector}' was not found by owned extractor"
-            ))
-        })?
+        document
+            .select(&selector)
+            .next()
+            .unwrap_or_else(|| document.root_element())
     } else if !owned_options.target_elements.is_empty() {
         document.root_element()
     } else if prefer_main_content {

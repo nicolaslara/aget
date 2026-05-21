@@ -219,6 +219,23 @@ fn homegrown_extractor_backend_covers_static_http_parity_slice() {
             ),
         )
         .route(
+            "/selector-miss",
+            MockResponse::html(
+                r#"
+<html>
+  <body>
+    <header>Selector Header</header>
+    <main>
+      <h1>Selector Main</h1>
+      <p>Selector body text.</p>
+    </main>
+    <footer>Selector Footer</footer>
+  </body>
+</html>
+"#,
+            ),
+        )
+        .route(
             "/excluded-tags",
             MockResponse::html(
                 r#"
@@ -398,6 +415,18 @@ fn homegrown_extractor_backend_covers_static_http_parity_slice() {
         .unwrap();
     assert!(main_html.content.contains("<header>Site Header</header>"));
     assert!(main_html.content.contains("<main class=\"story\">"));
+
+    let selector_miss = Aget::new(&aget_home)
+        .with_extractor_backend(OwnedExtractorBackend)
+        .get(site.url("/selector-miss"))
+        .content_format(OutputFormat::Text)
+        .selector(".does-not-exist")
+        .run()
+        .unwrap();
+    assert_eq!(
+        selector_miss.content,
+        "Selector Header Selector Main Selector body text. Selector Footer"
+    );
 
     let excluded_tags = Aget::new(&aget_home)
         .with_extractor_backend(OwnedExtractorBackend)
