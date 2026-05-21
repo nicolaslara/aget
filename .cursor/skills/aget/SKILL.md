@@ -61,7 +61,7 @@ aget --envelope json get "https://www.hellointerview.com/learn/behavioral/course
 If the returned content looks like a login/subscription wall, tell the user what you observed and ask whether they want to create a local session. If they agree:
 
 ```bash
-aget --envelope json session import chrome --chrome-profile Default --name hellointerview --allow-domain hellointerview.com --allow-domain www.hellointerview.com
+aget --envelope json session import browser --browser chrome --browser-profile Default --name hellointerview --allow-domain hellointerview.com --allow-domain www.hellointerview.com
 ```
 
 Then verify the imported session unlocks the page:
@@ -73,7 +73,7 @@ aget --envelope json get "https://www.hellointerview.com/learn/behavioral/course
 Generalize the same pattern to any user-authorized gated site, such as `ft.com`, `nytimes.com`, private docs, dashboards, or account pages. Session names are caller-chosen labels, not built-in site handlers. For OAuth-backed sites, ask the user whether they are already logged in through a real browser and prefer importing that browser profile:
 
 ```bash
-aget --envelope json session import chrome --chrome-profile Default --name news --allow-domain nytimes.com --allow-domain www.nytimes.com
+aget --envelope json session import browser --browser chrome --browser-profile Default --name news --allow-domain nytimes.com --allow-domain www.nytimes.com
 aget --envelope json get "https://www.nytimes.com/account" --session news --output /tmp/news-account.md
 ```
 
@@ -122,7 +122,7 @@ aget --envelope json session import cmux --surface "surface:1" --name workdocs -
 Chrome import uses `aget`'s owned local Chrome/CDP import path:
 
 ```bash
-aget --envelope json session import chrome --chrome-profile Default --name workdocs --allow-domain docs.example.com
+aget --envelope json session import browser --browser chrome --browser-profile Default --name workdocs --allow-domain docs.example.com
 ```
 
 Before running either import command, ask the user to approve the specific local surface/profile and domains. These commands can read credential-equivalent local browser state.

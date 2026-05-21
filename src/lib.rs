@@ -14,10 +14,10 @@ pub use aget::{
 pub use cli::{
     AuthorizeSessionCommand, BrowserChoice, Cli, Command, ComposeSessionCommand,
     DeleteSessionCommand, EnvelopeFormat, ExtractorOption, GetCommand, GlobalOptions,
-    ImportChromeSessionCommand, ImportCmuxSessionCommand, ImportSessionCommand,
-    ImportSessionSource, InlineContent, InspectSessionCommand, LoginCancelCommand,
-    LoginFinishCommand, LoginSessionCommand, LoginSessionSubcommand, LoginStartCommand,
-    OutputFormat, SessionCommand, SessionSubcommand,
+    ImportBrowserSessionCommand, ImportChromeSessionCommand, ImportCmuxSessionCommand,
+    ImportSessionCommand, ImportSessionSource, InlineContent, InspectSessionCommand,
+    LoginCancelCommand, LoginFinishCommand, LoginSessionCommand, LoginSessionSubcommand,
+    LoginStartCommand, OutputFormat, SessionCommand, SessionSubcommand,
 };
 pub use error::{AgetError, ErrorCode, ErrorResponse, ENVELOPE_SCHEMA_VERSION};
 pub use extraction::{get_url, GetOptions, GetSuccess, OwnedExtractorBackend, TimingMs};

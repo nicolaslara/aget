@@ -149,7 +149,7 @@ export const session_inspect = tool({
 
 export const session_import_chrome = tool({
   description:
-    "Import a scoped aget session from a user-approved real Chrome profile using aget's owned local Chrome/CDP path. Prefer this for OAuth-backed sites: the user logs in through their normal browser, then the agent imports only the allowed domains and verifies with fetch using the named session.",
+    "Import a scoped aget session from a user-approved real Chrome profile using aget's browser-neutral import surface and owned local Chrome/CDP path. Prefer this for OAuth-backed sites: the user logs in through their normal browser, then the agent imports only the allowed domains and verifies with fetch using the named session.",
   args: {
     profile: tool.schema
       .string()
@@ -169,7 +169,7 @@ export const session_import_chrome = tool({
   async execute(args, context) {
     const cliArgs: string[] = []
     addOptional(cliArgs, "--timeout", args.timeout)
-    cliArgs.push("session", "import", "chrome", "--chrome-profile", args.profile, "--name", args.name)
+    cliArgs.push("session", "import", "browser", "--browser", "chrome", "--browser-profile", args.profile, "--name", args.name)
     for (const domain of args.domains) {
       cliArgs.push("--allow-domain", domain)
     }

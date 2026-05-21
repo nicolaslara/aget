@@ -561,7 +561,7 @@ Status note:
 
 - Completed after D155. D153 added the first API-level authorization workflow: `Aget::authorize_chrome_session` performs an unauthenticated baseline fetch, imports scoped Chrome state, verifies with the saved session, evaluates caller-supplied generic predicates, preserves `requires_user_action` import failures, and keeps executable coverage in `tests/aget_api.rs`. D154 added the first CLI surface, `aget session authorize`, with Chrome profile import, browser-neutral `--browser-profile`, sanitized JSON envelopes that omit baseline/verification inline content, mocked session CLI coverage for verified, verification-failed, and profile-lock states, and documented prompt wording in `workpads/research/oauth-safe-browser-login-design.md`. D155 added explicit re-import-after-user-login mocked CLI coverage and closed the remaining deterministic test-plan gap.
 
-### 📋 Task I22: Design and implement browser-choice session import surfaces
+### 🚧 Task I22: Design and implement browser-choice session import surfaces
 
 Acceptance criteria:
 
@@ -570,6 +570,10 @@ Acceptance criteria:
 - Start with supported Chromium-family import paths only if they can preserve the same scoped filtering, lock handling, temp cleanup, and local-only guarantees as Chrome import.
 - Record unsupported browsers and safe fallback guidance instead of pretending broad import works.
 - Add mocked and ignored/manual tests for each supported browser family.
+
+Status note:
+
+- Started after I21 completion. D156 added browser-choice terminology without broadening auth claims: legacy `session import chrome` remains, new `session import browser --browser chrome` maps to the proven Chrome path, unsupported browser families parse but return `usage_error` before backend access, and `workpads/research/browser-choice-session-import-design.md` records the current support matrix and fallback guidance. Remaining work is to decide whether I22 should stop at the Chrome-only browser-neutral surface or add per-family implementation/research before completion.
 
 ### ✅ Task I17: Redesign public CLI/API and README around coherent concepts
 

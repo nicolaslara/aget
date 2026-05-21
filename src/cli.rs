@@ -165,6 +165,26 @@ pub enum SessionSubcommand {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, ValueEnum)]
 pub enum BrowserChoice {
     Chrome,
+    Chromium,
+    Brave,
+    Edge,
+    Arc,
+    Firefox,
+    Safari,
+}
+
+impl BrowserChoice {
+    pub fn as_str(self) -> &'static str {
+        match self {
+            BrowserChoice::Chrome => "chrome",
+            BrowserChoice::Chromium => "chromium",
+            BrowserChoice::Brave => "brave",
+            BrowserChoice::Edge => "edge",
+            BrowserChoice::Arc => "arc",
+            BrowserChoice::Firefox => "firefox",
+            BrowserChoice::Safari => "safari",
+        }
+    }
 }
 
 #[derive(Debug, Args, PartialEq, Eq)]
@@ -265,6 +285,8 @@ pub struct ImportSessionCommand {
 pub enum ImportSessionSource {
     /// Import cookies from a local cmux browser surface.
     Cmux(ImportCmuxSessionCommand),
+    /// Import scoped cookies/storage from an explicitly selected browser profile.
+    Browser(ImportBrowserSessionCommand),
     /// Import scoped cookies/storage from a Chrome profile snapshot.
     Chrome(ImportChromeSessionCommand),
 }
@@ -280,6 +302,29 @@ pub struct ImportCmuxSessionCommand {
     pub name: String,
 
     /// Explicit allowed cookie domain to import. Repeat for each trusted domain.
+    #[arg(long, required = true)]
+    pub allow_domain: Vec<String>,
+}
+
+#[derive(Debug, Args, PartialEq, Eq)]
+pub struct ImportBrowserSessionCommand {
+    /// Browser family to import from. Chrome is the first supported import source.
+    #[arg(long, value_enum, default_value_t = BrowserChoice::Chrome)]
+    pub browser: BrowserChoice,
+
+    /// Browser profile name or path for the selected browser.
+    #[arg(long = "browser-profile")]
+    pub browser_profile: Option<String>,
+
+    /// Explicit filesystem path to a browser profile/user-data directory.
+    #[arg(long = "profile-path")]
+    pub profile_path: Option<PathBuf>,
+
+    /// Local session name to create.
+    #[arg(long)]
+    pub name: String,
+
+    /// Explicit allowed cookie/storage domain to import. Repeat for each trusted domain.
     #[arg(long, required = true)]
     pub allow_domain: Vec<String>,
 }
@@ -665,6 +710,74 @@ mod tests {
                             "example.com".to_string(),
                             "docs.example.com".to_string()
                         ],
+                    })
+                })
+            })
+        );
+    }
+
+    #[test]
+    fn parses_session_import_browser_with_browser_profile() {
+        let cli = Cli::try_parse_from([
+            "aget",
+            "session",
+            "import",
+            "browser",
+            "--browser",
+            "chrome",
+            "--browser-profile",
+            "Default",
+            "--name",
+            "demo",
+            "--allow-domain",
+            "example.com",
+        ])
+        .unwrap();
+
+        assert_eq!(
+            cli.command,
+            Command::Session(SessionCommand {
+                command: SessionSubcommand::Import(ImportSessionCommand {
+                    source: ImportSessionSource::Browser(ImportBrowserSessionCommand {
+                        browser: BrowserChoice::Chrome,
+                        browser_profile: Some("Default".to_string()),
+                        profile_path: None,
+                        name: "demo".to_string(),
+                        allow_domain: vec!["example.com".to_string()],
+                    })
+                })
+            })
+        );
+    }
+
+    #[test]
+    fn parses_session_import_browser_with_profile_path_and_unsupported_family() {
+        let cli = Cli::try_parse_from([
+            "aget",
+            "session",
+            "import",
+            "browser",
+            "--browser",
+            "firefox",
+            "--profile-path",
+            "/tmp/firefox-profile",
+            "--name",
+            "demo",
+            "--allow-domain",
+            "example.com",
+        ])
+        .unwrap();
+
+        assert_eq!(
+            cli.command,
+            Command::Session(SessionCommand {
+                command: SessionSubcommand::Import(ImportSessionCommand {
+                    source: ImportSessionSource::Browser(ImportBrowserSessionCommand {
+                        browser: BrowserChoice::Firefox,
+                        browser_profile: None,
+                        profile_path: Some(PathBuf::from("/tmp/firefox-profile")),
+                        name: "demo".to_string(),
+                        allow_domain: vec!["example.com".to_string()],
                     })
                 })
             })

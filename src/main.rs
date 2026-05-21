@@ -12,7 +12,7 @@ use clap::error::ErrorKind;
 use serde::Serialize;
 use serde_json::Value;
 
-const OAUTH_LOGIN_WARNING: &str = "OAuth providers may reject automation-controlled login browsers. If this site uses OAuth, prefer signing in with your real browser and importing a scoped session, for example: aget session import chrome --chrome-profile <profile> --name <name> --allow-domain <domain>.";
+const OAUTH_LOGIN_WARNING: &str = "OAuth providers may reject automation-controlled login browsers. If this site uses OAuth, prefer signing in with your real browser and importing a scoped session, for example: aget session import browser --browser chrome --browser-profile <profile> --name <name> --allow-domain <domain>.";
 
 fn main() -> ExitCode {
     let args = std::env::args_os().collect::<Vec<_>>();
@@ -68,6 +68,7 @@ fn command_name_from_args(args: &[OsString]) -> &'static str {
             Some("compose") => "session.compose",
             Some("import") => match tokens.get(index + 2).copied() {
                 Some("cmux") => "session.import.cmux",
+                Some("browser") => "session.import.browser",
                 Some("chrome") => "session.import.chrome",
                 _ => "session.import",
             },
@@ -320,6 +321,50 @@ fn run_session(
                 }
                 Ok(())
             }
+            ImportSessionSource::Browser(browser) => {
+                let profile = resolve_browser_import_profile(
+                    browser.browser,
+                    browser.browser_profile,
+                    browser.profile_path,
+                )?;
+                let session = match browser.browser {
+                    BrowserChoice::Chrome => aget
+                        .import_chrome_session(profile, browser.name, browser.allow_domain)
+                        .map_err(error_response)?,
+                    unsupported => {
+                        return Err(ErrorResponse::new(
+                            ErrorCode::UsageError,
+                            format!(
+                                "session import browser does not support '{}' yet; use --browser chrome for the verified local import path, or use session login start as an explicit fallback for controlled non-OAuth flows",
+                                unsupported.as_str()
+                            ),
+                        ));
+                    }
+                };
+                if json {
+                    print_success_envelope(
+                        command_name,
+                        serde_json::json!({
+                            "source": "browser_profile",
+                            "browser": browser.browser.as_str(),
+                            "name": session.name,
+                            "cookie_count": session.cookies.len(),
+                            "origin_count": session.origins.len(),
+                        }),
+                        Vec::<String>::new(),
+                        elapsed_timing(started),
+                    )?;
+                } else {
+                    println!(
+                        "Imported {} browser session {} with {} cookies and {} origins",
+                        browser.browser.as_str(),
+                        session.name,
+                        session.cookies.len(),
+                        session.origins.len()
+                    );
+                }
+                Ok(())
+            }
             ImportSessionSource::Chrome(chrome) => {
                 let session = aget
                     .import_chrome_session(
@@ -490,6 +535,37 @@ fn resolve_chrome_authorize_profile(
                 "session authorize requires --browser-profile <profile> or --chrome-profile <profile>",
             )),
         },
+        unsupported => Err(ErrorResponse::new(
+            ErrorCode::UsageError,
+            format!(
+                "session authorize does not support '{}' yet; use --browser chrome for the verified local import path",
+                unsupported.as_str()
+            ),
+        )),
+    }
+}
+
+fn resolve_browser_import_profile(
+    browser: BrowserChoice,
+    browser_profile: Option<String>,
+    profile_path: Option<std::path::PathBuf>,
+) -> Result<String, ErrorResponse> {
+    let profile_path = profile_path.map(|path| path.to_string_lossy().into_owned());
+    match (browser_profile, profile_path) {
+        (Some(browser_profile), Some(profile_path)) if browser_profile != profile_path => {
+            Err(ErrorResponse::new(
+                ErrorCode::UsageError,
+                "--browser-profile and --profile-path must match when both are supplied",
+            ))
+        }
+        (Some(profile), _) | (_, Some(profile)) => Ok(profile),
+        (None, None) => Err(ErrorResponse::new(
+            ErrorCode::UsageError,
+            format!(
+                "session import browser --browser {} requires --browser-profile <profile> or --profile-path <path>",
+                browser.as_str()
+            ),
+        )),
     }
 }
 
@@ -583,6 +659,7 @@ fn session_command_name(command: &SessionSubcommand) -> &'static str {
         SessionSubcommand::Delete(_) => "session.delete",
         SessionSubcommand::Import(import) => match &import.source {
             ImportSessionSource::Cmux(_) => "session.import.cmux",
+            ImportSessionSource::Browser(_) => "session.import.browser",
             ImportSessionSource::Chrome(_) => "session.import.chrome",
         },
         SessionSubcommand::Compose(_) => "session.compose",

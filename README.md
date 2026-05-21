@@ -64,6 +64,7 @@ cargo run --quiet -- session login start <name> --url <login-or-target-url>
 cargo run --quiet -- session login finish <name>
 cargo run --quiet -- session login cancel <name>
 cargo run --quiet -- session import cmux --surface <surface> --name <name> --allow-domain <domain> [--allow-domain <domain>...]
+cargo run --quiet -- session import browser --browser chrome --browser-profile <profile> --name <name> --allow-domain <domain> [--allow-domain <domain>...]
 cargo run --quiet -- session import chrome --chrome-profile <profile> --name <name> --allow-domain <domain> [--allow-domain <domain>...]
 ```
 
@@ -71,7 +72,7 @@ Agent-driven authenticated markdown flow:
 
 ```bash
 cargo run --quiet -- --envelope json get "https://docs.example.com/account" --content-format markdown
-cargo run --quiet -- --envelope json session import chrome --chrome-profile Default --name workdocs --allow-domain docs.example.com
+cargo run --quiet -- --envelope json session import browser --browser chrome --browser-profile Default --name workdocs --allow-domain docs.example.com
 cargo run --quiet -- --envelope json get "https://docs.example.com/account" --session workdocs --content-format markdown --output /tmp/workdocs.md
 ```
 
@@ -98,7 +99,7 @@ AGET_CRAWL4AI_COMMAND='uv run --with crawl4ai python scripts/crawl4ai_extract.py
   cargo run --quiet -- get https://example.com --envelope json
 
 AGET_AGENT_BROWSER_COMMAND='npx -y agent-browser' \
-  cargo run --quiet -- session import chrome --chrome-profile Default --name docs --allow-domain example.com
+  cargo run --quiet -- session import browser --browser chrome --browser-profile Default --name docs --allow-domain example.com
 ```
 
 When these variables are unset, `aget` uses its owned Rust extractor and owned Chrome/CDP browser/session paths.
@@ -126,6 +127,7 @@ aget session login start <name> --url <login-or-target-url> [--profile <aget-pro
 aget session login finish <name>
 aget session login cancel <name>
 aget session import cmux --surface <surface> --name <name> --allow-domain <domain> [--allow-domain <domain>...]
+aget session import browser --browser <chrome|chromium|brave|edge|arc|firefox|safari> (--browser-profile <profile> | --profile-path <path>) --name <name> --allow-domain <domain> [--allow-domain <domain>...]
 aget session import chrome --chrome-profile <profile> --name <name> --allow-domain <domain> [--allow-domain <domain>...]
 ```
 
@@ -146,7 +148,8 @@ Notes:
 - `--timeout` sets the request timeout in seconds.
 - `aget session import cmux` imports cookies from a cmux browser surface for explicitly allowed domains only; imported cookies are stored locally as a sensitive named session.
 - cmux import reads raw cookie values from the selected local cmux surface. Use only disposable or user-authorized surfaces and domains.
-- `aget session import chrome` snapshots a Chrome profile through owned local Chrome/CDP code, filters cookies and storage by explicit `--allow-domain` allowlists, stores only the scoped result, then deletes raw temp state. Chrome may need to be quit manually if the profile is locked.
+- `aget session import browser --browser chrome` is the browser-neutral import surface for the verified local Chrome/CDP path. It filters cookies and storage by explicit `--allow-domain` allowlists, stores only the scoped result, then deletes raw temp state. Other browser values currently return a structured `usage_error` instead of pretending unsupported imports are safe.
+- `aget session import chrome` remains a Chrome-specific compatibility spelling for the same verified import path. Chrome may need to be quit manually if the profile is locked.
 
 ## Envelope Output
 

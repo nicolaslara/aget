@@ -2559,6 +2559,33 @@ Validation:
 
 Confidence: High for I21's deterministic behavior. Real OAuth site smoke testing remains manual and should be run only with an explicitly authorized account/site.
 
+### D156: I22 starts browser-neutral import surface conservatively
+
+I22 now has a first browser-choice implementation slice. The public CLI accepts:
+
+```bash
+aget session import browser --browser chrome --browser-profile <profile> --name <session> --allow-domain <domain>...
+```
+
+This maps only `--browser chrome` to the verified owned Chrome/CDP import path. Other parsed browser families (`chromium`, `brave`, `edge`, `arc`, `firefox`, and `safari`) return `usage_error` before invoking a backend or reading local browser state. This is deliberate: current code has a proven Chrome import path, but source-specific profile discovery, executable selection, lock behavior, cookie/keychain behavior, and manual smoke coverage are not yet strong enough to claim broader browser import support.
+
+The compatibility spelling remains:
+
+```bash
+aget session import chrome --chrome-profile <profile> --name <session> --allow-domain <domain>...
+```
+
+The support matrix and future acceptance requirements live in `workpads/research/browser-choice-session-import-design.md`. README, the project aget skill, and the OpenCode tool now prefer the browser-neutral Chrome command while still documenting the compatibility spelling.
+
+Validation:
+
+- `cargo fmt --check`
+- `cargo test --lib parses_session_import_browser`
+- `cargo test --test session_cli session_import_browser`
+- `cargo test --test session_cli session_authorize`
+
+Confidence: Medium-high. The new surface is intentionally narrow and has deterministic parser/mock coverage plus an ignored manual Chrome smoke. I22 remains open until the workpad records whether this Chrome-only browser-neutral surface is enough for the task or whether additional per-family research/implementation should be done before completion.
+
 ## Open Questions
 
 - Can pure Rust browser automation provide reliable persistent profiles and CDP attach, or do we need a small Node/Playwright sidecar?
