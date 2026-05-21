@@ -2,6 +2,7 @@ mod browser_cdp;
 
 pub mod aget;
 pub mod aget_browser;
+pub mod aget_extractor;
 pub mod cli;
 pub mod error;
 pub mod extraction;
@@ -13,6 +14,7 @@ pub use aget::{
     AuthorizeSessionOptions, AuthorizeSessionResult, GetRequest, OwnedBrowserAutomationBackend,
 };
 pub use aget_browser::AgetBrowser;
+pub use aget_extractor::AgetExtractor;
 pub use cli::{
     AuthorizeSessionCommand, BrowserChoice, Cli, Command, ComposeSessionCommand,
     DeleteSessionCommand, EnvelopeFormat, ExtractorOption, GetCommand, GlobalOptions,
@@ -22,7 +24,9 @@ pub use cli::{
     LoginStartCommand, OutputFormat, SessionCommand, SessionSubcommand,
 };
 pub use error::{AgetError, ErrorCode, ErrorResponse, ENVELOPE_SCHEMA_VERSION};
-pub use extraction::{get_url, GetOptions, GetSuccess, OwnedExtractorBackend, TimingMs};
+pub use extraction::{
+    get_url, AgetExtractorBackend, GetOptions, GetSuccess, OwnedExtractorBackend, TimingMs,
+};
 pub use session::{
     cancel_login_session, complete_login_session, compose_session, finish_login_session,
     import_chrome_session, import_cmux_session, merge_login_session, start_login_session,

@@ -6,9 +6,9 @@ use crate::aget_browser::AgetBrowser;
 use crate::cli::{ExtractorOption, OutputFormat};
 use crate::error::{AgetError, ErrorCode};
 use crate::extraction::{
-    BrowserFallbackBackend, BrowserFallbackRequest, BrowserFallbackResult,
+    AgetExtractorBackend, BrowserFallbackBackend, BrowserFallbackRequest, BrowserFallbackResult,
     CommandBrowserFallbackBackend, CommandExtractorBackend, ExtractionSessionStore,
-    ExtractorBackend, GetOptions, GetSuccess, OwnedExtractorBackend,
+    ExtractorBackend, GetOptions, GetSuccess,
 };
 use crate::session::{
     cancel_login_session as cancel_login_flow, complete_login_session, compose_session,
@@ -342,13 +342,13 @@ pub trait BrowserAutomationBackend {
 
 #[derive(Clone)]
 pub enum DefaultExtractorBackend {
-    Owned(OwnedExtractorBackend),
+    Owned(AgetExtractorBackend),
     Command(CommandExtractorBackend),
 }
 
 impl DefaultExtractorBackend {
     fn owned() -> Self {
-        Self::Owned(OwnedExtractorBackend)
+        Self::Owned(AgetExtractorBackend::default())
     }
 
     fn command(command: Option<String>) -> Self {

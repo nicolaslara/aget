@@ -3,7 +3,7 @@ mod support;
 use std::time::Duration;
 
 use aget::{
-    Aget, AgetBrowserBackend, OutputFormat, OwnedBrowserAutomationBackend, OwnedExtractorBackend,
+    Aget, AgetBrowserBackend, AgetExtractorBackend, OutputFormat, OwnedBrowserAutomationBackend,
 };
 use support::mock_site::{MockResponse, MockSite};
 use support::mock_site_cli::{
@@ -122,7 +122,7 @@ fn owned_extractor_backend_renders_local_storage_backed_session_with_chrome() {
     );
 
     let extraction = Aget::new(&aget_home)
-        .with_extractor_backend(OwnedExtractorBackend)
+        .with_extractor_backend(AgetExtractorBackend::default())
         .with_browser_automation_backend(OwnedBrowserAutomationBackend)
         .get(site.url("/storage-rendered"))
         .session("storage")
@@ -144,7 +144,7 @@ fn owned_extractor_backend_renders_waited_javascript_page_with_chrome() {
     let site = MockSite::start();
 
     let extraction = Aget::new(&aget_home)
-        .with_extractor_backend(OwnedExtractorBackend)
+        .with_extractor_backend(AgetExtractorBackend::default())
         .get(site.url("/delayed"))
         .content_format(OutputFormat::Text)
         .wait_for_selector("#ready")
@@ -187,7 +187,7 @@ fn owned_extractor_backend_renders_scripted_page_without_wait_with_chrome() {
         .start();
 
     let extraction = Aget::new(&aget_home)
-        .with_extractor_backend(OwnedExtractorBackend)
+        .with_extractor_backend(AgetExtractorBackend::default())
         .get(site.url("/client-rendered"))
         .content_format(OutputFormat::Text)
         .run()
@@ -230,7 +230,7 @@ fn owned_extractor_backend_flattens_shadow_dom_with_chrome() {
         .start();
 
     let extraction = Aget::new(&aget_home)
-        .with_extractor_backend(OwnedExtractorBackend)
+        .with_extractor_backend(AgetExtractorBackend::default())
         .get(site.url("/shadow-dom"))
         .content_format(OutputFormat::Text)
         .backend_option("crawl4ai.flatten_shadow_dom", "true")
@@ -274,7 +274,7 @@ fn owned_extractor_backend_honors_render_delay_option_with_chrome() {
         .start();
 
     let extraction = Aget::new(&aget_home)
-        .with_extractor_backend(OwnedExtractorBackend)
+        .with_extractor_backend(AgetExtractorBackend::default())
         .get(site.url("/slow-client-rendered"))
         .content_format(OutputFormat::Text)
         .backend_option("crawl4ai.delay_before_return_html", "0.4")
@@ -315,7 +315,7 @@ fn owned_extractor_backend_removes_rendered_style_overlays_with_chrome() {
         .start();
 
     let extraction = Aget::new(&aget_home)
-        .with_extractor_backend(OwnedExtractorBackend)
+        .with_extractor_backend(AgetExtractorBackend::default())
         .get(site.url("/rendered-style-overlay"))
         .content_format(OutputFormat::Text)
         .run()
@@ -367,7 +367,7 @@ fn owned_extractor_backend_honors_wait_for_images_option_with_chrome() {
         .start();
 
     let extraction = Aget::new(&aget_home)
-        .with_extractor_backend(OwnedExtractorBackend)
+        .with_extractor_backend(AgetExtractorBackend::default())
         .get(site.url("/image-wait"))
         .content_format(OutputFormat::Text)
         .backend_option("crawl4ai.wait_until", "domcontentloaded")
@@ -416,7 +416,7 @@ fn owned_extractor_backend_honors_networkidle_wait_until_with_chrome() {
         .start();
 
     let extraction = Aget::new(&aget_home)
-        .with_extractor_backend(OwnedExtractorBackend)
+        .with_extractor_backend(AgetExtractorBackend::default())
         .get(site.url("/networkidle"))
         .content_format(OutputFormat::Text)
         .backend_option("crawl4ai.wait_until", "networkidle")

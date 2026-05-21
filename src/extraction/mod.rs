@@ -23,9 +23,12 @@ use self::artifacts::{
 };
 use self::command::run_command_extractor_backend;
 use self::fallback_command::run_agent_browser_fallback;
-pub(crate) use self::owned::run_owned_browser_fallback;
-use self::owned::{run_owned_extractor_backend, OWNED_EXTRACTOR};
+pub(crate) use self::owned::{
+    run_owned_browser_fallback, run_owned_extractor_backend, OWNED_EXTRACTOR,
+};
 
+use crate::aget::AgetBrowserBackend;
+use crate::aget_extractor::AgetExtractor;
 use crate::cli::{ExtractorOption, OutputFormat};
 use crate::error::{AgetError, ErrorCode};
 use crate::session::agent_browser::origin_host;
@@ -219,21 +222,42 @@ impl ExtractorBackend for CommandExtractorBackend {
 }
 
 #[derive(Debug, Clone, Default)]
+pub struct AgetExtractorBackend {
+    extractor: AgetExtractor,
+}
+
+impl AgetExtractorBackend {
+    pub fn new(extractor: AgetExtractor) -> Self {
+        Self { extractor }
+    }
+}
+
+impl ExtractorBackend for AgetExtractorBackend {
+    fn name(&self) -> &'static str {
+        self.extractor.name()
+    }
+
+    fn extract(&self, request: ExtractorRequest<'_>) -> Result<ExtractorBackendResult, AgetError> {
+        self.extractor.extract(request)
+    }
+}
+
+#[derive(Debug, Clone, Default)]
 pub struct OwnedExtractorBackend;
 
 impl ExtractorBackend for OwnedExtractorBackend {
     fn name(&self) -> &'static str {
-        OWNED_EXTRACTOR
+        AgetExtractorBackend::default().name()
     }
 
     fn extract(&self, request: ExtractorRequest<'_>) -> Result<ExtractorBackendResult, AgetError> {
-        run_owned_extractor_backend(request)
+        AgetExtractorBackend::default().extract(request)
     }
 }
 
 pub fn get_url(options: GetOptions) -> Result<GetSuccess, AgetError> {
-    let extractor = OwnedExtractorBackend;
-    let browser_fallback = crate::aget::OwnedBrowserAutomationBackend;
+    let extractor = AgetExtractorBackend::default();
+    let browser_fallback = AgetBrowserBackend::default();
     get_url_with_backends(options, &extractor, &browser_fallback)
 }
 
@@ -241,7 +265,7 @@ pub fn get_url_with_backend(
     options: GetOptions,
     extractor_backend: &impl ExtractorBackend,
 ) -> Result<GetSuccess, AgetError> {
-    let browser_fallback = crate::aget::OwnedBrowserAutomationBackend;
+    let browser_fallback = AgetBrowserBackend::default();
     get_url_with_backends(options, extractor_backend, &browser_fallback)
 }
 

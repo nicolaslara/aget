@@ -534,7 +534,7 @@ Acceptance criteria:
 
 Status note:
 
-- Started with D170. The first mechanical browser slice introduced `AgetBrowser` and `AgetBrowserBackend`, routed `DefaultBrowserAutomationBackend::Owned` through the new backend, and kept `OwnedBrowserAutomationBackend` as a compatibility shim for existing callers/tests. Focused API and mock-site browser tests pass, but I19j remains in progress because the extractor boundary, remaining live `owned` names, direct engine tests, current docs, and final validation are not complete.
+- Started with D170 and D171. The first mechanical browser slice introduced `AgetBrowser` and `AgetBrowserBackend`, routed `DefaultBrowserAutomationBackend::Owned` through the new backend, and kept `OwnedBrowserAutomationBackend` as a compatibility shim for existing callers/tests. The second mechanical extractor slice introduced `AgetExtractor` and `AgetExtractorBackend`, routed `DefaultExtractorBackend::Owned` and standalone `get_url` helpers through the new extractor/browser wrappers, and kept `OwnedExtractorBackend` as a compatibility shim. Focused API, mock-site browser, and mock-site extractor tests pass, but I19j remains in progress because remaining live `owned` names, direct engine tests beyond adapter use, current docs, and final validation are not complete.
 
 ### ✅ Task I20: Design OAuth-safe browser login and profile import flow
 

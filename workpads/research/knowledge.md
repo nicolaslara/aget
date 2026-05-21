@@ -32,6 +32,7 @@ Safety boundary remains unchanged: `aget` is a generic fetcher for content the u
 - D168: workpad knowledge history was compacted into archive files so active agents can load current routing context without reading the full append-only record.
 - D169: I19j now plans a mechanical rename/boundary refactor from migration-era `owned` backend names toward product engine names: `AgetExtractor`, `AgetExtractorBackend`, `AgetBrowser`, and `AgetBrowserBackend`.
 - D170: the first I19j code slice introduced `AgetBrowser` and `AgetBrowserBackend`; the default owned browser automation path now routes through this engine wrapper while legacy `OwnedBrowserAutomationBackend` remains as a compatibility shim.
+- D171: the second I19j code slice introduced `AgetExtractor` and `AgetExtractorBackend`; default extraction and standalone `get_url` helpers now route through the extractor/browser engine wrappers while legacy `OwnedExtractorBackend` remains as a compatibility shim.
 
 ## Archive Index
 
@@ -46,6 +47,7 @@ Safety boundary remains unchanged: `aget` is a generic fetcher for content the u
 | D168 | `archive/knowledge/d168-workpad-knowledge-compaction.md` | workpad knowledge compaction decision and validation |
 | D169 | `archive/knowledge/d169-engine-refactor-plan.md` | planned `AgetExtractor`/`AgetBrowser` engine boundaries and I19j guardrails |
 | D170 | `archive/knowledge/d170-aget-browser-wrapper.md` | first `AgetBrowser` wrapper and default browser backend wiring slice |
+| D171 | `archive/knowledge/d171-aget-extractor-wrapper.md` | first `AgetExtractor` wrapper and default extractor backend wiring slice |
 
 ## Current Verification Expectations
 

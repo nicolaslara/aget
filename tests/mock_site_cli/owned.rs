@@ -1,4 +1,4 @@
-use aget::{Aget, ErrorCode, OutputFormat, OwnedExtractorBackend};
+use aget::{Aget, AgetExtractorBackend, ErrorCode, OutputFormat};
 
 use crate::owned_site::owned_parity_site;
 use crate::support::mock_site_cli::save_cookie_session;
@@ -11,7 +11,7 @@ fn homegrown_extractor_backend_covers_static_http_parity_slice() {
     save_cookie_session(&aget_home, "app", &site.host(), "app_session", "valid-app");
 
     let public = Aget::new(&aget_home)
-        .with_extractor_backend(OwnedExtractorBackend)
+        .with_extractor_backend(AgetExtractorBackend::default())
         .get(site.url("/public"))
         .content_format(OutputFormat::Text)
         .selector("#content")
@@ -22,7 +22,7 @@ fn homegrown_extractor_backend_covers_static_http_parity_slice() {
     assert_eq!(public.content, "Public Main Visible public article.");
 
     let protected = Aget::new(&aget_home)
-        .with_extractor_backend(OwnedExtractorBackend)
+        .with_extractor_backend(AgetExtractorBackend::default())
         .get(site.url("/protected"))
         .session("app")
         .content_format(OutputFormat::Text)
@@ -32,7 +32,7 @@ fn homegrown_extractor_backend_covers_static_http_parity_slice() {
     assert!(site.received_cookie("/protected", "app_session", "valid-app"));
 
     let text = Aget::new(&aget_home)
-        .with_extractor_backend(OwnedExtractorBackend)
+        .with_extractor_backend(AgetExtractorBackend::default())
         .get(site.url("/formats"))
         .content_format(OutputFormat::Text)
         .selector("main.article")
@@ -42,7 +42,7 @@ fn homegrown_extractor_backend_covers_static_http_parity_slice() {
     assert_eq!(text.content, "Format Heading Format body text.");
 
     let child_selector = Aget::new(&aget_home)
-        .with_extractor_backend(OwnedExtractorBackend)
+        .with_extractor_backend(AgetExtractorBackend::default())
         .get(site.url("/formats"))
         .content_format(OutputFormat::Text)
         .selector("main.article > p:not(.ad)")
@@ -51,7 +51,7 @@ fn homegrown_extractor_backend_covers_static_http_parity_slice() {
     assert_eq!(child_selector.content, "Format body text.");
 
     let markdown = Aget::new(&aget_home)
-        .with_extractor_backend(OwnedExtractorBackend)
+        .with_extractor_backend(AgetExtractorBackend::default())
         .get(site.url("/markdown"))
         .content_format(OutputFormat::Markdown)
         .selector("main.article")
@@ -67,7 +67,7 @@ fn homegrown_extractor_backend_covers_static_http_parity_slice() {
     );
 
     let markdown_base = Aget::new(&aget_home)
-        .with_extractor_backend(OwnedExtractorBackend)
+        .with_extractor_backend(AgetExtractorBackend::default())
         .get(site.url("/markdown-base"))
         .content_format(OutputFormat::Markdown)
         .selector("main.article")
@@ -82,7 +82,7 @@ fn homegrown_extractor_backend_covers_static_http_parity_slice() {
     );
 
     let markdown_inline_blocks = Aget::new(&aget_home)
-        .with_extractor_backend(OwnedExtractorBackend)
+        .with_extractor_backend(AgetExtractorBackend::default())
         .get(site.url("/markdown-inline-blocks"))
         .content_format(OutputFormat::Markdown)
         .selector("main.article")
@@ -97,7 +97,7 @@ fn homegrown_extractor_backend_covers_static_http_parity_slice() {
     );
 
     let markdown_nested_lists = Aget::new(&aget_home)
-        .with_extractor_backend(OwnedExtractorBackend)
+        .with_extractor_backend(AgetExtractorBackend::default())
         .get(site.url("/markdown-nested-lists"))
         .content_format(OutputFormat::Markdown)
         .selector("main.article")
@@ -109,7 +109,7 @@ fn homegrown_extractor_backend_covers_static_http_parity_slice() {
     );
 
     let markdown_links = Aget::new(&aget_home)
-        .with_extractor_backend(OwnedExtractorBackend)
+        .with_extractor_backend(AgetExtractorBackend::default())
         .get(site.url("/markdown-links"))
         .content_format(OutputFormat::Markdown)
         .selector("main.article")
@@ -141,7 +141,7 @@ fn homegrown_extractor_backend_covers_static_http_parity_slice() {
     );
 
     let html = Aget::new(&aget_home)
-        .with_extractor_backend(OwnedExtractorBackend)
+        .with_extractor_backend(AgetExtractorBackend::default())
         .get(site.url("/formats"))
         .content_format(OutputFormat::Html)
         .run()
@@ -149,7 +149,7 @@ fn homegrown_extractor_backend_covers_static_http_parity_slice() {
     assert!(html.content.contains("<main class=\"article\">"));
 
     let cleaned_html = Aget::new(&aget_home)
-        .with_extractor_backend(OwnedExtractorBackend)
+        .with_extractor_backend(AgetExtractorBackend::default())
         .get(site.url("/html-cleanup"))
         .content_format(OutputFormat::Html)
         .run()
@@ -191,7 +191,7 @@ fn homegrown_extractor_backend_covers_static_http_parity_slice() {
     assert!(!cleaned_html.content.contains("empty-span"));
 
     let selected_by_pruned_attr = Aget::new(&aget_home)
-        .with_extractor_backend(OwnedExtractorBackend)
+        .with_extractor_backend(AgetExtractorBackend::default())
         .get(site.url("/html-cleanup"))
         .content_format(OutputFormat::Text)
         .selector(r#"[data-select="summary"]"#)
@@ -200,7 +200,7 @@ fn homegrown_extractor_backend_covers_static_http_parity_slice() {
     assert_eq!(selected_by_pruned_attr.content, "Visible body.");
 
     let cleanup_markdown = Aget::new(&aget_home)
-        .with_extractor_backend(OwnedExtractorBackend)
+        .with_extractor_backend(AgetExtractorBackend::default())
         .get(site.url("/html-cleanup"))
         .content_format(OutputFormat::Markdown)
         .run()
@@ -209,7 +209,7 @@ fn homegrown_extractor_backend_covers_static_http_parity_slice() {
     assert!(!cleanup_markdown.content.contains("![Inline image]"));
 
     let json = Aget::new(&aget_home)
-        .with_extractor_backend(OwnedExtractorBackend)
+        .with_extractor_backend(AgetExtractorBackend::default())
         .get(site.url("/formats"))
         .content_format(OutputFormat::Json)
         .exclude_selector("p.ad")
@@ -220,7 +220,7 @@ fn homegrown_extractor_backend_covers_static_http_parity_slice() {
     assert_eq!(parsed["content"], "Format Heading Format body text.");
 
     let main_text = Aget::new(&aget_home)
-        .with_extractor_backend(OwnedExtractorBackend)
+        .with_extractor_backend(AgetExtractorBackend::default())
         .get(site.url("/main-content"))
         .content_format(OutputFormat::Text)
         .run()
@@ -228,7 +228,7 @@ fn homegrown_extractor_backend_covers_static_http_parity_slice() {
     assert_eq!(main_text.content, "Main Story Useful body text.");
 
     let main_markdown = Aget::new(&aget_home)
-        .with_extractor_backend(OwnedExtractorBackend)
+        .with_extractor_backend(AgetExtractorBackend::default())
         .get(site.url("/main-content"))
         .content_format(OutputFormat::Markdown)
         .run()
@@ -236,7 +236,7 @@ fn homegrown_extractor_backend_covers_static_http_parity_slice() {
     assert_eq!(main_markdown.content, "# Main Story\n\nUseful body text.");
 
     let multiple_articles = Aget::new(&aget_home)
-        .with_extractor_backend(OwnedExtractorBackend)
+        .with_extractor_backend(AgetExtractorBackend::default())
         .get(site.url("/multiple-articles"))
         .content_format(OutputFormat::Markdown)
         .run()
@@ -247,7 +247,7 @@ fn homegrown_extractor_backend_covers_static_http_parity_slice() {
     );
 
     let labeled_markdown = Aget::new(&aget_home)
-        .with_extractor_backend(OwnedExtractorBackend)
+        .with_extractor_backend(AgetExtractorBackend::default())
         .get(site.url("/labeled-content"))
         .content_format(OutputFormat::Markdown)
         .run()
@@ -258,7 +258,7 @@ fn homegrown_extractor_backend_covers_static_http_parity_slice() {
     );
 
     let overlay_text = Aget::new(&aget_home)
-        .with_extractor_backend(OwnedExtractorBackend)
+        .with_extractor_backend(AgetExtractorBackend::default())
         .get(site.url("/overlay-content"))
         .content_format(OutputFormat::Text)
         .run()
@@ -266,7 +266,7 @@ fn homegrown_extractor_backend_covers_static_http_parity_slice() {
     assert_eq!(overlay_text.content, "Overlay Story Useful article text.");
 
     let overlay_html = Aget::new(&aget_home)
-        .with_extractor_backend(OwnedExtractorBackend)
+        .with_extractor_backend(AgetExtractorBackend::default())
         .get(site.url("/overlay-content"))
         .content_format(OutputFormat::Html)
         .run()
@@ -276,7 +276,7 @@ fn homegrown_extractor_backend_covers_static_http_parity_slice() {
     assert!(overlay_html.content.contains("Useful article text."));
 
     let main_html = Aget::new(&aget_home)
-        .with_extractor_backend(OwnedExtractorBackend)
+        .with_extractor_backend(AgetExtractorBackend::default())
         .get(site.url("/main-content"))
         .content_format(OutputFormat::Html)
         .run()
@@ -285,7 +285,7 @@ fn homegrown_extractor_backend_covers_static_http_parity_slice() {
     assert!(main_html.content.contains("<main class=\"story\">"));
 
     let selector_miss = Aget::new(&aget_home)
-        .with_extractor_backend(OwnedExtractorBackend)
+        .with_extractor_backend(AgetExtractorBackend::default())
         .get(site.url("/selector-miss"))
         .content_format(OutputFormat::Text)
         .selector(".does-not-exist")
@@ -297,7 +297,7 @@ fn homegrown_extractor_backend_covers_static_http_parity_slice() {
     );
 
     let selector_invalid = Aget::new(&aget_home)
-        .with_extractor_backend(OwnedExtractorBackend)
+        .with_extractor_backend(AgetExtractorBackend::default())
         .get(site.url("/selector-miss"))
         .content_format(OutputFormat::Text)
         .selector("[[[invalid")
@@ -309,7 +309,7 @@ fn homegrown_extractor_backend_covers_static_http_parity_slice() {
     );
 
     let invalid_exclude_selector = Aget::new(&aget_home)
-        .with_extractor_backend(OwnedExtractorBackend)
+        .with_extractor_backend(AgetExtractorBackend::default())
         .get(site.url("/formats"))
         .content_format(OutputFormat::Text)
         .selector("main.article")
@@ -322,7 +322,7 @@ fn homegrown_extractor_backend_covers_static_http_parity_slice() {
     );
 
     let selector_multiple = Aget::new(&aget_home)
-        .with_extractor_backend(OwnedExtractorBackend)
+        .with_extractor_backend(AgetExtractorBackend::default())
         .get(site.url("/selector-multiple"))
         .content_format(OutputFormat::Text)
         .selector(".result")
@@ -334,7 +334,7 @@ fn homegrown_extractor_backend_covers_static_http_parity_slice() {
     );
 
     let selector_multiple_html = Aget::new(&aget_home)
-        .with_extractor_backend(OwnedExtractorBackend)
+        .with_extractor_backend(AgetExtractorBackend::default())
         .get(site.url("/selector-multiple"))
         .content_format(OutputFormat::Html)
         .selector(".result")
@@ -347,7 +347,7 @@ fn homegrown_extractor_backend_covers_static_http_parity_slice() {
     assert!(!selector_multiple_html.content.contains("Sidebar body."));
 
     let selector_scoped_targets = Aget::new(&aget_home)
-        .with_extractor_backend(OwnedExtractorBackend)
+        .with_extractor_backend(AgetExtractorBackend::default())
         .get(site.url("/selector-multiple"))
         .content_format(OutputFormat::Text)
         .selector(".result")
@@ -357,7 +357,7 @@ fn homegrown_extractor_backend_covers_static_http_parity_slice() {
     assert_eq!(selector_scoped_targets.content, "Alpha body. Beta body.");
 
     let excluded_tags = Aget::new(&aget_home)
-        .with_extractor_backend(OwnedExtractorBackend)
+        .with_extractor_backend(AgetExtractorBackend::default())
         .get(site.url("/excluded-tags"))
         .content_format(OutputFormat::Text)
         .backend_option("crawl4ai.excluded_tags", "aside,footer")
@@ -366,7 +366,7 @@ fn homegrown_extractor_backend_covers_static_http_parity_slice() {
     assert_eq!(excluded_tags.content, "Tag Filtering Kept article body.");
 
     let target_elements = Aget::new(&aget_home)
-        .with_extractor_backend(OwnedExtractorBackend)
+        .with_extractor_backend(AgetExtractorBackend::default())
         .get(site.url("/excluded-tags"))
         .content_format(OutputFormat::Markdown)
         .backend_option("crawl4ai.target_elements", "h1,p")
@@ -378,7 +378,7 @@ fn homegrown_extractor_backend_covers_static_http_parity_slice() {
     );
 
     let only_text = Aget::new(&aget_home)
-        .with_extractor_backend(OwnedExtractorBackend)
+        .with_extractor_backend(AgetExtractorBackend::default())
         .get(site.url("/markdown"))
         .content_format(OutputFormat::Markdown)
         .selector("main.article")
@@ -395,7 +395,7 @@ fn homegrown_extractor_backend_covers_static_http_parity_slice() {
     );
 
     let word_count_threshold = Aget::new(&aget_home)
-        .with_extractor_backend(OwnedExtractorBackend)
+        .with_extractor_backend(AgetExtractorBackend::default())
         .get(site.url("/word-threshold"))
         .content_format(OutputFormat::Text)
         .selector("main.article")
@@ -408,7 +408,7 @@ fn homegrown_extractor_backend_covers_static_http_parity_slice() {
     );
 
     let invalid_word_count_threshold = Aget::new(&aget_home)
-        .with_extractor_backend(OwnedExtractorBackend)
+        .with_extractor_backend(AgetExtractorBackend::default())
         .get(site.url("/formats"))
         .backend_option("crawl4ai.word_count_threshold", "many")
         .run()
@@ -422,7 +422,7 @@ fn homegrown_extractor_backend_covers_static_http_parity_slice() {
         .contains("crawl4ai.word_count_threshold expects a non-negative integer value"));
 
     let invalid_timeout_option = Aget::new(&aget_home)
-        .with_extractor_backend(OwnedExtractorBackend)
+        .with_extractor_backend(AgetExtractorBackend::default())
         .get(site.url("/formats"))
         .backend_option("crawl4ai.page_timeout", "soon")
         .run()
@@ -433,7 +433,7 @@ fn homegrown_extractor_backend_covers_static_http_parity_slice() {
         .contains("crawl4ai.page_timeout expects a non-negative integer number of milliseconds"));
 
     let unsupported_wait_until = Aget::new(&aget_home)
-        .with_extractor_backend(OwnedExtractorBackend)
+        .with_extractor_backend(AgetExtractorBackend::default())
         .get(site.url("/formats"))
         .backend_option("crawl4ai.wait_until", "commit")
         .run()
@@ -444,7 +444,7 @@ fn homegrown_extractor_backend_covers_static_http_parity_slice() {
     ));
 
     let invalid_wait_for_images = Aget::new(&aget_home)
-        .with_extractor_backend(OwnedExtractorBackend)
+        .with_extractor_backend(AgetExtractorBackend::default())
         .get(site.url("/formats"))
         .backend_option("crawl4ai.wait_for_images", "eventually")
         .run()
@@ -455,7 +455,7 @@ fn homegrown_extractor_backend_covers_static_http_parity_slice() {
         .contains("crawl4ai.wait_for_images expects a boolean value"));
 
     let unsupported_option = Aget::new(&aget_home)
-        .with_extractor_backend(OwnedExtractorBackend)
+        .with_extractor_backend(AgetExtractorBackend::default())
         .get(site.url("/formats"))
         .backend_option("crawl4ai.magic", "value")
         .run()
@@ -468,7 +468,7 @@ fn homegrown_extractor_backend_covers_static_http_parity_slice() {
         ));
 
     let redirect = Aget::new(&aget_home)
-        .with_extractor_backend(OwnedExtractorBackend)
+        .with_extractor_backend(AgetExtractorBackend::default())
         .get(site.url("/redirect"))
         .content_format(OutputFormat::Text)
         .run()
@@ -476,7 +476,7 @@ fn homegrown_extractor_backend_covers_static_http_parity_slice() {
     assert_eq!(redirect.final_url, site.url("/public"));
 
     let waited = Aget::new(&aget_home)
-        .with_extractor_backend(OwnedExtractorBackend)
+        .with_extractor_backend(AgetExtractorBackend::default())
         .get(site.url("/wait-ready"))
         .content_format(OutputFormat::Text)
         .wait_for_selector("body main #ready")
@@ -485,7 +485,7 @@ fn homegrown_extractor_backend_covers_static_http_parity_slice() {
     assert_eq!(waited.content, "Ready Now");
 
     let js_wait = Aget::new(&aget_home)
-        .with_extractor_backend(OwnedExtractorBackend)
+        .with_extractor_backend(AgetExtractorBackend::default())
         .get(site.url("/wait-ready"))
         .wait_for_selector("js:() => true")
         .run()

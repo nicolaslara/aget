@@ -22,13 +22,13 @@ use super::{
     ExtractorBackendResult, ExtractorRequest, GetOptions,
 };
 
-pub(super) const OWNED_EXTRACTOR: &str = "aget-owned-extractor";
+pub(crate) const OWNED_EXTRACTOR: &str = "aget-owned-extractor";
 
 const OWNED_BROWSER_FALLBACK: &str = "aget-owned-browser-fallback";
 const OWNED_FALLBACK_WARNING: &str = "aget-owned fallback used after primary extractor failed";
 const DEFAULT_RENDER_SETTLE_DELAY: Duration = Duration::from_millis(100);
 
-pub(super) fn run_owned_extractor_backend(
+pub(crate) fn run_owned_extractor_backend(
     request: ExtractorRequest<'_>,
 ) -> Result<ExtractorBackendResult, AgetError> {
     let tmp_dir = request
