@@ -2219,6 +2219,23 @@ Validation:
 
 Confidence: High for the CDP render split. The split is mechanical, the CDP-focused unit slice passed, the owned-extractor caller path still passes, and the full standard suite is green.
 
+### D135: I19i splits CDP Chrome profile state export
+
+The next `browser_cdp` decomposition slice moved Chrome profile state export orchestration from `src/browser_cdp.rs` to `src/browser_cdp/state.rs`. The new module owns `BrowserStateExportRequest`, Chrome profile launch for import, page creation/domain enablement, CDP state export dispatch, target close, browser close, and shutdown waiting. The parent `browser_cdp` module now keeps login lifecycle orchestration and delegates profile import state export to the state module.
+
+Validation:
+
+- `cargo check`
+- `cargo fmt`
+- `cargo fmt --check`
+- `git diff --check`
+- `cargo test browser_cdp::tests::`
+- `cargo test --test session_cli owned_session_import_chrome_classifies_profile_in_use`
+- `cargo test --test session_cli owned_session_import_chrome_reports_sandbox_startup_hint`
+- `cargo test`
+
+Confidence: High for the CDP state split. The split is mechanical, the CDP-focused unit slice passed, deterministic owned Chrome import classification paths still pass, and the full standard suite is green.
+
 ## Open Questions
 
 - Can pure Rust browser automation provide reliable persistent profiles and CDP attach, or do we need a small Node/Playwright sidecar?
