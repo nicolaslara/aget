@@ -18,6 +18,7 @@ This archive file keeps the denser decision routing that used to live in top-lev
 | D199 | `d199-direct-page-cdp-session.md` | agent-browser-inspired direct page CDP session support. |
 | D200 | `d200-cdp-target-discovery-auto-attach.md` | agent-browser-inspired target discovery and auto-attach parity. |
 | D201 | `d201-cdp-same-document-navigation.md` | agent-browser-inspired same-document CDP navigation handling. |
+| D202 | `d202-cdp-networkidle-load-event.md` | agent-browser-inspired network-idle load-event readiness. |
 
 ## Full Archive Routing
 
@@ -30,7 +31,7 @@ This archive file keeps the denser decision routing that used to live in top-lev
 | D151-D157 | `d151-d157-auth-and-browser-import.md` | OAuth-safe authorization API/CLI and conservative browser-neutral Chrome import surface. |
 | D158-D167 | `d158-d167-recent-migration-followups.md` | Recent source-backed extraction improvements and follow-up decomposition slices. |
 | D168-D176 | Per-decision files | Knowledge/reference compaction, engine-refactor planning, wrapper introduction, naming cleanup, and direct engine coverage. |
-| D177-D201 | Per-decision files | Module/test decomposition plus the latest owned extractor/browser parity improvements. |
+| D177-D202 | Per-decision files | Module/test decomposition plus the latest owned extractor/browser parity improvements. |
 
 ## Current Open Migration Gaps
 

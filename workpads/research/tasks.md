@@ -908,6 +908,21 @@ Status note:
 
 - Completed with D201 after inspecting `agent-browser` `BrowserManager::navigate` behavior in `references/repos/agent-browser/cli/src/native/browser.rs`. The owned CDP navigation path now treats `Page.navigate` responses without `loaderId` as same-document navigations that do not wait for lifecycle/network-idle events, and it reports result-level `errorText` as an extraction failure. Validation passed with focused browser CDP coverage, `cargo fmt --check`, `cargo test`, and `git diff --check`.
 
+### ✅ Task I19ak: Start CDP network-idle waits from load events
+
+Acceptance criteria:
+
+- Inspect `agent-browser` source for network-idle polling behavior before porting.
+- Preserve current browser/CDP public behavior while improving rendered-page readiness.
+- Let `Page.loadEventFired` start the network-idle quiet window when no network requests are in flight.
+- Preserve existing `Page.domContentEventFired` and request tracking behavior.
+- Add deterministic mock CDP coverage for a load-only network-idle completion path.
+- Verify with focused browser CDP tests plus the standard check set.
+
+Status note:
+
+- Completed with D202 after inspecting `agent-browser` `poll_network_idle` behavior in `references/repos/agent-browser/cli/src/native/browser.rs`. The owned CDP `networkidle` wait now starts its quiet window from either `Page.domContentEventFired` or `Page.loadEventFired` when no requests are in flight, while preserving request tracking. Validation passed with focused browser CDP coverage, `cargo fmt --check`, `cargo test`, and `git diff --check`.
+
 ### ✅ Task I20: Design OAuth-safe browser login and profile import flow
 
 Acceptance criteria:

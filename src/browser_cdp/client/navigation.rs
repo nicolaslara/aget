@@ -127,13 +127,13 @@ impl CdpClient {
     ) -> Result<(), AgetError> {
         let deadline = Instant::now() + timeout;
         let mut navigate_response_seen = false;
-        let mut dom_content_loaded = false;
+        let mut readiness_event_seen = false;
         let mut inflight_requests = BTreeSet::new();
         let mut idle_since = Instant::now();
 
         loop {
             if navigate_response_seen
-                && dom_content_loaded
+                && readiness_event_seen
                 && inflight_requests.is_empty()
                 && idle_since.elapsed() >= NETWORK_IDLE_DURATION
             {
@@ -159,8 +159,8 @@ impl CdpClient {
             }
 
             match message.get("method").and_then(Value::as_str) {
-                Some("Page.domContentEventFired") => {
-                    dom_content_loaded = true;
+                Some("Page.domContentEventFired" | "Page.loadEventFired") => {
+                    readiness_event_seen = true;
                     if inflight_requests.is_empty() {
                         idle_since = Instant::now();
                     }
