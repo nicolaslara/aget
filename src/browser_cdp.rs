@@ -18,6 +18,8 @@ use crate::process::{configure_local_command, create_private_file, TempOutputFil
 use crate::session::{PlaywrightCookie, PlaywrightOrigin, PlaywrightState, StorageEntry};
 
 const CDP_READ_POLL: Duration = Duration::from_millis(100);
+const CHROME_LAUNCH_ATTEMPTS: usize = 3;
+const CHROME_LAUNCH_RETRY_DELAY: Duration = Duration::from_millis(500);
 const CHROME_SHUTDOWN_WAIT: Duration = Duration::from_secs(1);
 const NETWORK_IDLE_DURATION: Duration = Duration::from_millis(500);
 const CHROME_SANDBOX_STARTUP_HINT: &str = "Hint: Chrome sandbox/namespace startup failure; in containers or VMs, set AGET_CHROME_COMMAND to a Chrome/Chromium executable that can run with --no-sandbox";
@@ -315,80 +317,73 @@ impl ChromeProcess {
         })?;
         let stderr_capture =
             TempOutputFile::new(&env::temp_dir(), "aget-chrome-stderr").map_err(io_aget_error)?;
-        let stderr = create_private_file(stderr_capture.path()).map_err(io_aget_error)?;
-        let mut command = Command::new(&executable);
-        command
-            .arg("--remote-debugging-port=0")
-            .arg("--no-first-run")
-            .arg("--no-default-browser-check")
-            .arg("--disable-background-networking")
-            .arg("--disable-backgrounding-occluded-windows")
-            .arg("--disable-component-update")
-            .arg("--disable-default-apps")
-            .arg("--disable-popup-blocking")
-            .arg("--disable-sync")
-            .arg("--disable-features=Translate")
-            .arg("--window-size=1280,720")
-            .arg(format!("--user-data-dir={}", user_data_dir.display()))
-            .stdin(Stdio::null())
-            .stdout(Stdio::null())
-            .stderr(Stdio::from(stderr));
-        if headless {
-            command
-                .arg("--headless=new")
-                .arg("--enable-unsafe-swiftshader");
-        }
-        if !use_real_keychain {
-            command
-                .arg("--password-store=basic")
-                .arg("--use-mock-keychain");
-        }
-        if let Some(profile_directory) = profile_directory {
-            command.arg(format!("--profile-directory={profile_directory}"));
-        }
-        if cfg!(target_os = "linux") {
-            command.arg("--no-sandbox").arg("--disable-dev-shm-usage");
-        }
-        if let Some(startup_url) = startup_url {
-            command.arg("--new-window").arg(startup_url);
-        }
-        configure_local_command(&mut command);
-        configure_chrome_process_group(&mut command);
-        let _ = fs::remove_file(user_data_dir.join("DevToolsActivePort"));
-        let mut child = command.spawn().map_err(|error| AgetError::Stable {
-            code: ErrorCode::BackendUnavailable,
-            message: format!(
-                "{operation} could not launch Chrome at '{}': {error}",
-                executable.display()
-            ),
-        })?;
-        let ws_url = match wait_for_devtools_active_port(
-            &mut child,
-            &user_data_dir,
-            &stderr_capture,
-            timeout,
-        ) {
-            Ok(ws_url) => ws_url,
-            Err(error) => {
-                terminate_child(&mut child);
-                if remove_user_data_dir {
-                    let _ = fs::remove_dir_all(&user_data_dir);
+        let mut last_error = None;
+        for attempt in 1..=CHROME_LAUNCH_ATTEMPTS {
+            let stderr = create_private_file(stderr_capture.path()).map_err(io_aget_error)?;
+            let mut command = chrome_launch_command(
+                &executable,
+                &user_data_dir,
+                profile_directory,
+                use_real_keychain,
+                headless,
+                startup_url,
+                stderr,
+            );
+            let _ = fs::remove_file(user_data_dir.join("DevToolsActivePort"));
+            let mut child = match command.spawn() {
+                Ok(child) => child,
+                Err(error) => {
+                    last_error = Some(AgetError::Stable {
+                        code: ErrorCode::BackendUnavailable,
+                        message: format!(
+                            "{operation} could not launch Chrome at '{}': {error}",
+                            executable.display()
+                        ),
+                    });
+                    if attempt < CHROME_LAUNCH_ATTEMPTS {
+                        thread::sleep(CHROME_LAUNCH_RETRY_DELAY);
+                    }
+                    continue;
                 }
-                return Err(classify_chrome_startup_error(
-                    operation,
-                    error,
-                    &stderr_capture,
-                ));
+            };
+
+            match wait_for_devtools_active_port(
+                &mut child,
+                &user_data_dir,
+                &stderr_capture,
+                timeout,
+            ) {
+                Ok(ws_url) => {
+                    return Ok(Self {
+                        child,
+                        ws_url,
+                        user_data_dir,
+                        remove_user_data_dir,
+                        terminated: false,
+                        _stderr_capture: stderr_capture,
+                    });
+                }
+                Err(error) => {
+                    terminate_child(&mut child);
+                    last_error = Some(classify_chrome_startup_error(
+                        operation,
+                        error,
+                        &stderr_capture,
+                    ));
+                    if attempt < CHROME_LAUNCH_ATTEMPTS {
+                        thread::sleep(CHROME_LAUNCH_RETRY_DELAY);
+                    }
+                }
             }
-        };
-        Ok(Self {
-            child,
-            ws_url,
-            user_data_dir,
-            remove_user_data_dir,
-            terminated: false,
-            _stderr_capture: stderr_capture,
-        })
+        }
+
+        if remove_user_data_dir {
+            let _ = fs::remove_dir_all(&user_data_dir);
+        }
+        Err(last_error.unwrap_or_else(|| AgetError::Stable {
+            code: ErrorCode::BackendUnavailable,
+            message: format!("{operation} could not launch Chrome"),
+        }))
     }
 
     fn detach(mut self) {
@@ -429,6 +424,56 @@ impl Drop for ChromeProcess {
             let _ = fs::remove_dir_all(&self.user_data_dir);
         }
     }
+}
+
+fn chrome_launch_command(
+    executable: &Path,
+    user_data_dir: &Path,
+    profile_directory: Option<&str>,
+    use_real_keychain: bool,
+    headless: bool,
+    startup_url: Option<&str>,
+    stderr: fs::File,
+) -> Command {
+    let mut command = Command::new(executable);
+    command
+        .arg("--remote-debugging-port=0")
+        .arg("--no-first-run")
+        .arg("--no-default-browser-check")
+        .arg("--disable-background-networking")
+        .arg("--disable-backgrounding-occluded-windows")
+        .arg("--disable-component-update")
+        .arg("--disable-default-apps")
+        .arg("--disable-popup-blocking")
+        .arg("--disable-sync")
+        .arg("--disable-features=Translate")
+        .arg("--window-size=1280,720")
+        .arg(format!("--user-data-dir={}", user_data_dir.display()))
+        .stdin(Stdio::null())
+        .stdout(Stdio::null())
+        .stderr(Stdio::from(stderr));
+    if headless {
+        command
+            .arg("--headless=new")
+            .arg("--enable-unsafe-swiftshader");
+    }
+    if !use_real_keychain {
+        command
+            .arg("--password-store=basic")
+            .arg("--use-mock-keychain");
+    }
+    if let Some(profile_directory) = profile_directory {
+        command.arg(format!("--profile-directory={profile_directory}"));
+    }
+    if cfg!(target_os = "linux") {
+        command.arg("--no-sandbox").arg("--disable-dev-shm-usage");
+    }
+    if let Some(startup_url) = startup_url {
+        command.arg("--new-window").arg(startup_url);
+    }
+    configure_local_command(&mut command);
+    configure_chrome_process_group(&mut command);
+    command
 }
 
 struct PageSession {
@@ -1933,6 +1978,35 @@ mod tests {
     use super::*;
     use crate::session::PlaywrightCookie;
 
+    static ENV_LOCK: std::sync::Mutex<()> = std::sync::Mutex::new(());
+
+    struct EnvVarGuard {
+        key: &'static str,
+        previous: Option<std::ffi::OsString>,
+    }
+
+    impl EnvVarGuard {
+        fn set(key: &'static str, value: &std::ffi::OsStr) -> Self {
+            let previous = env::var_os(key);
+            unsafe {
+                env::set_var(key, value);
+            }
+            Self { key, previous }
+        }
+    }
+
+    impl Drop for EnvVarGuard {
+        fn drop(&mut self) {
+            unsafe {
+                if let Some(previous) = &self.previous {
+                    env::set_var(self.key, previous);
+                } else {
+                    env::remove_var(self.key);
+                }
+            }
+        }
+    }
+
     #[test]
     fn cdp_cookie_payload_preserves_browser_cookie_fields() {
         let payload = cdp_cookies(&[PlaywrightCookie {
@@ -2035,6 +2109,60 @@ mod tests {
         assert_eq!(origin.local_storage[0].name, "token");
         assert_eq!(origin.session_storage.len(), 1);
         assert_eq!(origin.session_storage[0].name, "ignored");
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn chrome_launch_retries_after_early_startup_exit() {
+        use std::os::unix::fs::PermissionsExt;
+
+        let _env_lock = ENV_LOCK.lock().unwrap();
+        let temp = tempfile::tempdir().unwrap();
+        let profile = temp.path().join("profile");
+        fs::create_dir_all(&profile).unwrap();
+        let fake_chrome = temp.path().join("fake-chrome");
+        let state_path = PathBuf::from(format!("{}.count", fake_chrome.display()));
+        fs::write(
+            &fake_chrome,
+            "#!/bin/sh\n\
+             state=\"$0.count\"\n\
+             count=\"$(cat \"$state\" 2>/dev/null || echo 0)\"\n\
+             count=$((count + 1))\n\
+             printf '%s\\n' \"$count\" > \"$state\"\n\
+             if [ \"$count\" -lt 2 ]; then\n\
+               echo 'transient Chrome startup failure' >&2\n\
+               exit 1\n\
+             fi\n\
+             user_data_dir=''\n\
+             for arg in \"$@\"; do\n\
+               case \"$arg\" in\n\
+                 --user-data-dir=*) user_data_dir=\"${arg#--user-data-dir=}\" ;;\n\
+               esac\n\
+             done\n\
+             if [ -z \"$user_data_dir\" ]; then\n\
+               echo 'missing user data dir' >&2\n\
+               exit 2\n\
+             fi\n\
+             printf '49152\\n/devtools/browser/retry\\n' > \"$user_data_dir/DevToolsActivePort\"\n\
+             sleep 60\n",
+        )
+        .unwrap();
+        let mut permissions = fs::metadata(&fake_chrome).unwrap().permissions();
+        permissions.set_mode(0o700);
+        fs::set_permissions(&fake_chrome, permissions).unwrap();
+
+        let _env_guard = EnvVarGuard::set("AGET_CHROME_COMMAND", fake_chrome.as_os_str());
+        let chrome = ChromeProcess::launch_profile(
+            &profile,
+            None,
+            false,
+            Duration::from_secs(2),
+            "owned Chrome retry test",
+        )
+        .unwrap();
+
+        assert_eq!(chrome.ws_url, "ws://127.0.0.1:49152/devtools/browser/retry");
+        assert_eq!(fs::read_to_string(state_path).unwrap().trim(), "2");
     }
 
     #[test]

@@ -1927,6 +1927,22 @@ Validation:
 
 Confidence: High for text-node backslash preservation. The behavior is source-backed and covered in the deterministic markdown fixture; this intentionally does not alter generated links, images, emphasis, code, or tables.
 
+### D116: I19e retries owned Chrome launch startup failures
+
+The next browser lifecycle slice ports `agent-browser`'s Chrome launch retry behavior. Before changing the owned browser backend, I19e re-inspected `references/repos/agent-browser/cli/src/native/cdp/chrome.rs` at local commit `3bb1d43`, where `launch_chrome` retries `try_launch_chrome` up to three times and waits 500ms between failed attempts before returning the last startup error.
+
+`OwnedBrowserAutomationBackend` now applies the same three-attempt, 500ms retry policy when launching local Chrome for fallback rendering, Chrome profile import, and dedicated login browsers. Each attempt still removes stale `DevToolsActivePort`, captures fresh stderr, uses the existing process-group cleanup path on failure, and preserves the final startup classification/sandbox hints when all attempts fail.
+
+Validation:
+
+- `cargo fmt`
+- `cargo fmt --check`
+- `git diff --check`
+- `cargo test chrome_launch_retries_after_early_startup_exit`
+- `cargo test`
+
+Confidence: High for transient early-exit retry behavior. The behavior is source-backed and covered by a deterministic fake-Chrome test that fails the first launch, writes `DevToolsActivePort` on the second launch, and proves the owned backend returns the discovered CDP URL. Broader real-Chrome/keychain smoke coverage remains separate I19e work.
+
 ## Open Questions
 
 - Can pure Rust browser automation provide reliable persistent profiles and CDP attach, or do we need a small Node/Playwright sidecar?
