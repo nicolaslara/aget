@@ -1493,6 +1493,19 @@ Validation:
 
 Confidence: Medium-high. The behavior is source-faithful for the concrete selector miss case and deterministically covered. Invalid selector handling and broader Crawl4AI cleaned-HTML/readability behavior remain separate I19d follow-ups.
 
+### D87: I19d aligns owned cleaned-HTML tag removal
+
+The next I19d output-shaping slice ports a small part of Crawl4AI's cleaned HTML contract. Before changing the owned path, I19d re-inspected `references/repos/crawl4ai/crawl4ai/content_scraping_strategy.py`, where `LXMLWebScrapingStrategy._scrap` removes `style`, `link`, `meta`, and `noscript` elements, then removes `script` elements, before serializing cleaned HTML.
+
+`OwnedExtractorBackend` already removed `script`, `style`, and `noscript`; it now also removes `link` and `meta` before generating HTML/text/markdown/json output. This primarily affects `--content-format html`, where previously head/body metadata and preload/canonical links could leak into the cleaned output even though Crawl4AI would drop them. The fixture keeps `<title>` and visible body content while proving `meta`, `link`, `style`, `script`, and `noscript` are absent from owned HTML output.
+
+Validation:
+
+- `cargo fmt --check`
+- `cargo test --test mock_site_cli homegrown_extractor_backend_covers_static_http_parity_slice`
+
+Confidence: High for this narrow cleanup slice. The behavior is directly source-backed and deterministically covered; broader attribute pruning, media/link extraction metadata, and full readability remain separate I19d work.
+
 ## Open Questions
 
 - Can pure Rust browser automation provide reliable persistent profiles and CDP attach, or do we need a small Node/Playwright sidecar?

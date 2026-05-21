@@ -298,6 +298,31 @@ fn homegrown_extractor_backend_covers_static_http_parity_slice() {
 "#,
             ),
         )
+        .route(
+            "/html-cleanup",
+            MockResponse::html(
+                r#"
+<html>
+  <head>
+    <title>Cleanup Title</title>
+    <meta name="description" content="private metadata">
+    <link rel="canonical" href="/canonical">
+    <style>.hidden { display: none; }</style>
+  </head>
+  <body>
+    <main>
+      <h1>Cleanup Main</h1>
+      <p>Visible body.</p>
+      <meta name="body-meta" content="remove me">
+      <link rel="preload" href="/asset.css">
+      <script>window.secret = "remove me";</script>
+      <noscript>Remove fallback text</noscript>
+    </main>
+  </body>
+</html>
+"#,
+            ),
+        )
         .start();
     save_cookie_session(&aget_home, "app", &site.host(), "app_session", "valid-app");
 
@@ -379,6 +404,22 @@ fn homegrown_extractor_backend_covers_static_http_parity_slice() {
         .run()
         .unwrap();
     assert!(html.content.contains("<main class=\"article\">"));
+
+    let cleaned_html = Aget::new(&aget_home)
+        .with_extractor_backend(OwnedExtractorBackend)
+        .get(site.url("/html-cleanup"))
+        .content_format(OutputFormat::Html)
+        .run()
+        .unwrap();
+    assert!(cleaned_html
+        .content
+        .contains("<title>Cleanup Title</title>"));
+    assert!(cleaned_html.content.contains("<h1>Cleanup Main</h1>"));
+    assert!(!cleaned_html.content.contains("<meta"));
+    assert!(!cleaned_html.content.contains("<link"));
+    assert!(!cleaned_html.content.contains("<style"));
+    assert!(!cleaned_html.content.contains("<script"));
+    assert!(!cleaned_html.content.contains("<noscript"));
 
     let json = Aget::new(&aget_home)
         .with_extractor_backend(OwnedExtractorBackend)

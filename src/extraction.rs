@@ -959,7 +959,7 @@ fn extract_owned_html(
     owned_options: &OwnedExtractorOptions,
 ) -> Result<OwnedPageExtraction, AgetError> {
     let mut document = Html::parse_document(&body);
-    document = remove_selected_elements(document, "script,style,noscript")?;
+    document = remove_selected_elements(document, "script,style,link,meta,noscript")?;
 
     if let Some(wait_for) = &options.wait_for_selector {
         let selector = parse_css_selector(wait_for)?;
