@@ -1450,6 +1450,18 @@ Validation:
 
 Confidence: Medium-high. The new deterministic CLI test proves the classification and no-session-saved behavior with a fake Chrome executable. Real Chrome lock/keychain behavior still needs the ignored/manual smoke coverage tracked under I19e/I19h.
 
+### D84: I19e covers scripted owned browser fallback rendering
+
+The next I19e verification slice covers an `agent-browser` parity behavior without adding new production surface. The command-backed fallback path in `src/extraction.rs` loads composed state into a browser session, opens the requested URL, then reads body HTML/text from the rendered page. The upstream `agent-browser` navigation path in `references/repos/agent-browser/cli/src/native/browser.rs` waits for a CDP lifecycle event before callers request page content.
+
+`tests/mock_site_cli.rs` now includes an ignored local-Chrome smoke proving the owned browser fallback renders a cookie-backed script-bearing page after the primary extractor fails. This specifically exercises the fallback path rather than the default owned primary extractor, and verifies the session cookie is replayed to the scripted page.
+
+Validation:
+
+- `cargo test --test mock_site_cli owned_browser_fallback_renders_cookie_backed_scripted_page_with_chrome -- --ignored`
+
+Confidence: Medium-high for this parity slice. The smoke uses local Chrome and a deterministic local site, but broader SPA readiness, current-tab attach, and real logged-in profile/keychain behavior remain open.
+
 ## Open Questions
 
 - Can pure Rust browser automation provide reliable persistent profiles and CDP attach, or do we need a small Node/Playwright sidecar?

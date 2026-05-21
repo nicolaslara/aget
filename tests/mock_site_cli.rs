@@ -563,6 +563,49 @@ fn owned_browser_fallback_replays_cookie_backed_session_without_agent_browser() 
 
 #[test]
 #[ignore = "requires local Chrome/Chromium; set AGET_CHROME_COMMAND if auto-discovery fails"]
+fn owned_browser_fallback_renders_cookie_backed_scripted_page_with_chrome() {
+    let temp = tempfile::tempdir().unwrap();
+    let aget_home = temp.path().join("aget-home");
+    let site = MockSite::builder()
+        .route(
+            "/client-rendered",
+            MockResponse::html(
+                r##"
+<html>
+  <body>
+    <main>
+      <h1>Client Shell</h1>
+      <div id="client-result">Loading</div>
+    </main>
+    <script>
+      setTimeout(() => {
+        document.querySelector("#client-result").innerHTML = "<p>Client Rendered</p>"
+      }, 25)
+    </script>
+  </body>
+</html>
+"##,
+            ),
+        )
+        .start();
+    save_cookie_session(&aget_home, "app", &site.host(), "app_session", "valid-app");
+
+    let fallback = Aget::new(&aget_home)
+        .with_extractor_backend(FailingExtractor)
+        .with_browser_automation_backend(OwnedBrowserAutomationBackend)
+        .get(site.url("/client-rendered"))
+        .session("app")
+        .content_format(OutputFormat::Text)
+        .run()
+        .unwrap();
+
+    assert_eq!(fallback.extractor, "aget-owned-browser-fallback");
+    assert_eq!(fallback.content, "Client Shell Client Rendered");
+    assert!(site.received_cookie("/client-rendered", "app_session", "valid-app"));
+}
+
+#[test]
+#[ignore = "requires local Chrome/Chromium; set AGET_CHROME_COMMAND if auto-discovery fails"]
 fn owned_browser_fallback_renders_local_storage_backed_session_with_chrome() {
     let temp = tempfile::tempdir().unwrap();
     let aget_home = temp.path().join("aget-home");
