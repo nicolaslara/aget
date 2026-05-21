@@ -20,7 +20,7 @@ Safety boundary remains unchanged: `aget` is a generic fetcher for content the u
 - Completed migration phases include source clones/inventory, backend abstraction audit, parity tests, default owned runtime switch, PoC command-default demotion, engine naming cleanup, and module/test/support decomposition.
 - Still open: I19d, I19e, and I19h.
 - I19d remains open for full Crawl4AI-quality readability/markdown and richer rendered-page readiness.
-- I19e remains open for current-tab attach, broader rendered JavaScript parity, real logged-in profile/keychain smoke coverage, cross-platform close/process lifecycle parity, and fuller startup/error classification.
+- I19e remains open for public current-tab consent/command orchestration, broader rendered JavaScript parity, real logged-in profile/keychain smoke coverage, cross-platform close/process lifecycle parity, and fuller startup/error classification.
 - I19h remains open because final migration review requires review subagents for test adequacy, architecture cohesion, and security/privacy.
 - Current support-file rule: do not compact `workpads/research/tasks.md`; compact supporting files by moving dense detail to referenced archive files.
 
@@ -35,7 +35,7 @@ Safety boundary remains unchanged: `aget` is a generic fetcher for content the u
 | Original module-decomposition sequence | `archive/knowledge/d123-d150-module-decomposition.md` |
 | Auth/browser import and browser-choice design | `archive/knowledge/d151-d157-auth-and-browser-import.md` |
 | Recent migration follow-ups and source-backed extraction improvements | `archive/knowledge/d158-d167-recent-migration-followups.md` |
-| Latest individual decisions | `archive/knowledge/d168-workpad-knowledge-compaction.md` through `archive/knowledge/d207-aget-browser-attached-page-seam.md` |
+| Latest individual decisions | `archive/knowledge/d168-workpad-knowledge-compaction.md` through `archive/knowledge/d208-aget-browser-cdp-endpoint-discovery.md` |
 
 ## Historical Support Docs
 
@@ -53,7 +53,7 @@ Safety boundary remains unchanged: `aget` is a generic fetcher for content the u
 
 ## Open Questions
 
-- Should current-tab extraction be implemented through CDP debug-port setup first, or deferred until an extension/native bridge is justified?
+- Which public consent and command/API shape should expose the owned current-tab primitives now available behind explicit CDP WebSocket URL and local debugging-port seams?
 - Can pure Rust browser automation provide reliable persistent profiles and CDP attach across platforms?
 - Which remaining readability/markdown features are worth porting before final I19 review?
 - How should `aget` represent and redact authenticated/private content before returning it to an agent?

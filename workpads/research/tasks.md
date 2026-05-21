@@ -995,6 +995,21 @@ Status note:
 
 - Completed with D207. `AgetBrowser` now has a crate-internal attached-page rendering seam that delegates to the owned CDP renderer, preserving the no-launch/no-navigation/no-close current-tab prerequisite behavior from D206 while keeping public CLI/API UX deferred. Direct engine coverage exercises the seam with a mock CDP WebSocket and no `Aget` facade or command backend. Validation passed with focused AgetBrowser coverage, focused attached-page CDP coverage, `cargo fmt --check`, `cargo test`, and `git diff --check`.
 
+### ✅ Task I19aq: Expose CDP endpoint discovery at the AgetBrowser engine seam
+
+Acceptance criteria:
+
+- Inspect `agent-browser` source for CDP endpoint discovery behavior before porting.
+- Preserve the public CLI/API surface; do not add a current-tab command before consent UX is chosen.
+- Keep endpoint ownership explicit: callers provide a local CDP debugging port and receive the resolved browser WebSocket URL.
+- Reuse the owned CDP discovery order: `/json/version`, `/json/list`, then direct `/devtools/browser` WebSocket verification.
+- Add direct `AgetBrowser` engine coverage that does not use the `Aget` facade or command backend.
+- Verify with focused AgetBrowser and browser CDP discovery coverage plus the standard check set.
+
+Status note:
+
+- Completed with D208 after inspecting `agent-browser` CDP discovery behavior in `references/repos/agent-browser/cli/src/native/browser.rs`, `references/repos/agent-browser/cli/src/native/cdp/chrome.rs`, and `references/repos/agent-browser/cli/src/native/cdp/discovery.rs`. `AgetBrowser` now has a crate-internal CDP endpoint discovery seam that accepts an explicit local debugging port and returns the resolved browser WebSocket URL, reusing the owned `/json/version`, `/json/list`, then direct `/devtools/browser` discovery order. Public CLI/API current-tab UX remains deferred pending consent design. Validation passed with focused AgetBrowser coverage, focused browser CDP discovery coverage, `cargo fmt --check`, `cargo test`, and `git diff --check`.
+
 ### ✅ Task I20: Design OAuth-safe browser login and profile import flow
 
 Acceptance criteria:

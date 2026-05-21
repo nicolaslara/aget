@@ -1,4 +1,6 @@
-use crate::browser_cdp::{render_attached_page, BrowserAttachedPageRenderRequest};
+use crate::browser_cdp::{
+    discover_cdp_ws_url, render_attached_page, BrowserAttachedPageRenderRequest,
+};
 use crate::error::AgetError;
 use crate::extraction::{BrowserFallbackRequest, BrowserFallbackResult};
 use crate::session::{
@@ -8,6 +10,19 @@ use crate::session::{
 };
 
 use std::time::Duration;
+
+#[derive(Debug, Clone)]
+#[allow(dead_code)]
+pub(crate) struct CdpEndpointRequest {
+    pub(crate) port: u16,
+    pub(crate) timeout: Duration,
+}
+
+#[derive(Debug, Clone)]
+#[allow(dead_code)]
+pub(crate) struct CdpEndpointResult {
+    pub(crate) ws_url: String,
+}
 
 #[derive(Debug, Clone)]
 // Current-tab wiring intentionally stops at the engine seam until public
@@ -75,6 +90,15 @@ impl AgetBrowser {
     }
 
     #[allow(dead_code)]
+    pub(crate) fn discover_cdp_endpoint(
+        &self,
+        request: CdpEndpointRequest,
+    ) -> Result<CdpEndpointResult, AgetError> {
+        let ws_url = discover_cdp_ws_url(request.port, request.timeout)?;
+        Ok(CdpEndpointResult { ws_url })
+    }
+
+    #[allow(dead_code)]
     pub(crate) fn render_attached_page(
         &self,
         request: AttachedPageRequest<'_>,
@@ -129,6 +153,35 @@ mod tests {
             .unwrap();
     }
 
+    fn serve_cdp_discovery_responses(responses: Vec<String>) -> (u16, thread::JoinHandle<()>) {
+        use std::io::{Read as _, Write as _};
+
+        let listener = TcpListener::bind(("127.0.0.1", 0)).unwrap();
+        let port = listener.local_addr().unwrap().port();
+        let handle = thread::spawn(move || {
+            for response in responses {
+                let (mut stream, _) = listener.accept().unwrap();
+                let mut request = [0u8; 512];
+                let _ = stream.read(&mut request);
+                stream.write_all(response.as_bytes()).unwrap();
+            }
+        });
+        (port, handle)
+    }
+
+    fn http_json_response(status: u16, body: &str) -> String {
+        let reason = match status {
+            200 => "OK",
+            404 => "Not Found",
+            _ => "Status",
+        };
+        format!(
+            "HTTP/1.1 {status} {reason}\r\nContent-Type: application/json\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{}",
+            body.len(),
+            body
+        )
+    }
+
     #[test]
     fn cancels_pending_login_without_aget_facade_or_command_backend() {
         let temp = tempfile::tempdir().unwrap();
@@ -159,6 +212,37 @@ mod tests {
         assert_eq!(cancelled.pending.name, "docs");
         assert!(!profile.exists());
         assert!(!tmp_dir.join("login-docs.json").exists());
+    }
+
+    #[test]
+    fn discovers_cdp_endpoint_without_aget_facade_or_command_backend() {
+        let list_body = r#"[
+            {
+                "type": "page",
+                "webSocketDebuggerUrl": "ws://localhost:9999/devtools/page/ignored"
+            },
+            {
+                "type": "browser",
+                "webSocketDebuggerUrl": "ws://localhost:9999/devtools/browser/list"
+            }
+        ]"#;
+        let (port, handle) = serve_cdp_discovery_responses(vec![
+            http_json_response(200, r#"{}"#),
+            http_json_response(200, list_body),
+        ]);
+
+        let endpoint = AgetBrowser::default()
+            .discover_cdp_endpoint(CdpEndpointRequest {
+                port,
+                timeout: Duration::from_secs(2),
+            })
+            .unwrap();
+
+        assert_eq!(
+            endpoint.ws_url,
+            format!("ws://127.0.0.1:{port}/devtools/browser/list")
+        );
+        handle.join().unwrap();
     }
 
     #[test]

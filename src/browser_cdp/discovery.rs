@@ -228,7 +228,7 @@ fn remove_stale_devtools_active_port(profile_dir: &Path) {
     let _ = fs::remove_file(profile_dir.join("DevToolsActivePort"));
 }
 
-pub(super) fn discover_cdp_ws_url(port: u16, timeout: Duration) -> Result<String, AgetError> {
+pub(crate) fn discover_cdp_ws_url(port: u16, timeout: Duration) -> Result<String, AgetError> {
     let config = ureq::Agent::config_builder()
         .timeout_global(Some(timeout.min(Duration::from_secs(2))))
         .http_status_as_error(false)
