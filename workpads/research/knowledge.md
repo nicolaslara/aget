@@ -2300,6 +2300,21 @@ Validation:
 
 Confidence: High for the CDP session data split. The move is mechanical, the CDP unit slice passed, and the full standard suite is green.
 
+### D140: I19i splits mock-site CLI integration helpers
+
+The next integration-test decomposition slice moved shared helper setup from `tests/mock_site_cli.rs` to `tests/support/mock_site_cli.rs`. The support module now owns mock backend and agent-browser command lookup/building, the `Aget` command-backend helper, JSON envelope extraction, reusable storage-rendered mock site setup, cookie/storage/mixed-scope session fixtures, and the failing extractor used by fallback tests. `tests/mock_site_cli.rs` now imports those helpers through `support::mock_site_cli`, which prepares the file for behavior-focused splits without duplicating helper code.
+
+Validation:
+
+- `cargo check`
+- `cargo test --test mock_site_cli`
+- `cargo fmt`
+- `cargo fmt --check`
+- `git diff --check`
+- `cargo test`
+
+Confidence: High for the mock-site helper split. The helper move is mechanical, the affected integration target passed, and the full standard suite is green.
+
 ## Open Questions
 
 - Can pure Rust browser automation provide reliable persistent profiles and CDP attach, or do we need a small Node/Playwright sidecar?
