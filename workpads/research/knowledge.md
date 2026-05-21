@@ -8,7 +8,7 @@ This compact file records only the current routing context needed for active wor
 
 - `src/aget/`: public facade and orchestration across extractor, browser automation/fallback, and session-store backends.
 - `src/extraction/` plus `src/aget_extractor.rs`: local Crawl4AI-like extraction engine and backend wrapper.
-- `src/browser_cdp/`, `src/aget_browser.rs`, and browser-facing session modules: local agent-browser-like Chrome/CDP behavior and backend wrapper.
+- `src/browser_cdp/`, `src/aget_browser.rs`, `src/aget_browser/`, and browser-facing session modules: local agent-browser-like Chrome/CDP behavior and backend wrapper.
 - `src/session/`: local session model, store, composition, imports, login lifecycle, and compatibility helpers.
 
 Safety boundary remains unchanged: `aget` is a generic fetcher for content the user is authorized to access. Authenticated state and content stay local by default. Site-specific paywall/login reasoning belongs to the caller or an agent-facing skill, not the binary.
@@ -35,7 +35,7 @@ Safety boundary remains unchanged: `aget` is a generic fetcher for content the u
 | Original module-decomposition sequence | `archive/knowledge/d123-d150-module-decomposition.md` |
 | Auth/browser import and browser-choice design | `archive/knowledge/d151-d157-auth-and-browser-import.md` |
 | Recent migration follow-ups and source-backed extraction improvements | `archive/knowledge/d158-d167-recent-migration-followups.md` |
-| Latest individual decisions | `archive/knowledge/d168-workpad-knowledge-compaction.md` through `archive/knowledge/d215-real-chrome-import-smoke.md` |
+| Latest individual decisions | `archive/knowledge/d168-workpad-knowledge-compaction.md` through `archive/knowledge/d216-aget-browser-current-tab-split.md` |
 
 ## Historical Support Docs
 

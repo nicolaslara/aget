@@ -1118,6 +1118,21 @@ Status note:
 
 - Completed with D215 after inspecting `agent-browser` named profile copy behavior in `references/repos/agent-browser/cli/src/native/cdp/chrome.rs`. The ignored real Chrome import smoke now requires both approved profile and scoped domain env vars, parses the JSON envelope, loads the persisted session through `SessionStore`, verifies Chrome profile provenance, checks the allowlist, and asserts nonempty scoped auth state without printing cookie or storage values. Validation passed with the ignored smoke path returning early without env vars plus the standard check set.
 
+### ✅ Task I19ay: Split AgetBrowser current-tab facade internals
+
+Acceptance criteria:
+
+- Preserve the public `AgetBrowser` wrapper and `AgetBrowserBackend` behavior.
+- Split current-tab/CDP endpoint request/result types and methods out of `src/aget_browser.rs`.
+- Split `AgetBrowser` internal tests out of the root facade file without weakening assertions.
+- Do not compact or remove planned tasks from `workpads/research/tasks.md`.
+- Record the resulting boundary in `knowledge.md`.
+- Verify with focused `AgetBrowser` coverage plus the standard check set.
+
+Status note:
+
+- Completed with D216. `src/aget_browser.rs` now stays focused on the browser engine wrapper and session/fallback delegation, current-tab/CDP endpoint request/result types plus composition methods live in `src/aget_browser/current_tab.rs`, and internal engine tests live in `src/aget_browser/tests.rs`. Assertions were preserved and `workpads/research/tasks.md` was not compacted. Validation passed with focused AgetBrowser coverage plus the standard check set.
+
 ### ✅ Task I20: Design OAuth-safe browser login and profile import flow
 
 Acceptance criteria:

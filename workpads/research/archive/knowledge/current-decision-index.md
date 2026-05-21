@@ -32,6 +32,7 @@ This archive file keeps the denser decision routing that used to live in top-lev
 | D213 | `d213-cli-integration-test-split.md` | Mechanical CLI integration-test split by behavior. |
 | D214 | `d214-chrome-startup-stderr-diagnostics.md` | agent-browser-inspired labeled generic Chrome startup stderr diagnostics. |
 | D215 | `d215-real-chrome-import-smoke.md` | Stronger opt-in real Chrome import smoke assertions for persisted scoped auth. |
+| D216 | `d216-aget-browser-current-tab-split.md` | Mechanical AgetBrowser current-tab seam and internal test split. |
 
 ## Full Archive Routing
 
@@ -44,7 +45,7 @@ This archive file keeps the denser decision routing that used to live in top-lev
 | D151-D157 | `d151-d157-auth-and-browser-import.md` | OAuth-safe authorization API/CLI and conservative browser-neutral Chrome import surface. |
 | D158-D167 | `d158-d167-recent-migration-followups.md` | Recent source-backed extraction improvements and follow-up decomposition slices. |
 | D168-D176 | Per-decision files | Knowledge/reference compaction, engine-refactor planning, wrapper introduction, naming cleanup, and direct engine coverage. |
-| D177-D215 | Per-decision files | Module/test decomposition plus the latest owned extractor/browser parity improvements. |
+| D177-D216 | Per-decision files | Module/test decomposition plus the latest owned extractor/browser parity improvements. |
 
 ## Current Open Migration Gaps
 
