@@ -2539,7 +2539,25 @@ Validation:
 - `cargo test --test aget_api authorize_chrome_session`
 - `cargo test --test session_cli session_authorize`
 
-Confidence: Medium-high. The CLI and envelope behavior are deterministic and tested with local mocks. I21 still needs an explicit re-import-after-user-login scenario before the task should be marked complete.
+Confidence: Medium-high at this checkpoint. The CLI and envelope behavior are deterministic and tested with local mocks; the remaining I21 gap was explicit re-import-after-user-login coverage, addressed in D155.
+
+### D155: I21 completes OAuth-safe authorization workflow coverage
+
+I21 is complete after adding explicit re-import-after-user-login CLI coverage. The mocked scenario runs `aget session authorize` twice against the same named session:
+
+- first import contains stale scoped browser state, so the baseline fetch is unauthenticated and the verification fetch fails the caller's `--must-contain` predicate;
+- the saved session remains present but not verified;
+- second import simulates the user completing login in the approved browser/profile and re-running the same authorization command;
+- the verification fetch replays the updated scoped cookie, returns `verified`, and replaces the stale saved session state.
+
+This closes the deterministic test-plan gap left after D154. The command still does not classify site-specific gated states itself; it only reports predicate outcomes, artifacts, sensitivity, and structured user-action errors.
+
+Validation:
+
+- `cargo fmt --check`
+- `cargo test --test session_cli session_authorize`
+
+Confidence: High for I21's deterministic behavior. Real OAuth site smoke testing remains manual and should be run only with an explicitly authorized account/site.
 
 ## Open Questions
 

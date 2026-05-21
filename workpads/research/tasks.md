@@ -541,7 +541,7 @@ Status note:
 
 - Completed after D151/D152. `workpads/research/oauth-safe-browser-login-design.md` records the import-first decision tree, public vocabulary, browser-choice boundary, lock/error wording, mocked-test plan, and manual OAuth smoke recipe. I20 acceptance is design-scoped; executable mocked tests and the first-class orchestration command/API are tracked by I21.
 
-### 🚧 Task I21: Implement OAuth-safe session authorization workflow
+### ✅ Task I21: Implement OAuth-safe session authorization workflow
 
 Acceptance criteria:
 
@@ -559,7 +559,7 @@ Acceptance criteria:
 
 Status note:
 
-- Started after I20 completion. D153 added the first API-level authorization workflow: `Aget::authorize_chrome_session` performs an unauthenticated baseline fetch, imports scoped Chrome state, verifies with the saved session, evaluates caller-supplied generic predicates, preserves `requires_user_action` import failures, and keeps executable coverage in `tests/aget_api.rs`. D154 added the first CLI surface, `aget session authorize`, with Chrome profile import, browser-neutral `--browser-profile`, sanitized JSON envelopes that omit baseline/verification inline content, mocked session CLI coverage for verified, verification-failed, and profile-lock states, and documented prompt wording in `workpads/research/oauth-safe-browser-login-design.md`. Remaining work is to cover re-import after user login as an explicit CLI scenario before marking I21 complete.
+- Completed after D155. D153 added the first API-level authorization workflow: `Aget::authorize_chrome_session` performs an unauthenticated baseline fetch, imports scoped Chrome state, verifies with the saved session, evaluates caller-supplied generic predicates, preserves `requires_user_action` import failures, and keeps executable coverage in `tests/aget_api.rs`. D154 added the first CLI surface, `aget session authorize`, with Chrome profile import, browser-neutral `--browser-profile`, sanitized JSON envelopes that omit baseline/verification inline content, mocked session CLI coverage for verified, verification-failed, and profile-lock states, and documented prompt wording in `workpads/research/oauth-safe-browser-login-design.md`. D155 added explicit re-import-after-user-login mocked CLI coverage and closed the remaining deterministic test-plan gap.
 
 ### 📋 Task I22: Design and implement browser-choice session import surfaces
 
