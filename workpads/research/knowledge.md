@@ -2360,6 +2360,20 @@ Validation:
 
 Confidence: High for the mock-site session/auth split. The split is mechanical, both affected integration targets passed, and the full standard suite is green.
 
+### D144: I19i splits shared session CLI helpers
+
+The next integration-test decomposition slice moved shared `tests/session_cli.rs` fixture and fake-tool helpers to `tests/support/session_cli.rs`. The support module now owns agent-browser mock command wrapping, Chrome import state fixtures, NYTimes/provider-only state fixtures, JSON envelope helpers, reusable session model fixtures, local cmux loopback HTTP fixtures, and small wrappers for the shared mock backend/cmux commands. `tests/session_cli.rs` now imports these helpers through the support module, which prepares the file for behavior-focused splits without duplicating command or session fixture setup.
+
+Validation:
+
+- `cargo test --test session_cli`
+- `cargo fmt`
+- `cargo fmt --check`
+- `git diff --check`
+- `cargo test`
+
+Confidence: High for the session CLI helper split. The helper move is mechanical, the affected integration target passed, and the full standard suite is green.
+
 ## Open Questions
 
 - Can pure Rust browser automation provide reliable persistent profiles and CDP attach, or do we need a small Node/Playwright sidecar?
