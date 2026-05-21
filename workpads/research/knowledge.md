@@ -2315,6 +2315,21 @@ Validation:
 
 Confidence: High for the mock-site helper split. The helper move is mechanical, the affected integration target passed, and the full standard suite is green.
 
+### D141: I19i splits mock-site documentation contract tests
+
+The next integration-test decomposition slice moved documentation/agent-contract mock-site tests from `tests/mock_site_cli.rs` to `tests/mock_site_docs_contract.rs`. The new test target owns public JSON contract coverage, output/artifact contract coverage, custom route extraction examples, session compose/scope rejection contract coverage, and the session login/list/inspect/delete lifecycle contract. Shared helper setup comes from `tests/support/mock_site_cli.rs`, and `tests/support/mod.rs` now allows dead-code because each integration target uses a different subset of shared helpers and mock-site methods.
+
+Validation:
+
+- `cargo test --test mock_site_cli`
+- `cargo test --test mock_site_docs_contract`
+- `cargo fmt`
+- `cargo fmt --check`
+- `git diff --check`
+- `cargo test`
+
+Confidence: High for the mock-site documentation contract split. The split is mechanical, both affected integration targets passed, and the full standard suite is green.
+
 ## Open Questions
 
 - Can pure Rust browser automation provide reliable persistent profiles and CDP attach, or do we need a small Node/Playwright sidecar?
