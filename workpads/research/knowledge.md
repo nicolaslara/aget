@@ -1747,6 +1747,21 @@ Validation:
 
 Confidence: Medium-high. The behavior is source-backed and covered by a deterministic local WebSocket test that first returns 404 for both HTTP discovery endpoints, then verifies `Browser.getVersion` over `/devtools/browser`. It still does not prove real Chrome UI-remote-debugging behavior, so manual/ignored Chrome smoke coverage remains a follow-up.
 
+### D104: I19d uses Crawl4AI unordered list bullets
+
+The next markdown-quality slice ports a small Crawl4AI/html2text formatting default. Before changing the owned renderer, I19d re-inspected `references/repos/crawl4ai/crawl4ai/html2text/__init__.py`, where `HTML2Text.__init__` sets `self.ul_item_mark = "*"`, and `HTML2Text.handle_tag` emits that marker for unordered list items.
+
+`OwnedExtractorBackend` now renders unordered markdown list items with `*` instead of `-`, including nested unordered lists. The static markdown parity fixture now covers top-level and nested unordered lists with the Crawl4AI/html2text marker while preserving ordered-list numbering and `crawl4ai.only_text` inline behavior.
+
+Validation:
+
+- `cargo fmt --check`
+- `git diff --check`
+- `cargo test --test mock_site_cli homegrown_extractor_backend_covers_static_http_parity_slice`
+- `cargo test`
+
+Confidence: High. The behavior is source-backed, deterministic, and limited to equivalent Markdown bullet syntax. It does not affect list structure, selectors, browser rendering, or session replay.
+
 ## Open Questions
 
 - Can pure Rust browser automation provide reliable persistent profiles and CDP attach, or do we need a small Node/Playwright sidecar?

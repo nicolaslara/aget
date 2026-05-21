@@ -1825,7 +1825,7 @@ fn render_list(node: NodeRef<'_, Node>, ordered: bool, writer: &mut MarkdownWrit
                 if ordered {
                     writer.output.push_str(&format!("{index}. "));
                 } else {
-                    writer.output.push_str("- ");
+                    writer.output.push_str("* ");
                 }
                 render_children(current, writer);
                 trim_trailing_horizontal_space(&mut writer.output);

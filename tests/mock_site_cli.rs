@@ -444,7 +444,7 @@ fn homegrown_extractor_backend_covers_static_http_parity_slice() {
     assert_eq!(
         markdown.content,
         format!(
-            "# Guide\n\nIntro with **bold** and [docs]({}).\n\n- First item\n- Second `code`\n\nData Table\n\n| Name | Value |\n| --- | --- |\n| Alpha | [A\\|1]({}) |\n\n```\nlet answer = 42;\n```",
+            "# Guide\n\nIntro with **bold** and [docs]({}).\n\n* First item\n* Second `code`\n\nData Table\n\n| Name | Value |\n| --- | --- |\n| Alpha | [A\\|1]({}) |\n\n```\nlet answer = 42;\n```",
             site.url("/docs"),
             site.url("/alpha")
         )
@@ -486,7 +486,7 @@ fn homegrown_extractor_backend_covers_static_http_parity_slice() {
         .unwrap();
     assert_eq!(
         markdown_nested_lists.content,
-        "# Nested Steps\n\n1. Install\n  - Open settings\n  - Confirm access\n2. Run fetch"
+        "# Nested Steps\n\n1. Install\n  * Open settings\n  * Confirm access\n2. Run fetch"
     );
 
     let markdown_links = Aget::new(&aget_home)
@@ -652,7 +652,7 @@ fn homegrown_extractor_backend_covers_static_http_parity_slice() {
     assert_eq!(
         only_text.content,
         format!(
-            "# Guide\n\nIntro with bold and [docs]({}).\n\n- First item\n- Second code\n\nData Table\n\n| Name | Value |\n| --- | --- |\n| Alpha | [A\\|1]({}) |\n\n```\nlet answer = 42;\n```",
+            "# Guide\n\nIntro with bold and [docs]({}).\n\n* First item\n* Second code\n\nData Table\n\n| Name | Value |\n| --- | --- |\n| Alpha | [A\\|1]({}) |\n\n```\nlet answer = 42;\n```",
             site.url("/docs"),
             site.url("/alpha")
         )
