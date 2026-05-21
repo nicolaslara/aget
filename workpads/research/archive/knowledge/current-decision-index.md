@@ -63,6 +63,7 @@ This archive file keeps the denser decision routing that used to live in top-lev
 | D244 | `d244-chrome-launch-stability-flags.md` | agent-browser-inspired generic Chrome launch stability/noise-control flags. |
 | D245 | `d245-headed-chrome-window-size.md` | agent-browser-inspired headed Chrome launch window-size boundary. |
 | D246 | `d246-chrome-process-test-split.md` | Mechanical split of Chrome process launch-command tests from production launcher code. |
+| D247 | `d247-current-tab-facade-split.md` | Mechanical split of current-tab facade options and orchestration from `src/aget/mod.rs`. |
 
 ## Full Archive Routing
 
@@ -82,7 +83,7 @@ This archive file keeps the denser decision routing that used to live in top-lev
 | D151-D157 | `d151-d157-auth-and-browser-import.md` | OAuth-safe authorization API/CLI and conservative browser-neutral Chrome import surface. |
 | D158-D167 | `d158-d167-recent-migration-followups.md` | Recent source-backed extraction improvements and follow-up decomposition slices. |
 | D168-D176 | Per-decision files | Knowledge/reference compaction, engine-refactor planning, wrapper introduction, naming cleanup, and direct engine coverage. |
-| D177-D246 | Per-decision files | Module/test/support decomposition plus the latest owned extractor/browser parity improvements. |
+| D177-D247 | Per-decision files | Module/test/support decomposition plus the latest owned extractor/browser parity improvements. |
 
 ## Current Open Migration Gaps
 

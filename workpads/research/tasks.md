@@ -1605,6 +1605,21 @@ Status note:
 
 - Completed with D246. `src/browser_cdp/chrome_process.rs` now keeps production Chrome launch/process lifecycle behavior, while deterministic launch-argument unit coverage lives in `src/browser_cdp/chrome_process/tests.rs`. The split preserves private helper access through the nested test module and leaves `workpads/research/tasks.md` un-compacted.
 
+### ✅ Task I19cd: Split current-tab facade orchestration
+
+Acceptance criteria:
+
+- Preserve the public `Aget`/`AgetWith` current-tab API and consent behavior.
+- Move `CurrentTabOptions` and current-tab extraction orchestration out of `src/aget/mod.rs` into a focused facade submodule.
+- Keep existing `aget::CurrentTabOptions` exports and backend trait bounds compatible for callers.
+- Do not compact or remove planned tasks from `workpads/research/tasks.md`.
+- Record the module boundary in `knowledge.md`.
+- Verify with focused current-tab/API coverage plus the standard check set.
+
+Status note:
+
+- Completed with D247. `CurrentTabOptions` and consent-gated current-tab extraction orchestration moved from `src/aget/mod.rs` into `src/aget/current_tab.rs`, while `aget::CurrentTabOptions` and `AgetWith::current_tab` remain caller-compatible. The split keeps facade internals private to the `aget` module tree and leaves `workpads/research/tasks.md` un-compacted.
+
 ### ✅ Task I20: Design OAuth-safe browser login and profile import flow
 
 Acceptance criteria:
