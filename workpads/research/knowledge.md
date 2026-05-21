@@ -2627,6 +2627,25 @@ Validation:
 
 Confidence: Medium-high. The heuristic is deterministic and narrowly tested; it intentionally does not claim full Crawl4AI readability parity.
 
+### D159: I19d implements owned word-count pruning
+
+The owned extractor now applies `crawl4ai.word_count_threshold` instead of only validating it. Source inspection for this slice used:
+
+- `references/repos/crawl4ai/crawl4ai/content_scraping_strategy.py`, where `remove_empty_elements_fast` removes low-word leaf elements bottom-up, skips bypass tags such as `a`, `img`, `br`, table cells/rows, and preserves descendants inside `pre`/`code`;
+- `references/repos/crawl4ai/crawl4ai/utils.py`, where cleaned-content helpers recursively remove empty and low-word tags based on the configured threshold.
+
+`aget` ports the safe deterministic part into `src/extraction/html_clean.rs`: empty/low-word leaf pruning now accepts a threshold, keeps the existing bypass tags, preserves code-block descendants, and never removes selected root/target elements. `OwnedExtractorOptions` defaults the threshold to `1`, preserving previous empty-leaf cleanup unless callers explicitly set `crawl4ai.word_count_threshold=<n>`. The parser now rejects non-`usize` values with an explicit non-negative-integer error.
+
+Coverage in `tests/mock_site_cli/owned.rs` verifies that a threshold of `4` removes short captions and short leaf paragraphs while keeping a useful paragraph and preserving the rest of the owned extractor parity slice.
+
+Validation:
+
+- `cargo fmt`
+- `cargo fmt --check`
+- `cargo test --test mock_site_cli owned::homegrown_extractor_backend_covers_static_http_parity_slice`
+
+Confidence: Medium-high. This is source-backed and deterministic, but still a bounded cleanup option rather than full Crawl4AI readability filtering.
+
 ## Open Questions
 
 - Can pure Rust browser automation provide reliable persistent profiles and CDP attach, or do we need a small Node/Playwright sidecar?

@@ -211,6 +211,7 @@ struct OwnedExtractorOptions {
     wait_until: PageWaitUntil,
     wait_for_images: bool,
     flatten_shadow_dom: bool,
+    word_count_threshold: usize,
     render_settle_delay: Duration,
     page_timeout: Option<Duration>,
     wait_for_timeout: Option<Duration>,
@@ -225,6 +226,7 @@ impl Default for OwnedExtractorOptions {
             wait_until: PageWaitUntil::Load,
             wait_for_images: false,
             flatten_shadow_dom: false,
+            word_count_threshold: 1,
             render_settle_delay: DEFAULT_RENDER_SETTLE_DELAY,
             page_timeout: None,
             wait_for_timeout: None,
@@ -345,9 +347,8 @@ fn validate_owned_extraction_options(
                 owned_options.only_text = parse_owned_bool("crawl4ai.only_text", &option.value)?;
             }
             "word_count_threshold" => {
-                // Crawl4AI's default cleaned-content path accepts this config but
-                // currently hardcodes empty-leaf pruning to threshold 1.
-                parse_owned_integer("crawl4ai.word_count_threshold", &option.value)?;
+                owned_options.word_count_threshold =
+                    parse_owned_word_count_threshold(&option.value)?;
             }
             "delay_before_return_html" => {
                 owned_options.render_settle_delay = parse_owned_render_delay(&option.value)?;
@@ -458,11 +459,12 @@ fn parse_owned_milliseconds(name: &str, value: &str) -> Result<Duration, AgetErr
     Ok(Duration::from_millis(milliseconds))
 }
 
-fn parse_owned_integer(name: &str, value: &str) -> Result<i64, AgetError> {
-    value
-        .trim()
-        .parse::<i64>()
-        .map_err(|_| extraction_failed(format!("{name} expects an integer value, got '{value}'")))
+fn parse_owned_word_count_threshold(value: &str) -> Result<usize, AgetError> {
+    value.trim().parse::<usize>().map_err(|_| {
+        extraction_failed(format!(
+            "crawl4ai.word_count_threshold expects a non-negative integer value, got '{value}'"
+        ))
+    })
 }
 
 fn parse_owned_wait_until(value: &str) -> Result<PageWaitUntil, AgetError> {
@@ -534,7 +536,12 @@ fn extract_owned_content(
     // Match Crawl4AI's cleanup order: selectors see original attributes, but
     // serialized cleaned HTML keeps only its small important-attribute allowlist.
     document = clean_owned_base64_image_sources(document);
-    document = remove_owned_empty_elements(document, &root_ids, &target_ids);
+    document = remove_owned_empty_elements(
+        document,
+        &root_ids,
+        &target_ids,
+        owned_options.word_count_threshold,
+    );
     document = prune_owned_unwanted_attributes(document);
 
     if owned_options.target_elements.is_empty() {

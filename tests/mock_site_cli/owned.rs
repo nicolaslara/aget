@@ -138,6 +138,24 @@ fn homegrown_extractor_backend_covers_static_http_parity_slice() {
             ),
         )
         .route(
+            "/word-threshold",
+            MockResponse::html(
+                r#"
+<html>
+  <body>
+    <main class="article">
+      <h1>Threshold Example Title</h1>
+      <p>Keep this paragraph because it has enough useful words.</p>
+      <p class="caption">Tiny caption</p>
+      <p>Short link</p>
+      <pre><code><span> </span></code></pre>
+    </main>
+  </body>
+</html>
+"#,
+            ),
+        )
+        .route(
             "/wait-ready",
             MockResponse::html(
                 r#"<html><body><main><div id="ready">Ready Now</div></main></body></html>"#,
@@ -661,15 +679,15 @@ fn homegrown_extractor_backend_covers_static_http_parity_slice() {
 
     let word_count_threshold = Aget::new(&aget_home)
         .with_extractor_backend(OwnedExtractorBackend)
-        .get(site.url("/formats"))
+        .get(site.url("/word-threshold"))
         .content_format(OutputFormat::Text)
         .selector("main.article")
-        .backend_option("crawl4ai.word_count_threshold", "50")
+        .backend_option("crawl4ai.word_count_threshold", "4")
         .run()
         .unwrap();
     assert_eq!(
         word_count_threshold.content,
-        "Format Heading Format body text. Promotional aside."
+        "Keep this paragraph because it has enough useful words."
     );
 
     let invalid_word_count_threshold = Aget::new(&aget_home)
@@ -684,7 +702,7 @@ fn homegrown_extractor_backend_covers_static_http_parity_slice() {
     );
     assert!(invalid_word_count_threshold
         .to_string()
-        .contains("crawl4ai.word_count_threshold expects an integer value"));
+        .contains("crawl4ai.word_count_threshold expects a non-negative integer value"));
 
     let invalid_timeout_option = Aget::new(&aget_home)
         .with_extractor_backend(OwnedExtractorBackend)

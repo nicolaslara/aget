@@ -65,6 +65,7 @@ pub(super) fn remove_owned_empty_elements(
     document: Html,
     root_ids: &[NodeId],
     target_ids: &[NodeId],
+    word_count_threshold: usize,
 ) -> Html {
     let node_ids = document
         .tree
@@ -75,7 +76,13 @@ pub(super) fn remove_owned_empty_elements(
     for id in node_ids.into_iter().rev() {
         let should_remove = {
             let document = sink.0.borrow();
-            should_remove_owned_empty_element(&document, id, root_ids, target_ids)
+            should_remove_owned_empty_element(
+                &document,
+                id,
+                root_ids,
+                target_ids,
+                word_count_threshold,
+            )
         };
         if should_remove {
             sink.remove_from_parent(&id);
@@ -89,6 +96,7 @@ fn should_remove_owned_empty_element(
     id: NodeId,
     root_ids: &[NodeId],
     target_ids: &[NodeId],
+    word_count_threshold: usize,
 ) -> bool {
     if root_ids.contains(&id) || target_ids.contains(&id) {
         return false;
@@ -106,9 +114,7 @@ fn should_remove_owned_empty_element(
     if element.child_elements().next().is_some() {
         return false;
     }
-    element
-        .text()
-        .all(|text| text.split_whitespace().next().is_none())
+    element.text().flat_map(str::split_whitespace).count() < word_count_threshold
 }
 
 fn is_descendant_of_code_block(element: ElementRef<'_>) -> bool {
