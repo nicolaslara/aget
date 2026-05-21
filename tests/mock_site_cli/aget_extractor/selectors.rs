@@ -98,6 +98,16 @@ pub(super) fn assert_selector_and_target_options(aget_home: &Path, site: &MockSi
         "# Tag Filtering\n\nKept article body."
     );
 
+    let targeted_only_text_root = Aget::new(aget_home)
+        .with_extractor_backend(AgetExtractorBackend::default())
+        .get(site.url("/markdown"))
+        .content_format(OutputFormat::Html)
+        .backend_option("crawl4ai.target_elements", "strong")
+        .backend_option("crawl4ai.only_text", "true")
+        .run()
+        .unwrap();
+    assert_eq!(targeted_only_text_root.content, "<strong>bold</strong>");
+
     let forms_by_default = Aget::new(aget_home)
         .with_extractor_backend(AgetExtractorBackend::default())
         .get(site.url("/remove-forms"))

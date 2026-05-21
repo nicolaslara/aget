@@ -288,7 +288,7 @@ pub(crate) fn aget_extractor_parity_site() -> MockSite {
   <body>
     <main class="article">
       <h1>Guide</h1>
-      <p>Intro with <strong>bold</strong> and <a href="/docs">docs</a>.</p>
+      <p>Intro with <span><strong>bold</strong></span> and <a href="/docs">docs</a>.</p>
       <p>Line one<br>Line two</p>
       <ul>
         <li>First item</li>

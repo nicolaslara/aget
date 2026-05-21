@@ -7,7 +7,7 @@ use crate::error::AgetError;
 use crate::extraction::extraction_failed;
 use crate::extraction::html_clean::{
     clean_owned_base64_image_sources, parse_css_selector, prune_owned_unwanted_attributes,
-    remove_owned_empty_elements,
+    remove_owned_empty_elements, replace_owned_only_text_elements,
 };
 use crate::extraction::markdown::{element_to_markdown, normalize_markdown, resolve_markdown_url};
 
@@ -54,6 +54,9 @@ pub(super) fn extract_owned_content(
 
     // Match Crawl4AI's cleanup order: selectors see original attributes, but
     // serialized cleaned HTML keeps only its small important-attribute allowlist.
+    if owned_options.only_text {
+        document = replace_owned_only_text_elements(document, &root_ids, &target_ids);
+    }
     document = clean_owned_base64_image_sources(document);
     document = remove_owned_empty_elements(
         document,

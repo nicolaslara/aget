@@ -10,7 +10,7 @@ use super::extraction_failed;
 
 pub(super) use self::attributes::{
     clean_owned_base64_image_sources, prune_owned_unwanted_attributes, remove_owned_comments,
-    remove_owned_empty_elements,
+    remove_owned_empty_elements, replace_owned_only_text_elements,
 };
 pub(super) use self::urls::{
     remove_owned_excluded_domain_urls, remove_owned_external_images, remove_owned_external_links,

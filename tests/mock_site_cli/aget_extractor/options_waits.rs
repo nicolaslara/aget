@@ -22,6 +22,23 @@ pub(super) fn assert_backend_options_redirects_and_waits(aget_home: &Path, site:
         )
     );
 
+    let only_text_html = Aget::new(aget_home)
+        .with_extractor_backend(AgetExtractorBackend::default())
+        .get(site.url("/markdown"))
+        .content_format(OutputFormat::Html)
+        .selector("main.article")
+        .backend_option("crawl4ai.only_text", "true")
+        .run()
+        .unwrap();
+    assert!(only_text_html.content.contains("Intro with bold and"));
+    assert!(only_text_html.content.contains("Second code"));
+    assert!(!only_text_html.content.contains("<strong>"));
+    assert!(!only_text_html.content.contains("<span>"));
+    assert!(!only_text_html.content.contains("<code>code</code>"));
+    assert!(only_text_html
+        .content
+        .contains("<a href=\"/docs\">docs</a>"));
+
     let word_count_threshold = Aget::new(aget_home)
         .with_extractor_backend(AgetExtractorBackend::default())
         .get(site.url("/word-threshold"))
