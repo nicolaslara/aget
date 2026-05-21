@@ -129,7 +129,7 @@ pub struct ExtractorBackendResult {
 
 pub trait ExtractorBackend {
     // Extraction is the "URL plus session state to content" capability. The
-    // default implementation is owned Rust extraction, but the rest of the
+    // default implementation is AgetExtractor, but the rest of the
     // pipeline should not know whether content came from an owned or compatibility
     // backend.
     fn name(&self) -> &'static str;
@@ -239,19 +239,6 @@ impl ExtractorBackend for AgetExtractorBackend {
 
     fn extract(&self, request: ExtractorRequest<'_>) -> Result<ExtractorBackendResult, AgetError> {
         self.extractor.extract(request)
-    }
-}
-
-#[derive(Debug, Clone, Default)]
-pub struct OwnedExtractorBackend;
-
-impl ExtractorBackend for OwnedExtractorBackend {
-    fn name(&self) -> &'static str {
-        AgetExtractorBackend::default().name()
-    }
-
-    fn extract(&self, request: ExtractorRequest<'_>) -> Result<ExtractorBackendResult, AgetError> {
-        AgetExtractorBackend::default().extract(request)
     }
 }
 

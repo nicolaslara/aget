@@ -36,6 +36,7 @@ Safety boundary remains unchanged: `aget` is a generic fetcher for content the u
 - D172: `AgetExtractor` now has direct engine-level coverage that bypasses the `Aget` facade, and active mock-site extractor tests/docs use `AgetExtractor` naming instead of the migration-era `owned` label.
 - D173: `AgetBrowser` now has direct engine-level cancellation coverage without the `Aget` facade or command backend, and active browser fallback tests/docs use `AgetBrowser` naming where behavior is current rather than historical.
 - D174: support-file compaction now keeps `tasks.md` intact while moving dense `references.md` detail into `archive/references/` and leaving the top-level references file as a current routing index.
+- D175: the active `OwnedExtractorBackend` and `OwnedBrowserAutomationBackend` shim types were removed, and default backend enum variants now use `Aget` to describe the local engine path.
 
 ## Archive Index
 
@@ -54,6 +55,7 @@ Safety boundary remains unchanged: `aget` is a generic fetcher for content the u
 | D172 | `archive/knowledge/d172-aget-extractor-direct-test.md` | direct `AgetExtractor` unit test plus active extractor test/doc naming cleanup |
 | D173 | `archive/knowledge/d173-aget-browser-direct-test.md` | direct `AgetBrowser` cancellation test plus active browser test/doc naming cleanup |
 | D174 | `archive/knowledge/d174-reference-compaction.md` | support-file reference compaction with `tasks.md` preserved as the active plan |
+| D175 | `archive/knowledge/d175-remove-owned-backend-shims.md` | removal of active `Owned*Backend` compatibility shim types and `Default*Backend::Owned` variants |
 
 ## Current Verification Expectations
 

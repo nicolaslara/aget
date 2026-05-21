@@ -11,7 +11,7 @@ pub mod session;
 
 pub use aget::{
     Aget, AgetBrowserBackend, AuthorizationPredicateResult, AuthorizationState,
-    AuthorizeSessionOptions, AuthorizeSessionResult, GetRequest, OwnedBrowserAutomationBackend,
+    AuthorizeSessionOptions, AuthorizeSessionResult, GetRequest,
 };
 pub use aget_browser::AgetBrowser;
 pub use aget_extractor::AgetExtractor;
@@ -24,9 +24,7 @@ pub use cli::{
     LoginStartCommand, OutputFormat, SessionCommand, SessionSubcommand,
 };
 pub use error::{AgetError, ErrorCode, ErrorResponse, ENVELOPE_SCHEMA_VERSION};
-pub use extraction::{
-    get_url, AgetExtractorBackend, GetOptions, GetSuccess, OwnedExtractorBackend, TimingMs,
-};
+pub use extraction::{get_url, AgetExtractorBackend, GetOptions, GetSuccess, TimingMs};
 pub use session::{
     cancel_login_session, complete_login_session, compose_session, finish_login_session,
     import_chrome_session, import_cmux_session, merge_login_session, start_login_session,

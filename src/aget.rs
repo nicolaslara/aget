@@ -68,9 +68,9 @@ pub struct AgetWith<E, S, B> {
     // automation so future encrypted or test stores can reuse the same `Aget` flow.
     session_store: S,
     // Browser automation covers login/profile import flows. The default backend is
-    // owned CDP/Chrome automation; the command adapter remains compatibility-only.
+    // AgetBrowser CDP/Chrome automation; the command adapter remains compatibility-only.
     browser_backend: B,
-    // Pluggable URL extraction capability. The default backend is owned Rust
+    // Pluggable URL extraction capability. The default backend is AgetExtractor
     // extraction; command transport remains an explicit compatibility path.
     extractor_backend: E,
     timeout: Option<Duration>,
@@ -80,8 +80,8 @@ impl Aget {
     pub fn new(home: impl Into<PathBuf>) -> Self {
         Self {
             session_store: FilesystemSessionStoreBackend::new(home),
-            browser_backend: DefaultBrowserAutomationBackend::owned(),
-            extractor_backend: DefaultExtractorBackend::owned(),
+            browser_backend: DefaultBrowserAutomationBackend::aget(),
+            extractor_backend: DefaultExtractorBackend::aget(),
             timeout: None,
         }
     }
@@ -342,13 +342,13 @@ pub trait BrowserAutomationBackend {
 
 #[derive(Clone)]
 pub enum DefaultExtractorBackend {
-    Owned(AgetExtractorBackend),
+    Aget(AgetExtractorBackend),
     Command(CommandExtractorBackend),
 }
 
 impl DefaultExtractorBackend {
-    fn owned() -> Self {
-        Self::Owned(AgetExtractorBackend::default())
+    fn aget() -> Self {
+        Self::Aget(AgetExtractorBackend::default())
     }
 
     fn command(command: Option<String>) -> Self {
@@ -358,7 +358,7 @@ impl DefaultExtractorBackend {
     fn from_env() -> Self {
         match std::env::var("AGET_CRAWL4AI_COMMAND") {
             Ok(command) => Self::command(Some(command)),
-            Err(_) => Self::owned(),
+            Err(_) => Self::aget(),
         }
     }
 }
@@ -366,7 +366,7 @@ impl DefaultExtractorBackend {
 impl ExtractorBackend for DefaultExtractorBackend {
     fn name(&self) -> &'static str {
         match self {
-            Self::Owned(backend) => backend.name(),
+            Self::Aget(backend) => backend.name(),
             Self::Command(backend) => backend.name(),
         }
     }
@@ -376,7 +376,7 @@ impl ExtractorBackend for DefaultExtractorBackend {
         request: crate::extraction::ExtractorRequest<'_>,
     ) -> Result<crate::extraction::ExtractorBackendResult, AgetError> {
         match self {
-            Self::Owned(backend) => backend.extract(request),
+            Self::Aget(backend) => backend.extract(request),
             Self::Command(backend) => backend.extract(request),
         }
     }
@@ -384,20 +384,20 @@ impl ExtractorBackend for DefaultExtractorBackend {
 
 #[derive(Clone)]
 pub enum DefaultBrowserAutomationBackend {
-    Owned(AgetBrowserBackend),
+    Aget(AgetBrowserBackend),
     Command(CommandBrowserAutomationBackend),
 }
 
 impl DefaultBrowserAutomationBackend {
-    fn owned() -> Self {
-        Self::Owned(AgetBrowserBackend::default())
+    fn aget() -> Self {
+        Self::Aget(AgetBrowserBackend::default())
     }
 
     fn from_env() -> Self {
         if std::env::var("AGET_AGENT_BROWSER_COMMAND").is_ok() {
             Self::Command(CommandBrowserAutomationBackend)
         } else {
-            Self::owned()
+            Self::aget()
         }
     }
 }
@@ -405,28 +405,28 @@ impl DefaultBrowserAutomationBackend {
 impl BrowserAutomationBackend for DefaultBrowserAutomationBackend {
     fn import_chrome(&self, options: ChromeImportOptions) -> Result<Session, AgetError> {
         match self {
-            Self::Owned(backend) => backend.import_chrome(options),
+            Self::Aget(backend) => backend.import_chrome(options),
             Self::Command(backend) => backend.import_chrome(options),
         }
     }
 
     fn start_login(&self, options: LoginStartOptions) -> Result<LoginStartResult, AgetError> {
         match self {
-            Self::Owned(backend) => backend.start_login(options),
+            Self::Aget(backend) => backend.start_login(options),
             Self::Command(backend) => backend.start_login(options),
         }
     }
 
     fn finish_login(&self, options: LoginFinishOptions) -> Result<LoginFinishResult, AgetError> {
         match self {
-            Self::Owned(backend) => backend.finish_login(options),
+            Self::Aget(backend) => backend.finish_login(options),
             Self::Command(backend) => backend.finish_login(options),
         }
     }
 
     fn cancel_login(&self, options: LoginCancelOptions) -> Result<LoginCancelResult, AgetError> {
         match self {
-            Self::Owned(backend) => backend.cancel_login(options),
+            Self::Aget(backend) => backend.cancel_login(options),
             Self::Command(backend) => backend.cancel_login(options),
         }
     }
@@ -438,7 +438,7 @@ impl BrowserFallbackBackend for DefaultBrowserAutomationBackend {
         request: BrowserFallbackRequest<'_>,
     ) -> Result<BrowserFallbackResult, AgetError> {
         match self {
-            Self::Owned(backend) => backend.extract_with_state(request),
+            Self::Aget(backend) => backend.extract_with_state(request),
             Self::Command(backend) => backend.extract_with_state(request),
         }
     }
@@ -509,36 +509,6 @@ impl BrowserFallbackBackend for AgetBrowserBackend {
         request: BrowserFallbackRequest<'_>,
     ) -> Result<BrowserFallbackResult, AgetError> {
         self.browser.extract_with_state(request)
-    }
-}
-
-#[derive(Clone, Debug, Default)]
-pub struct OwnedBrowserAutomationBackend;
-
-impl BrowserAutomationBackend for OwnedBrowserAutomationBackend {
-    fn import_chrome(&self, options: ChromeImportOptions) -> Result<Session, AgetError> {
-        AgetBrowserBackend::default().import_chrome(options)
-    }
-
-    fn start_login(&self, options: LoginStartOptions) -> Result<LoginStartResult, AgetError> {
-        AgetBrowserBackend::default().start_login(options)
-    }
-
-    fn finish_login(&self, options: LoginFinishOptions) -> Result<LoginFinishResult, AgetError> {
-        AgetBrowserBackend::default().finish_login(options)
-    }
-
-    fn cancel_login(&self, options: LoginCancelOptions) -> Result<LoginCancelResult, AgetError> {
-        AgetBrowserBackend::default().cancel_login(options)
-    }
-}
-
-impl BrowserFallbackBackend for OwnedBrowserAutomationBackend {
-    fn extract_with_state(
-        &self,
-        request: BrowserFallbackRequest<'_>,
-    ) -> Result<BrowserFallbackResult, AgetError> {
-        AgetBrowserBackend::default().extract_with_state(request)
     }
 }
 
