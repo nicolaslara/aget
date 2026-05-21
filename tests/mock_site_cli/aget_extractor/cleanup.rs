@@ -48,6 +48,28 @@ pub(super) fn assert_cleanup_outputs(aget_home: &Path, site: &MockSite) {
     assert!(!cleaned_html.content.contains("empty-wrapper"));
     assert!(!cleaned_html.content.contains("empty-span"));
 
+    let data_attributes = Aget::new(aget_home)
+        .with_extractor_backend(AgetExtractorBackend::default())
+        .get(site.url("/html-cleanup"))
+        .content_format(OutputFormat::Html)
+        .backend_option("crawl4ai.keep_data_attributes", "true")
+        .run()
+        .unwrap();
+    assert!(data_attributes
+        .content
+        .contains("data-private=\"main-secret\""));
+    assert!(data_attributes.content.contains("data-select=\"summary\""));
+    assert!(data_attributes
+        .content
+        .contains("data-private=\"paragraph-secret\""));
+    assert!(data_attributes
+        .content
+        .contains("data-private=\"link-secret\""));
+    assert!(!data_attributes.content.contains("style="));
+    assert!(!data_attributes.content.contains("onclick="));
+    assert!(!data_attributes.content.contains("aria-label="));
+    assert!(!data_attributes.content.contains("rel=\"nofollow\""));
+
     let selected_by_pruned_attr = Aget::new(aget_home)
         .with_extractor_backend(AgetExtractorBackend::default())
         .get(site.url("/html-cleanup"))

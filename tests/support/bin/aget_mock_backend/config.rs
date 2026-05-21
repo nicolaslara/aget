@@ -63,6 +63,7 @@ fn validate_crawl4ai_options(args: &Args) -> Result<(), String> {
         "excluded_tags",
         "only_text",
         "remove_forms",
+        "keep_data_attributes",
         "word_count_threshold",
         "wait_until",
         "page_timeout",

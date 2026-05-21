@@ -61,7 +61,7 @@ pub(super) fn extract_owned_content(
         &target_ids,
         owned_options.word_count_threshold,
     );
-    document = prune_owned_unwanted_attributes(document);
+    document = prune_owned_unwanted_attributes(document, owned_options.keep_data_attributes);
 
     if owned_options.target_elements.is_empty() {
         if let [root_id] = root_ids.as_slice() {

@@ -33,12 +33,17 @@ const CRAWL4AI_OVERLAY_SELECTORS: &[&str] = &[
     r#"[role="alertdialog"]"#,
 ];
 
-pub(super) fn prune_owned_unwanted_attributes(mut document: Html) -> Html {
+pub(super) fn prune_owned_unwanted_attributes(
+    mut document: Html,
+    keep_data_attributes: bool,
+) -> Html {
     for node in document.tree.values_mut() {
         if let Node::Element(element) = node {
-            element
-                .attrs
-                .retain(|(name, _)| is_crawl4ai_important_attr(name.local.as_ref()));
+            element.attrs.retain(|(name, _)| {
+                let name = name.local.as_ref();
+                is_crawl4ai_important_attr(name)
+                    || (keep_data_attributes && name.starts_with("data-"))
+            });
         }
     }
     document
