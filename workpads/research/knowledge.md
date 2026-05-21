@@ -1991,6 +1991,22 @@ Validation:
 
 Confidence: High for generic selector-backed overlay removal. The behavior is source-backed and covered by a deterministic fixture that places cookie-banner and dialog-role elements inside the selected `<main>` and verifies both text and HTML outputs remove them. Style/z-index-based overlay removal from Crawl4AI's browser JS remains a rendered-page parity follow-up.
 
+### D120: I19d removes rendered style overlays before CDP HTML capture
+
+The next rendered-page cleanup slice ports the style/computed-layout side of Crawl4AI's `remove_overlay_elements` behavior. Before changing the owned CDP renderer, I19d re-inspected `references/repos/crawl4ai/crawl4ai/js_snippet/remove_overlay_elements.js` at local commit `1debe5f`. The upstream snippet clicks generic close/dismiss buttons, removes visible high-z-index/fixed/absolute overlay-like elements, removes elements matching generic popup/modal/cookie/dialog selectors, removes fixed/sticky elements, and resets body modal padding/overflow before HTML capture.
+
+`OwnedExtractorBackend` now asks the owned CDP renderer to run a generic overlay cleanup script after navigation/waits/render-settle and before reading `document.documentElement.outerHTML`. The script is intentionally generic: it includes broad close/cookie/newsletter/popup/modal/overlay/dialog selectors plus computed style checks for high z-index, fixed/absolute positioning, overlay-like size/background/opacity, and fixed/sticky chrome. Cleanup failure is reported as an extraction warning rather than failing the whole fetch, so an overlay-cleanup regression does not turn an otherwise fetchable page into a hard error.
+
+Validation:
+
+- `cargo fmt --check`
+- `cargo test rendered_overlay_cleanup_expression_uses_generic_crawl4ai_rules`
+- `cargo test --test mock_site_cli owned_extractor_backend_removes_rendered_style_overlays_with_chrome -- --ignored`
+- `git diff --check`
+- `cargo test`
+
+Confidence: High for rendered style-overlay cleanup on this machine. The behavior is source-backed, the script contract is covered by a deterministic unit test, and a local Chrome ignored smoke proves a style-only fixed overlay is removed before text extraction. Broader Crawl4AI-quality markdown/readability and richer rendered-readiness heuristics remain separate I19d work.
+
 ## Open Questions
 
 - Can pure Rust browser automation provide reliable persistent profiles and CDP attach, or do we need a small Node/Playwright sidecar?
