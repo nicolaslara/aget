@@ -550,6 +550,20 @@ Status note:
 
 - Completed with D174 after the user clarified that task compaction is not wanted. `workpads/research/references.md` is now a compact routing index, dense historical reference rows live under `workpads/research/archive/references/`, and `workpads/research/tasks.md` remains the planned-task source of truth.
 
+### ✅ Task I19l: Split oversized markdown renderer module
+
+Acceptance criteria:
+
+- Preserve current extraction output behavior while splitting `src/extraction/markdown.rs` into smaller, behavior-owned modules.
+- Keep the public extraction module interface unchanged for callers.
+- Split mechanically first, prioritizing table rendering and normalization/escaping helpers because they are self-contained.
+- Run focused extractor/markdown coverage plus the standard validation set before committing.
+- Record the resulting module boundaries in `knowledge.md`.
+
+Status note:
+
+- Completed with D177 after I19j completed and committed. The mechanical split moved the renderer into `src/extraction/markdown/`, keeping core rendering in `mod.rs` and extracting normalization/escaping helpers plus table rendering into smaller modules. The caller-facing extraction module interface stayed unchanged, and validation passed with focused extractor/markdown tests, `cargo fmt --check`, `cargo test`, and `git diff --check`.
+
 ### ✅ Task I20: Design OAuth-safe browser login and profile import flow
 
 Acceptance criteria:

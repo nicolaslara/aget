@@ -38,6 +38,7 @@ Safety boundary remains unchanged: `aget` is a generic fetcher for content the u
 - D174: support-file compaction now keeps `tasks.md` intact while moving dense `references.md` detail into `archive/references/` and leaving the top-level references file as a current routing index.
 - D175: the active `OwnedExtractorBackend` and `OwnedBrowserAutomationBackend` shim types were removed, and default backend enum variants now use `Aget` to describe the local engine path.
 - D176: direct `AgetExtractor` coverage now includes selector extraction, exclusion, and `crawl4ai.target_elements` option handling without using the `Aget` facade.
+- D177: the markdown renderer was split into `src/extraction/markdown/mod.rs`, `normalize.rs`, and `table.rs` without changing the extraction module interface.
 
 ## Archive Index
 
@@ -58,6 +59,7 @@ Safety boundary remains unchanged: `aget` is a generic fetcher for content the u
 | D174 | `archive/knowledge/d174-reference-compaction.md` | support-file reference compaction with `tasks.md` preserved as the active plan |
 | D175 | `archive/knowledge/d175-remove-owned-backend-shims.md` | removal of active `Owned*Backend` compatibility shim types and `Default*Backend::Owned` variants |
 | D176 | `archive/knowledge/d176-direct-extractor-option-test.md` | direct `AgetExtractor` selector/exclusion/target-elements coverage |
+| D177 | `archive/knowledge/d177-markdown-module-split.md` | mechanical markdown renderer split into core, normalization, and table modules |
 
 ## Current Verification Expectations
 

@@ -5,6 +5,18 @@ use ego_tree::NodeRef;
 use scraper::{ElementRef, Node};
 use url::Url;
 
+mod normalize;
+mod table;
+
+use self::normalize::{
+    escape_link_text, escape_link_title, escape_markdown_line_start, escape_markdown_link_target,
+    escape_markdown_text_backslashes, is_absolute_http_url, is_markdown_line_start,
+    needs_space_before_inline, normalize_inline_markdown, starts_with_closing_punctuation,
+    trailing_newline_count, trim_trailing_horizontal_space,
+};
+pub(super) use self::normalize::{normalize_markdown, resolve_markdown_url};
+use self::table::render_table;
+
 pub(super) fn element_to_markdown(
     element: ElementRef<'_>,
     base_url: &str,
@@ -344,139 +356,6 @@ fn render_code_block(node: NodeRef<'_, Node>, writer: &mut MarkdownWriter) {
     writer.ensure_blank_line();
 }
 
-struct MarkdownTableRow {
-    cells: Vec<String>,
-    has_header_cells: bool,
-}
-
-fn render_table(node: NodeRef<'_, Node>, writer: &mut MarkdownWriter) {
-    let caption = table_caption_text(node, writer);
-    let mut rows = Vec::new();
-    collect_table_rows(node, writer, &mut rows);
-    let Some(max_columns) = rows.iter().map(|row| row.cells.len()).max() else {
-        if !caption.is_empty() {
-            writer.ensure_blank_line();
-            writer.output.push_str(&caption);
-            writer.ensure_blank_line();
-        }
-        return;
-    };
-    if max_columns == 0 {
-        if !caption.is_empty() {
-            writer.ensure_blank_line();
-            writer.output.push_str(&caption);
-            writer.ensure_blank_line();
-        }
-        return;
-    }
-
-    let header_index = rows
-        .iter()
-        .position(|row| row.has_header_cells)
-        .unwrap_or(0);
-    let header = normalize_table_row(&rows[header_index].cells, max_columns);
-    let body_rows = rows
-        .iter()
-        .enumerate()
-        .filter(|(index, _)| *index != header_index)
-        .map(|(_, row)| normalize_table_row(&row.cells, max_columns))
-        .collect::<Vec<_>>();
-
-    writer.ensure_blank_line();
-    if !caption.is_empty() {
-        writer.output.push_str(&caption);
-        writer.ensure_blank_line();
-    }
-    writer.output.push_str(&markdown_table_line(&header));
-    writer.output.push('\n');
-    writer
-        .output
-        .push_str(&markdown_table_line(&vec!["---".to_string(); max_columns]));
-    writer.output.push('\n');
-    for row in body_rows {
-        writer.output.push_str(&markdown_table_line(&row));
-        writer.output.push('\n');
-    }
-    writer.ensure_blank_line();
-}
-
-fn table_caption_text(node: NodeRef<'_, Node>, writer: &MarkdownWriter) -> String {
-    if let Some(element) = ElementRef::wrap(node) {
-        if element.value().name() == "caption" {
-            return inline_markdown_from_children(node, writer);
-        }
-    }
-
-    let mut child = node.first_child();
-    while let Some(current) = child {
-        let next = current.next_sibling();
-        let caption = table_caption_text(current, writer);
-        if !caption.is_empty() {
-            return caption;
-        }
-        child = next;
-    }
-    String::new()
-}
-
-fn collect_table_rows(
-    node: NodeRef<'_, Node>,
-    writer: &MarkdownWriter,
-    rows: &mut Vec<MarkdownTableRow>,
-) {
-    if let Some(element) = ElementRef::wrap(node) {
-        if element.value().name() == "tr" {
-            rows.push(markdown_table_row(node, writer));
-            return;
-        }
-    }
-
-    let mut child = node.first_child();
-    while let Some(current) = child {
-        let next = current.next_sibling();
-        collect_table_rows(current, writer, rows);
-        child = next;
-    }
-}
-
-fn markdown_table_row(node: NodeRef<'_, Node>, writer: &MarkdownWriter) -> MarkdownTableRow {
-    let mut cells = Vec::new();
-    let mut has_header_cells = false;
-    let mut child = node.first_child();
-    while let Some(current) = child {
-        let next = current.next_sibling();
-        if let Some(element) = ElementRef::wrap(current) {
-            match element.value().name() {
-                "th" => {
-                    has_header_cells = true;
-                    cells.push(table_cell_text(current, writer));
-                }
-                "td" => cells.push(table_cell_text(current, writer)),
-                _ => {}
-            }
-        }
-        child = next;
-    }
-    MarkdownTableRow {
-        cells,
-        has_header_cells,
-    }
-}
-
-fn table_cell_text(node: NodeRef<'_, Node>, writer: &MarkdownWriter) -> String {
-    escape_table_cell(&inline_markdown_from_children(node, writer))
-}
-
-fn normalize_table_row(cells: &[String], columns: usize) -> Vec<String> {
-    let mut row = cells.to_vec();
-    row.resize(columns, String::new());
-    row
-}
-
-fn markdown_table_line(cells: &[String]) -> String {
-    format!("| {} |", cells.join(" | "))
-}
-
 fn render_link(node: NodeRef<'_, Node>, writer: &mut MarkdownWriter) {
     let Some(element) = ElementRef::wrap(node) else {
         render_children(node, writer);
@@ -623,151 +502,6 @@ fn collect_raw_text(node: NodeRef<'_, Node>, output: &mut String) {
         collect_raw_text(current, output);
         child = next;
     }
-}
-
-pub(super) fn normalize_markdown(markdown: &str) -> String {
-    let mut output = String::new();
-    let mut blank_lines = 0usize;
-    for line in markdown.lines().map(normalize_markdown_line_end) {
-        if line.trim().is_empty() {
-            blank_lines += 1;
-            if blank_lines <= 1 && !output.is_empty() {
-                output.push('\n');
-            }
-            continue;
-        }
-        blank_lines = 0;
-        if !output.is_empty() && !output.ends_with('\n') {
-            output.push('\n');
-        }
-        output.push_str(&line);
-        output.push('\n');
-    }
-    output.trim().to_string()
-}
-
-fn normalize_markdown_line_end(line: &str) -> String {
-    let without_tabs = line.trim_end_matches('\t');
-    if without_tabs.ends_with("  ") {
-        let without_spaces = without_tabs.trim_end_matches(' ');
-        if !without_spaces.is_empty() {
-            return format!("{without_spaces}  ");
-        }
-    }
-    line.trim_end().to_string()
-}
-
-fn normalize_inline_markdown(text: &str) -> String {
-    text.split_whitespace().collect::<Vec<_>>().join(" ")
-}
-
-fn needs_space_before_inline(output: &str) -> bool {
-    output
-        .chars()
-        .last()
-        .is_some_and(|character| !character.is_whitespace())
-}
-
-fn starts_with_closing_punctuation(text: &str) -> bool {
-    if text.starts_with("![") {
-        return false;
-    }
-    text.chars()
-        .next()
-        .is_some_and(|character| matches!(character, '.' | ',' | ':' | ';' | '!' | '?' | ')' | ']'))
-}
-
-fn is_markdown_line_start(output: &str) -> bool {
-    output.is_empty() || output.ends_with('\n')
-}
-
-fn escape_markdown_text_backslashes(text: &str) -> String {
-    let chars = text.chars().collect::<Vec<_>>();
-    let mut output = String::with_capacity(text.len());
-    for (index, character) in chars.iter().copied().enumerate() {
-        if character == '\\'
-            && chars
-                .get(index + 1)
-                .is_some_and(|next| is_markdown_backslash_sensitive(*next))
-        {
-            output.push('\\');
-        }
-        output.push(character);
-    }
-    output
-}
-
-fn is_markdown_backslash_sensitive(character: char) -> bool {
-    matches!(
-        character,
-        '\\' | '`' | '*' | '_' | '{' | '}' | '[' | ']' | '(' | ')' | '#' | '+' | '-' | '.' | '!'
-    )
-}
-
-fn escape_markdown_line_start(text: &str) -> String {
-    if starts_with_ordered_list_marker(text) {
-        return text.replacen('.', "\\.", 1);
-    }
-    if text
-        .strip_prefix(['-', '+'])
-        .is_some_and(|rest| rest.starts_with(char::is_whitespace))
-    {
-        return format!("\\{text}");
-    }
-    text.to_string()
-}
-
-fn starts_with_ordered_list_marker(text: &str) -> bool {
-    let Some((prefix, rest)) = text.split_once('.') else {
-        return false;
-    };
-    !prefix.is_empty()
-        && prefix.chars().all(|character| character.is_ascii_digit())
-        && rest.starts_with(char::is_whitespace)
-}
-
-fn trim_trailing_horizontal_space(output: &mut String) {
-    while output.ends_with(' ') || output.ends_with('\t') {
-        output.pop();
-    }
-}
-
-fn trailing_newline_count(output: &str) -> usize {
-    output.chars().rev().take_while(|&c| c == '\n').count()
-}
-
-fn escape_link_text(text: &str) -> String {
-    text.replace('[', "\\[").replace(']', "\\]")
-}
-
-fn escape_markdown_link_target(text: &str) -> String {
-    text.replace('\\', "\\\\")
-        .replace('[', "\\[")
-        .replace(']', "\\]")
-        .replace('(', "\\(")
-        .replace(')', "\\)")
-}
-
-fn escape_link_title(text: &str) -> String {
-    escape_markdown_link_target(text).replace('"', "\\\"")
-}
-
-fn is_absolute_http_url(value: &str) -> bool {
-    value.starts_with("http://") || value.starts_with("https://")
-}
-
-fn escape_table_cell(text: &str) -> String {
-    text.replace('\n', " ").replace('|', "\\|")
-}
-
-pub(super) fn resolve_markdown_url(base: &str, raw: &str) -> String {
-    if raw.starts_with("http://") || raw.starts_with("https://") || raw.starts_with("mailto:") {
-        return raw.to_string();
-    }
-    Url::parse(base)
-        .and_then(|base| base.join(raw))
-        .map(|url| url.to_string())
-        .unwrap_or_else(|_| raw.to_string())
 }
 
 fn is_structural_block(tag: &str) -> bool {
