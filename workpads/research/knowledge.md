@@ -46,6 +46,7 @@ Safety boundary remains unchanged: `aget` is a generic fetcher for content the u
 - D182: the `Aget` facade helper surfaces were split into `src/aget/mod.rs`, `authorize.rs`, `backends.rs`, `get_request.rs`, and `session_store.rs` without changing public API paths.
 - D183: agent-browser compatibility session helpers were split into `src/session/agent_browser/mod.rs`, `command.rs`, `raw_state.rs`, `state_filter.rs`, and `tests.rs` without changing internal caller paths.
 - D184: Chrome session import internals were split into `src/session/chrome/mod.rs`, `compat.rs`, `owned.rs`, `profile.rs`, and `tests.rs` without changing public session import paths.
+- D185: login session lifecycle internals were split into `src/session/login/mod.rs`, `types.rs`, `pending.rs`, `compat.rs`, `owned.rs`, `session_merge.rs`, and `tests.rs` without changing session login exports.
 
 ## Archive Index
 
@@ -74,6 +75,7 @@ Safety boundary remains unchanged: `aget` is a generic fetcher for content the u
 | D182 | `archive/knowledge/d182-aget-facade-module-split.md` | mechanical facade split into orchestration, authorization DTOs, backend adapters, get builder, and session-store adapter |
 | D183 | `archive/knowledge/d183-agent-browser-compat-module-split.md` | mechanical compatibility split into command execution, state filtering, raw state files, and tests |
 | D184 | `archive/knowledge/d184-chrome-session-module-split.md` | mechanical Chrome session split into compatibility import, owned import, profile helpers, and tests |
+| D185 | `archive/knowledge/d185-login-session-module-split.md` | mechanical login lifecycle split into types, pending metadata, compatibility flow, owned flow, merge logic, and tests |
 
 ## Current Verification Expectations
 

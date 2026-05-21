@@ -662,6 +662,20 @@ Status note:
 
 - Completed with D184 after I19r completed and committed. The mechanical split kept `session::chrome` import paths stable while moving compatibility command import, owned CDP import, profile discovery/copy helpers, and existing tests into focused submodules. Validation passed with focused `session::chrome` tests, `cargo fmt --check`, `cargo test`, and `git diff --check`.
 
+### ✅ Task I19t: Split login session lifecycle internals
+
+Acceptance criteria:
+
+- Preserve current compatibility login, owned login, pending metadata, cleanup, and merge behavior while splitting `src/session/login.rs`.
+- Keep existing public `session::login` paths and `src/session/mod.rs` re-exports unchanged for callers.
+- Split mechanically first, prioritizing type definitions, pending-login persistence/cleanup helpers, compatibility flow, owned flow, merge logic, and tests because they are cohesive subdomains.
+- Run focused login/session tests plus the standard validation set before committing.
+- Record the resulting module boundaries in `knowledge.md`.
+
+Status note:
+
+- Completed with D185 after I19s completed and committed. The mechanical split kept `session::login` exports stable while moving public types, pending metadata/profile cleanup helpers, compatibility flow, owned flow, merge logic, and existing tests into focused submodules. Validation passed with focused `session::login` tests, `cargo fmt --check`, `cargo test`, and `git diff --check`.
+
 ### ✅ Task I20: Design OAuth-safe browser login and profile import flow
 
 Acceptance criteria:
