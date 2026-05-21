@@ -609,10 +609,8 @@ fn extract_target_owned_elements(
 }
 
 fn default_main_content_element(document: &Html) -> Result<ElementRef<'_>, AgetError> {
-    for selector in ["main", r#"[role="main"]"#, "article"] {
-        if let Some(element) = unique_selected_element(document, selector)? {
-            return Ok(element);
-        }
+    if let Some(element) = best_main_content_candidate(document)? {
+        return Ok(element);
     }
     if let Some(body) = first_selected_element(document, "body")? {
         return Ok(body);
@@ -620,16 +618,71 @@ fn default_main_content_element(document: &Html) -> Result<ElementRef<'_>, AgetE
     Ok(document.root_element())
 }
 
-fn unique_selected_element<'a>(
+fn best_main_content_candidate<'a>(
     document: &'a Html,
-    raw_selector: &str,
 ) -> Result<Option<ElementRef<'a>>, AgetError> {
-    let selector = parse_css_selector(raw_selector)?;
-    let mut matches = document.select(&selector);
-    let Some(first) = matches.next() else {
-        return Ok(None);
+    let mut best = None;
+    for selector in ["main", r#"[role="main"]"#, "article"] {
+        let selector = parse_css_selector(selector)?;
+        for element in document.select(&selector) {
+            let score = score_main_content_candidate(element)?;
+            if score <= 0 {
+                continue;
+            }
+            let replace = best
+                .as_ref()
+                .map(|(best_score, _)| score > *best_score)
+                .unwrap_or(true);
+            if replace {
+                best = Some((score, element.id()));
+            }
+        }
+    }
+    best.map(|(_, id)| element_by_id(document, id)).transpose()
+}
+
+fn score_main_content_candidate(element: ElementRef<'_>) -> Result<i64, AgetError> {
+    let text_words = word_count(element.text());
+    if text_words == 0 {
+        return Ok(0);
+    }
+    let link_selector = parse_css_selector("a")?;
+    let link_words = element
+        .select(&link_selector)
+        .map(|link| word_count(link.text()))
+        .sum::<usize>();
+    let tag_bonus = match element.value().name() {
+        "main" => 300,
+        "article" => 250,
+        _ => 150,
     };
-    Ok(matches.next().is_none().then_some(first))
+    let label_penalty = content_label_penalty(element) as i64;
+    Ok((text_words as i64 * 10) - (link_words as i64 * 8) + tag_bonus - label_penalty)
+}
+
+fn word_count<'a>(pieces: impl IntoIterator<Item = &'a str>) -> usize {
+    pieces
+        .into_iter()
+        .flat_map(str::split_whitespace)
+        .filter(|word| !word.is_empty())
+        .count()
+}
+
+fn content_label_penalty(element: ElementRef<'_>) -> usize {
+    let label = ["id", "class", "role", "aria-label"]
+        .into_iter()
+        .filter_map(|attribute| element.attr(attribute))
+        .collect::<Vec<_>>()
+        .join(" ")
+        .to_ascii_lowercase();
+    [
+        "nav", "footer", "header", "sidebar", "aside", "ad", "advert", "promo", "comment",
+        "related", "share", "social",
+    ]
+    .into_iter()
+    .filter(|needle| label.contains(needle))
+    .count()
+        * 200
 }
 
 fn first_selected_element<'a>(

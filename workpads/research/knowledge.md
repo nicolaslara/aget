@@ -2607,6 +2607,26 @@ Validation:
 
 Confidence: High for the I22 scope as completed. Browser-choice import now has honest public terminology and a safe failure mode for unsupported browsers.
 
+### D158: I19d improves owned main-content candidate selection
+
+Before the slice, the owned extractor selected default main content only when `<main>`, `[role="main"]`, or `<article>` was unique; otherwise it fell back to `<body>`, which could reintroduce headers, promotional cards, and footer text. Source inspection for this slice looked at Crawl4AI's `references/repos/crawl4ai/crawl4ai/content_filter_strategy.py`, especially `RelevantContentFilter`'s included/excluded semantic tags, negative label patterns, minimum word count, and chunk extraction approach.
+
+`aget` did not port Crawl4AI's full filtering stack. Instead, the owned extractor now keeps the existing simple semantic default but ranks multiple `main`/`role=main`/`article` candidates using a deterministic local score:
+
+- word count increases score;
+- link-heavy candidates are penalized;
+- semantic tags get small positive bonuses;
+- labels such as nav, footer, sidebar, ad, promo, comment, related, share, and social are penalized.
+
+This moves the owned default closer to Crawl4AI-style content pruning without adding query/BM25/LLM filtering or site-specific heuristics. `tests/mock_site_cli/owned.rs` now covers multiple article candidates and verifies that the useful story is selected instead of body-level noise or a promo card.
+
+Validation:
+
+- `cargo fmt`
+- `cargo test --test mock_site_cli owned::homegrown_extractor_backend_covers_static_http_parity_slice`
+
+Confidence: Medium-high. The heuristic is deterministic and narrowly tested; it intentionally does not claim full Crawl4AI readability parity.
+
 ## Open Questions
 
 - Can pure Rust browser automation provide reliable persistent profiles and CDP attach, or do we need a small Node/Playwright sidecar?

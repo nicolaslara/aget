@@ -44,6 +44,29 @@ fn homegrown_extractor_backend_covers_static_http_parity_slice() {
             ),
         )
         .route(
+            "/multiple-articles",
+            MockResponse::html(
+                r#"
+<html>
+  <body>
+    <header>Site Header</header>
+    <article class="promo">
+      <h2>Promo Card</h2>
+      <p>Short teaser.</p>
+      <a href="/signup">Sign up</a>
+    </article>
+    <article class="story">
+      <h1>Deep Story</h1>
+      <p>This article has enough useful body text to beat the promotional card.</p>
+      <p>It should be selected as the default main content candidate.</p>
+    </article>
+    <footer>Footer Noise</footer>
+  </body>
+</html>
+"#,
+            ),
+        )
+        .route(
             "/overlay-content",
             MockResponse::html(
                 r#"
@@ -487,6 +510,17 @@ fn homegrown_extractor_backend_covers_static_http_parity_slice() {
         .run()
         .unwrap();
     assert_eq!(main_markdown.content, "# Main Story\n\nUseful body text.");
+
+    let multiple_articles = Aget::new(&aget_home)
+        .with_extractor_backend(OwnedExtractorBackend)
+        .get(site.url("/multiple-articles"))
+        .content_format(OutputFormat::Markdown)
+        .run()
+        .unwrap();
+    assert_eq!(
+        multiple_articles.content,
+        "# Deep Story\n\nThis article has enough useful body text to beat the promotional card.\n\nIt should be selected as the default main content candidate."
+    );
 
     let overlay_text = Aget::new(&aget_home)
         .with_extractor_backend(OwnedExtractorBackend)
