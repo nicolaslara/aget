@@ -2660,6 +2660,18 @@ Validation:
 
 Confidence: Medium-high. The behavior is deterministic and source-backed, but it is still a bounded local heuristic rather than a full Crawl4AI pruning/readability port.
 
+### D161: Follow-up CLI decomposition keeps command parsing behavior-owned
+
+After the original I19i extraction/CDP split, the largest remaining source file was `src/cli.rs`. A small follow-up split moved get-command arguments to `src/cli/get.rs`, session command/browser/import/login argument types to `src/cli/session.rs`, and CLI parser tests to `src/cli/tests.rs`. `src/cli.rs` now keeps the top-level parser, global options, shared output/envelope/backend-option types, URL aliasing, and parse helpers, while re-exporting the moved command types so the public `aget::cli::*` and crate-level exports remain stable.
+
+This is a mechanical decomposition only; no command names, flags, defaults, or public type names intentionally changed.
+
+Validation:
+
+- `cargo test cli::tests --lib`
+
+Confidence: High. The moved parser tests passed after the split, and the change preserves the same derive-based clap surfaces.
+
 ## Open Questions
 
 - Can pure Rust browser automation provide reliable persistent profiles and CDP attach, or do we need a small Node/Playwright sidecar?
