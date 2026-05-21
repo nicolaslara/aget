@@ -938,6 +938,20 @@ Status note:
 
 - Completed with D203 after inspecting Crawl4AI comment cleanup in `references/repos/crawl4ai/crawl4ai/utils.py` and `references/repos/crawl4ai/crawl4ai/content_filter_strategy.py`. The owned cleanup path now removes HTML comment nodes before selector and output shaping, so `--content-format html` does not retain comment-only debug/private text while markdown/text behavior remains unchanged. Validation passed with focused owned-extractor coverage, `cargo fmt --check`, `cargo test`, and `git diff --check`.
 
+### ✅ Task I19am: Split AgetExtractor parity test helpers by behavior
+
+Acceptance criteria:
+
+- Preserve `tests/mock_site_cli.rs` public test coverage and test names.
+- Split the large `tests/mock_site_cli/aget_extractor.rs` parity body into smaller behavior-focused helper modules.
+- Keep fixture routes and assertions behavior-identical; this is a mechanical test-local decomposition only.
+- Do not compact `workpads/research/tasks.md`.
+- Verify with the focused AgetExtractor parity test plus the standard check set.
+
+Status note:
+
+- Completed with D204. The large AgetExtractor mock-site parity body now routes through smaller behavior-focused helper modules for basic formats/auth, markdown rendering, cleanup, main-content scoring, selector/target options, and backend options/waits. The public integration test name, fixture routes, and assertions remain behavior-identical. `workpads/research/tasks.md` was not compacted. Validation passed with focused AgetExtractor parity coverage, `cargo fmt --check`, `cargo test`, and `git diff --check`.
+
 ### ✅ Task I20: Design OAuth-safe browser login and profile import flow
 
 Acceptance criteria:
