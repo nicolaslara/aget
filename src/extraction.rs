@@ -1,9 +1,11 @@
+use std::cell::RefCell;
 use std::collections::BTreeMap;
 use std::env;
 use std::fs::{self, File, OpenOptions};
 use std::io::{self, Read, Write};
 use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
+use std::rc::Rc;
 use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 
 use ego_tree::{NodeId, NodeRef};
@@ -1575,6 +1577,7 @@ fn normalize_text_pieces<'a>(pieces: impl IntoIterator<Item = &'a str>) -> Strin
 fn element_to_markdown(element: ElementRef<'_>, base_url: &str, only_text: bool) -> String {
     let mut writer = MarkdownWriter::new(base_url, only_text);
     render_node(*element, &mut writer);
+    writer.append_abbreviation_definitions();
     normalize_markdown(&writer.output)
 }
 
@@ -1583,6 +1586,7 @@ struct MarkdownWriter {
     base_url: Option<Url>,
     only_text: bool,
     list_depth: usize,
+    abbreviations: Rc<RefCell<Vec<(String, String)>>>,
 }
 
 impl MarkdownWriter {
@@ -1592,6 +1596,7 @@ impl MarkdownWriter {
             base_url: Url::parse(base_url).ok(),
             only_text,
             list_depth: 0,
+            abbreviations: Rc::new(RefCell::new(Vec::new())),
         }
     }
 
@@ -1601,6 +1606,7 @@ impl MarkdownWriter {
             base_url: self.base_url.clone(),
             only_text: self.only_text,
             list_depth: self.list_depth,
+            abbreviations: Rc::clone(&self.abbreviations),
         }
     }
 
@@ -1635,6 +1641,36 @@ impl MarkdownWriter {
             0 => self.output.push_str("\n\n"),
             1 => self.output.push('\n'),
             _ => {}
+        }
+    }
+
+    fn record_abbreviation(&mut self, text: String, title: String) {
+        if text.is_empty() || title.is_empty() {
+            return;
+        }
+        let mut abbreviations = self.abbreviations.borrow_mut();
+        if let Some((_, existing_title)) = abbreviations
+            .iter_mut()
+            .find(|(existing_text, _)| existing_text == &text)
+        {
+            *existing_title = title;
+        } else {
+            abbreviations.push((text, title));
+        }
+    }
+
+    fn append_abbreviation_definitions(&mut self) {
+        let abbreviations = self.abbreviations.borrow().clone();
+        if abbreviations.is_empty() {
+            return;
+        }
+        self.ensure_blank_line();
+        for (text, title) in abbreviations {
+            self.output.push_str("  *[");
+            self.output.push_str(&text);
+            self.output.push_str("]: ");
+            self.output.push_str(&title);
+            self.output.push('\n');
         }
     }
 }
@@ -1682,6 +1718,7 @@ fn render_element(node: NodeRef<'_, Node>, tag: &str, writer: &mut MarkdownWrite
             writer.push_inline(&format!("\"{inner}\""));
         }
         "a" => render_link(node, writer),
+        "abbr" => render_abbreviation(node, writer),
         "img" => render_image(node, writer),
         "blockquote" => render_blockquote(node, writer),
         "article" | "aside" | "body" | "div" | "footer" | "header" | "html" | "main" | "nav"
@@ -2030,6 +2067,20 @@ fn render_link(node: NodeRef<'_, Node>, writer: &mut MarkdownWriter) {
         writer.resolve_url(href),
         title
     ));
+}
+
+fn render_abbreviation(node: NodeRef<'_, Node>, writer: &mut MarkdownWriter) {
+    let text = inline_markdown_from_children(node, writer);
+    if text.is_empty() {
+        return;
+    }
+    if let Some(title) = ElementRef::wrap(node)
+        .and_then(|element| element.attr("title"))
+        .map(normalize_inline_markdown)
+    {
+        writer.record_abbreviation(text.clone(), title);
+    }
+    writer.push_inline(&text);
 }
 
 fn render_image(node: NodeRef<'_, Node>, writer: &mut MarkdownWriter) {

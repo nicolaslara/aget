@@ -1687,6 +1687,21 @@ Validation:
 
 Confidence: High. The behavior is source-backed, deterministic, and limited to equivalent Markdown emphasis syntax for one inline tag. It does not affect strong emphasis, links, tables, session replay, or browser rendering.
 
+### D100: I19d preserves abbreviation title definitions
+
+The next markdown-quality slice ports a Crawl4AI/html2text content-preservation behavior. Before changing the owned renderer, I19d re-inspected `references/repos/crawl4ai/crawl4ai/html2text/__init__.py`, where `HTML2Text.handle_tag` records `<abbr title="...">` text and `finish()` emits markdown abbreviation definitions at the end of the document. This survives Crawl4AI's default cleaned-HTML pipeline because `title` is in the important-attribute allowlist.
+
+`OwnedExtractorBackend` now records abbreviation text/title pairs while rendering markdown and appends markdown definition lines such as `  *[HTML]: HyperText Markup Language` at the end of the output. Duplicate abbreviation text updates the stored title, matching html2text's dictionary-shaped behavior. Plain-text mode still emits only visible text.
+
+Validation:
+
+- `cargo fmt --check`
+- `git diff --check`
+- `cargo test --test mock_site_cli homegrown_extractor_backend_covers_static_http_parity_slice`
+- `cargo test`
+
+Confidence: Medium-high. The behavior is source-backed and deterministic for the primary abbreviation-title case. It does not attempt to reproduce every whitespace variant in html2text's final reference block.
+
 ## Open Questions
 
 - Can pure Rust browser automation provide reliable persistent profiles and CDP attach, or do we need a small Node/Playwright sidecar?
