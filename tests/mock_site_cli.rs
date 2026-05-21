@@ -319,6 +319,29 @@ fn homegrown_extractor_backend_covers_static_http_parity_slice() {
             ),
         )
         .route(
+            "/markdown-nested-lists",
+            MockResponse::html(
+                r#"
+<html>
+  <body>
+    <main class="article">
+      <h1>Nested Steps</h1>
+      <ol>
+        <li>Install
+          <ul>
+            <li>Open settings</li>
+            <li>Confirm access</li>
+          </ul>
+        </li>
+        <li>Run fetch</li>
+      </ol>
+    </main>
+  </body>
+</html>
+"#,
+            ),
+        )
+        .route(
             "/html-cleanup",
             MockResponse::html(
                 r#"
@@ -435,6 +458,18 @@ fn homegrown_extractor_backend_covers_static_http_parity_slice() {
     assert_eq!(
         markdown_inline_blocks.content,
         "# Reference Bits\n\nStatus: ~~removed~~, `Cmd K`, `TTY`, \"quoted\".\n\n* * *\n\nTerm\n    Definition with **detail**."
+    );
+
+    let markdown_nested_lists = Aget::new(&aget_home)
+        .with_extractor_backend(OwnedExtractorBackend)
+        .get(site.url("/markdown-nested-lists"))
+        .content_format(OutputFormat::Markdown)
+        .selector("main.article")
+        .run()
+        .unwrap();
+    assert_eq!(
+        markdown_nested_lists.content,
+        "# Nested Steps\n\n1. Install\n  - Open settings\n  - Confirm access\n2. Run fetch"
     );
 
     let html = Aget::new(&aget_home)

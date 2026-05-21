@@ -1582,6 +1582,7 @@ struct MarkdownWriter {
     output: String,
     base_url: Option<Url>,
     only_text: bool,
+    list_depth: usize,
 }
 
 impl MarkdownWriter {
@@ -1590,6 +1591,7 @@ impl MarkdownWriter {
             output: String::new(),
             base_url: Url::parse(base_url).ok(),
             only_text,
+            list_depth: 0,
         }
     }
 
@@ -1598,6 +1600,7 @@ impl MarkdownWriter {
             output: String::new(),
             base_url: self.base_url.clone(),
             only_text: self.only_text,
+            list_depth: self.list_depth,
         }
     }
 
@@ -1760,7 +1763,17 @@ fn render_horizontal_rule(writer: &mut MarkdownWriter) {
 }
 
 fn render_list(node: NodeRef<'_, Node>, ordered: bool, writer: &mut MarkdownWriter) {
-    writer.ensure_blank_line();
+    let is_nested = writer.list_depth > 0;
+    if is_nested {
+        trim_trailing_horizontal_space(&mut writer.output);
+        if !writer.output.is_empty() && !writer.output.ends_with('\n') {
+            writer.output.push('\n');
+        }
+    } else {
+        writer.ensure_blank_line();
+    }
+    writer.list_depth += 1;
+    let item_depth = writer.list_depth;
     let mut child = node.first_child();
     let mut index = 1usize;
     while let Some(current) = child {
@@ -1771,6 +1784,7 @@ fn render_list(node: NodeRef<'_, Node>, ordered: bool, writer: &mut MarkdownWrit
                 if !writer.output.is_empty() && !writer.output.ends_with('\n') {
                     writer.output.push('\n');
                 }
+                writer.output.push_str(&list_item_indent(item_depth));
                 if ordered {
                     writer.output.push_str(&format!("{index}. "));
                 } else {
@@ -1778,7 +1792,9 @@ fn render_list(node: NodeRef<'_, Node>, ordered: bool, writer: &mut MarkdownWrit
                 }
                 render_children(current, writer);
                 trim_trailing_horizontal_space(&mut writer.output);
-                writer.output.push('\n');
+                if !writer.output.ends_with('\n') {
+                    writer.output.push('\n');
+                }
                 index += 1;
             } else {
                 render_node(current, writer);
@@ -1788,7 +1804,19 @@ fn render_list(node: NodeRef<'_, Node>, ordered: bool, writer: &mut MarkdownWrit
         }
         child = next;
     }
-    writer.ensure_blank_line();
+    writer.list_depth = writer.list_depth.saturating_sub(1);
+    if is_nested {
+        trim_trailing_horizontal_space(&mut writer.output);
+        if !writer.output.ends_with('\n') {
+            writer.output.push('\n');
+        }
+    } else {
+        writer.ensure_blank_line();
+    }
+}
+
+fn list_item_indent(depth: usize) -> String {
+    "  ".repeat(depth.saturating_sub(1))
 }
 
 fn render_definition_list(node: NodeRef<'_, Node>, writer: &mut MarkdownWriter) {

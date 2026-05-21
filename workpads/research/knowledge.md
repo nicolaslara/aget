@@ -1566,6 +1566,21 @@ Validation:
 
 Confidence: Medium-high. This is deterministic local markdown rendering backed by Crawl4AI's source behavior. It remains a bounded quality slice; nested list fidelity, richer readability scoring, and broader rendered-page readiness are still open I19d work.
 
+### D92: I19d preserves nested list structure in owned markdown
+
+The next markdown-quality slice ports Crawl4AI's depth-aware list behavior. Before changing the owned renderer, I19d re-inspected `references/repos/crawl4ai/crawl4ai/html2text/__init__.py`, where `HTML2Text.handle_tag` maintains a list stack, emits ordered or unordered list markers for each `<li>`, and indents nested lists according to list nesting. `references/repos/crawl4ai/crawl4ai/markdown_generation_strategy.py` still confirms this path is the default markdown generator for cleaned HTML.
+
+`OwnedExtractorBackend` now tracks markdown list depth while rendering `<ol>` and `<ul>`, preserving nested list structure instead of flattening child list items to top-level markers. The deterministic fixture covers an ordered list containing an unordered child list and verifies the existing simple list output still passes.
+
+Validation:
+
+- `cargo fmt --check`
+- `git diff --check`
+- `cargo test --test mock_site_cli homegrown_extractor_backend_covers_static_http_parity_slice`
+- `cargo test`
+
+Confidence: Medium. The behavior is source-inspired and deterministic, but it intentionally implements a compact CommonMark-readable indentation rather than claiming byte-for-byte `html2text` whitespace parity for every nested-list shape.
+
 ## Open Questions
 
 - Can pure Rust browser automation provide reliable persistent profiles and CDP attach, or do we need a small Node/Playwright sidecar?
