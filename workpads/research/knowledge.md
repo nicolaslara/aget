@@ -2388,6 +2388,20 @@ Validation:
 
 Confidence: High for the import-test split. The move is mechanical, the affected integration target passed, and the full standard suite is green.
 
+### D146: I19i splits session login CLI tests
+
+The next session CLI decomposition slice moved login start, finish, cancel, helper API, and ignored real-login smoke coverage from `tests/session_cli.rs` into `tests/session_cli/login.rs`. The root `tests/session_cli.rs` now declares separate import and login behavior modules and is reduced to list, compose, and inspect coverage.
+
+Validation:
+
+- `cargo fmt`
+- `cargo fmt --check`
+- `cargo test --test session_cli`
+- `git diff --check`
+- `cargo test`
+
+Confidence: High for the login-test split. The move is mechanical, the affected integration target passed, and the full standard suite is green.
+
 ## Open Questions
 
 - Can pure Rust browser automation provide reliable persistent profiles and CDP attach, or do we need a small Node/Playwright sidecar?
