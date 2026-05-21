@@ -27,10 +27,11 @@ This compact file records current source routing. Detailed reference rows are ar
 | Topic | Primary Paths | Notes |
 | --- | --- | --- |
 | Product intent and workflow | `project.md`, `WORKING.md`, `workpads/WORKPADS.md`, `workpads/research/tasks.md`, `workpads/research/knowledge.md` | Load before task work. |
-| Aget facade/orchestration | `src/aget.rs` | Public API and dependency wiring across extractor, browser automation/fallback, and session store backends. |
+| Aget facade/orchestration | `src/aget/` | Public API and dependency wiring across extractor, browser automation/fallback, and session store backends. |
 | AgetExtractor boundary | `src/aget_extractor.rs`, `src/extraction/` | Local Crawl4AI-like extraction engine and backend wrapper. Historical implementation detail is archived in `architecture-inputs.md`. |
-| AgetBrowser boundary | `src/aget_browser.rs`, `src/browser_cdp/`, `src/session/chrome.rs`, `src/session/login.rs` | Local browser/CDP/profile/session engine and backend wrapper. Historical implementation detail is archived in `architecture-inputs.md`. |
-| Session model/store/import | `src/session/model.rs`, `src/session/store.rs`, `src/session/playwright.rs`, `src/session/chrome.rs`, `src/session/login.rs`, `src/session/cmux.rs`, `src/session/agent_browser.rs` | Keep auth state local, scoped, and explicitly imported. |
+| AgetBrowser boundary | `src/aget_browser.rs`, `src/browser_cdp/`, `src/session/chrome/`, `src/session/login/` | Local browser/CDP/profile/session engine and backend wrapper. Historical implementation detail is archived in `architecture-inputs.md`. |
+| Session model/store/import | `src/session/model.rs`, `src/session/store.rs`, `src/session/playwright/`, `src/session/chrome/`, `src/session/login/`, `src/session/cmux.rs`, `src/session/agent_browser/` | Keep auth state local, scoped, and explicitly imported. |
+| Binary session CLI execution | `src/main_session/` | Dispatches `aget session` commands and keeps command names, profile argument normalization, JSON envelope shaping, and inspect/redaction views split from `src/main.rs`. |
 | Agent-facing usage | `.cursor/skills/aget/SKILL.md`, `.opencode/tools/aget.ts`, `README.md` | Keep command/default-backend wording aligned with current runtime behavior. |
 | Mock-site integration coverage | `tests/support/mock_site.rs`, `tests/mock_site_cli/`, `tests/mock_site_browser.rs`, `tests/mock_site_sessions.rs`, `tests/mock_site_docs_contract.rs` | Local deterministic public/auth/session/rendering behavior. |
 | Session CLI coverage | `tests/session_cli/`, `tests/support/session_cli.rs` | Session import, authorize, login lifecycle, and backend compatibility coverage. |

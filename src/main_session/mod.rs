@@ -1,11 +1,19 @@
 use std::time::Instant;
 
 use aget::{
-    Aget, AuthorizeSessionOptions, AuthorizeSessionResult, BrowserChoice, ErrorCode, ErrorResponse,
-    ImportSessionSource, InlineContent, LoginSessionSubcommand, Session, SessionCookie,
-    SessionSubcommand, TimingMs,
+    Aget, AuthorizeSessionOptions, BrowserChoice, ErrorCode, ErrorResponse, ImportSessionSource,
+    LoginSessionSubcommand, SessionSubcommand, TimingMs,
 };
-use serde_json::Value;
+
+mod command_name;
+mod envelope;
+mod inspect;
+mod profile;
+
+use command_name::session_command_name;
+use envelope::authorize_envelope_data;
+use inspect::{session_view, source_suffix};
+use profile::{resolve_browser_import_profile, resolve_chrome_authorize_profile};
 
 const OAUTH_LOGIN_WARNING: &str = "OAuth providers may reject automation-controlled login browsers. If this site uses OAuth, prefer signing in with your real browser and importing a scoped session, for example: aget session import browser --browser chrome --browser-profile <profile> --name <name> --allow-domain <domain>.";
 
@@ -371,220 +379,8 @@ pub(super) fn run_session(
     .map_err(|error: ErrorResponse| error.with_command(command_name))
 }
 
-fn resolve_chrome_authorize_profile(
-    browser: BrowserChoice,
-    browser_profile: Option<String>,
-    chrome_profile: Option<String>,
-) -> Result<String, ErrorResponse> {
-    match browser {
-        BrowserChoice::Chrome => match (browser_profile, chrome_profile) {
-            (Some(browser_profile), Some(chrome_profile)) if browser_profile != chrome_profile => {
-                Err(ErrorResponse::new(
-                    ErrorCode::UsageError,
-                    "--browser-profile and --chrome-profile must match when both are supplied",
-                ))
-            }
-            (Some(profile), _) | (_, Some(profile)) => Ok(profile),
-            (None, None) => Err(ErrorResponse::new(
-                ErrorCode::UsageError,
-                "session authorize requires --browser-profile <profile> or --chrome-profile <profile>",
-            )),
-        },
-        unsupported => Err(ErrorResponse::new(
-            ErrorCode::UsageError,
-            format!(
-                "session authorize does not support '{}' yet; use --browser chrome for the verified local import path",
-                unsupported.as_str()
-            ),
-        )),
-    }
-}
-
-fn resolve_browser_import_profile(
-    browser: BrowserChoice,
-    browser_profile: Option<String>,
-    profile_path: Option<std::path::PathBuf>,
-) -> Result<String, ErrorResponse> {
-    let profile_path = profile_path.map(|path| path.to_string_lossy().into_owned());
-    match (browser_profile, profile_path) {
-        (Some(browser_profile), Some(profile_path)) if browser_profile != profile_path => {
-            Err(ErrorResponse::new(
-                ErrorCode::UsageError,
-                "--browser-profile and --profile-path must match when both are supplied",
-            ))
-        }
-        (Some(profile), _) | (_, Some(profile)) => Ok(profile),
-        (None, None) => Err(ErrorResponse::new(
-            ErrorCode::UsageError,
-            format!(
-                "session import browser --browser {} requires --browser-profile <profile> or --profile-path <path>",
-                browser.as_str()
-            ),
-        )),
-    }
-}
-
-fn authorize_envelope_data(result: &AuthorizeSessionResult) -> Result<Value, ErrorResponse> {
-    Ok(serde_json::json!({
-        "state": result.state,
-        "name": result.name,
-        "source": result.source,
-        "allowed_domains": result.allowed_domains,
-        "baseline": super::get_envelope_data(&result.baseline, InlineContent::Never)?,
-        "verification": super::get_envelope_data(&result.verification, InlineContent::Never)?,
-        "verification_sensitive": result.verification.sensitive,
-        "verification_content_inlined": false,
-        "predicates": result.predicates,
-        "next_command": if result.state == aget::AuthorizationState::VerificationFailed {
-            Some(serde_json::json!([
-                "aget",
-                "session",
-                "authorize",
-                result.name,
-                "--url",
-                result.verification.url,
-                "--browser-profile",
-                "<profile>",
-                "--allow-domain",
-                "<domain>",
-            ]))
-        } else {
-            None
-        },
-    }))
-}
-
 fn elapsed_timing(started: Instant) -> TimingMs {
     TimingMs {
         total: started.elapsed().as_millis(),
-    }
-}
-
-fn session_command_name(command: &SessionSubcommand) -> &'static str {
-    match command {
-        SessionSubcommand::List => "session.list",
-        SessionSubcommand::Authorize(_) => "session.authorize",
-        SessionSubcommand::Inspect(_) => "session.inspect",
-        SessionSubcommand::Delete(_) => "session.delete",
-        SessionSubcommand::Import(import) => match &import.source {
-            ImportSessionSource::Cmux(_) => "session.import.cmux",
-            ImportSessionSource::Browser(_) => "session.import.browser",
-            ImportSessionSource::Chrome(_) => "session.import.chrome",
-        },
-        SessionSubcommand::Compose(_) => "session.compose",
-        SessionSubcommand::Login(login) => match &login.command {
-            LoginSessionSubcommand::Start(_) => "session.login.start",
-            LoginSessionSubcommand::Finish(_) => "session.login.finish",
-            LoginSessionSubcommand::Cancel(_) => "session.login.cancel",
-        },
-    }
-}
-
-#[derive(serde::Serialize)]
-struct SessionView<'a> {
-    ok: bool,
-    version: u32,
-    name: &'a str,
-    sensitive: bool,
-    allowed_cookie_domains: &'a [String],
-    allowed_storage_origins: &'a [String],
-    cookies: Vec<CookieView<'a>>,
-    origins: Vec<OriginView<'a>>,
-}
-
-#[derive(serde::Serialize)]
-struct CookieView<'a> {
-    name: &'a str,
-    value: String,
-    domain: &'a str,
-    path: &'a str,
-    secure: bool,
-    http_only: bool,
-    source_session: &'a Option<String>,
-}
-
-#[derive(serde::Serialize)]
-struct OriginView<'a> {
-    origin: &'a str,
-    local_storage: Vec<StorageEntryView<'a>>,
-    session_storage: Vec<StorageEntryView<'a>>,
-    source_session: &'a Option<String>,
-}
-
-#[derive(serde::Serialize)]
-struct StorageEntryView<'a> {
-    name: &'a str,
-    value: String,
-}
-
-fn session_view(session: &Session, show_secrets: bool) -> SessionView<'_> {
-    SessionView {
-        ok: true,
-        version: session.version,
-        name: &session.name,
-        sensitive: session.sensitive,
-        allowed_cookie_domains: &session.allowed_cookie_domains,
-        allowed_storage_origins: &session.allowed_storage_origins,
-        cookies: session
-            .cookies
-            .iter()
-            .map(|cookie| cookie_view(cookie, show_secrets))
-            .collect(),
-        origins: session
-            .origins
-            .iter()
-            .map(|origin| origin_view(origin, show_secrets))
-            .collect(),
-    }
-}
-
-fn cookie_view(cookie: &SessionCookie, show_secrets: bool) -> CookieView<'_> {
-    CookieView {
-        name: &cookie.name,
-        value: if show_secrets {
-            cookie.value.clone()
-        } else {
-            "<redacted>".to_string()
-        },
-        domain: &cookie.domain,
-        path: &cookie.path,
-        secure: cookie.secure,
-        http_only: cookie.http_only,
-        source_session: &cookie.source_session,
-    }
-}
-
-fn origin_view(origin: &aget::SessionOrigin, show_secrets: bool) -> OriginView<'_> {
-    OriginView {
-        origin: &origin.origin,
-        local_storage: origin
-            .local_storage
-            .iter()
-            .map(|entry| storage_entry_view(entry, show_secrets))
-            .collect(),
-        session_storage: origin
-            .session_storage
-            .iter()
-            .map(|entry| storage_entry_view(entry, show_secrets))
-            .collect(),
-        source_session: &origin.source_session,
-    }
-}
-
-fn storage_entry_view(entry: &aget::StorageEntry, show_secrets: bool) -> StorageEntryView<'_> {
-    StorageEntryView {
-        name: &entry.name,
-        value: if show_secrets {
-            entry.value.clone()
-        } else {
-            "<redacted>".to_string()
-        },
-    }
-}
-
-fn source_suffix(source_session: &Option<String>) -> String {
-    match source_session {
-        Some(source) => format!(" source={source}"),
-        None => String::new(),
     }
 }

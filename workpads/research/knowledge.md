@@ -6,7 +6,7 @@ This compact file records the current decisions and routing context needed for a
 
 `aget` is a local-first, auth-aware URL-to-agent-context tool. The current implementation direction is a Rust CLI/library with pluggable capability boundaries:
 
-- Facade/orchestration in `src/aget.rs` wires extractor, browser automation/fallback, and session-store backends.
+- Facade/orchestration under `src/aget/` wires extractor, browser automation/fallback, and session-store backends.
 - AgetExtractor-backed extraction lives under `src/extraction/` and now covers static HTTP fetch, selector/exclusion handling, cleaned HTML, markdown/text/html/json output, artifacts, and selected Crawl4AI-compatible options.
 - AgetBrowser-backed CDP behavior lives under `src/browser_cdp/` and now covers temporary Chrome launch, CDP rendering, cookie/storage replay/export, Chrome profile import, login lifecycle, discovery diagnostics, and process cleanup.
 - Session model/store/import/login composition is split under `src/session/`.
@@ -47,6 +47,7 @@ Safety boundary remains unchanged: `aget` is a generic fetcher for content the u
 - D183: agent-browser compatibility session helpers were split into `src/session/agent_browser/mod.rs`, `command.rs`, `raw_state.rs`, `state_filter.rs`, and `tests.rs` without changing internal caller paths.
 - D184: Chrome session import internals were split into `src/session/chrome/mod.rs`, `compat.rs`, `owned.rs`, `profile.rs`, and `tests.rs` without changing public session import paths.
 - D185: login session lifecycle internals were split into `src/session/login/mod.rs`, `types.rs`, `pending.rs`, `compat.rs`, `owned.rs`, `session_merge.rs`, and `tests.rs` without changing session login exports.
+- D186: binary session command helpers were split into `src/main_session/mod.rs`, `command_name.rs`, `profile.rs`, `envelope.rs`, and `inspect.rs` without changing `aget session` CLI behavior.
 
 ## Archive Index
 
@@ -76,6 +77,7 @@ Safety boundary remains unchanged: `aget` is a generic fetcher for content the u
 | D183 | `archive/knowledge/d183-agent-browser-compat-module-split.md` | mechanical compatibility split into command execution, state filtering, raw state files, and tests |
 | D184 | `archive/knowledge/d184-chrome-session-module-split.md` | mechanical Chrome session split into compatibility import, owned import, profile helpers, and tests |
 | D185 | `archive/knowledge/d185-login-session-module-split.md` | mechanical login lifecycle split into types, pending metadata, compatibility flow, owned flow, merge logic, and tests |
+| D186 | `archive/knowledge/d186-main-session-module-split.md` | mechanical binary session command helper split into dispatcher, command names, profile resolution, envelopes, and inspect views |
 
 ## Current Verification Expectations
 

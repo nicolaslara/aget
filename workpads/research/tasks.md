@@ -676,6 +676,20 @@ Status note:
 
 - Completed with D185 after I19s completed and committed. The mechanical split kept `session::login` exports stable while moving public types, pending metadata/profile cleanup helpers, compatibility flow, owned flow, merge logic, and existing tests into focused submodules. Validation passed with focused `session::login` tests, `cargo fmt --check`, `cargo test`, and `git diff --check`.
 
+### ✅ Task I19u: Split binary session command helpers
+
+Acceptance criteria:
+
+- Preserve current `aget session` CLI behavior while splitting helper subdomains out of `src/main_session.rs`.
+- Keep `main_session::run_session` as the binary-facing dispatcher used by `src/main.rs`.
+- Split mechanically first, prioritizing profile argument normalization, session JSON envelope shaping, and inspect/redaction view helpers because they are cohesive and low-risk.
+- Run focused session CLI tests plus the standard validation set before committing.
+- Record the resulting module boundaries in `knowledge.md`.
+
+Status note:
+
+- Completed with D186 after I19t completed and committed. The mechanical split kept `main_session::run_session` as the `src/main.rs` dispatcher while moving stable command-name mapping, browser/profile argument normalization, authorization envelope data, and inspect/redaction views into focused submodules. Validation passed with focused `session_cli` tests, `cargo fmt --check`, `cargo test`, and `git diff --check`.
+
 ### ✅ Task I20: Design OAuth-safe browser login and profile import flow
 
 Acceptance criteria:
