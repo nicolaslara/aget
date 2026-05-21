@@ -893,6 +893,21 @@ Status note:
 
 - Completed with D200 after inspecting `agent-browser` target discovery and domain enablement behavior in `references/repos/agent-browser/cli/src/native/browser.rs`. Browser-level existing-page attach now enables CDP target discovery before reading targets, non-direct page-domain setup best-effort enables flattened target auto-attach, and direct page/webview CDP sessions keep their no-session behavior. Validation passed with focused browser CDP coverage, `cargo fmt --check`, `cargo test`, and `git diff --check`.
 
+### ✅ Task I19aj: Handle CDP same-document navigation results
+
+Acceptance criteria:
+
+- Inspect `agent-browser` source for `Page.navigate` result handling before porting.
+- Preserve current browser/CDP public behavior while improving navigation wait semantics.
+- Treat `Page.navigate` responses without `loaderId` as same-document navigation and do not wait for load/domcontentloaded/network-idle events that will not fire.
+- Surface `Page.navigate` `errorText` as a stable extraction failure.
+- Add deterministic mock CDP coverage for same-document navigation and `errorText`.
+- Verify with focused browser CDP tests plus the standard check set.
+
+Status note:
+
+- Completed with D201 after inspecting `agent-browser` `BrowserManager::navigate` behavior in `references/repos/agent-browser/cli/src/native/browser.rs`. The owned CDP navigation path now treats `Page.navigate` responses without `loaderId` as same-document navigations that do not wait for lifecycle/network-idle events, and it reports result-level `errorText` as an extraction failure. Validation passed with focused browser CDP coverage, `cargo fmt --check`, `cargo test`, and `git diff --check`.
+
 ### ✅ Task I20: Design OAuth-safe browser login and profile import flow
 
 Acceptance criteria:

@@ -105,7 +105,9 @@ impl CdpClient {
         loop {
             let message = self.read_message(deadline)?;
             if message.get("id").and_then(Value::as_u64) == Some(navigate_id) {
-                self.handle_navigate_response(&message)?;
+                if self.handle_navigate_response(&message)? == NavigationOutcome::SameDocument {
+                    return Ok(());
+                }
                 continue;
             }
             if message.get("method").and_then(Value::as_str) != Some(event_name) {
@@ -143,7 +145,9 @@ impl CdpClient {
             };
 
             if message.get("id").and_then(Value::as_u64) == Some(navigate_id) {
-                self.handle_navigate_response(&message)?;
+                if self.handle_navigate_response(&message)? == NavigationOutcome::SameDocument {
+                    return Ok(());
+                }
                 navigate_response_seen = true;
                 if inflight_requests.is_empty() {
                     idle_since = Instant::now();
@@ -180,7 +184,7 @@ impl CdpClient {
         }
     }
 
-    fn handle_navigate_response(&self, message: &Value) -> Result<(), AgetError> {
+    fn handle_navigate_response(&self, message: &Value) -> Result<NavigationOutcome, AgetError> {
         if let Some(error) = message.get("error") {
             let text = error
                 .get("message")
@@ -191,7 +195,17 @@ impl CdpClient {
                 message: format!("owned browser fallback CDP Page.navigate failed: {text}"),
             });
         }
-        Ok(())
+        let result = message.get("result").unwrap_or(&Value::Null);
+        if let Some(error_text) = result.get("errorText").and_then(Value::as_str) {
+            return Err(AgetError::Stable {
+                code: ErrorCode::ExtractionFailed,
+                message: format!("owned browser fallback CDP Page.navigate failed: {error_text}"),
+            });
+        }
+        if result.get("loaderId").and_then(Value::as_str).is_none() {
+            return Ok(NavigationOutcome::SameDocument);
+        }
+        Ok(NavigationOutcome::NewDocument)
     }
 
     pub(in crate::browser_cdp) fn wait_for_selector(
@@ -323,4 +337,10 @@ fn network_request_id(message: &Value) -> Option<&str> {
         .get("params")
         .and_then(|params| params.get("requestId"))
         .and_then(Value::as_str)
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum NavigationOutcome {
+    NewDocument,
+    SameDocument,
 }
