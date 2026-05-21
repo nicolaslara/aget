@@ -340,6 +340,27 @@ pub(crate) fn aget_extractor_parity_site() -> MockSite {
             ),
         )
         .route(
+            "/markdown-ordered-start",
+            MockResponse::html(
+                r#"
+<html>
+  <body>
+    <main class="article">
+      <h1>Ordered Start</h1>
+      <ol start="4">
+        <li>Resume</li>
+        <li>Verify</li>
+      </ol>
+      <ol start="later">
+        <li>Fallback</li>
+      </ol>
+    </main>
+  </body>
+</html>
+"#,
+            ),
+        )
+        .route(
             "/html-cleanup",
             MockResponse::html(
                 r#"

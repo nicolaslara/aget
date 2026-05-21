@@ -95,4 +95,16 @@ pub(super) fn assert_markdown_rendering(aget_home: &Path, site: &MockSite) {
             site.url("/download")
         )
     );
+
+    let markdown_ordered_start = Aget::new(aget_home)
+        .with_extractor_backend(AgetExtractorBackend::default())
+        .get(site.url("/markdown-ordered-start"))
+        .content_format(OutputFormat::Markdown)
+        .selector("main.article")
+        .run()
+        .unwrap();
+    assert_eq!(
+        markdown_ordered_start.content,
+        "# Ordered Start\n\n1. Resume\n2. Verify\n\n1. Fallback"
+    );
 }
