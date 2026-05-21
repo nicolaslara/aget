@@ -578,6 +578,20 @@ Status note:
 
 - Completed with D178 after I19l completed and committed. The mechanical split moved owned extraction into `src/extraction/owned/`, keeping orchestration in `mod.rs` and extracting backend option parsing plus content selection/rendering helpers into smaller modules. Validation passed with focused owned-extractor tests, `cargo fmt --check`, `cargo test`, and `git diff --check`.
 
+### ✅ Task I19n: Split CDP client transport and navigation internals
+
+Acceptance criteria:
+
+- Preserve current AgetBrowser/CDP behavior while splitting `src/browser_cdp/client.rs` into smaller, behavior-owned modules.
+- Keep the existing `browser_cdp::client` module interface unchanged for callers.
+- Split mechanically first, prioritizing transport/send-read plumbing, navigation/wait behavior, and state load/export helpers.
+- Run focused CDP/browser tests plus the standard validation set before committing.
+- Record the resulting module boundaries in `knowledge.md`.
+
+Status note:
+
+- Completed with D179 after I19m completed and committed. The mechanical split moved CDP client internals into `src/browser_cdp/client/`, keeping target/session setup in `mod.rs` and extracting transport/send-read plumbing, navigation/wait behavior, and state load/export helpers into smaller modules. Validation passed with focused CDP tests, `cargo fmt --check`, `cargo test`, and `git diff --check`.
+
 ### ✅ Task I20: Design OAuth-safe browser login and profile import flow
 
 Acceptance criteria:
