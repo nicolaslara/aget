@@ -1255,6 +1255,21 @@ Status note:
 
 - Completed with D224. The 558-line mock CDP client test module now routes through smaller behavior-focused modules for setup/attach behavior, navigation behavior, and attached-page rendering behavior. Shared mock WebSocket request/reply helpers remain in the Chrome CDP test namespace, runtime behavior was unchanged, and `workpads/research/tasks.md` was not compacted.
 
+### ✅ Task I19bh: Split session store internals
+
+Acceptance criteria:
+
+- Preserve current session-store layout, save/load/list/delete, private-permission, and orphan-sweep behavior.
+- Split `src/session/store.rs` into smaller behavior-focused modules.
+- Keep the existing `session::store` public interface stable for callers.
+- Do not compact or remove planned tasks from `workpads/research/tasks.md`.
+- Record the resulting module boundary in `knowledge.md`.
+- Verify with focused session-store coverage plus the standard check set.
+
+Status note:
+
+- Completed with D225. `src/session/store.rs` is now split into `src/session/store/mod.rs` for the public `SessionStore` API, `permissions.rs` for private file/directory creation, `cleanup.rs` for orphaned temp/profile sweeping, and `tests.rs` for existing unit coverage. Session-store behavior and `session::store` exports stayed stable, and `workpads/research/tasks.md` was not compacted.
+
 ### ✅ Task I20: Design OAuth-safe browser login and profile import flow
 
 Acceptance criteria:
