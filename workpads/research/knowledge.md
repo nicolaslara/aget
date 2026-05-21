@@ -2254,6 +2254,22 @@ Validation:
 
 Confidence: High for the CDP login split. The split is mechanical, focused login lifecycle paths passed, the CDP unit slice passed, and the full standard suite is green.
 
+### D137: I19i splits owned extraction orchestration
+
+The next extraction decomposition slice moved the owned Rust extraction and owned browser fallback execution path from `src/extraction/mod.rs` to `src/extraction/owned.rs`. The new module owns `run_owned_extractor_backend`, `run_owned_browser_fallback`, static-versus-rendered routing, rendered-page handoff, owned backend option parsing, wait-selector retry behavior, output-format selection, default main-content selection, target-element extraction, cleaned HTML serialization, markdown/text extraction glue, and owned fallback warning/extractor labels. The parent extraction module now keeps the public API, session loading/composition, replay-scope checks, fallback decision, output envelope, artifact finalization, and shared error helpers.
+
+Validation:
+
+- `cargo check`
+- `cargo fmt`
+- `cargo fmt --check`
+- `git diff --check`
+- `cargo test --test mock_site_cli homegrown_extractor_backend_covers_static_http_parity_slice`
+- `cargo test --test mock_site_cli backend_parity_covers_extractor_content_formats`
+- `cargo test`
+
+Confidence: High for the owned extraction split. The move is mechanical, focused owned-extraction integration tests passed, and the full standard suite is green.
+
 ## Open Questions
 
 - Can pure Rust browser automation provide reliable persistent profiles and CDP attach, or do we need a small Node/Playwright sidecar?
