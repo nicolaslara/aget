@@ -620,6 +620,20 @@ Status note:
 
 - Completed with D181 after I19o completed and committed. The mechanical split moved Playwright session composition into `src/session/playwright/compose.rs`, temp state file/private-permission handling into `state_file.rs`, and existing unit coverage into `tests.rs`, while keeping public Playwright state types and re-exports in `mod.rs`. Validation passed with focused `session::playwright` tests, `cargo fmt --check`, `cargo test`, and `git diff --check`.
 
+### ✅ Task I19q: Split `Aget` facade helper modules
+
+Acceptance criteria:
+
+- Preserve current public `Aget` API, backend trait contracts, and default runtime behavior while splitting helper subdomains out of `src/aget.rs`.
+- Keep `aget::aget::*` public paths and top-level `lib.rs` re-exports compatible for callers.
+- Split mechanically first, prioritizing backend adapters, session-store adapter, authorization predicate types/helpers, and `GetRequest` builder because they are cohesive and low-risk.
+- Run focused API/facade tests plus the standard validation set before committing.
+- Record the resulting module boundaries in `knowledge.md`.
+
+Status note:
+
+- Completed with D182 after I19p completed and committed. The mechanical split kept `src/aget/mod.rs` as the public facade/orchestration surface while moving authorization DTOs/helpers, backend adapters, `GetRequest`, and session-store adapter code into focused submodules. Validation passed with focused `aget_api` tests, `cargo fmt --check`, a rerun of one transiently failed loopback `session_cli` authorization test, full `cargo test`, and `git diff --check`.
+
 ### ✅ Task I20: Design OAuth-safe browser login and profile import flow
 
 Acceptance criteria:

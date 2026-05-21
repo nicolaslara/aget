@@ -43,6 +43,7 @@ Safety boundary remains unchanged: `aget` is a generic fetcher for content the u
 - D179: CDP client internals were split into `src/browser_cdp/client/mod.rs`, `transport.rs`, `navigation.rs`, and `state.rs` without changing the browser CDP module interface.
 - D180: extraction orchestration helpers were split into `src/extraction/output.rs` and `replay_scope.rs` without changing the extraction module interface.
 - D181: Playwright session composition was split into `src/session/playwright/mod.rs`, `compose.rs`, `state_file.rs`, and `tests.rs` without changing the session module interface.
+- D182: the `Aget` facade helper surfaces were split into `src/aget/mod.rs`, `authorize.rs`, `backends.rs`, `get_request.rs`, and `session_store.rs` without changing public API paths.
 
 ## Archive Index
 
@@ -68,6 +69,7 @@ Safety boundary remains unchanged: `aget` is a generic fetcher for content the u
 | D179 | `archive/knowledge/d179-cdp-client-module-split.md` | mechanical CDP client split into core, transport, navigation, and state modules |
 | D180 | `archive/knowledge/d180-extraction-helper-module-split.md` | mechanical extraction orchestration helper split into output and replay-scope modules |
 | D181 | `archive/knowledge/d181-playwright-session-module-split.md` | mechanical Playwright session split into public types, composition, temp state files, and tests |
+| D182 | `archive/knowledge/d182-aget-facade-module-split.md` | mechanical facade split into orchestration, authorization DTOs, backend adapters, get builder, and session-store adapter |
 
 ## Current Verification Expectations
 
