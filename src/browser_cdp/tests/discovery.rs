@@ -45,14 +45,18 @@ fn chrome_stderr_detail_labels_generic_tail_lines() {
         "info: startup preparing\n\
          info: still warming\n\
          note: first generic line\n\
-         trace: second generic line",
+         trace: second generic line\n\
+         debug: third generic line\n\
+         debug: fourth generic line",
     );
 
-    assert!(detail.contains("Chrome stderr (last 3 lines):"));
+    assert!(detail.contains("Chrome stderr (last 5 lines):"));
     assert!(!detail.contains("startup preparing"));
     assert!(detail.contains("info: still warming"));
     assert!(detail.contains("note: first generic line"));
     assert!(detail.contains("trace: second generic line"));
+    assert!(detail.contains("debug: third generic line"));
+    assert!(detail.contains("debug: fourth generic line"));
 }
 
 #[test]
@@ -78,7 +82,7 @@ fn chrome_startup_error_includes_labeled_generic_stderr() {
     let stderr_capture = TempOutputFile::new(temp.path(), "chrome-stderr").unwrap();
     fs::write(
         stderr_capture.path(),
-        "startup line one\nstartup line two\nstartup line three\nstartup line four\n",
+        "startup line one\nstartup line two\nstartup line three\nstartup line four\nstartup line five\nstartup line six\n",
     )
     .unwrap();
     let error = AgetError::Stable {
@@ -90,11 +94,13 @@ fn chrome_startup_error_includes_labeled_generic_stderr() {
 
     assert_eq!(classified.code(), ErrorCode::BackendUnavailable);
     let message = classified.to_string();
-    assert!(message.contains("Chrome stderr (last 3 lines):"));
+    assert!(message.contains("Chrome stderr (last 5 lines):"));
     assert!(!message.contains("startup line one"));
     assert!(message.contains("startup line two"));
     assert!(message.contains("startup line three"));
     assert!(message.contains("startup line four"));
+    assert!(message.contains("startup line five"));
+    assert!(message.contains("startup line six"));
 }
 
 #[cfg(unix)]

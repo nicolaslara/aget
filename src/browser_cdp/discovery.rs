@@ -146,7 +146,7 @@ pub(super) fn relevant_chrome_stderr(stderr: &str) -> String {
             .map(str::trim)
             .filter(|line| !line.is_empty())
             .rev()
-            .take(3)
+            .take(5)
             .collect::<Vec<_>>()
             .into_iter()
             .rev()

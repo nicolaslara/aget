@@ -58,6 +58,7 @@ This archive file keeps the denser decision routing that used to live in top-lev
 | D239 | `d239-empty-pruning-threshold-boundary.md` | Keep Crawl4AI `word_count_threshold` out of cleaned-HTML empty-leaf pruning. |
 | D240 | `d240-link-label-code-markdown.md` | Crawl4AI `CustomHTML2Text` link-label handling for inline code in owned markdown. |
 | D241 | `d241-windows-chrome-process-lifecycle.md` | agent-browser-inspired Windows Chrome process-group launch and pid cleanup hooks. |
+| D242 | `d242-chrome-stderr-tail-diagnostics.md` | agent-browser-inspired last-five-line generic Chrome startup stderr diagnostics. |
 
 ## Full Archive Routing
 
@@ -77,10 +78,10 @@ This archive file keeps the denser decision routing that used to live in top-lev
 | D151-D157 | `d151-d157-auth-and-browser-import.md` | OAuth-safe authorization API/CLI and conservative browser-neutral Chrome import surface. |
 | D158-D167 | `d158-d167-recent-migration-followups.md` | Recent source-backed extraction improvements and follow-up decomposition slices. |
 | D168-D176 | Per-decision files | Knowledge/reference compaction, engine-refactor planning, wrapper introduction, naming cleanup, and direct engine coverage. |
-| D177-D241 | Per-decision files | Module/test/support decomposition plus the latest owned extractor/browser parity improvements. |
+| D177-D242 | Per-decision files | Module/test/support decomposition plus the latest owned extractor/browser parity improvements. |
 
 ## Current Open Migration Gaps
 
 - I19d remains open for fuller Crawl4AI-quality readability/markdown and richer rendered-page readiness.
-- I19e remains open for broader rendered JavaScript parity, manual real logged-in profile/keychain smoke execution, cross-platform close/process lifecycle parity, and still-fuller startup/error classification.
+- I19e remains open for broader rendered JavaScript parity, manual real logged-in profile/keychain smoke execution, and still-fuller startup/error classification.
 - I19h remains open because final migration review requires review subagents for test adequacy, architecture cohesion, and security/privacy.

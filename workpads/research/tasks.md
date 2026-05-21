@@ -1529,6 +1529,21 @@ Status note:
 
 - Completed with D241. Source inspection found agent-browser uses Windows detached process-group launch flags and pid-based termination for stale/unreachable processes. Owned Chrome process helpers now apply those Windows launch flags, use `taskkill /PID <pid> /F` for Windows cleanup before `Child::kill`, preserve Unix process-group behavior, and include deterministic helper coverage for the source-backed flag and command construction.
 
+### ✅ Task I19by: Align generic Chrome startup stderr tail diagnostics
+
+Acceptance criteria:
+
+- Inspect `agent-browser` generic Chrome startup stderr handling before changing owned diagnostics.
+- Preserve existing owned Chrome startup classifications for profile/user-action, sandbox/namespace hints, and silent startup failures.
+- Align bounded generic stderr context with the source-backed last-five-lines behavior.
+- Add deterministic classifier coverage for the generic stderr tail length.
+- Record the source-backed boundary in `knowledge.md`.
+- Verify with focused browser/CDP coverage plus the standard check set.
+
+Status note:
+
+- Completed with D242. Source inspection found agent-browser reports the last five generic Chrome stderr lines when no classified startup error keywords are present. Owned Chrome startup diagnostics now use the same five-line bounded fallback while preserving profile/user-action classification, sandbox/namespace hints, and silent-startup hints. Deterministic discovery coverage locks the generic tail length.
+
 ### ✅ Task I20: Design OAuth-safe browser login and profile import flow
 
 Acceptance criteria:
