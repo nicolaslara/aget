@@ -2,6 +2,7 @@ use std::io;
 use std::path::{Path, PathBuf};
 use std::time::Duration;
 
+use crate::aget_browser::AgetBrowser;
 use crate::cli::{ExtractorOption, OutputFormat};
 use crate::error::{AgetError, ErrorCode};
 use crate::extraction::{
@@ -10,16 +11,12 @@ use crate::extraction::{
     ExtractorBackend, GetOptions, GetSuccess, OwnedExtractorBackend,
 };
 use crate::session::{
-    cancel_login_session as cancel_login_flow,
-    cancel_owned_login_session as cancel_owned_login_flow, complete_login_session, compose_session,
-    finish_login_session as finish_login_flow,
-    finish_owned_login_session as finish_owned_login_flow,
-    import_chrome_session as import_chrome_state, import_cmux_session as import_cmux_state,
-    import_owned_chrome_session as import_owned_chrome_state, merge_login_session,
-    start_login_session as start_login_flow, start_owned_login_session as start_owned_login_flow,
-    ChromeImportOptions, CmuxImportOptions, LoginCancelOptions, LoginCancelResult,
-    LoginCompleteOptions, LoginFinishOptions, LoginFinishResult, LoginStartOptions,
-    LoginStartResult, Session, SessionStore,
+    cancel_login_session as cancel_login_flow, complete_login_session, compose_session,
+    finish_login_session as finish_login_flow, import_chrome_session as import_chrome_state,
+    import_cmux_session as import_cmux_state, merge_login_session,
+    start_login_session as start_login_flow, ChromeImportOptions, CmuxImportOptions,
+    LoginCancelOptions, LoginCancelResult, LoginCompleteOptions, LoginFinishOptions,
+    LoginFinishResult, LoginStartOptions, LoginStartResult, Session, SessionStore,
 };
 
 #[derive(Debug, Clone)]
@@ -387,13 +384,13 @@ impl ExtractorBackend for DefaultExtractorBackend {
 
 #[derive(Clone)]
 pub enum DefaultBrowserAutomationBackend {
-    Owned(OwnedBrowserAutomationBackend),
+    Owned(AgetBrowserBackend),
     Command(CommandBrowserAutomationBackend),
 }
 
 impl DefaultBrowserAutomationBackend {
     fn owned() -> Self {
-        Self::Owned(OwnedBrowserAutomationBackend)
+        Self::Owned(AgetBrowserBackend::default())
     }
 
     fn from_env() -> Self {
@@ -477,24 +474,62 @@ impl BrowserFallbackBackend for CommandBrowserAutomationBackend {
     }
 }
 
-#[derive(Clone, Default)]
+#[derive(Clone, Debug, Default)]
+pub struct AgetBrowserBackend {
+    browser: AgetBrowser,
+}
+
+impl AgetBrowserBackend {
+    pub fn new(browser: AgetBrowser) -> Self {
+        Self { browser }
+    }
+}
+
+impl BrowserAutomationBackend for AgetBrowserBackend {
+    fn import_chrome(&self, options: ChromeImportOptions) -> Result<Session, AgetError> {
+        self.browser.import_chrome_session(options)
+    }
+
+    fn start_login(&self, options: LoginStartOptions) -> Result<LoginStartResult, AgetError> {
+        self.browser.start_login_session(options)
+    }
+
+    fn finish_login(&self, options: LoginFinishOptions) -> Result<LoginFinishResult, AgetError> {
+        self.browser.finish_login_session(options)
+    }
+
+    fn cancel_login(&self, options: LoginCancelOptions) -> Result<LoginCancelResult, AgetError> {
+        self.browser.cancel_login_session(options)
+    }
+}
+
+impl BrowserFallbackBackend for AgetBrowserBackend {
+    fn extract_with_state(
+        &self,
+        request: BrowserFallbackRequest<'_>,
+    ) -> Result<BrowserFallbackResult, AgetError> {
+        self.browser.extract_with_state(request)
+    }
+}
+
+#[derive(Clone, Debug, Default)]
 pub struct OwnedBrowserAutomationBackend;
 
 impl BrowserAutomationBackend for OwnedBrowserAutomationBackend {
     fn import_chrome(&self, options: ChromeImportOptions) -> Result<Session, AgetError> {
-        import_owned_chrome_state(options)
+        AgetBrowserBackend::default().import_chrome(options)
     }
 
     fn start_login(&self, options: LoginStartOptions) -> Result<LoginStartResult, AgetError> {
-        start_owned_login_flow(options)
+        AgetBrowserBackend::default().start_login(options)
     }
 
     fn finish_login(&self, options: LoginFinishOptions) -> Result<LoginFinishResult, AgetError> {
-        finish_owned_login_flow(options)
+        AgetBrowserBackend::default().finish_login(options)
     }
 
     fn cancel_login(&self, options: LoginCancelOptions) -> Result<LoginCancelResult, AgetError> {
-        cancel_owned_login_flow(options)
+        AgetBrowserBackend::default().cancel_login(options)
     }
 }
 
@@ -503,7 +538,7 @@ impl BrowserFallbackBackend for OwnedBrowserAutomationBackend {
         &self,
         request: BrowserFallbackRequest<'_>,
     ) -> Result<BrowserFallbackResult, AgetError> {
-        crate::extraction::run_owned_browser_fallback(request)
+        AgetBrowserBackend::default().extract_with_state(request)
     }
 }
 

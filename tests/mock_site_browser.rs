@@ -2,7 +2,9 @@ mod support;
 
 use std::time::Duration;
 
-use aget::{Aget, OutputFormat, OwnedBrowserAutomationBackend, OwnedExtractorBackend};
+use aget::{
+    Aget, AgetBrowserBackend, OutputFormat, OwnedBrowserAutomationBackend, OwnedExtractorBackend,
+};
 use support::mock_site::{MockResponse, MockSite};
 use support::mock_site_cli::{
     save_cookie_session, save_storage_session, storage_rendered_site, FailingExtractor,
@@ -17,7 +19,7 @@ fn owned_browser_fallback_replays_cookie_backed_session_without_agent_browser() 
 
     let fallback = Aget::new(&aget_home)
         .with_extractor_backend(FailingExtractor)
-        .with_browser_automation_backend(OwnedBrowserAutomationBackend)
+        .with_browser_automation_backend(AgetBrowserBackend::default())
         .get(site.url("/protected"))
         .session("app")
         .content_format(OutputFormat::Text)

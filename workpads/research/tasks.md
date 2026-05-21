@@ -516,7 +516,7 @@ Status note:
 
 - Completed after D149, with later CLI/binary follow-ups recorded in D161 and D162. The original agent-context bottlenecks are now split into behavior-owned modules: extraction orchestration, owned extraction, markdown, command adapters, fallback adapters, HTML cleanup, HTTP/static fetch, artifacts/redaction, CDP page scripts, process helpers, discovery, Chrome process launch, CDP client/session plumbing, session data conversion, rendered-page orchestration, profile state export, login lifecycle orchestration, and CDP unit tests. The large integration targets were also split into support helpers plus behavior modules for mock-site docs/browser/session/owned coverage, session CLI import/login coverage, and get CLI session-backed replay/fallback coverage. The post-split size profile keeps the formerly 2k-3k line files below the original problem range, the CLI parser is now split into top-level parser, get command, session command, and parser-test modules, and binary session-command execution now lives outside `src/main.rs`.
 
-### 📋 Task I19j: Refactor local replacement engines into `AgetExtractor` and `AgetBrowser`
+### 🚧 Task I19j: Refactor local replacement engines into `AgetExtractor` and `AgetBrowser`
 
 Acceptance criteria:
 
@@ -531,6 +531,10 @@ Acceptance criteria:
 - Preserve existing public CLI/API behavior and current backend trait contracts unless a follow-up task explicitly approves a behavior change.
 - Add or adjust direct engine-level tests so extraction/browser behavior can be tested without full `Aget` orchestration when the behavior is engine-local.
 - Verify each mechanical slice with focused tests plus the standard check set, and record final boundaries and validation evidence in `knowledge.md`.
+
+Status note:
+
+- Started with D170. The first mechanical browser slice introduced `AgetBrowser` and `AgetBrowserBackend`, routed `DefaultBrowserAutomationBackend::Owned` through the new backend, and kept `OwnedBrowserAutomationBackend` as a compatibility shim for existing callers/tests. Focused API and mock-site browser tests pass, but I19j remains in progress because the extractor boundary, remaining live `owned` names, direct engine tests, current docs, and final validation are not complete.
 
 ### ✅ Task I20: Design OAuth-safe browser login and profile import flow
 

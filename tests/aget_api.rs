@@ -12,10 +12,10 @@ use aget::extraction::{
 };
 use aget::session::login::PendingLogin;
 use aget::{
-    Aget, AgetError, AuthorizationState, AuthorizeSessionOptions, ChromeImportOptions, ErrorCode,
-    LoginCancelOptions, LoginCancelResult, LoginFinishOptions, LoginFinishResult,
-    LoginStartOptions, LoginStartResult, OutputFormat, OwnedBrowserAutomationBackend, Session,
-    SessionCookie, SessionSource,
+    Aget, AgetBrowserBackend, AgetError, AuthorizationState, AuthorizeSessionOptions,
+    ChromeImportOptions, ErrorCode, LoginCancelOptions, LoginCancelResult, LoginFinishOptions,
+    LoginFinishResult, LoginStartOptions, LoginStartResult, OutputFormat, Session, SessionCookie,
+    SessionSource,
 };
 
 #[test]
@@ -240,7 +240,7 @@ fn owned_browser_backend_does_not_save_failed_profile_path_import() {
     let missing_profile = temp.path().join("missing-profile");
 
     let error = Aget::new(&home)
-        .with_browser_automation_backend(OwnedBrowserAutomationBackend)
+        .with_browser_automation_backend(AgetBrowserBackend::default())
         .import_chrome_session(
             missing_profile.to_string_lossy().to_string(),
             "chrome",
@@ -273,7 +273,7 @@ fn owned_browser_backend_cancels_pending_login_without_agent_browser() {
     .unwrap();
 
     let cancelled = Aget::new(&home)
-        .with_browser_automation_backend(OwnedBrowserAutomationBackend)
+        .with_browser_automation_backend(AgetBrowserBackend::default())
         .cancel_login_session("docs")
         .unwrap();
 

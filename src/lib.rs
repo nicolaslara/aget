@@ -1,6 +1,7 @@
 mod browser_cdp;
 
 pub mod aget;
+pub mod aget_browser;
 pub mod cli;
 pub mod error;
 pub mod extraction;
@@ -8,9 +9,10 @@ pub(crate) mod process;
 pub mod session;
 
 pub use aget::{
-    Aget, AuthorizationPredicateResult, AuthorizationState, AuthorizeSessionOptions,
-    AuthorizeSessionResult, GetRequest, OwnedBrowserAutomationBackend,
+    Aget, AgetBrowserBackend, AuthorizationPredicateResult, AuthorizationState,
+    AuthorizeSessionOptions, AuthorizeSessionResult, GetRequest, OwnedBrowserAutomationBackend,
 };
+pub use aget_browser::AgetBrowser;
 pub use cli::{
     AuthorizeSessionCommand, BrowserChoice, Cli, Command, ComposeSessionCommand,
     DeleteSessionCommand, EnvelopeFormat, ExtractorOption, GetCommand, GlobalOptions,
