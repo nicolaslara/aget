@@ -2402,6 +2402,20 @@ Validation:
 
 Confidence: High for the login-test split. The move is mechanical, the affected integration target passed, and the full standard suite is green.
 
+### D147: I19i splits shared get CLI helpers
+
+The next get CLI decomposition slice moved shared fake backend, fake agent-browser, success-envelope, metadata discovery, loopback cookie echo server, and saved-session fixture helpers from `tests/get_cli.rs` into `tests/support/get_cli.rs`. `tests/get_cli.rs` now imports those helpers through the shared integration-test support module, preparing later behavior-focused get-test splits without duplicating backend command or session fixture setup.
+
+Validation:
+
+- `cargo fmt`
+- `cargo test --test get_cli`
+- `cargo fmt --check`
+- `git diff --check`
+- `cargo test`
+
+Confidence: High for the get CLI helper split. The helper move is mechanical, the affected integration target passed, and the full standard suite is green.
+
 ## Open Questions
 
 - Can pure Rust browser automation provide reliable persistent profiles and CDP attach, or do we need a small Node/Playwright sidecar?
