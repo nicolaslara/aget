@@ -1510,12 +1510,15 @@ fn discover_cdp_ws_url(port: u16, timeout: Duration) -> Result<String, AgetError
     };
     match discover_cdp_ws_url_from_list(&agent, port) {
         Ok(ws_url) => Ok(ws_url),
-        Err(list_error) => Err(AgetError::Stable {
-            code: ErrorCode::BackendUnavailable,
-            message: format!(
-                "owned browser CDP discovery failed: /json/version: {version_error}; /json/list: {list_error}",
-            ),
-        }),
+        Err(list_error) => match discover_cdp_ws_url_from_direct_ws(port, timeout) {
+            Ok(ws_url) => Ok(ws_url),
+            Err(ws_error) => Err(AgetError::Stable {
+                code: ErrorCode::BackendUnavailable,
+                message: format!(
+                    "owned browser CDP discovery failed: /json/version: {version_error}; /json/list: {list_error}; /devtools/browser: {ws_error}",
+                ),
+            }),
+        },
     }
 }
 
@@ -1597,6 +1600,21 @@ fn fetch_cdp_discovery_body(
         .read_to_string()
         .map_err(cdp_discovery_error)?;
     Ok(body)
+}
+
+fn discover_cdp_ws_url_from_direct_ws(port: u16, timeout: Duration) -> Result<String, AgetError> {
+    let ws_url = format!("ws://127.0.0.1:{port}/devtools/browser");
+    let mut client = CdpClient::connect(&ws_url, timeout).map_err(|error| AgetError::Stable {
+        code: ErrorCode::BackendUnavailable,
+        message: format!("owned browser direct CDP WebSocket discovery failed: {error}"),
+    })?;
+    client
+        .send("Browser.getVersion", None, None, timeout)
+        .map_err(|error| AgetError::Stable {
+            code: ErrorCode::BackendUnavailable,
+            message: format!("owned browser direct CDP WebSocket verification failed: {error}"),
+        })?;
+    Ok(ws_url)
 }
 
 fn rewrite_cdp_ws_host(ws_url: &str, port: u16) -> Option<String> {
@@ -2437,6 +2455,47 @@ more noise";
             ws_url,
             format!("ws://127.0.0.1:{port}/devtools/page/fallback")
         );
+    }
+
+    #[test]
+    fn discovers_cdp_websocket_url_from_direct_websocket_fallback() {
+        use std::io::{Read as _, Write as _};
+        use std::net::TcpListener;
+
+        let listener = TcpListener::bind(("127.0.0.1", 0)).unwrap();
+        let port = listener.local_addr().unwrap().port();
+        let handle = thread::spawn(move || {
+            for _ in 0..2 {
+                let (mut stream, _) = listener.accept().unwrap();
+                let mut request = [0u8; 512];
+                let _ = stream.read(&mut request);
+                let response = http_json_response(404, r#"{"error":"missing"}"#);
+                stream.write_all(response.as_bytes()).unwrap();
+            }
+
+            let (stream, _) = listener.accept().unwrap();
+            let mut websocket = tungstenite::accept(stream).unwrap();
+            let Message::Text(text) = websocket.read().unwrap() else {
+                panic!("expected text CDP command");
+            };
+            let request: Value = serde_json::from_str(text.as_ref()).unwrap();
+            let id = request.get("id").and_then(Value::as_u64).unwrap();
+            let reply = json!({
+                "id": id,
+                "result": {
+                    "protocolVersion": "1.3",
+                    "product": "Chrome/136"
+                }
+            })
+            .to_string();
+            websocket.send(Message::Text(reply.into())).unwrap();
+            let _ = websocket.close(None);
+        });
+
+        let ws_url = discover_cdp_ws_url(port, Duration::from_secs(2)).unwrap();
+        handle.join().unwrap();
+
+        assert_eq!(ws_url, format!("ws://127.0.0.1:{port}/devtools/browser"));
     }
 
     fn serve_cdp_discovery_responses(responses: Vec<String>) -> (u16, thread::JoinHandle<()>) {

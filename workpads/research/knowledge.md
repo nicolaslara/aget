@@ -1732,6 +1732,21 @@ Validation:
 
 Confidence: Medium-high. The behavior is source-backed and covered by deterministic local HTTP tests for `/json/version`, `/json/list` browser-target preference, and first-WebSocket target fallback. Real Chrome path-staleness behavior still needs ignored/manual Chrome smoke coverage before current-tab attach or broader profile attachment can be considered complete.
 
+### D103: I19e verifies direct CDP WebSocket discovery
+
+The next owned browser/session parity slice ports the final `agent-browser` CDP discovery fallback. Before changing the owned path, I19e re-inspected `references/repos/agent-browser/cli/src/native/cdp/discovery.rs`, where `discover_cdp_url_with_timeout` falls back from `/json/version` and `/json/list` to a direct `ws://host:port/devtools/browser` connection and verifies the endpoint with `Browser.getVersion`.
+
+`OwnedBrowserAutomationBackend` now tries direct `ws://127.0.0.1:<port>/devtools/browser` discovery after the direct `DevToolsActivePort` path, `/json/version`, and `/json/list` fail. The direct fallback opens the WebSocket, sends `Browser.getVersion`, and only returns the URL if the endpoint replies through the existing CDP response path. Discovery errors remain classified as backend-unavailable so existing-profile attach can still give up without leaking site-specific advice or ambient browser-control behavior.
+
+Validation:
+
+- `cargo fmt --check`
+- `git diff --check`
+- `cargo test browser_cdp::tests::`
+- `cargo test`
+
+Confidence: Medium-high. The behavior is source-backed and covered by a deterministic local WebSocket test that first returns 404 for both HTTP discovery endpoints, then verifies `Browser.getVersion` over `/devtools/browser`. It still does not prove real Chrome UI-remote-debugging behavior, so manual/ignored Chrome smoke coverage remains a follow-up.
+
 ## Open Questions
 
 - Can pure Rust browser automation provide reliable persistent profiles and CDP attach, or do we need a small Node/Playwright sidecar?
