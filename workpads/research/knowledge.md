@@ -1717,6 +1717,21 @@ Validation:
 
 Confidence: Medium-high. The discovery parsing and URL rewrite are deterministic and source-backed. Real Chrome path-staleness behavior still needs ignored/manual Chrome smoke coverage before current-tab attach or broader profile attachment can be considered complete.
 
+### D102: I19e falls back to CDP target-list discovery
+
+The next owned browser/session parity slice ports another `agent-browser` attachment reliability behavior. Before changing the owned path, I19e re-inspected `references/repos/agent-browser/cli/src/native/cdp/discovery.rs`, where `discover_cdp_url_with_timeout` tries `/json/version`, then `/json/list`, and `fetch_cdp_list` extracts a `webSocketDebuggerUrl` from the browser target or another available target.
+
+`OwnedBrowserAutomationBackend` now keeps direct `DevToolsActivePort` attachment as the primary path, then tries `/json/version`, then tries `http://127.0.0.1:<port>/json/list` before giving up. The owned `/json/list` parser prefers a `type == "browser"` target with a WebSocket URL and otherwise falls back to the first target that has a WebSocket URL, then rewrites the discovered host and port to the local target. This improves existing-profile attach reliability while still avoiding ambient current-tab attach or site-specific browser behavior.
+
+Validation:
+
+- `cargo fmt --check`
+- `git diff --check`
+- `cargo test browser_cdp::tests::`
+- `cargo test`
+
+Confidence: Medium-high. The behavior is source-backed and covered by deterministic local HTTP tests for `/json/version`, `/json/list` browser-target preference, and first-WebSocket target fallback. Real Chrome path-staleness behavior still needs ignored/manual Chrome smoke coverage before current-tab attach or broader profile attachment can be considered complete.
+
 ## Open Questions
 
 - Can pure Rust browser automation provide reliable persistent profiles and CDP attach, or do we need a small Node/Playwright sidecar?

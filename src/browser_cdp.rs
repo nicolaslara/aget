@@ -1503,27 +1503,100 @@ fn discover_cdp_ws_url(port: u16, timeout: Duration) -> Result<String, AgetError
         .http_status_as_error(false)
         .build();
     let agent: ureq::Agent = config.into();
-    let url = format!("http://127.0.0.1:{port}/json/version");
-    let mut response = agent.get(&url).call().map_err(cdp_discovery_error)?;
-    let body = response
-        .body_mut()
-        .read_to_string()
-        .map_err(cdp_discovery_error)?;
+
+    let version_error = match discover_cdp_ws_url_from_version(&agent, port) {
+        Ok(ws_url) => return Ok(ws_url),
+        Err(error) => error,
+    };
+    match discover_cdp_ws_url_from_list(&agent, port) {
+        Ok(ws_url) => Ok(ws_url),
+        Err(list_error) => Err(AgetError::Stable {
+            code: ErrorCode::BackendUnavailable,
+            message: format!(
+                "owned browser CDP discovery failed: /json/version: {version_error}; /json/list: {list_error}",
+            ),
+        }),
+    }
+}
+
+fn discover_cdp_ws_url_from_version(agent: &ureq::Agent, port: u16) -> Result<String, AgetError> {
+    let body = fetch_cdp_discovery_body(agent, port, "/json/version")?;
     let json: Value = serde_json::from_str(&body).map_err(|error| AgetError::Stable {
         code: ErrorCode::BackendUnavailable,
-        message: format!("owned browser could not parse Chrome CDP discovery response: {error}"),
+        message: format!(
+            "owned browser could not parse Chrome CDP /json/version response: {error}"
+        ),
     })?;
     let ws_url = json
         .get("webSocketDebuggerUrl")
         .and_then(Value::as_str)
         .ok_or_else(|| AgetError::Stable {
             code: ErrorCode::BackendUnavailable,
-            message: "owned browser CDP discovery response lacked webSocketDebuggerUrl".to_string(),
+            message: "owned browser CDP /json/version response lacked webSocketDebuggerUrl"
+                .to_string(),
         })?;
     rewrite_cdp_ws_host(ws_url, port).ok_or_else(|| AgetError::Stable {
         code: ErrorCode::BackendUnavailable,
         message: format!("owned browser CDP discovery returned invalid WebSocket URL: {ws_url}"),
     })
+}
+
+fn discover_cdp_ws_url_from_list(agent: &ureq::Agent, port: u16) -> Result<String, AgetError> {
+    let body = fetch_cdp_discovery_body(agent, port, "/json/list")?;
+    let targets: Vec<Value> = serde_json::from_str(&body).map_err(|error| AgetError::Stable {
+        code: ErrorCode::BackendUnavailable,
+        message: format!("owned browser could not parse Chrome CDP /json/list response: {error}"),
+    })?;
+    let target = targets
+        .iter()
+        .find(|target| {
+            target.get("type").and_then(Value::as_str) == Some("browser")
+                && target
+                    .get("webSocketDebuggerUrl")
+                    .and_then(Value::as_str)
+                    .is_some()
+        })
+        .or_else(|| {
+            targets.iter().find(|target| {
+                target
+                    .get("webSocketDebuggerUrl")
+                    .and_then(Value::as_str)
+                    .is_some()
+            })
+        });
+    let ws_url = target
+        .and_then(|target| target.get("webSocketDebuggerUrl"))
+        .and_then(Value::as_str)
+        .ok_or_else(|| AgetError::Stable {
+            code: ErrorCode::BackendUnavailable,
+            message: "owned browser CDP /json/list response lacked webSocketDebuggerUrl"
+                .to_string(),
+        })?;
+    rewrite_cdp_ws_host(ws_url, port).ok_or_else(|| AgetError::Stable {
+        code: ErrorCode::BackendUnavailable,
+        message: format!("owned browser CDP discovery returned invalid WebSocket URL: {ws_url}"),
+    })
+}
+
+fn fetch_cdp_discovery_body(
+    agent: &ureq::Agent,
+    port: u16,
+    path: &str,
+) -> Result<String, AgetError> {
+    let url = format!("http://127.0.0.1:{port}{path}");
+    let mut response = agent.get(&url).call().map_err(cdp_discovery_error)?;
+    let status = response.status();
+    if !status.is_success() {
+        return Err(AgetError::Stable {
+            code: ErrorCode::BackendUnavailable,
+            message: format!("owned browser CDP discovery {path} returned HTTP {status}"),
+        });
+    }
+    let body = response
+        .body_mut()
+        .read_to_string()
+        .map_err(cdp_discovery_error)?;
+    Ok(body)
 }
 
 fn rewrite_cdp_ws_host(ws_url: &str, port: u16) -> Option<String> {
@@ -2303,25 +2376,8 @@ more noise";
 
     #[test]
     fn discovers_cdp_websocket_url_from_json_version() {
-        use std::io::{Read as _, Write as _};
-        use std::net::TcpListener;
-
-        let listener = TcpListener::bind(("127.0.0.1", 0)).unwrap();
-        let port = listener.local_addr().unwrap().port();
-        let handle = thread::spawn(move || {
-            let (mut stream, _) = listener.accept().unwrap();
-            let mut request = [0u8; 512];
-            let _ = stream.read(&mut request);
-            let body =
-                r#"{"webSocketDebuggerUrl":"ws://localhost:9999/devtools/browser/discovered"}"#;
-            write!(
-                stream,
-                "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{}",
-                body.len(),
-                body
-            )
-            .unwrap();
-        });
+        let body = r#"{"webSocketDebuggerUrl":"ws://localhost:9999/devtools/browser/discovered"}"#;
+        let (port, handle) = serve_cdp_discovery_responses(vec![http_json_response(200, body)]);
 
         let ws_url = discover_cdp_ws_url(port, Duration::from_secs(2)).unwrap();
         handle.join().unwrap();
@@ -2330,6 +2386,87 @@ more noise";
             ws_url,
             format!("ws://127.0.0.1:{port}/devtools/browser/discovered")
         );
+    }
+
+    #[test]
+    fn discovers_cdp_websocket_url_from_json_list_fallback() {
+        let list_body = r#"[
+            {
+                "type": "page",
+                "webSocketDebuggerUrl": "ws://localhost:9999/devtools/page/ignored"
+            },
+            {
+                "type": "browser",
+                "webSocketDebuggerUrl": "ws://localhost:9999/devtools/browser/list"
+            }
+        ]"#;
+        let (port, handle) = serve_cdp_discovery_responses(vec![
+            http_json_response(200, r#"{}"#),
+            http_json_response(200, list_body),
+        ]);
+
+        let ws_url = discover_cdp_ws_url(port, Duration::from_secs(2)).unwrap();
+        handle.join().unwrap();
+
+        assert_eq!(
+            ws_url,
+            format!("ws://127.0.0.1:{port}/devtools/browser/list")
+        );
+    }
+
+    #[test]
+    fn discovers_cdp_websocket_url_from_first_list_target_with_ws() {
+        let list_body = r#"[
+            {
+                "type": "page"
+            },
+            {
+                "type": "page",
+                "webSocketDebuggerUrl": "ws://localhost:9999/devtools/page/fallback"
+            }
+        ]"#;
+        let (port, handle) = serve_cdp_discovery_responses(vec![
+            http_json_response(404, r#"{"error":"missing"}"#),
+            http_json_response(200, list_body),
+        ]);
+
+        let ws_url = discover_cdp_ws_url(port, Duration::from_secs(2)).unwrap();
+        handle.join().unwrap();
+
+        assert_eq!(
+            ws_url,
+            format!("ws://127.0.0.1:{port}/devtools/page/fallback")
+        );
+    }
+
+    fn serve_cdp_discovery_responses(responses: Vec<String>) -> (u16, thread::JoinHandle<()>) {
+        use std::io::{Read as _, Write as _};
+        use std::net::TcpListener;
+
+        let listener = TcpListener::bind(("127.0.0.1", 0)).unwrap();
+        let port = listener.local_addr().unwrap().port();
+        let handle = thread::spawn(move || {
+            for response in responses {
+                let (mut stream, _) = listener.accept().unwrap();
+                let mut request = [0u8; 512];
+                let _ = stream.read(&mut request);
+                stream.write_all(response.as_bytes()).unwrap();
+            }
+        });
+        (port, handle)
+    }
+
+    fn http_json_response(status: u16, body: &str) -> String {
+        let reason = match status {
+            200 => "OK",
+            404 => "Not Found",
+            _ => "Status",
+        };
+        format!(
+            "HTTP/1.1 {status} {reason}\r\nContent-Type: application/json\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{}",
+            body.len(),
+            body
+        )
     }
 
     fn remove_dir_all_with_retries(path: &Path) -> io::Result<()> {
