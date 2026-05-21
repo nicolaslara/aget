@@ -1897,6 +1897,21 @@ Validation:
 
 Confidence: High for fragment-only anchors. The behavior is source-backed and covered by the existing deterministic link-default fixture; broader Crawl4AI link/reference formatting remains separate I19d work.
 
+### D114: I19d escapes accidental list markers in plain text
+
+The next markdown text-escaping slice ports Crawl4AI/html2text's default protection against plain text being misread as markdown lists. Before changing the owned renderer, I19d re-inspected `references/repos/crawl4ai/crawl4ai/html2text/utils.py`, where `escape_md_section` escapes ordered-list dots plus leading `+` and `-` markers when they appear at the start of a markdown section, and `references/repos/crawl4ai/crawl4ai/markdown_generation_strategy.py`, where the default generator leaves `escape_snob` false but does not disable those marker-specific escapes.
+
+`OwnedExtractorBackend` now escapes plain text that begins a markdown line with an ordered-list marker like `1. `, a dash bullet marker, or a plus bullet marker. Generated list syntax is unchanged because the escaping only applies to raw text nodes rendered at the start of a markdown line. The static markdown fixture now proves those plain-text markers remain text instead of becoming unintended markdown list items.
+
+Validation:
+
+- `cargo fmt --check`
+- `git diff --check`
+- `cargo test --test mock_site_cli homegrown_extractor_backend_covers_static_http_parity_slice`
+- `cargo test`
+
+Confidence: High for start-of-line marker protection. The behavior is source-backed and deterministically covered; broader html2text escaping such as backslash preservation remains a separate markdown-quality follow-up.
+
 ## Open Questions
 
 - Can pure Rust browser automation provide reliable persistent profiles and CDP attach, or do we need a small Node/Playwright sidecar?

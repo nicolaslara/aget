@@ -1633,7 +1633,11 @@ impl MarkdownWriter {
     }
 
     fn push_text(&mut self, text: &str) {
-        self.push_inline(&normalize_inline_markdown(text));
+        let mut text = normalize_inline_markdown(text);
+        if is_markdown_line_start(&self.output) {
+            text = escape_markdown_line_start(&text);
+        }
+        self.push_inline(&text);
     }
 
     fn push_inline(&mut self, text: &str) {
@@ -2213,6 +2217,32 @@ fn starts_with_closing_punctuation(text: &str) -> bool {
     text.chars()
         .next()
         .is_some_and(|character| matches!(character, '.' | ',' | ':' | ';' | '!' | '?' | ')' | ']'))
+}
+
+fn is_markdown_line_start(output: &str) -> bool {
+    output.is_empty() || output.ends_with('\n')
+}
+
+fn escape_markdown_line_start(text: &str) -> String {
+    if starts_with_ordered_list_marker(text) {
+        return text.replacen('.', "\\.", 1);
+    }
+    if text
+        .strip_prefix(['-', '+'])
+        .is_some_and(|rest| rest.starts_with(char::is_whitespace))
+    {
+        return format!("\\{text}");
+    }
+    text.to_string()
+}
+
+fn starts_with_ordered_list_marker(text: &str) -> bool {
+    let Some((prefix, rest)) = text.split_once('.') else {
+        return false;
+    };
+    !prefix.is_empty()
+        && prefix.chars().all(|character| character.is_ascii_digit())
+        && rest.starts_with(char::is_whitespace)
 }
 
 fn trim_trailing_horizontal_space(output: &mut String) {
