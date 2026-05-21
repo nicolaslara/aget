@@ -1293,15 +1293,19 @@ fn extract_owned_content(
     owned_options: &OwnedExtractorOptions,
 ) -> Result<ExtractedOwnedContent, AgetError> {
     let root_ids = if let Some(raw_selector) = selector {
-        let selector = parse_css_selector(raw_selector)?;
-        let selected = document
-            .select(&selector)
-            .map(|element| element.id())
-            .collect::<Vec<_>>();
-        if selected.is_empty() {
-            vec![document.root_element().id()]
-        } else {
-            selected
+        match parse_css_selector(raw_selector) {
+            Ok(selector) => {
+                let selected = document
+                    .select(&selector)
+                    .map(|element| element.id())
+                    .collect::<Vec<_>>();
+                if selected.is_empty() {
+                    vec![document.root_element().id()]
+                } else {
+                    selected
+                }
+            }
+            Err(_) => vec![document.root_element().id()],
         }
     } else if !owned_options.target_elements.is_empty() {
         vec![document.root_element().id()]
@@ -1549,7 +1553,9 @@ fn remove_owned_excluded_tags(document: Html, tags: &[String]) -> Result<Html, A
 }
 
 fn remove_selected_elements(document: Html, selector_list: &str) -> Result<Html, AgetError> {
-    let selector = parse_css_selector(selector_list)?;
+    let Ok(selector) = parse_css_selector(selector_list) else {
+        return Ok(document);
+    };
     let node_ids = document
         .select(&selector)
         .map(|element| element.id())

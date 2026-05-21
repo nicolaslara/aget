@@ -655,6 +655,31 @@ fn homegrown_extractor_backend_covers_static_http_parity_slice() {
         "Selector Header Selector Main Selector body text. Selector Footer"
     );
 
+    let selector_invalid = Aget::new(&aget_home)
+        .with_extractor_backend(OwnedExtractorBackend)
+        .get(site.url("/selector-miss"))
+        .content_format(OutputFormat::Text)
+        .selector("[[[invalid")
+        .run()
+        .unwrap();
+    assert_eq!(
+        selector_invalid.content,
+        "Selector Header Selector Main Selector body text. Selector Footer"
+    );
+
+    let invalid_exclude_selector = Aget::new(&aget_home)
+        .with_extractor_backend(OwnedExtractorBackend)
+        .get(site.url("/formats"))
+        .content_format(OutputFormat::Text)
+        .selector("main.article")
+        .exclude_selector("[[[invalid")
+        .run()
+        .unwrap();
+    assert_eq!(
+        invalid_exclude_selector.content,
+        "Format Heading Format body text. Promotional aside."
+    );
+
     let selector_multiple = Aget::new(&aget_home)
         .with_extractor_backend(OwnedExtractorBackend)
         .get(site.url("/selector-multiple"))

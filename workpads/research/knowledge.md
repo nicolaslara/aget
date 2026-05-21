@@ -1867,6 +1867,21 @@ Validation:
 
 Confidence: High. The behavior is source-backed and covered for the multi-match selector case; exact pretty-print wrapper formatting remains intentionally simpler than Crawl4AI's lxml serialization.
 
+### D112: I19d tolerates invalid include/exclude selectors like Crawl4AI
+
+The next selector-behavior slice ports Crawl4AI's invalid-selector handling. Before changing the owned extractor, I19d re-inspected `references/repos/crawl4ai/crawl4ai/content_scraping_strategy.py`, where `LXMLWebScrapingStrategy._scrap` catches exceptions from `body.cssselect(css_selector)` and falls back to the full body, and also catches exceptions from `body.cssselect(excluded_selector)` and continues without removing anything.
+
+`OwnedExtractorBackend` now treats an invalid normal `--selector` the same as a no-match selector by falling back to the full parsed document, and treats an invalid `--exclude-selector` as a no-op. Strict parsing is still retained for `--wait-for-selector` and `crawl4ai.target_elements`, because waits must be actionable and D71 intentionally validates target selectors before fetch/rendering.
+
+Validation:
+
+- `cargo fmt --check`
+- `git diff --check`
+- `cargo test --test mock_site_cli homegrown_extractor_backend_covers_static_http_parity_slice`
+- `cargo test`
+
+Confidence: High. The behavior is source-backed and covered by deterministic tests for both invalid include and exclude selector cases. It is limited to Crawl4AI-compatible selector tolerance and does not relax JavaScript wait safety.
+
 ## Open Questions
 
 - Can pure Rust browser automation provide reliable persistent profiles and CDP attach, or do we need a small Node/Playwright sidecar?
