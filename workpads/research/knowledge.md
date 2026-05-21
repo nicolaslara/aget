@@ -2330,6 +2330,21 @@ Validation:
 
 Confidence: High for the mock-site documentation contract split. The split is mechanical, both affected integration targets passed, and the full standard suite is green.
 
+### D142: I19i splits mock-site browser/rendering tests
+
+The next integration-test decomposition slice moved browser fallback and Chrome-rendered extraction coverage from `tests/mock_site_cli.rs` to `tests/mock_site_browser.rs`. The new test target owns the owned browser fallback replay test, ignored local-Chrome browser fallback smokes, localStorage-backed rendered extraction, waited JavaScript rendering, script auto-rendering, shadow DOM flattening, render delay, rendered overlay cleanup, image waiting, and network-idle smokes. `tests/mock_site_cli.rs` now keeps the command/default/static extraction and session-oriented mock-site coverage.
+
+Validation:
+
+- `cargo test --test mock_site_cli`
+- `cargo test --test mock_site_browser`
+- `cargo fmt`
+- `cargo fmt --check`
+- `git diff --check`
+- `cargo test`
+
+Confidence: High for the mock-site browser/rendering split. The split is mechanical, both affected integration targets passed, and the full standard suite is green.
+
 ## Open Questions
 
 - Can pure Rust browser automation provide reliable persistent profiles and CDP attach, or do we need a small Node/Playwright sidecar?
