@@ -2416,6 +2416,20 @@ Validation:
 
 Confidence: High for the get CLI helper split. The helper move is mechanical, the affected integration target passed, and the full standard suite is green.
 
+### D148: I19i splits session-backed get CLI tests
+
+The next get CLI decomposition slice moved session-backed replay, replay-scope rejection, repeated-session composition, provider/app cookie flow, session sensitivity, primary-backend failure redaction, agent-browser fallback, unauthenticated fallback suppression, fallback close-failure preservation, and ignored real Crawl4AI session replay coverage from `tests/get_cli.rs` into `tests/get_cli/session.rs`. The root `tests/get_cli.rs` now declares that behavior module with an explicit path and keeps non-session output, option, timeout, and backend-failure tests in the root file.
+
+Validation:
+
+- `cargo fmt`
+- `cargo test --test get_cli`
+- `cargo fmt --check`
+- `git diff --check`
+- `cargo test`
+
+Confidence: High for the session-backed get-test split. The move is mechanical, the affected integration target passed, and the full standard suite is green.
+
 ## Open Questions
 
 - Can pure Rust browser automation provide reliable persistent profiles and CDP attach, or do we need a small Node/Playwright sidecar?
