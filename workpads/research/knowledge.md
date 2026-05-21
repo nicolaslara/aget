@@ -2586,6 +2586,27 @@ Validation:
 
 Confidence: Medium-high. The new surface is intentionally narrow and has deterministic parser/mock coverage plus an ignored manual Chrome smoke. I22 remains open until the workpad records whether this Chrome-only browser-neutral surface is enough for the task or whether additional per-family research/implementation should be done before completion.
 
+### D157: I22 completes with Chrome-only import support
+
+I22 is complete. The task is satisfied by the conservative support matrix rather than by adding unverified browser imports:
+
+- browser-choice terminology is public through `session import browser --browser <family>`, `--browser-profile`, and `--profile-path`;
+- the only supported browser import is `--browser chrome`, which reuses the verified scoped Chrome/CDP import path;
+- unsupported families are parsed and return structured `usage_error` before backend invocation;
+- unsupported browser guidance is recorded in `workpads/research/browser-choice-session-import-design.md`;
+- mocked tests cover supported Chrome import and unsupported browser rejection;
+- an ignored/manual Chrome smoke exists for explicitly approved local profiles.
+
+Adding Chromium, Brave, Edge, Arc, Firefox, or Safari import now would overclaim support. Each family needs source-specific profile discovery/path handling, lock classification, state export behavior, raw-state cleanup checks, and a manual smoke before becoming supported.
+
+Validation:
+
+- `cargo fmt --check`
+- `git diff --check`
+- `cargo test`
+
+Confidence: High for the I22 scope as completed. Browser-choice import now has honest public terminology and a safe failure mode for unsupported browsers.
+
 ## Open Questions
 
 - Can pure Rust browser automation provide reliable persistent profiles and CDP attach, or do we need a small Node/Playwright sidecar?
