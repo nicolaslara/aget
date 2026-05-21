@@ -2746,6 +2746,22 @@ Validation:
 
 Confidence: High. The split moves tests along backend boundaries and does not change product or adapter behavior.
 
+### D167: Follow-up CDP discovery test split
+
+The next decomposition slice reduced `src/browser_cdp/tests.rs` by moving CDP discovery and Chrome-startup diagnostics coverage into `src/browser_cdp/tests/discovery.rs`. The new submodule owns DevTools stderr parsing, `DevToolsActivePort` parsing and stale-file cleanup, `/json/version` and `/json/list` discovery fallbacks, direct websocket fallback discovery, startup hint classification, and the local HTTP discovery helpers.
+
+This is a mechanical test split only. The root CDP test module still covers cookie/storage translation, page-script expressions, Chrome launch retry, and ignored real Chrome state/login smoke tests. While validating the split, the full suite exposed that the fake-Chrome stderr fallback test's two-second timeout was too tight under parallel load; the test now uses a five-second timeout while preserving the same assertion.
+
+Validation:
+
+- `cargo test browser_cdp::tests::discovery`
+- `cargo test browser_cdp::tests::discovery::wait_for_devtools_active_port_uses_stderr_fallback`
+- `cargo test browser_cdp::tests::`
+- `cargo fmt --check`
+- `cargo test`
+
+Confidence: High. The split follows the existing `src/browser_cdp/discovery.rs` boundary and does not change production CDP behavior.
+
 ## Open Questions
 
 - Can pure Rust browser automation provide reliable persistent profiles and CDP attach, or do we need a small Node/Playwright sidecar?
