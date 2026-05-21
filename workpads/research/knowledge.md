@@ -2095,6 +2095,21 @@ Validation:
 
 Confidence: High for the first CDP split. The split is mechanical, the script-contract test passed, and the full standard suite is green.
 
+### D127: I19i splits owned HTML cleanup
+
+The next extraction decomposition slice moved owned HTML cleanup helpers from `src/extraction/mod.rs` to `src/extraction/html_clean.rs`. The new module owns CSS selector parsing, removal of excluded tags and selected nodes, generic overlay selector cleanup, base64 image source blanking, empty-leaf pruning, code-block bypass handling, and Crawl4AI important-attribute pruning. The parent extraction module still owns orchestration and content selection, and calls the same helper names through imports.
+
+Validation:
+
+- `cargo fmt`
+- `cargo fmt --check`
+- `git diff --check`
+- `cargo test --test mock_site_cli homegrown_extractor_backend_covers_static_http_parity_slice`
+- `cargo test --test mock_site_cli documents_custom_site_routes_for_extraction_features`
+- `cargo test`
+
+Confidence: High for the owned HTML cleanup split. The split is mechanical, focused owned-extractor coverage passed, and the full standard suite is green.
+
 ## Open Questions
 
 - Can pure Rust browser automation provide reliable persistent profiles and CDP attach, or do we need a small Node/Playwright sidecar?

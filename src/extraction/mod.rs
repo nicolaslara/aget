@@ -1,5 +1,6 @@
 mod command;
 mod fallback_command;
+mod html_clean;
 mod markdown;
 
 use std::collections::BTreeMap;
@@ -9,13 +10,17 @@ use std::path::{Path, PathBuf};
 use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 
 use ego_tree::NodeId;
-use html5ever::tree_builder::TreeSink;
-use scraper::{ElementRef, Html, HtmlTreeSink, Node, Selector};
+use scraper::{ElementRef, Html};
 use serde::{Deserialize, Serialize};
 use ureq::ResponseExt;
 
 use self::command::run_command_extractor_backend;
 use self::fallback_command::run_agent_browser_fallback;
+use self::html_clean::{
+    clean_owned_base64_image_sources, parse_css_selector, prune_owned_unwanted_attributes,
+    remove_owned_empty_elements, remove_owned_excluded_tags, remove_owned_overlay_elements,
+    remove_selected_elements,
+};
 use self::markdown::{element_to_markdown, normalize_markdown, resolve_markdown_url};
 
 use crate::browser_cdp::PageWaitUntil;
@@ -34,32 +39,6 @@ const FALLBACK_EXTRACTOR: &str = "agent-browser-fallback";
 const FALLBACK_WARNING: &str = "agent-browser fallback used after Crawl4AI failed";
 const OWNED_FALLBACK_WARNING: &str = "aget-owned fallback used after primary extractor failed";
 const DEFAULT_RENDER_SETTLE_DELAY: Duration = Duration::from_millis(100);
-const CRAWL4AI_IMPORTANT_ATTRS: &[&str] = &[
-    "src", "href", "alt", "title", "width", "height", "class", "id",
-];
-const CRAWL4AI_EMPTY_ELEMENT_BYPASS_TAGS: &[&str] = &[
-    "a", "img", "br", "hr", "input", "meta", "link", "source", "track", "wbr", "tr", "td", "th",
-];
-const CRAWL4AI_OVERLAY_SELECTORS: &[&str] = &[
-    r#"button[class*="close" i]"#,
-    r#"button[class*="dismiss" i]"#,
-    r#"button[aria-label*="close" i]"#,
-    r#"button[title*="close" i]"#,
-    r#"a[class*="close" i]"#,
-    r#"span[class*="close" i]"#,
-    r#"[class*="cookie-banner" i]"#,
-    r#"[id*="cookie-banner" i]"#,
-    r#"[class*="cookie-consent" i]"#,
-    r#"[id*="cookie-consent" i]"#,
-    r#"[class*="newsletter" i]"#,
-    r#"[class*="subscribe" i]"#,
-    r#"[class*="popup" i]"#,
-    r#"[class*="modal" i]"#,
-    r#"[class*="overlay" i]"#,
-    r#"[class*="dialog" i]"#,
-    r#"[role="dialog"]"#,
-    r#"[role="alertdialog"]"#,
-];
 
 #[derive(Clone)]
 pub struct GetOptions {
@@ -976,7 +955,7 @@ fn extract_owned_page_response(
 
 fn should_render_scripted_response(body: &str) -> bool {
     let document = Html::parse_document(body);
-    let Ok(selector) = Selector::parse(
+    let Ok(selector) = parse_css_selector(
         "script[src],script:not([type]),script[type=\"text/javascript\"],script[type=\"module\"]",
     ) else {
         return false;
@@ -1468,102 +1447,6 @@ fn element_by_id(document: &Html, id: NodeId) -> Result<ElementRef<'_>, AgetErro
         .ok_or_else(|| extraction_failed("owned extractor lost a selected HTML element"))
 }
 
-fn prune_owned_unwanted_attributes(mut document: Html) -> Html {
-    for node in document.tree.values_mut() {
-        if let Node::Element(element) = node {
-            element
-                .attrs
-                .retain(|(name, _)| is_crawl4ai_important_attr(name.local.as_ref()));
-        }
-    }
-    document
-}
-
-fn clean_owned_base64_image_sources(mut document: Html) -> Html {
-    for node in document.tree.values_mut() {
-        let Node::Element(element) = node else {
-            continue;
-        };
-        if element.name.local.as_ref() != "img" {
-            continue;
-        }
-        for (name, value) in &mut element.attrs {
-            if name.local.as_ref() == "src" && is_base64_image_src(value.as_ref()) {
-                value.clear();
-            }
-        }
-    }
-    document
-}
-
-fn remove_owned_empty_elements(document: Html, root_ids: &[NodeId], target_ids: &[NodeId]) -> Html {
-    let node_ids = document
-        .tree
-        .nodes()
-        .filter_map(|node| ElementRef::wrap(node).map(|element| element.id()))
-        .collect::<Vec<_>>();
-    let sink = HtmlTreeSink::new(document);
-    for id in node_ids.into_iter().rev() {
-        let should_remove = {
-            let document = sink.0.borrow();
-            should_remove_owned_empty_element(&document, id, root_ids, target_ids)
-        };
-        if should_remove {
-            sink.remove_from_parent(&id);
-        }
-    }
-    sink.finish()
-}
-
-fn should_remove_owned_empty_element(
-    document: &Html,
-    id: NodeId,
-    root_ids: &[NodeId],
-    target_ids: &[NodeId],
-) -> bool {
-    if root_ids.contains(&id) || target_ids.contains(&id) {
-        return false;
-    }
-    let Some(element) = document.tree.get(id).and_then(ElementRef::wrap) else {
-        return false;
-    };
-    if element.parent().is_none() {
-        return false;
-    }
-    let tag = element.value().name();
-    if CRAWL4AI_EMPTY_ELEMENT_BYPASS_TAGS.contains(&tag) || is_descendant_of_code_block(element) {
-        return false;
-    }
-    if element.child_elements().next().is_some() {
-        return false;
-    }
-    element
-        .text()
-        .all(|text| text.split_whitespace().next().is_none())
-}
-
-fn is_descendant_of_code_block(element: ElementRef<'_>) -> bool {
-    element.ancestors().any(|ancestor| {
-        ElementRef::wrap(ancestor)
-            .map(|ancestor| matches!(ancestor.value().name(), "pre" | "code"))
-            .unwrap_or(false)
-    })
-}
-
-fn is_base64_image_src(src: &str) -> bool {
-    let Some(after_prefix) = src.strip_prefix("data:image/") else {
-        return false;
-    };
-    let Some((mime_type, after_mime_type)) = after_prefix.split_once(';') else {
-        return false;
-    };
-    !mime_type.is_empty() && after_mime_type.starts_with("base64,")
-}
-
-fn is_crawl4ai_important_attr(name: &str) -> bool {
-    CRAWL4AI_IMPORTANT_ATTRS.contains(&name)
-}
-
 fn markdown_base_url(document: &Html, final_url: &str) -> Result<String, AgetError> {
     let selector = parse_css_selector("base[href]")?;
     let Some(base_href) = document
@@ -1574,46 +1457,6 @@ fn markdown_base_url(document: &Html, final_url: &str) -> Result<String, AgetErr
         return Ok(final_url.to_string());
     };
     Ok(resolve_markdown_url(final_url, base_href))
-}
-
-fn remove_owned_excluded_tags(document: Html, tags: &[String]) -> Result<Html, AgetError> {
-    if tags.is_empty() {
-        return Ok(document);
-    }
-    remove_selected_elements(document, &tags.join(","))
-}
-
-fn remove_owned_overlay_elements(document: Html) -> Result<Html, AgetError> {
-    remove_selected_elements(document, &CRAWL4AI_OVERLAY_SELECTORS.join(","))
-}
-
-fn remove_selected_elements(document: Html, selector_list: &str) -> Result<Html, AgetError> {
-    let Ok(selector) = parse_css_selector(selector_list) else {
-        return Ok(document);
-    };
-    let node_ids = document
-        .select(&selector)
-        .map(|element| element.id())
-        .collect::<Vec<_>>();
-    let tree = HtmlTreeSink::new(document);
-    for id in node_ids {
-        tree.remove_from_parent(&id);
-    }
-    Ok(tree.finish())
-}
-
-fn parse_css_selector(raw: &str) -> Result<Selector, AgetError> {
-    let selector = raw.trim().strip_prefix("css:").unwrap_or(raw.trim()).trim();
-    if selector.is_empty() {
-        return Err(extraction_failed(format!(
-            "owned extractor received an empty CSS selector from '{raw}'"
-        )));
-    }
-    Selector::parse(selector).map_err(|error| {
-        extraction_failed(format!(
-            "owned extractor could not parse CSS selector '{raw}': {error:?}"
-        ))
-    })
 }
 
 fn normalize_text_pieces<'a>(pieces: impl IntoIterator<Item = &'a str>) -> String {
