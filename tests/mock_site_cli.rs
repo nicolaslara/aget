@@ -236,6 +236,26 @@ fn homegrown_extractor_backend_covers_static_http_parity_slice() {
             ),
         )
         .route(
+            "/selector-multiple",
+            MockResponse::html(
+                r#"
+<html>
+  <body>
+    <section class="result">
+      <h2>First Result</h2>
+      <p>Alpha body.</p>
+    </section>
+    <section class="result">
+      <h2>Second Result</h2>
+      <p>Beta body.</p>
+    </section>
+    <aside><p>Sidebar body.</p></aside>
+  </body>
+</html>
+"#,
+            ),
+        )
+        .route(
             "/excluded-tags",
             MockResponse::html(
                 r#"
@@ -634,6 +654,28 @@ fn homegrown_extractor_backend_covers_static_http_parity_slice() {
         selector_miss.content,
         "Selector Header Selector Main Selector body text. Selector Footer"
     );
+
+    let selector_multiple = Aget::new(&aget_home)
+        .with_extractor_backend(OwnedExtractorBackend)
+        .get(site.url("/selector-multiple"))
+        .content_format(OutputFormat::Text)
+        .selector(".result")
+        .run()
+        .unwrap();
+    assert_eq!(
+        selector_multiple.content,
+        "First Result Alpha body. Second Result Beta body."
+    );
+
+    let selector_scoped_targets = Aget::new(&aget_home)
+        .with_extractor_backend(OwnedExtractorBackend)
+        .get(site.url("/selector-multiple"))
+        .content_format(OutputFormat::Text)
+        .selector(".result")
+        .backend_option("crawl4ai.target_elements", "p")
+        .run()
+        .unwrap();
+    assert_eq!(selector_scoped_targets.content, "Alpha body. Beta body.");
 
     let excluded_tags = Aget::new(&aget_home)
         .with_extractor_backend(OwnedExtractorBackend)

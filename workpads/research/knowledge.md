@@ -1837,6 +1837,21 @@ Validation:
 
 Confidence: High. The behavior is directly source-backed, covered by deterministic fixture output, and limited to Markdown line-break preservation.
 
+### D110: I19d preserves all CSS selector matches
+
+The next extraction-behavior slice ports a Crawl4AI selector contract rather than another markdown tag edge case. Before changing the owned extractor, I19d re-inspected `references/repos/crawl4ai/crawl4ai/content_scraping_strategy.py`, where `LXMLWebScrapingStrategy._scrap` calls `body.cssselect(css_selector)`, wraps all selected elements in a temporary `<div>`, and then applies `target_elements` inside that selected wrapper. The upstream regression `references/repos/crawl4ai/tests/test_issue_1484_css_selector.py` covers both multiple `css_selector` matches and `css_selector` combined with `target_elements`.
+
+`OwnedExtractorBackend` now collects every element matched by `--selector` instead of only the first match. When `crawl4ai.target_elements` is also set, the owned extractor applies each target selector within every selected root before rendering. No-match fallback still uses the full document, preserving D86.
+
+Validation:
+
+- `cargo fmt --check`
+- `git diff --check`
+- `cargo test --test mock_site_cli homegrown_extractor_backend_covers_static_http_parity_slice`
+- `cargo test`
+
+Confidence: High. The behavior is source-backed, part of the user-facing selector contract, and covered by deterministic tests for all-match selection and selector-scoped target elements.
+
 ## Open Questions
 
 - Can pure Rust browser automation provide reliable persistent profiles and CDP attach, or do we need a small Node/Playwright sidecar?

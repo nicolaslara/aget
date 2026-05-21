@@ -1292,35 +1292,42 @@ fn extract_owned_content(
     prefer_main_content: bool,
     owned_options: &OwnedExtractorOptions,
 ) -> Result<ExtractedOwnedContent, AgetError> {
-    let root_id = if let Some(raw_selector) = selector {
+    let root_ids = if let Some(raw_selector) = selector {
         let selector = parse_css_selector(raw_selector)?;
-        document
+        let selected = document
             .select(&selector)
-            .next()
-            .unwrap_or_else(|| document.root_element())
-            .id()
+            .map(|element| element.id())
+            .collect::<Vec<_>>();
+        if selected.is_empty() {
+            vec![document.root_element().id()]
+        } else {
+            selected
+        }
     } else if !owned_options.target_elements.is_empty() {
-        document.root_element().id()
+        vec![document.root_element().id()]
     } else if prefer_main_content {
-        default_main_content_element(&document)?.id()
+        vec![default_main_content_element(&document)?.id()]
     } else {
-        document.root_element().id()
+        vec![document.root_element().id()]
     };
     let target_ids = if owned_options.target_elements.is_empty() {
         Vec::new()
     } else {
-        collect_target_owned_element_ids(&document, root_id, &owned_options.target_elements)?
+        collect_target_owned_element_ids(&document, &root_ids, &owned_options.target_elements)?
     };
 
     // Match Crawl4AI's cleanup order: selectors see original attributes, but
     // serialized cleaned HTML keeps only its small important-attribute allowlist.
     document = clean_owned_base64_image_sources(document);
-    document = remove_owned_empty_elements(document, root_id, &target_ids);
+    document = remove_owned_empty_elements(document, &root_ids, &target_ids);
     document = prune_owned_unwanted_attributes(document);
 
     if owned_options.target_elements.is_empty() {
-        let root = element_by_id(&document, root_id)?;
-        return Ok(extract_single_owned_element(root, base_url, owned_options));
+        if let [root_id] = root_ids.as_slice() {
+            let root = element_by_id(&document, *root_id)?;
+            return Ok(extract_single_owned_element(root, base_url, owned_options));
+        }
+        return extract_target_owned_elements(&document, &root_ids, base_url, owned_options);
     }
     extract_target_owned_elements(&document, &target_ids, base_url, owned_options)
 }
@@ -1339,14 +1346,16 @@ fn extract_single_owned_element(
 
 fn collect_target_owned_element_ids(
     document: &Html,
-    source_id: NodeId,
+    source_ids: &[NodeId],
     raw_selectors: &[String],
 ) -> Result<Vec<NodeId>, AgetError> {
-    let source = element_by_id(document, source_id)?;
     let mut ids = Vec::new();
-    for raw_selector in raw_selectors {
-        let selector = parse_css_selector(raw_selector)?;
-        ids.extend(source.select(&selector).map(|element| element.id()));
+    for source_id in source_ids {
+        let source = element_by_id(document, *source_id)?;
+        for raw_selector in raw_selectors {
+            let selector = parse_css_selector(raw_selector)?;
+            ids.extend(source.select(&selector).map(|element| element.id()));
+        }
     }
     Ok(ids)
 }
@@ -1452,7 +1461,7 @@ fn clean_owned_base64_image_sources(mut document: Html) -> Html {
     document
 }
 
-fn remove_owned_empty_elements(document: Html, root_id: NodeId, target_ids: &[NodeId]) -> Html {
+fn remove_owned_empty_elements(document: Html, root_ids: &[NodeId], target_ids: &[NodeId]) -> Html {
     let node_ids = document
         .tree
         .nodes()
@@ -1462,7 +1471,7 @@ fn remove_owned_empty_elements(document: Html, root_id: NodeId, target_ids: &[No
     for id in node_ids.into_iter().rev() {
         let should_remove = {
             let document = sink.0.borrow();
-            should_remove_owned_empty_element(&document, id, root_id, target_ids)
+            should_remove_owned_empty_element(&document, id, root_ids, target_ids)
         };
         if should_remove {
             sink.remove_from_parent(&id);
@@ -1474,10 +1483,10 @@ fn remove_owned_empty_elements(document: Html, root_id: NodeId, target_ids: &[No
 fn should_remove_owned_empty_element(
     document: &Html,
     id: NodeId,
-    root_id: NodeId,
+    root_ids: &[NodeId],
     target_ids: &[NodeId],
 ) -> bool {
-    if id == root_id || target_ids.contains(&id) {
+    if root_ids.contains(&id) || target_ids.contains(&id) {
         return false;
     }
     let Some(element) = document.tree.get(id).and_then(ElementRef::wrap) else {
