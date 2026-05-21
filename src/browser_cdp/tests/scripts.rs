@@ -61,6 +61,16 @@ fn selector_wait_expression_json_quotes_css_selector() {
 }
 
 #[test]
+fn selector_wait_expression_strips_explicit_css_prefix() {
+    let expression = selector_exists_expression("css: main #ready").unwrap();
+
+    assert_eq!(
+        expression,
+        r#"document.querySelector("main #ready") !== null"#
+    );
+}
+
+#[test]
 fn rendered_overlay_cleanup_expression_uses_generic_crawl4ai_rules() {
     let expression = rendered_overlay_cleanup_expression();
 

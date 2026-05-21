@@ -38,6 +38,11 @@ pub(super) fn session_storage_set_expression(name: &str, value: &str) -> Result<
 }
 
 pub(super) fn selector_exists_expression(selector: &str) -> Result<String, AgetError> {
+    let selector = selector
+        .trim()
+        .strip_prefix("css:")
+        .unwrap_or(selector)
+        .trim();
     Ok(format!(
         "document.querySelector({}) !== null",
         serde_json::to_string(selector).map_err(io_aget_error)?

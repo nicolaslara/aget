@@ -107,7 +107,7 @@ pub(super) fn assert_backend_options_redirects_and_waits(aget_home: &Path, site:
         .with_extractor_backend(AgetExtractorBackend::default())
         .get(site.url("/wait-ready"))
         .content_format(OutputFormat::Text)
-        .wait_for_selector("body main #ready")
+        .wait_for_selector("css:body main #ready")
         .run()
         .unwrap();
     assert_eq!(waited.content, "Ready Now");
