@@ -1551,6 +1551,21 @@ Validation:
 
 Confidence: Medium-high. The behavior is source-backed and deterministic, with one deliberate guard: selected roots and target elements are preserved to keep the owned extractor's public selector contract stable.
 
+### D91: I19d expands owned markdown tags from Crawl4AI CustomHTML2Text
+
+The next markdown-quality slice ports a small source-backed subset of Crawl4AI's HTML-to-markdown behavior. Before changing the owned renderer, I19d inspected `references/repos/crawl4ai/crawl4ai/markdown_generation_strategy.py`, where the default generator feeds cleaned HTML into `CustomHTML2Text` with links/images/emphasis/code enabled, and `references/repos/crawl4ai/crawl4ai/html2text/__init__.py`, where `HTML2Text`/`CustomHTML2Text` handle horizontal rules, definition lists, strikethrough tags, quoted inline text, and `kbd`/`tt`/`code` as inline code.
+
+`OwnedExtractorBackend` now renders `<hr>` as a markdown horizontal rule, `<dl>/<dt>/<dd>` as term lines with indented definitions, `<del>/<strike>/<s>` as strikethrough, `<kbd>/<tt>` as inline code, and `<q>` with quotes. `crawl4ai.only_text=true` still strips these inline decorations to plain text, matching the owned option's current contract.
+
+Validation:
+
+- `cargo fmt --check`
+- `git diff --check`
+- `cargo test --test mock_site_cli homegrown_extractor_backend_covers_static_http_parity_slice`
+- `cargo test`
+
+Confidence: Medium-high. This is deterministic local markdown rendering backed by Crawl4AI's source behavior. It remains a bounded quality slice; nested list fidelity, richer readability scoring, and broader rendered-page readiness are still open I19d work.
+
 ## Open Questions
 
 - Can pure Rust browser automation provide reliable persistent profiles and CDP attach, or do we need a small Node/Playwright sidecar?

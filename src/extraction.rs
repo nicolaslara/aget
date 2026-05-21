@@ -1654,12 +1654,14 @@ fn render_element(node: NodeRef<'_, Node>, tag: &str, writer: &mut MarkdownWrite
         "h1" | "h2" | "h3" | "h4" | "h5" | "h6" => render_heading(node, tag, writer),
         "p" => render_block(node, writer),
         "br" => writer.output.push('\n'),
+        "hr" => render_horizontal_rule(writer),
         "ul" => render_list(node, false, writer),
         "ol" => render_list(node, true, writer),
         "li" => render_block(node, writer),
+        "dl" => render_definition_list(node, writer),
         "table" => render_table(node, writer),
         "pre" => render_code_block(node, writer),
-        "code" => writer.push_inline(&format!("`{}`", inline_text_from_node(node))),
+        "code" | "kbd" | "tt" => writer.push_inline(&format!("`{}`", inline_text_from_node(node))),
         "strong" | "b" => {
             let inner = inline_markdown_from_children(node, writer);
             writer.push_inline(&format!("**{inner}**"));
@@ -1667,6 +1669,14 @@ fn render_element(node: NodeRef<'_, Node>, tag: &str, writer: &mut MarkdownWrite
         "em" | "i" => {
             let inner = inline_markdown_from_children(node, writer);
             writer.push_inline(&format!("*{inner}*"));
+        }
+        "del" | "strike" | "s" => {
+            let inner = inline_markdown_from_children(node, writer);
+            writer.push_inline(&format!("~~{inner}~~"));
+        }
+        "q" => {
+            let inner = inline_markdown_from_children(node, writer);
+            writer.push_inline(&format!("\"{inner}\""));
         }
         "a" => render_link(node, writer),
         "img" => render_image(node, writer),
@@ -1700,9 +1710,11 @@ fn is_only_text_eligible_tag(tag: &str) -> bool {
             | "s"
             | "small"
             | "span"
+            | "strike"
             | "strong"
             | "sub"
             | "sup"
+            | "tt"
             | "time"
             | "u"
             | "var"
@@ -1741,6 +1753,12 @@ fn render_block(node: NodeRef<'_, Node>, writer: &mut MarkdownWriter) {
     writer.ensure_blank_line();
 }
 
+fn render_horizontal_rule(writer: &mut MarkdownWriter) {
+    writer.ensure_blank_line();
+    writer.output.push_str("* * *");
+    writer.ensure_blank_line();
+}
+
 fn render_list(node: NodeRef<'_, Node>, ordered: bool, writer: &mut MarkdownWriter) {
     writer.ensure_blank_line();
     let mut child = node.first_child();
@@ -1764,6 +1782,41 @@ fn render_list(node: NodeRef<'_, Node>, ordered: bool, writer: &mut MarkdownWrit
                 index += 1;
             } else {
                 render_node(current, writer);
+            }
+        } else {
+            render_node(current, writer);
+        }
+        child = next;
+    }
+    writer.ensure_blank_line();
+}
+
+fn render_definition_list(node: NodeRef<'_, Node>, writer: &mut MarkdownWriter) {
+    writer.ensure_blank_line();
+    let mut child = node.first_child();
+    while let Some(current) = child {
+        let next = current.next_sibling();
+        if let Some(element) = ElementRef::wrap(current) {
+            match element.value().name() {
+                "dt" => {
+                    let term = inline_markdown_from_children(current, writer);
+                    if !term.is_empty() {
+                        if !writer.output.ends_with('\n') {
+                            writer.output.push('\n');
+                        }
+                        writer.output.push_str(&term);
+                        writer.output.push('\n');
+                    }
+                }
+                "dd" => {
+                    let definition = inline_markdown_from_children(current, writer);
+                    if !definition.is_empty() {
+                        writer.output.push_str("    ");
+                        writer.output.push_str(&definition);
+                        writer.output.push('\n');
+                    }
+                }
+                _ => render_node(current, writer),
             }
         } else {
             render_node(current, writer);

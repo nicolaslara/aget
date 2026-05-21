@@ -299,6 +299,26 @@ fn homegrown_extractor_backend_covers_static_http_parity_slice() {
             ),
         )
         .route(
+            "/markdown-inline-blocks",
+            MockResponse::html(
+                r#"
+<html>
+  <body>
+    <main class="article">
+      <h1>Reference Bits</h1>
+      <p>Status: <del>removed</del>, <kbd>Cmd K</kbd>, <tt>TTY</tt>, <q>quoted</q>.</p>
+      <hr>
+      <dl>
+        <dt>Term</dt>
+        <dd>Definition with <strong>detail</strong>.</dd>
+      </dl>
+    </main>
+  </body>
+</html>
+"#,
+            ),
+        )
+        .route(
             "/html-cleanup",
             MockResponse::html(
                 r#"
@@ -403,6 +423,18 @@ fn homegrown_extractor_backend_covers_static_http_parity_slice() {
             "# Base Links\n\nRead the [base page]({}).",
             site.url("/guide/page.html")
         )
+    );
+
+    let markdown_inline_blocks = Aget::new(&aget_home)
+        .with_extractor_backend(OwnedExtractorBackend)
+        .get(site.url("/markdown-inline-blocks"))
+        .content_format(OutputFormat::Markdown)
+        .selector("main.article")
+        .run()
+        .unwrap();
+    assert_eq!(
+        markdown_inline_blocks.content,
+        "# Reference Bits\n\nStatus: ~~removed~~, `Cmd K`, `TTY`, \"quoted\".\n\n* * *\n\nTerm\n    Definition with **detail**."
     );
 
     let html = Aget::new(&aget_home)
