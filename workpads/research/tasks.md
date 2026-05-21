@@ -1544,6 +1544,21 @@ Status note:
 
 - Completed with D242. Source inspection found agent-browser reports the last five generic Chrome stderr lines when no classified startup error keywords are present. Owned Chrome startup diagnostics now use the same five-line bounded fallback while preserving profile/user-action classification, sandbox/namespace hints, and silent-startup hints. Deterministic discovery coverage locks the generic tail length.
 
+### ✅ Task I19bz: Split large archived session wrapper support spec
+
+Acceptance criteria:
+
+- Preserve `workpads/research/tasks.md` as the full planned-task source of truth; do not compact or remove planned tasks.
+- Split the oversized historical `archive/support/session-wrapper-poc-spec.md` into smaller section files so agents can load only the relevant historical slice.
+- Keep the original archive path as a routing index rather than deleting it.
+- Update current support-file routing so the split is discoverable.
+- Record the compaction decision in `knowledge.md`.
+- Verify with file-size/line-count checks and `git diff --check`.
+
+Status note:
+
+- Completed with D243. The historical session-wrapper PoC spec archive now keeps its old path as a 17-line routing index and preserves the original text in four section files under `archive/support/session-wrapper-poc-spec/`. Concatenating the split files matches the original tracked archive content, `workpads/research/knowledge.md` routes to the index, and `workpads/research/tasks.md` remains un-compacted.
+
 ### ✅ Task I20: Design OAuth-safe browser login and profile import flow
 
 Acceptance criteria:

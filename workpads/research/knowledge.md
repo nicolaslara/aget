@@ -22,7 +22,7 @@ Safety boundary remains unchanged: `aget` is a generic fetcher for content the u
 - I19d remains open for full Crawl4AI-quality readability/markdown and still-richer rendered-page readiness after D240 aligned owned markdown link-label handling for inline code with Crawl4AI `CustomHTML2Text`.
 - I19e remains open for broader rendered JavaScript parity, manual real logged-in profile/keychain smoke execution, and still-fuller startup/error classification after D242 aligned generic Chrome startup stderr tail diagnostics with agent-browser.
 - I19h remains open because final migration review requires review subagents for test adequacy, architecture cohesion, and security/privacy.
-- Current support-file rule: do not compact `workpads/research/tasks.md`; compact supporting files by moving dense detail to referenced archive files. The largest historical knowledge bundles now route through split archive indexes after D232.
+- Current support-file rule: do not compact `workpads/research/tasks.md`; compact supporting files by moving dense detail to referenced archive files. The largest historical knowledge bundles now route through split archive indexes after D232, and the historical session-wrapper PoC spec routes through smaller support slices after D243.
 
 ## Decision Routing
 
@@ -35,13 +35,13 @@ Safety boundary remains unchanged: `aget` is a generic fetcher for content the u
 | Original module-decomposition sequence | `archive/knowledge/d123-d150-module-decomposition.md` |
 | Auth/browser import and browser-choice design | `archive/knowledge/d151-d157-auth-and-browser-import.md` |
 | Recent migration follow-ups and source-backed extraction improvements | `archive/knowledge/d158-d167-recent-migration-followups.md` |
-| Latest individual decisions | `archive/knowledge/d168-workpad-knowledge-compaction.md` through `archive/knowledge/d242-chrome-stderr-tail-diagnostics.md` |
+| Latest individual decisions | `archive/knowledge/d168-workpad-knowledge-compaction.md` through `archive/knowledge/d243-session-wrapper-spec-archive-split.md` |
 
 ## Historical Support Docs
 
 | Old entrypoint | Full archived content |
 | --- | --- |
-| `session-wrapper-poc-spec.md` | `archive/support/session-wrapper-poc-spec.md` |
+| `session-wrapper-poc-spec.md` | `archive/support/session-wrapper-poc-spec.md` index to section files |
 | `session-wrapper-implementation-plan.md` | `archive/support/session-wrapper-implementation-plan.md` |
 
 ## Current Verification Expectations
