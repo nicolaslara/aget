@@ -966,6 +966,21 @@ Status note:
 
 - Completed with D205. The browser CDP Chrome tests now route through smaller behavior-focused modules for mock CDP client/navigation behavior, Chrome launch retry behavior, and ignored real-Chrome profile/login smokes. The WebSocket request/reply helpers remain local to the Chrome test namespace, existing test behavior is preserved, and `workpads/research/tasks.md` was not compacted. Validation passed with focused browser CDP Chrome coverage, `cargo fmt --check`, `cargo test`, and `git diff --check`.
 
+### ✅ Task I19ao: Render an already-attached CDP page without launching Chrome
+
+Acceptance criteria:
+
+- Inspect `agent-browser` source for existing-page CDP attach and content extraction behavior before porting.
+- Preserve current browser/CDP public behavior while adding an owned current-tab prerequisite.
+- Add a lower-level owned renderer that connects to an existing CDP WebSocket, attaches to the preferred page, and reads final URL plus document HTML without creating, navigating, or closing a browser.
+- Preserve current wait-selector, wait-for-images, overlay cleanup, settle delay, and optional shadow-DOM flattening behavior where applicable.
+- Add deterministic mock CDP coverage for attached-page HTML extraction and no-existing-page failure.
+- Verify with focused browser CDP coverage plus the standard check set.
+
+Status note:
+
+- Completed with D206 after inspecting `agent-browser` existing-page attach and content behavior in `references/repos/agent-browser/cli/src/native/browser.rs`. The owned CDP layer now has a tested lower-level attached-page renderer that connects to an existing CDP WebSocket, attaches the preferred page, enables page/runtime/network domains, preserves selector/image/settle/overlay/shadow-DOM capture behavior, reads `location.href` plus document HTML, and does not create, navigate, close pages, or close the browser. This is a current-tab prerequisite and does not add a public CLI surface. Validation passed with focused browser CDP coverage, `cargo fmt --check`, `cargo test`, and `git diff --check`.
+
 ### ✅ Task I20: Design OAuth-safe browser login and profile import flow
 
 Acceptance criteria:
