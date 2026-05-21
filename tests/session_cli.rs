@@ -7,6 +7,8 @@ use support::session_cli::{demo_session, named_session, session_origin, success_
 mod authorize;
 #[path = "session_cli/imports.rs"]
 mod imports;
+#[path = "session_cli/imports_cmux.rs"]
+mod imports_cmux;
 #[path = "session_cli/login.rs"]
 mod login;
 mod support;

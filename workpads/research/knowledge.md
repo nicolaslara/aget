@@ -2730,6 +2730,22 @@ Validation:
 
 Confidence: High. This is a mechanical test-fixture split with no production behavior change.
 
+### D166: Follow-up session import test split isolates cmux coverage
+
+The next decomposition slice reduced `tests/session_cli/imports.rs` by moving cmux-specific import coverage into `tests/session_cli/imports_cmux.rs`. The original imports module now keeps Chrome/browser-profile import behavior, while the new module owns mocked cmux import, missing-cmux error handling, and ignored real-cmux loopback checks.
+
+This is a mechanical test split only. It keeps assertion bodies and helper usage unchanged, but separates the cmux compatibility surface from Chrome-owned import behavior so future browser-import work can load less unrelated test context.
+
+Validation:
+
+- `cargo fmt`
+- `cargo test --test session_cli session_import_cmux`
+- `cargo test --test session_cli session_import_chrome_saves_filtered_state_and_cleans_raw_file`
+- `cargo fmt --check`
+- `cargo test`
+
+Confidence: High. The split moves tests along backend boundaries and does not change product or adapter behavior.
+
 ## Open Questions
 
 - Can pure Rust browser automation provide reliable persistent profiles and CDP attach, or do we need a small Node/Playwright sidecar?
