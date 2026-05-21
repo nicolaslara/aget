@@ -539,7 +539,7 @@ Acceptance criteria:
 
 Status note:
 
-- Current support is partial, not automatic. `aget` has the import/fetch/session pieces and agent guidance, but no first-class OAuth-safe orchestration command or browser-choice flow. See `knowledge.md` D51.
+- Current support is partial, not automatic. `aget` has the import/fetch/session pieces and agent guidance, but no first-class OAuth-safe orchestration command or browser-choice flow. See `knowledge.md` D51. D151 added `workpads/research/oauth-safe-browser-login-design.md` with the import-first decision tree, public vocabulary, browser-choice boundary, lock/error wording, mocked-test plan, and manual OAuth smoke recipe. Remaining I20 work is to settle whether design acceptance requires executable mocked tests before task completion or whether those tests belong entirely to I21.
 
 ### 📋 Task I21: Implement OAuth-safe session authorization workflow
 

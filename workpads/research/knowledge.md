@@ -2468,6 +2468,21 @@ Validation:
 
 Confidence: High. Each split was committed separately after focused validation plus the full standard gate, and no intentional behavior changes were introduced.
 
+### D151: I20 drafts OAuth-safe browser login and import decision tree
+
+I20 now has a dedicated design artifact at `workpads/research/oauth-safe-browser-login-design.md`. The design keeps OAuth/password entry in a real user-controlled browser whenever possible, preserves explicit named `aget` sessions as the only authenticated fetch surface, and treats browser state plus authenticated artifacts as credential-equivalent local data.
+
+Key decisions:
+
+- OAuth default: unauthenticated fetch first, then user-approved real-browser profile import, then verification fetch before reporting a session usable.
+- If verification still looks unauthenticated or caller-supplied predicates fail, ask the user to sign in through their normal browser and re-import; do not fall back silently to automation login.
+- `aget session login start` remains a fallback for controlled or non-OAuth flows, not the first OAuth path.
+- Dedicated `aget` profiles remain optional/deferred for OAuth because previous manual testing showed a fresh Chrome `--user-data-dir` profile did not persist the expected auth state, while importing an already logged-in normal Chrome profile worked.
+- Browser choice is split into opening a browser for user login versus importing browser state. I21 should implement Chrome-family import first; I22 should verify Arc/Brave/Firefox/Safari separately before claiming support.
+- Profile lock failures should return `requires_user_action` with wording that asks the user to quit the selected browser/profile and rerun the same import. `aget` must not close the user's browser.
+
+The design also records deterministic mocked tests for I21 and a manual real-OAuth smoke recipe. Confidence is medium-high: the design is consistent with current `README.md`, `.cursor/skills/aget/SKILL.md`, `.opencode/tools/aget.ts`, and earlier D25/D26 auth ownership decisions, but I20 remains open until we decide whether executable mocked tests are part of I20 completion or entirely I21 implementation.
+
 ## Open Questions
 
 - Can pure Rust browser automation provide reliable persistent profiles and CDP attach, or do we need a small Node/Playwright sidecar?
