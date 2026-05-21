@@ -437,6 +437,33 @@ fn homegrown_extractor_backend_covers_static_http_parity_slice() {
         )
     );
 
+    let word_count_threshold = Aget::new(&aget_home)
+        .with_extractor_backend(OwnedExtractorBackend)
+        .get(site.url("/formats"))
+        .content_format(OutputFormat::Text)
+        .selector("main.article")
+        .backend_option("crawl4ai.word_count_threshold", "50")
+        .run()
+        .unwrap();
+    assert_eq!(
+        word_count_threshold.content,
+        "Format Heading Format body text. Promotional aside."
+    );
+
+    let invalid_word_count_threshold = Aget::new(&aget_home)
+        .with_extractor_backend(OwnedExtractorBackend)
+        .get(site.url("/formats"))
+        .backend_option("crawl4ai.word_count_threshold", "many")
+        .run()
+        .unwrap_err();
+    assert_eq!(
+        invalid_word_count_threshold.code(),
+        ErrorCode::ExtractionFailed
+    );
+    assert!(invalid_word_count_threshold
+        .to_string()
+        .contains("crawl4ai.word_count_threshold expects an integer value"));
+
     let invalid_timeout_option = Aget::new(&aget_home)
         .with_extractor_backend(OwnedExtractorBackend)
         .get(site.url("/formats"))
@@ -480,7 +507,7 @@ fn homegrown_extractor_backend_covers_static_http_parity_slice() {
     assert!(unsupported_option
         .to_string()
         .contains(
-            "supported options: crawl4ai.delay_before_return_html, crawl4ai.excluded_tags, crawl4ai.only_text, crawl4ai.page_timeout, crawl4ai.target_elements, crawl4ai.wait_for_images, crawl4ai.wait_for_timeout, crawl4ai.wait_until"
+            "supported options: crawl4ai.delay_before_return_html, crawl4ai.excluded_tags, crawl4ai.only_text, crawl4ai.page_timeout, crawl4ai.target_elements, crawl4ai.wait_for_images, crawl4ai.wait_for_timeout, crawl4ai.wait_until, crawl4ai.word_count_threshold"
         ));
 
     let redirect = Aget::new(&aget_home)

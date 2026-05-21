@@ -1035,6 +1035,11 @@ fn validate_owned_extraction_options(
             "only_text" => {
                 owned_options.only_text = parse_owned_bool("crawl4ai.only_text", &option.value)?;
             }
+            "word_count_threshold" => {
+                // Crawl4AI's default cleaned-content path accepts this config but
+                // currently hardcodes empty-leaf pruning to threshold 1.
+                parse_owned_integer("crawl4ai.word_count_threshold", &option.value)?;
+            }
             "delay_before_return_html" => {
                 owned_options.render_settle_delay = parse_owned_render_delay(&option.value)?;
             }
@@ -1059,7 +1064,7 @@ fn validate_owned_extraction_options(
             }
             _ => {
                 return Err(extraction_failed(format!(
-                    "owned extractor does not support backend option '{}'; supported options: crawl4ai.delay_before_return_html, crawl4ai.excluded_tags, crawl4ai.only_text, crawl4ai.page_timeout, crawl4ai.target_elements, crawl4ai.wait_for_images, crawl4ai.wait_for_timeout, crawl4ai.wait_until",
+                    "owned extractor does not support backend option '{}'; supported options: crawl4ai.delay_before_return_html, crawl4ai.excluded_tags, crawl4ai.only_text, crawl4ai.page_timeout, crawl4ai.target_elements, crawl4ai.wait_for_images, crawl4ai.wait_for_timeout, crawl4ai.wait_until, crawl4ai.word_count_threshold",
                     option.key
                 )));
             }
@@ -1138,6 +1143,13 @@ fn parse_owned_milliseconds(name: &str, value: &str) -> Result<Duration, AgetErr
         ))
     })?;
     Ok(Duration::from_millis(milliseconds))
+}
+
+fn parse_owned_integer(name: &str, value: &str) -> Result<i64, AgetError> {
+    value
+        .trim()
+        .parse::<i64>()
+        .map_err(|_| extraction_failed(format!("{name} expects an integer value, got '{value}'")))
 }
 
 fn parse_owned_wait_until(value: &str) -> Result<PageWaitUntil, AgetError> {

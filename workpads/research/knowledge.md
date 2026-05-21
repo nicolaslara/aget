@@ -1397,7 +1397,7 @@ The next render-readiness slice ports the safe part of `crawl4ai.wait_for_images
 
 The owned extractor now parses `crawl4ai.wait_for_images` as a boolean using the same boolean spelling set as other owned options. When enabled, it forces the owned CDP rendering path, waits up to one second for `Array.from(document.images).every((img) => img.complete)`, and continues with an agent-visible warning if the image wait times out. This remains a browser-readiness option only; it does not add image description extraction, screenshot capture, external image fetching outside the browser, or JavaScript waits from user input.
 
-The supported owned Crawl4AI namespace is now `excluded_tags`, `target_elements`, `only_text`, `delay_before_return_html`, `page_timeout`, `wait_for_timeout`, bounded `wait_until`, and `wait_for_images`. `word_count_threshold` remains unsupported until source inspection establishes whether the current Crawl4AI default scraper applies it to the behavior `aget` actually depends on.
+The supported owned Crawl4AI namespace is now `excluded_tags`, `target_elements`, `only_text`, `delay_before_return_html`, `page_timeout`, `wait_for_timeout`, bounded `wait_until`, and `wait_for_images`. `word_count_threshold` remained unsupported at this slice until source inspection established whether the current Crawl4AI default scraper applies it to the behavior `aget` actually depends on.
 
 Validation:
 
@@ -1405,6 +1405,20 @@ Validation:
 - `cargo test --test mock_site_cli owned_extractor_backend_honors_wait_for_images_option_with_chrome -- --ignored`
 
 Confidence: Medium. The behavior is source-faithful for the explicit image-completion wait and covered by a local Chrome smoke, but broader rendered-page readiness remains a larger I19d gap.
+
+### D81: I19d accepts `crawl4ai.word_count_threshold` with current Crawl4AI default semantics
+
+The last Crawl4AI helper option still rejected by the owned extractor was `crawl4ai.word_count_threshold`. Before changing the owned backend, I19d inspected `references/repos/crawl4ai/crawl4ai/async_configs.py`, where `CrawlerRunConfig` accepts and stores `word_count_threshold`, and `references/repos/crawl4ai/crawl4ai/content_scraping_strategy.py`, where the default `LXMLWebScrapingStrategy._scrap` receives that parameter but the cleaned-content path currently calls `remove_empty_elements_fast(body, 1)` with a hardcoded threshold. The upstream regression tests also cover config serialization/defaults and browser-context reuse for varying `word_count_threshold`, not output pruning in the default markdown path.
+
+The owned extractor now accepts and validates `crawl4ai.word_count_threshold` as an integer so existing command-helper callers can switch to the owned backend without hitting an unsupported-option failure. It intentionally does not use the value to prune output because that would be stricter than the inspected Crawl4AI default path. Unsupported backend options still fail explicitly.
+
+At this point the owned backend accepts every namespaced Crawl4AI option that the PoC command helper allowed: `excluded_tags`, `target_elements`, `only_text`, `word_count_threshold`, `wait_until`, `page_timeout`, `wait_for_timeout`, `delay_before_return_html`, and `wait_for_images`.
+
+Validation:
+
+- `cargo test --test mock_site_cli homegrown_extractor_backend_covers_static_http_parity_slice`
+
+Confidence: Medium-high. This closes the compatibility-option gap without inventing behavior upstream does not currently prove; the remaining I19d gaps are broader quality/readiness work rather than a helper-option mismatch.
 
 ## Open Questions
 
