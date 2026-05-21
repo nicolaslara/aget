@@ -564,6 +564,20 @@ Status note:
 
 - Completed with D177 after I19j completed and committed. The mechanical split moved the renderer into `src/extraction/markdown/`, keeping core rendering in `mod.rs` and extracting normalization/escaping helpers plus table rendering into smaller modules. The caller-facing extraction module interface stayed unchanged, and validation passed with focused extractor/markdown tests, `cargo fmt --check`, `cargo test`, and `git diff --check`.
 
+### ✅ Task I19m: Split owned extraction orchestration internals
+
+Acceptance criteria:
+
+- Preserve current AgetExtractor behavior while splitting `src/extraction/owned.rs` into smaller, behavior-owned modules.
+- Keep the existing `extraction::owned` module interface unchanged for callers.
+- Split mechanically first, prioritizing backend option parsing and content selection/rendering helpers because they are cohesive subdomains.
+- Run focused owned-extractor tests plus the standard validation set before committing.
+- Record the resulting module boundaries in `knowledge.md`.
+
+Status note:
+
+- Completed with D178 after I19l completed and committed. The mechanical split moved owned extraction into `src/extraction/owned/`, keeping orchestration in `mod.rs` and extracting backend option parsing plus content selection/rendering helpers into smaller modules. Validation passed with focused owned-extractor tests, `cargo fmt --check`, `cargo test`, and `git diff --check`.
+
 ### ✅ Task I20: Design OAuth-safe browser login and profile import flow
 
 Acceptance criteria:

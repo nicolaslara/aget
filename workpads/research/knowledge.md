@@ -39,6 +39,7 @@ Safety boundary remains unchanged: `aget` is a generic fetcher for content the u
 - D175: the active `OwnedExtractorBackend` and `OwnedBrowserAutomationBackend` shim types were removed, and default backend enum variants now use `Aget` to describe the local engine path.
 - D176: direct `AgetExtractor` coverage now includes selector extraction, exclusion, and `crawl4ai.target_elements` option handling without using the `Aget` facade.
 - D177: the markdown renderer was split into `src/extraction/markdown/mod.rs`, `normalize.rs`, and `table.rs` without changing the extraction module interface.
+- D178: owned extraction orchestration was split into `src/extraction/owned/mod.rs`, `options.rs`, and `content.rs` without changing the extraction module interface.
 
 ## Archive Index
 
@@ -60,6 +61,7 @@ Safety boundary remains unchanged: `aget` is a generic fetcher for content the u
 | D175 | `archive/knowledge/d175-remove-owned-backend-shims.md` | removal of active `Owned*Backend` compatibility shim types and `Default*Backend::Owned` variants |
 | D176 | `archive/knowledge/d176-direct-extractor-option-test.md` | direct `AgetExtractor` selector/exclusion/target-elements coverage |
 | D177 | `archive/knowledge/d177-markdown-module-split.md` | mechanical markdown renderer split into core, normalization, and table modules |
+| D178 | `archive/knowledge/d178-owned-extraction-module-split.md` | mechanical owned extraction split into orchestration, option parsing, and content selection modules |
 
 ## Current Verification Expectations
 

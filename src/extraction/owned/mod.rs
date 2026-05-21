@@ -1,0 +1,290 @@
+use std::path::Path;
+use std::time::Duration;
+
+use scraper::Html;
+
+use crate::browser_cdp::BrowserRenderRequest;
+use crate::cli::OutputFormat;
+use crate::error::{AgetError, ErrorCode};
+use crate::session::PlaywrightState;
+
+use super::artifacts::write_private_file;
+use super::html_clean::{
+    parse_css_selector, remove_owned_excluded_tags, remove_owned_overlay_elements,
+    remove_selected_elements,
+};
+use super::http::{owned_fetch, OwnedHttpResponse};
+use super::{
+    extraction_failed, io_aget_error, BrowserFallbackRequest, BrowserFallbackResult,
+    ExtractorBackendResult, ExtractorRequest, GetOptions,
+};
+
+mod content;
+mod options;
+
+use self::content::{extract_owned_content, markdown_base_url};
+use self::options::{validate_owned_extraction_options, OwnedExtractorOptions};
+
+pub(crate) const OWNED_EXTRACTOR: &str = "aget-owned-extractor";
+
+const OWNED_BROWSER_FALLBACK: &str = "aget-owned-browser-fallback";
+const OWNED_FALLBACK_WARNING: &str = "aget-owned fallback used after primary extractor failed";
+
+pub(crate) fn run_owned_extractor_backend(
+    request: ExtractorRequest<'_>,
+) -> Result<ExtractorBackendResult, AgetError> {
+    let tmp_dir = request
+        .state_path
+        .parent()
+        .ok_or_else(|| AgetError::Stable {
+            code: ErrorCode::IoError,
+            message: format!(
+                "owned extractor state path '{}' has no temp directory",
+                request.state_path.display()
+            ),
+        })?;
+    let extraction = extract_owned_static_or_rendered(
+        tmp_dir,
+        request.url,
+        request.state,
+        request.options,
+        request.timeout,
+        None,
+    )?;
+
+    let backend_response = ExtractorBackendResult {
+        ok: true,
+        final_url: Some(extraction.final_url),
+        content: Some(extraction.content.clone()),
+        warnings: extraction.warnings,
+        error: None,
+    };
+    write_private_file(request.content_path, extraction.content.as_bytes())
+        .map_err(io_aget_error)?;
+    let metadata =
+        serde_json::to_vec_pretty(&backend_response).map_err(|error| AgetError::Stable {
+            code: ErrorCode::IoError,
+            message: error.to_string(),
+        })?;
+    write_private_file(request.metadata_path, &metadata).map_err(io_aget_error)?;
+    Ok(backend_response)
+}
+
+pub(crate) fn run_owned_browser_fallback(
+    request: BrowserFallbackRequest<'_>,
+) -> Result<BrowserFallbackResult, AgetError> {
+    let extraction = extract_owned_static_or_rendered(
+        request.tmp_dir,
+        request.url,
+        request.state,
+        request.options,
+        request.timeout,
+        Some("body"),
+    )?;
+    let mut warnings = vec![OWNED_FALLBACK_WARNING.to_string()];
+    warnings.extend(extraction.warnings);
+    Ok(BrowserFallbackResult {
+        final_url: extraction.final_url,
+        content: extraction.content,
+        warnings,
+        extractor: OWNED_BROWSER_FALLBACK.to_string(),
+    })
+}
+
+fn extract_owned_static_or_rendered(
+    tmp_dir: &Path,
+    url: &str,
+    state: &PlaywrightState,
+    options: &GetOptions,
+    timeout: Duration,
+    fallback_selector: Option<&str>,
+) -> Result<OwnedPageExtraction, AgetError> {
+    let owned_options = validate_owned_extraction_options(options)?;
+    if owned_options.wait_for_images {
+        return extract_owned_rendered_page(
+            tmp_dir,
+            url,
+            state,
+            options,
+            timeout,
+            fallback_selector,
+            &owned_options,
+        );
+    }
+    if !state.origins.is_empty() {
+        return extract_owned_rendered_page(
+            tmp_dir,
+            url,
+            state,
+            options,
+            timeout,
+            fallback_selector,
+            &owned_options,
+        );
+    }
+
+    let response = owned_fetch(url, state, timeout)?;
+    if should_render_scripted_response(&response.body) {
+        return extract_owned_rendered_page(
+            tmp_dir,
+            url,
+            state,
+            options,
+            timeout,
+            fallback_selector,
+            &owned_options,
+        );
+    }
+
+    match extract_owned_page_response(response, options, fallback_selector, &owned_options) {
+        Ok(extraction) => Ok(extraction),
+        Err(error) if should_retry_with_rendered_wait(&error, options) => {
+            extract_owned_rendered_page(
+                tmp_dir,
+                url,
+                state,
+                options,
+                timeout,
+                fallback_selector,
+                &owned_options,
+            )
+        }
+        Err(error) => Err(error),
+    }
+}
+
+fn extract_owned_rendered_page(
+    tmp_dir: &Path,
+    url: &str,
+    state: &PlaywrightState,
+    options: &GetOptions,
+    timeout: Duration,
+    fallback_selector: Option<&str>,
+    owned_options: &OwnedExtractorOptions,
+) -> Result<OwnedPageExtraction, AgetError> {
+    let rendered = crate::browser_cdp::render_page(BrowserRenderRequest {
+        tmp_dir,
+        url,
+        state,
+        wait_for_selector: options.wait_for_selector.as_deref(),
+        wait_until: owned_options.wait_until,
+        wait_for_images: owned_options.wait_for_images,
+        flatten_shadow_dom: owned_options.flatten_shadow_dom,
+        settle_delay: owned_options.render_settle_delay,
+        page_timeout: owned_options.page_timeout.unwrap_or(timeout),
+        wait_for_timeout: owned_options.wait_for_timeout,
+        timeout,
+    })?;
+    let mut extraction = extract_owned_html(
+        rendered.final_url,
+        rendered.html,
+        options,
+        fallback_selector,
+        owned_options,
+    )?;
+    extraction.warnings.extend(rendered.warnings);
+    Ok(extraction)
+}
+
+fn should_retry_with_rendered_wait(error: &AgetError, options: &GetOptions) -> bool {
+    if options.wait_for_selector.is_none() {
+        return false;
+    }
+    matches!(
+        error,
+        AgetError::Stable {
+            code: ErrorCode::ExtractionFailed,
+            message,
+        } if message.starts_with("wait selector ") && message.ends_with(" was not found by owned extractor")
+    )
+}
+
+struct OwnedPageExtraction {
+    final_url: String,
+    content: String,
+    warnings: Vec<String>,
+}
+
+fn extract_owned_page_response(
+    response: OwnedHttpResponse,
+    options: &GetOptions,
+    fallback_selector: Option<&str>,
+    owned_options: &OwnedExtractorOptions,
+) -> Result<OwnedPageExtraction, AgetError> {
+    extract_owned_html(
+        response.final_url,
+        response.body,
+        options,
+        fallback_selector,
+        owned_options,
+    )
+}
+
+fn should_render_scripted_response(body: &str) -> bool {
+    let document = Html::parse_document(body);
+    let Ok(selector) = parse_css_selector(
+        "script[src],script:not([type]),script[type=\"text/javascript\"],script[type=\"module\"]",
+    ) else {
+        return false;
+    };
+    document.select(&selector).next().is_some()
+}
+
+fn extract_owned_html(
+    final_url: String,
+    body: String,
+    options: &GetOptions,
+    fallback_selector: Option<&str>,
+    owned_options: &OwnedExtractorOptions,
+) -> Result<OwnedPageExtraction, AgetError> {
+    let mut document = Html::parse_document(&body);
+    document = remove_selected_elements(document, "script,style,link,meta,noscript")?;
+
+    if let Some(wait_for) = &options.wait_for_selector {
+        let selector = parse_css_selector(wait_for)?;
+        if document.select(&selector).next().is_none() {
+            return Err(extraction_failed(format!(
+                "wait selector '{wait_for}' was not found by owned extractor"
+            )));
+        }
+    }
+
+    document = remove_owned_overlay_elements(document)?;
+
+    if !owned_options.excluded_tags.is_empty() {
+        document = remove_owned_excluded_tags(document, &owned_options.excluded_tags)?;
+    }
+
+    if let Some(exclude_selector) = &options.exclude_selector {
+        document = remove_selected_elements(document, exclude_selector)?;
+    }
+
+    let selector = options.selector.as_deref().or(fallback_selector);
+    let base_url = markdown_base_url(&document, &final_url)?;
+    let prefer_main_content = selector.is_none()
+        && options.wait_for_selector.is_none()
+        && options.content_format != OutputFormat::Html;
+    let extracted = extract_owned_content(
+        document,
+        selector,
+        &base_url,
+        prefer_main_content,
+        owned_options,
+    )?;
+    let content = match options.content_format {
+        OutputFormat::Html => extracted.html,
+        OutputFormat::Json => serde_json::json!({
+            "url": final_url,
+            "content": extracted.text,
+        })
+        .to_string(),
+        OutputFormat::Markdown => extracted.markdown,
+        OutputFormat::Text => extracted.text,
+    };
+
+    Ok(OwnedPageExtraction {
+        final_url,
+        content,
+        warnings: Vec::new(),
+    })
+}
