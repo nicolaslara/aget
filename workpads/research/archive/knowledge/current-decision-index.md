@@ -25,6 +25,7 @@ This archive file keeps the denser decision routing that used to live in top-lev
 | D206 | `d206-attached-page-render.md` | agent-browser-inspired attached-page CDP renderer for current-tab groundwork. |
 | D207 | `d207-aget-browser-attached-page-seam.md` | AgetBrowser engine seam for attached-page CDP rendering. |
 | D208 | `d208-aget-browser-cdp-endpoint-discovery.md` | AgetBrowser engine seam for explicit local CDP endpoint discovery. |
+| D209 | `d209-aget-browser-current-tab-engine.md` | AgetBrowser engine seam composing explicit-port CDP discovery and attached-page rendering. |
 
 ## Full Archive Routing
 
@@ -37,10 +38,10 @@ This archive file keeps the denser decision routing that used to live in top-lev
 | D151-D157 | `d151-d157-auth-and-browser-import.md` | OAuth-safe authorization API/CLI and conservative browser-neutral Chrome import surface. |
 | D158-D167 | `d158-d167-recent-migration-followups.md` | Recent source-backed extraction improvements and follow-up decomposition slices. |
 | D168-D176 | Per-decision files | Knowledge/reference compaction, engine-refactor planning, wrapper introduction, naming cleanup, and direct engine coverage. |
-| D177-D208 | Per-decision files | Module/test decomposition plus the latest owned extractor/browser parity improvements. |
+| D177-D209 | Per-decision files | Module/test decomposition plus the latest owned extractor/browser parity improvements. |
 
 ## Current Open Migration Gaps
 
 - I19d remains open for fuller Crawl4AI-quality readability/markdown and richer rendered-page readiness.
-- I19e remains open for public current-tab consent/command orchestration, broader rendered JavaScript parity, real logged-in profile/keychain smoke coverage, cross-platform close/process lifecycle parity, and fuller startup/error classification.
+- I19e remains open for public current-tab consent/command/API orchestration, broader rendered JavaScript parity, real logged-in profile/keychain smoke coverage, cross-platform close/process lifecycle parity, and fuller startup/error classification.
 - I19h remains open because final migration review requires review subagents for test adequacy, architecture cohesion, and security/privacy.

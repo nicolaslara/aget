@@ -47,6 +47,31 @@ pub(crate) struct AttachedPageResult {
     pub(crate) warnings: Vec<String>,
 }
 
+#[derive(Debug, Clone)]
+// Current-tab callers must make the consent/port choice before reaching this
+// seam; this method only composes local CDP discovery with page capture.
+#[allow(dead_code)]
+pub(crate) struct CurrentTabRequest<'a> {
+    pub(crate) port: u16,
+    pub(crate) wait_for_selector: Option<&'a str>,
+    pub(crate) wait_for_images: bool,
+    pub(crate) flatten_shadow_dom: bool,
+    pub(crate) settle_delay: Duration,
+    pub(crate) discovery_timeout: Duration,
+    pub(crate) page_timeout: Duration,
+    pub(crate) wait_for_timeout: Option<Duration>,
+    pub(crate) timeout: Duration,
+}
+
+#[derive(Debug, Clone)]
+#[allow(dead_code)]
+pub(crate) struct CurrentTabResult {
+    pub(crate) cdp_ws_url: String,
+    pub(crate) final_url: String,
+    pub(crate) html: String,
+    pub(crate) warnings: Vec<String>,
+}
+
 /// Local browser/CDP engine for the `agent-browser`-like behavior that `aget`
 /// now owns. The methods currently delegate to the migrated implementation
 /// slices while the engine boundary is introduced mechanically.
@@ -96,6 +121,33 @@ impl AgetBrowser {
     ) -> Result<CdpEndpointResult, AgetError> {
         let ws_url = discover_cdp_ws_url(request.port, request.timeout)?;
         Ok(CdpEndpointResult { ws_url })
+    }
+
+    #[allow(dead_code)]
+    pub(crate) fn render_current_tab(
+        &self,
+        request: CurrentTabRequest<'_>,
+    ) -> Result<CurrentTabResult, AgetError> {
+        let endpoint = self.discover_cdp_endpoint(CdpEndpointRequest {
+            port: request.port,
+            timeout: request.discovery_timeout,
+        })?;
+        let rendered = self.render_attached_page(AttachedPageRequest {
+            ws_url: &endpoint.ws_url,
+            wait_for_selector: request.wait_for_selector,
+            wait_for_images: request.wait_for_images,
+            flatten_shadow_dom: request.flatten_shadow_dom,
+            settle_delay: request.settle_delay,
+            page_timeout: request.page_timeout,
+            wait_for_timeout: request.wait_for_timeout,
+            timeout: request.timeout,
+        })?;
+        Ok(CurrentTabResult {
+            cdp_ws_url: endpoint.ws_url,
+            final_url: rendered.final_url,
+            html: rendered.html,
+            warnings: rendered.warnings,
+        })
     }
 
     #[allow(dead_code)]
@@ -182,6 +234,87 @@ mod tests {
         )
     }
 
+    fn serve_attached_page_cdp(websocket: &mut WebSocket<TcpStream>, final_url: &str, html: &str) {
+        let request = read_cdp_request(websocket);
+        assert_eq!(request["method"], "Target.setDiscoverTargets");
+        reply_ok(websocket, &request, json!({}));
+
+        let request = read_cdp_request(websocket);
+        assert_eq!(request["method"], "Target.getTargets");
+        reply_ok(
+            websocket,
+            &request,
+            json!({
+                "targetInfos": [
+                    {
+                        "targetId": "page-1",
+                        "type": "page",
+                        "url": final_url,
+                        "title": "Current"
+                    }
+                ]
+            }),
+        );
+
+        let request = read_cdp_request(websocket);
+        assert_eq!(request["method"], "Target.attachToTarget");
+        assert_eq!(request["params"]["targetId"], "page-1");
+        reply_ok(websocket, &request, json!({ "sessionId": "session-1" }));
+
+        for expected_method in [
+            "Page.enable",
+            "Runtime.enable",
+            "Runtime.runIfWaitingForDebugger",
+            "Network.enable",
+        ] {
+            let request = read_cdp_request(websocket);
+            assert_eq!(request["method"], expected_method);
+            assert_eq!(request["sessionId"], "session-1");
+            reply_ok(websocket, &request, json!({}));
+        }
+
+        let request = read_cdp_request(websocket);
+        assert_eq!(request["method"], "Target.setAutoAttach");
+        assert_eq!(request["sessionId"], "session-1");
+        reply_ok(websocket, &request, json!({}));
+
+        let request = read_cdp_request(websocket);
+        assert_eq!(request["method"], "Runtime.evaluate");
+        assert_eq!(request["sessionId"], "session-1");
+        assert!(request["params"]["expression"]
+            .as_str()
+            .unwrap()
+            .contains("querySelectorAll"));
+        reply_ok(
+            websocket,
+            &request,
+            json!({ "result": { "type": "undefined" } }),
+        );
+
+        let request = read_cdp_request(websocket);
+        assert_eq!(request["method"], "Runtime.evaluate");
+        assert_eq!(request["sessionId"], "session-1");
+        assert_eq!(request["params"]["expression"], "location.href");
+        reply_ok(
+            websocket,
+            &request,
+            json!({ "result": { "type": "string", "value": final_url } }),
+        );
+
+        let request = read_cdp_request(websocket);
+        assert_eq!(request["method"], "Runtime.evaluate");
+        assert_eq!(request["sessionId"], "session-1");
+        assert_eq!(
+            request["params"]["expression"],
+            "document.documentElement.outerHTML || ''"
+        );
+        reply_ok(
+            websocket,
+            &request,
+            json!({ "result": { "type": "string", "value": html } }),
+        );
+    }
+
     #[test]
     fn cancels_pending_login_without_aget_facade_or_command_backend() {
         let temp = tempfile::tempdir().unwrap();
@@ -246,96 +379,71 @@ mod tests {
     }
 
     #[test]
+    fn renders_current_tab_from_explicit_cdp_port_without_aget_facade_or_command_backend() {
+        use std::io::{Read as _, Write as _};
+
+        let listener = TcpListener::bind(("127.0.0.1", 0)).unwrap();
+        let port = listener.local_addr().unwrap().port();
+        let handle = thread::spawn(move || {
+            let (mut stream, _) = listener.accept().unwrap();
+            let mut request = [0u8; 512];
+            let _ = stream.read(&mut request);
+            let body = format!(
+                r#"{{"webSocketDebuggerUrl":"ws://localhost:9999/devtools/browser/current"}}"#
+            );
+            stream
+                .write_all(http_json_response(200, &body).as_bytes())
+                .unwrap();
+
+            let (stream, _) = listener.accept().unwrap();
+            let mut websocket = tungstenite::accept(stream).unwrap();
+            serve_attached_page_cdp(
+                &mut websocket,
+                "https://example.com/current",
+                "<html><body>Current composed page</body></html>",
+            );
+            let _ = websocket.close(None);
+        });
+
+        let rendered = AgetBrowser::default()
+            .render_current_tab(CurrentTabRequest {
+                port,
+                wait_for_selector: None,
+                wait_for_images: false,
+                flatten_shadow_dom: false,
+                settle_delay: Duration::ZERO,
+                discovery_timeout: Duration::from_secs(2),
+                page_timeout: Duration::from_secs(2),
+                wait_for_timeout: None,
+                timeout: Duration::from_secs(2),
+            })
+            .unwrap();
+
+        assert_eq!(
+            rendered.cdp_ws_url,
+            format!("ws://127.0.0.1:{port}/devtools/browser/current")
+        );
+        assert_eq!(rendered.final_url, "https://example.com/current");
+        assert_eq!(
+            rendered.html,
+            "<html><body>Current composed page</body></html>"
+        );
+        assert!(rendered.warnings.is_empty());
+        handle.join().unwrap();
+    }
+
+    #[test]
     fn renders_attached_page_without_aget_facade_or_command_backend() {
         let listener = TcpListener::bind(("127.0.0.1", 0)).unwrap();
         let port = listener.local_addr().unwrap().port();
         let handle = thread::spawn(move || {
             let (stream, _) = listener.accept().unwrap();
             let mut websocket = tungstenite::accept(stream).unwrap();
-
-            let request = read_cdp_request(&mut websocket);
-            assert_eq!(request["method"], "Target.setDiscoverTargets");
-            reply_ok(&mut websocket, &request, json!({}));
-
-            let request = read_cdp_request(&mut websocket);
-            assert_eq!(request["method"], "Target.getTargets");
-            reply_ok(
+            serve_attached_page_cdp(
                 &mut websocket,
-                &request,
-                json!({
-                    "targetInfos": [
-                        {
-                            "targetId": "page-1",
-                            "type": "page",
-                            "url": "https://example.com/current",
-                            "title": "Current"
-                        }
-                    ]
-                }),
+                "https://example.com/current",
+                "<html><body>Current engine page</body></html>",
             );
-
-            let request = read_cdp_request(&mut websocket);
-            assert_eq!(request["method"], "Target.attachToTarget");
-            assert_eq!(request["params"]["targetId"], "page-1");
-            reply_ok(
-                &mut websocket,
-                &request,
-                json!({ "sessionId": "session-1" }),
-            );
-
-            for expected_method in [
-                "Page.enable",
-                "Runtime.enable",
-                "Runtime.runIfWaitingForDebugger",
-                "Network.enable",
-            ] {
-                let request = read_cdp_request(&mut websocket);
-                assert_eq!(request["method"], expected_method);
-                assert_eq!(request["sessionId"], "session-1");
-                reply_ok(&mut websocket, &request, json!({}));
-            }
-
-            let request = read_cdp_request(&mut websocket);
-            assert_eq!(request["method"], "Target.setAutoAttach");
-            assert_eq!(request["sessionId"], "session-1");
-            reply_ok(&mut websocket, &request, json!({}));
-
-            let request = read_cdp_request(&mut websocket);
-            assert_eq!(request["method"], "Runtime.evaluate");
-            assert_eq!(request["sessionId"], "session-1");
-            assert!(request["params"]["expression"]
-                .as_str()
-                .unwrap()
-                .contains("querySelectorAll"));
-            reply_ok(
-                &mut websocket,
-                &request,
-                json!({ "result": { "type": "undefined" } }),
-            );
-
-            let request = read_cdp_request(&mut websocket);
-            assert_eq!(request["method"], "Runtime.evaluate");
-            assert_eq!(request["sessionId"], "session-1");
-            assert_eq!(request["params"]["expression"], "location.href");
-            reply_ok(
-                &mut websocket,
-                &request,
-                json!({ "result": { "type": "string", "value": "https://example.com/current" } }),
-            );
-
-            let request = read_cdp_request(&mut websocket);
-            assert_eq!(request["method"], "Runtime.evaluate");
-            assert_eq!(request["sessionId"], "session-1");
-            assert_eq!(
-                request["params"]["expression"],
-                "document.documentElement.outerHTML || ''"
-            );
-            reply_ok(
-                &mut websocket,
-                &request,
-                json!({ "result": { "type": "string", "value": "<html><body>Current engine page</body></html>" } }),
-            );
-
             let _ = websocket.close(None);
         });
 
