@@ -1057,6 +1057,21 @@ Status note:
 
 - Completed with D211 after re-checking `agent-browser` external-CDP/current-page behavior in `references/repos/agent-browser/cli/src/native/browser.rs`. `Aget::current_tab` now keeps using the owned browser/CDP engine when `AGET_AGENT_BROWSER_COMMAND` is set for login/import/fallback compatibility adapters, and deterministic CLI coverage proves a nonexistent compatibility command does not affect `aget current-tab`. Validation passed with focused current-tab coverage plus the standard check set.
 
+### ✅ Task I19au: Split CLI parser unit tests by command surface
+
+Acceptance criteria:
+
+- Preserve current CLI parser behavior and test assertions.
+- Split `src/cli/tests.rs` into smaller focused modules for shared parser/global behavior, `get`, `current-tab`, and `session` parsing.
+- Keep the existing `src/cli.rs` test-module routing stable for `cargo test`.
+- Do not compact or remove planned tasks from `workpads/research/tasks.md`.
+- Record the resulting test boundaries in `knowledge.md`.
+- Verify with focused CLI parser tests plus the standard check set.
+
+Status note:
+
+- Completed with D212. The CLI parser unit tests now route through focused modules for global/top-level behavior, `get`, `current-tab`, and `session` parsing while preserving existing assertions and `src/cli.rs` test-module routing. `workpads/research/tasks.md` was not compacted. Validation passed with focused CLI parser coverage plus the standard check set.
+
 ### ✅ Task I20: Design OAuth-safe browser login and profile import flow
 
 Acceptance criteria:
