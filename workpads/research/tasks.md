@@ -516,7 +516,7 @@ Status note:
 
 - Completed after D149, with later CLI/binary follow-ups recorded in D161 and D162. The original agent-context bottlenecks are now split into behavior-owned modules: extraction orchestration, owned extraction, markdown, command adapters, fallback adapters, HTML cleanup, HTTP/static fetch, artifacts/redaction, CDP page scripts, process helpers, discovery, Chrome process launch, CDP client/session plumbing, session data conversion, rendered-page orchestration, profile state export, login lifecycle orchestration, and CDP unit tests. The large integration targets were also split into support helpers plus behavior modules for mock-site docs/browser/session/owned coverage, session CLI import/login coverage, and get CLI session-backed replay/fallback coverage. The post-split size profile keeps the formerly 2k-3k line files below the original problem range, the CLI parser is now split into top-level parser, get command, session command, and parser-test modules, and binary session-command execution now lives outside `src/main.rs`.
 
-### 🚧 Task I19j: Refactor local replacement engines into `AgetExtractor` and `AgetBrowser`
+### ✅ Task I19j: Refactor local replacement engines into `AgetExtractor` and `AgetBrowser`
 
 Acceptance criteria:
 
@@ -534,7 +534,7 @@ Acceptance criteria:
 
 Status note:
 
-- Started with D170-D175. The first mechanical browser slice introduced `AgetBrowser` and `AgetBrowserBackend`, routed the default browser automation path through the new backend, and added direct cancellation coverage without the `Aget` facade or command backend. The extractor slice introduced `AgetExtractor` and `AgetExtractorBackend`, routed default extraction and standalone `get_url` helpers through the extractor/browser wrappers, and added direct static extraction coverage. D175 removed the active `OwnedExtractorBackend` and `OwnedBrowserAutomationBackend` shim types and renamed default backend enum variants from `Owned` to `Aget`. I19j remains in progress because broader direct engine tests and final validation are not complete.
+- Completed with D170-D176. The browser slices introduced `AgetBrowser`/`AgetBrowserBackend`, routed the default browser automation path through them, and added direct cancellation coverage without the `Aget` facade or command backend. The extractor slices introduced `AgetExtractor`/`AgetExtractorBackend`, routed default extraction and standalone `get_url` helpers through them, removed active `Owned*Backend` shim types, and added direct static plus selector/exclusion/target-elements coverage. Final validation passed with `cargo fmt --check`, `cargo test`, `git diff --check`, and a live-code/docs search confirming no remaining `OwnedExtractorBackend`, `OwnedBrowserAutomationBackend`, or `Default*Backend::Owned` references outside historical workpad notes.
 
 ### ✅ Task I19k: Compact support workpad reference files without compacting tasks
 

@@ -31,12 +31,13 @@ Safety boundary remains unchanged: `aget` is a generic fetcher for content the u
 - D165-D167: follow-up test decomposition split owned mock-site fixtures, cmux session-import tests, and CDP discovery tests. This was done for agent ergonomics; behavior should remain unchanged.
 - D168: workpad knowledge history was compacted into archive files so active agents can load current routing context without reading the full append-only record.
 - D169: I19j now plans a mechanical rename/boundary refactor from migration-era `owned` backend names toward product engine names: `AgetExtractor`, `AgetExtractorBackend`, `AgetBrowser`, and `AgetBrowserBackend`.
-- D170: the first I19j code slice introduced `AgetBrowser` and `AgetBrowserBackend`; the default local browser automation path now routes through this engine wrapper while legacy `OwnedBrowserAutomationBackend` remains as a compatibility shim.
-- D171: the second I19j code slice introduced `AgetExtractor` and `AgetExtractorBackend`; default extraction and standalone `get_url` helpers now route through the extractor/browser engine wrappers while legacy `OwnedExtractorBackend` remains as a compatibility shim.
+- D170: the first I19j code slice introduced `AgetBrowser` and `AgetBrowserBackend`; the default local browser automation path now routes through this engine wrapper.
+- D171: the second I19j code slice introduced `AgetExtractor` and `AgetExtractorBackend`; default extraction and standalone `get_url` helpers now route through the extractor/browser engine wrappers.
 - D172: `AgetExtractor` now has direct engine-level coverage that bypasses the `Aget` facade, and active mock-site extractor tests/docs use `AgetExtractor` naming instead of the migration-era `owned` label.
 - D173: `AgetBrowser` now has direct engine-level cancellation coverage without the `Aget` facade or command backend, and active browser fallback tests/docs use `AgetBrowser` naming where behavior is current rather than historical.
 - D174: support-file compaction now keeps `tasks.md` intact while moving dense `references.md` detail into `archive/references/` and leaving the top-level references file as a current routing index.
 - D175: the active `OwnedExtractorBackend` and `OwnedBrowserAutomationBackend` shim types were removed, and default backend enum variants now use `Aget` to describe the local engine path.
+- D176: direct `AgetExtractor` coverage now includes selector extraction, exclusion, and `crawl4ai.target_elements` option handling without using the `Aget` facade.
 
 ## Archive Index
 
@@ -56,6 +57,7 @@ Safety boundary remains unchanged: `aget` is a generic fetcher for content the u
 | D173 | `archive/knowledge/d173-aget-browser-direct-test.md` | direct `AgetBrowser` cancellation test plus active browser test/doc naming cleanup |
 | D174 | `archive/knowledge/d174-reference-compaction.md` | support-file reference compaction with `tasks.md` preserved as the active plan |
 | D175 | `archive/knowledge/d175-remove-owned-backend-shims.md` | removal of active `Owned*Backend` compatibility shim types and `Default*Backend::Owned` variants |
+| D176 | `archive/knowledge/d176-direct-extractor-option-test.md` | direct `AgetExtractor` selector/exclusion/target-elements coverage |
 
 ## Current Verification Expectations
 
