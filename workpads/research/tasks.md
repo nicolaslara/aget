@@ -690,6 +690,20 @@ Status note:
 
 - Completed with D186 after I19t completed and committed. The mechanical split kept `main_session::run_session` as the `src/main.rs` dispatcher while moving stable command-name mapping, browser/profile argument normalization, authorization envelope data, and inspect/redaction views into focused submodules. Validation passed with focused `session_cli` tests, `cargo fmt --check`, `cargo test`, and `git diff --check`.
 
+### ✅ Task I19v: Split mock backend support binary internals
+
+Acceptance criteria:
+
+- Preserve current checked-in mock backend behavior while splitting `tests/support/bin/aget_mock_backend.rs`.
+- Keep the Cargo mock-tool binary path unchanged for tests and helper commands.
+- Split mechanically first, prioritizing argument parsing, behavior dispatch, config/expectation validation, HTTP fetching, and backend result printing.
+- Run focused get/mock-site tests plus the standard validation set before committing.
+- Record the resulting module boundaries in `knowledge.md`.
+
+Status note:
+
+- Completed with D187 after I19u completed and committed. The mechanical split kept the Cargo mock-tool binary path stable while moving argument parsing, configured behavior execution, JSON config/expectation validation, loopback HTTP helpers, and result printing into focused support modules. The first focused run caught module discovery through the relative mock-tool `path`; explicit `#[path = "aget_mock_backend/..."]` module paths fixed it. Validation passed with focused get/mock-site tests, `cargo fmt --check`, `cargo test`, and `git diff --check`.
+
 ### ✅ Task I20: Design OAuth-safe browser login and profile import flow
 
 Acceptance criteria:

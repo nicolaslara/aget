@@ -48,6 +48,7 @@ Safety boundary remains unchanged: `aget` is a generic fetcher for content the u
 - D184: Chrome session import internals were split into `src/session/chrome/mod.rs`, `compat.rs`, `owned.rs`, `profile.rs`, and `tests.rs` without changing public session import paths.
 - D185: login session lifecycle internals were split into `src/session/login/mod.rs`, `types.rs`, `pending.rs`, `compat.rs`, `owned.rs`, `session_merge.rs`, and `tests.rs` without changing session login exports.
 - D186: binary session command helpers were split into `src/main_session/mod.rs`, `command_name.rs`, `profile.rs`, `envelope.rs`, and `inspect.rs` without changing `aget session` CLI behavior.
+- D187: the mock extractor backend support binary was split into `tests/support/bin/aget_mock_backend.rs` plus `args.rs`, `behavior.rs`, `config.rs`, `http.rs`, and `output.rs` helper modules without changing mock-tool behavior.
 
 ## Archive Index
 
@@ -78,6 +79,7 @@ Safety boundary remains unchanged: `aget` is a generic fetcher for content the u
 | D184 | `archive/knowledge/d184-chrome-session-module-split.md` | mechanical Chrome session split into compatibility import, owned import, profile helpers, and tests |
 | D185 | `archive/knowledge/d185-login-session-module-split.md` | mechanical login lifecycle split into types, pending metadata, compatibility flow, owned flow, merge logic, and tests |
 | D186 | `archive/knowledge/d186-main-session-module-split.md` | mechanical binary session command helper split into dispatcher, command names, profile resolution, envelopes, and inspect views |
+| D187 | `archive/knowledge/d187-mock-backend-module-split.md` | mechanical mock backend support split into root, args, behavior, config validation, HTTP helpers, and output |
 
 ## Current Verification Expectations
 
