@@ -14,6 +14,7 @@ What works today:
 
 - `aget get <url>`
 - `aget <url>` as a shortcut alias
+- `aget current-tab --cdp-port <port> --allow-private-content` for explicitly approved local CDP tab extraction
 - `--envelope json` structured output
 - `--output <path>`
 - output shaping with `--content-format`, CSS selectors, wait conditions, and deterministic character limits
@@ -51,6 +52,7 @@ cargo run --quiet -- get https://example.com --output /tmp/example.md
 cargo run --quiet -- get https://example.com --content-format text --selector main --max-chars 4000 --envelope json
 cargo run --quiet -- get https://example.com/account --session my-session --envelope json
 cargo run --quiet -- get https://example.com/account --session provider --session app --envelope json
+cargo run --quiet -- current-tab --cdp-port 9222 --allow-private-content --envelope json --output /tmp/current-tab.md
 ```
 
 Session commands:
@@ -119,6 +121,11 @@ aget <url> [--session <name>...] [--envelope <json|none>] [--output <path>] [--t
            [--exclude-selector <css>] [--wait-for-selector <text-or-selector>]
            [--inline-content <auto|always|never>] [--max-chars <n>]
            [--backend-option <backend.key=value>...]
+aget current-tab --cdp-port <port> --allow-private-content [--envelope <json|none>] [--output <path>]
+                 [--content-format <markdown|html|text|json>] [--selector <css>]
+                 [--exclude-selector <css>] [--wait-for-selector <text-or-selector>]
+                 [--inline-content <auto|always|never>] [--max-chars <n>]
+                 [--backend-option <backend.key=value>...]
 aget session list
 aget session inspect <session-id>
 aget session delete <session-id>
@@ -135,6 +142,7 @@ Notes:
 
 - `aget get <url>` is the primary command.
 - `aget <url>` is an alias for the same fetch path.
+- `aget current-tab` extracts the selected tab from an already-running local browser CDP endpoint. It requires both `--cdp-port` and `--allow-private-content`; it does not scan profiles or common ports, navigate, create tabs, or close the browser. Current-tab results are marked sensitive, so `--inline-content auto` omits `data.content` from JSON envelopes by default.
 - `--envelope json` prints the agent control-plane response envelope: `{ "ok": true, "schema_version": "aget.envelope.v1", "command": "...", "data": {...}, "warnings": [], "timing_ms": {...} }` for success or `{ "ok": false, "schema_version": "aget.envelope.v1", "command": "...", "error": {...} }` for failure. It does not change the fetched page content format.
 - `--output` writes the extracted markdown to a file.
 - `--content-format` requests `markdown`, `html`, `text`, or `json` page content from the extractor; markdown remains the default.
@@ -213,6 +221,7 @@ Error example:
 - `aget` starts with an empty session by default.
 - Auth/session replay is opt-in per request with `--session <name>`.
 - Session replay is rejected when the selected session is not scoped to the requested host.
+- Current-tab extraction is opt-in per request with an explicit local CDP port and private-content acknowledgement. It may read authenticated browser content from the selected tab, so prefer `--output` and avoid `--inline-content always` unless the user explicitly wants that content embedded in an envelope.
 - Run artifacts live under `~/.aget/runs`.
 - Temporary browser/session state is local. `aget` removes normal temp state on success/failure, sweeps old orphaned raw-state files on startup, and removes tool-owned login profiles after successful completion or cancel.
 - Imported Chrome sessions and localStorage values are credential-equivalent bearer material. `session inspect` redacts values by default; use `--show-secrets` only when explicitly needed.

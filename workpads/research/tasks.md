@@ -1026,6 +1026,23 @@ Status note:
 
 - Completed with D209 after inspecting `agent-browser` external CDP connection and current-page behavior in `references/repos/agent-browser/cli/src/native/browser.rs`. `AgetBrowser` now has a crate-internal current-tab render seam that composes explicit local CDP-port discovery with attached-page rendering, returns the resolved browser WebSocket URL for internal provenance, and preserves the no-navigation/no-page-create/no-browser-close boundary. Public CLI/API current-tab UX remains deferred pending consent design. Validation passed with focused AgetBrowser coverage, focused browser CDP coverage, `cargo fmt --check`, `cargo test`, and `git diff --check`.
 
+### ✅ Task I19as: Expose consent-gated current-tab CLI/API through owned backends
+
+Acceptance criteria:
+
+- Inspect `agent-browser` source for external CDP connection and current-page capture behavior before exposing the public surface.
+- Add a public `Aget` current-tab API and CLI command that use owned browser/CDP and owned HTML-to-content conversion.
+- Require explicit local endpoint ownership and consent: callers must provide a CDP debugging port and acknowledge private current-tab access.
+- Preserve generic behavior: no site-specific login/paywall advice, no ambient port/profile scanning, no navigation, no page creation, and no browser close.
+- Shape current-tab output like `aget get`: markdown/html/text/json content formats, selectors/exclusions, waits, max chars, artifacts, warnings, timing, and JSON envelope behavior.
+- Mark current-tab results sensitive by default so JSON `--inline-content auto` omits content unless explicitly requested.
+- Add API/CLI tests that run against a mock CDP server without `agent-browser`.
+- Verify with focused parser/API/CLI tests plus the standard check set.
+
+Status note:
+
+- Completed with D210 after inspecting `agent-browser` external CDP connection and current-page capture behavior in `references/repos/agent-browser/cli/src/native/browser.rs`. `aget current-tab` and `Aget::current_tab` now use owned CDP/browser and owned HTML-to-content conversion, require explicit `--cdp-port` plus `--allow-private-content`, avoid ambient scanning/navigation/page creation/browser close, return the standard `GetSuccess`/JSON envelope shape, and mark results sensitive so `--inline-content auto` omits content. README and the local aget skill now document the consent boundary. Validation passed with focused parser/API/CLI current-tab coverage, `cargo fmt --check`, `cargo test`, and `git diff --check`.
+
 ### ✅ Task I20: Design OAuth-safe browser login and profile import flow
 
 Acceptance criteria:

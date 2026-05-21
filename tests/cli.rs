@@ -38,6 +38,22 @@ fn get_help_is_available() {
 }
 
 #[test]
+fn current_tab_help_is_available() {
+    let mut cmd = Command::cargo_bin("aget").unwrap();
+
+    cmd.args(["current-tab", "--help"])
+        .assert()
+        .success()
+        .stdout(
+            predicate::str::contains("Usage: aget current-tab")
+                .and(predicate::str::contains("--cdp-port"))
+                .and(predicate::str::contains("--allow-private-content"))
+                .and(predicate::str::contains("--content-format"))
+                .and(predicate::str::contains("--inline-content")),
+        );
+}
+
+#[test]
 fn get_rejects_invalid_format() {
     let mut cmd = Command::cargo_bin("aget").unwrap();
 
@@ -168,6 +184,82 @@ fn envelope_global_flag_emits_structured_output() {
     server.join().unwrap();
 }
 
+#[test]
+fn current_tab_requires_private_content_consent() {
+    let temp = tempfile::tempdir().unwrap();
+    let mut cmd = Command::cargo_bin("aget").unwrap();
+
+    let output = cmd
+        .env("AGET_HOME", temp.path().join("aget-home"))
+        .args(["--envelope", "json", "current-tab", "--cdp-port", "9222"])
+        .assert()
+        .failure()
+        .get_output()
+        .stderr
+        .clone();
+
+    let json: serde_json::Value = serde_json::from_slice(&output).unwrap();
+    assert_eq!(json["ok"], false);
+    assert_eq!(json["command"], "current-tab");
+    assert_eq!(json["error"]["code"], "usage_error");
+    assert!(json["error"]["message"]
+        .as_str()
+        .unwrap()
+        .contains("private content"));
+}
+
+#[test]
+fn current_tab_renders_mock_cdp_page_without_agent_browser() {
+    let temp = tempfile::tempdir().unwrap();
+    let (port, server) = mock_current_tab_cdp_server(
+        "https://example.com/current",
+        "<html><body><nav>skip</nav><main><h1>Tab Title</h1><p>Private tab body.</p></main></body></html>",
+    );
+    let mut cmd = Command::cargo_bin("aget").unwrap();
+
+    let output = cmd
+        .env("AGET_HOME", temp.path().join("aget-home"))
+        .args([
+            "--envelope",
+            "json",
+            "current-tab",
+            "--cdp-port",
+            &port.to_string(),
+            "--allow-private-content",
+            "--inline-content",
+            "always",
+            "--selector",
+            "main",
+        ])
+        .assert()
+        .success()
+        .get_output()
+        .stdout
+        .clone();
+
+    let json: serde_json::Value = serde_json::from_slice(&output).unwrap();
+    assert_eq!(json["ok"], true);
+    assert_eq!(json["command"], "current-tab");
+    assert_eq!(json["data"]["url"], "current-tab");
+    assert_eq!(json["data"]["final_url"], "https://example.com/current");
+    assert_eq!(json["data"]["extractor"], "aget-owned-current-tab");
+    assert_eq!(json["data"]["sensitive"], true);
+    assert!(json["data"]["content"]
+        .as_str()
+        .unwrap()
+        .contains("Tab Title"));
+    assert!(json["data"]["content"]
+        .as_str()
+        .unwrap()
+        .contains("Private tab body."));
+    assert!(json["warnings"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .any(|warning| warning.as_str().unwrap().contains("private")));
+    server.join().unwrap();
+}
+
 fn local_server(body: &str) -> (String, JoinHandle<()>) {
     let listener = TcpListener::bind("127.0.0.1:0").unwrap();
     let url = format!("http://{}", listener.local_addr().unwrap());
@@ -199,6 +291,138 @@ fn local_server(body: &str) -> (String, JoinHandle<()>) {
         let _ = stream.shutdown(Shutdown::Both);
     });
     (url, handle)
+}
+
+fn mock_current_tab_cdp_server(final_url: &str, html: &str) -> (u16, JoinHandle<()>) {
+    let listener = TcpListener::bind("127.0.0.1:0").unwrap();
+    let port = listener.local_addr().unwrap().port();
+    let final_url = final_url.to_string();
+    let html = html.to_string();
+    let handle = thread::spawn(move || {
+        let (mut stream, _) = listener.accept().unwrap();
+        let mut request = [0; 512];
+        let _ = stream.read(&mut request);
+        let body =
+            format!(r#"{{"webSocketDebuggerUrl":"ws://localhost:9999/devtools/browser/current"}}"#);
+        let response = format!(
+            "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{}",
+            body.len(),
+            body
+        );
+        stream.write_all(response.as_bytes()).unwrap();
+
+        let (stream, _) = listener.accept().unwrap();
+        let mut websocket = tungstenite::accept(stream).unwrap();
+        serve_attached_page_cdp(&mut websocket, &final_url, &html);
+        let _ = websocket.close(None);
+    });
+    (port, handle)
+}
+
+fn serve_attached_page_cdp(
+    websocket: &mut tungstenite::WebSocket<std::net::TcpStream>,
+    final_url: &str,
+    html: &str,
+) {
+    let request = read_cdp_request(websocket);
+    assert_eq!(request["method"], "Target.setDiscoverTargets");
+    reply_ok(websocket, &request, serde_json::json!({}));
+
+    let request = read_cdp_request(websocket);
+    assert_eq!(request["method"], "Target.getTargets");
+    reply_ok(
+        websocket,
+        &request,
+        serde_json::json!({
+            "targetInfos": [
+                {
+                    "targetId": "page-1",
+                    "type": "page",
+                    "url": final_url,
+                    "title": "Current"
+                }
+            ]
+        }),
+    );
+
+    let request = read_cdp_request(websocket);
+    assert_eq!(request["method"], "Target.attachToTarget");
+    reply_ok(
+        websocket,
+        &request,
+        serde_json::json!({ "sessionId": "session-1" }),
+    );
+
+    for expected_method in [
+        "Page.enable",
+        "Runtime.enable",
+        "Runtime.runIfWaitingForDebugger",
+        "Network.enable",
+    ] {
+        let request = read_cdp_request(websocket);
+        assert_eq!(request["method"], expected_method);
+        reply_ok(websocket, &request, serde_json::json!({}));
+    }
+
+    let request = read_cdp_request(websocket);
+    assert_eq!(request["method"], "Target.setAutoAttach");
+    reply_ok(websocket, &request, serde_json::json!({}));
+
+    let request = read_cdp_request(websocket);
+    assert_eq!(request["method"], "Runtime.evaluate");
+    reply_ok(
+        websocket,
+        &request,
+        serde_json::json!({ "result": { "type": "undefined" } }),
+    );
+
+    let request = read_cdp_request(websocket);
+    assert_eq!(request["method"], "Runtime.evaluate");
+    assert_eq!(request["params"]["expression"], "location.href");
+    reply_ok(
+        websocket,
+        &request,
+        serde_json::json!({ "result": { "type": "string", "value": final_url } }),
+    );
+
+    let request = read_cdp_request(websocket);
+    assert_eq!(request["method"], "Runtime.evaluate");
+    assert_eq!(
+        request["params"]["expression"],
+        "document.documentElement.outerHTML || ''"
+    );
+    reply_ok(
+        websocket,
+        &request,
+        serde_json::json!({ "result": { "type": "string", "value": html } }),
+    );
+}
+
+fn read_cdp_request(
+    websocket: &mut tungstenite::WebSocket<std::net::TcpStream>,
+) -> serde_json::Value {
+    let tungstenite::Message::Text(text) = websocket.read().unwrap() else {
+        panic!("expected text CDP command");
+    };
+    serde_json::from_str(text.as_ref()).unwrap()
+}
+
+fn reply_ok(
+    websocket: &mut tungstenite::WebSocket<std::net::TcpStream>,
+    request: &serde_json::Value,
+    result: serde_json::Value,
+) {
+    let id = request
+        .get("id")
+        .and_then(serde_json::Value::as_u64)
+        .unwrap();
+    websocket
+        .send(tungstenite::Message::Text(
+            serde_json::json!({ "id": id, "result": result })
+                .to_string()
+                .into(),
+        ))
+        .unwrap();
 }
 
 fn mock_backend_command() -> String {

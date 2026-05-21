@@ -2,8 +2,8 @@ use std::ffi::OsString;
 use std::process::ExitCode;
 
 use aget::{
-    Aget, Cli, Command, EnvelopeFormat, ErrorCode, ErrorResponse, GetSuccess, InlineContent,
-    TimingMs, ENVELOPE_SCHEMA_VERSION,
+    Aget, Cli, Command, CurrentTabOptions, EnvelopeFormat, ErrorCode, ErrorResponse, GetSuccess,
+    InlineContent, TimingMs, ENVELOPE_SCHEMA_VERSION,
 };
 use clap::error::ErrorKind;
 use serde::Serialize;
@@ -86,6 +86,9 @@ fn command_name_from_args(args: &[OsString]) -> &'static str {
     {
         return "get";
     }
+    if tokens.contains(&"current-tab") {
+        return "current-tab";
+    }
 
     "cli"
 }
@@ -147,6 +150,38 @@ fn run(cli: Cli) -> Result<(), ErrorResponse> {
             Ok::<(), ErrorResponse>(())
         })()
         .map_err(|error| error.with_command("get")),
+        Command::CurrentTab(current_tab) => (|| {
+            let aget = Aget::from_env()
+                .map_err(io_error)?
+                .with_timeout_opt(cli.global.timeout);
+            let inline_content = current_tab.inline_content;
+            let success = aget
+                .current_tab(CurrentTabOptions {
+                    port: current_tab.cdp_port,
+                    allow_private_content: current_tab.allow_private_content,
+                    output: current_tab.output,
+                    timeout: cli.global.timeout,
+                    content_format: current_tab.content_format,
+                    selector: current_tab.selector,
+                    exclude_selector: current_tab.exclude_selector,
+                    wait_for_selector: current_tab.wait_for_selector,
+                    max_chars: current_tab.max_chars,
+                    backend_options: current_tab.backend_options,
+                })
+                .map_err(error_response)?;
+            if structured_output {
+                print_success_envelope(
+                    "current-tab",
+                    get_envelope_data(&success, inline_content)?,
+                    success.warnings,
+                    success.timing_ms,
+                )?;
+            } else if !cli.global.quiet {
+                println!("{}", success.content);
+            }
+            Ok::<(), ErrorResponse>(())
+        })()
+        .map_err(|error| error.with_command("current-tab")),
         Command::Session(session) => {
             main_session::run_session(session.command, structured_output, cli.global.timeout)
         }

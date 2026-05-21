@@ -23,7 +23,7 @@ mod content;
 mod options;
 
 use self::content::{extract_owned_content, markdown_base_url};
-use self::options::{validate_owned_extraction_options, OwnedExtractorOptions};
+pub(crate) use self::options::{validate_owned_extraction_options, OwnedExtractorOptions};
 
 pub(crate) const OWNED_EXTRACTOR: &str = "aget-owned-extractor";
 
@@ -199,10 +199,19 @@ fn should_retry_with_rendered_wait(error: &AgetError, options: &GetOptions) -> b
     )
 }
 
-struct OwnedPageExtraction {
+pub(crate) struct OwnedPageExtraction {
+    pub(crate) final_url: String,
+    pub(crate) content: String,
+    pub(crate) warnings: Vec<String>,
+}
+
+pub(crate) fn extract_owned_rendered_html(
     final_url: String,
-    content: String,
-    warnings: Vec<String>,
+    html: String,
+    options: &GetOptions,
+) -> Result<OwnedPageExtraction, AgetError> {
+    let owned_options = validate_owned_extraction_options(options)?;
+    extract_owned_html(final_url, html, options, None, &owned_options)
 }
 
 fn extract_owned_page_response(

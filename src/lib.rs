@@ -11,12 +11,12 @@ pub mod session;
 
 pub use aget::{
     Aget, AgetBrowserBackend, AuthorizationPredicateResult, AuthorizationState,
-    AuthorizeSessionOptions, AuthorizeSessionResult, GetRequest,
+    AuthorizeSessionOptions, AuthorizeSessionResult, CurrentTabOptions, GetRequest,
 };
 pub use aget_browser::AgetBrowser;
 pub use aget_extractor::AgetExtractor;
 pub use cli::{
-    AuthorizeSessionCommand, BrowserChoice, Cli, Command, ComposeSessionCommand,
+    AuthorizeSessionCommand, BrowserChoice, Cli, Command, ComposeSessionCommand, CurrentTabCommand,
     DeleteSessionCommand, EnvelopeFormat, ExtractorOption, GetCommand, GlobalOptions,
     ImportBrowserSessionCommand, ImportChromeSessionCommand, ImportCmuxSessionCommand,
     ImportSessionCommand, ImportSessionSource, InlineContent, InspectSessionCommand,

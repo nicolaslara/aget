@@ -3,11 +3,13 @@ use std::time::Duration;
 
 use clap::{Args, Parser, Subcommand, ValueEnum};
 
+mod current_tab;
 mod get;
 mod session;
 #[cfg(test)]
 mod tests;
 
+pub use current_tab::CurrentTabCommand;
 pub use get::GetCommand;
 pub use session::{
     AuthorizeSessionCommand, BrowserChoice, ComposeSessionCommand, DeleteSessionCommand,
@@ -66,6 +68,8 @@ pub struct GlobalOptions {
 pub enum Command {
     /// Extract one HTTP(S) URL into agent-ready content.
     Get(GetCommand),
+    /// Extract the selected tab from an existing local browser CDP port.
+    CurrentTab(CurrentTabCommand),
     /// Manage local auth/session state.
     Session(SessionCommand),
 }
@@ -117,7 +121,7 @@ fn alias_url_index(args: &[OsString]) -> Option<usize> {
     let mut saw_command = false;
     for (index, arg) in args.iter().enumerate().skip(1) {
         let arg = arg.to_string_lossy();
-        if matches!(arg.as_ref(), "get" | "session") {
+        if matches!(arg.as_ref(), "get" | "current-tab" | "session") {
             saw_command = true;
         }
         if saw_command {

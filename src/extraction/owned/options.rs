@@ -9,17 +9,17 @@ use crate::extraction::{extraction_failed, GetOptions};
 const DEFAULT_RENDER_SETTLE_DELAY: Duration = Duration::from_millis(100);
 
 #[derive(Debug)]
-pub(super) struct OwnedExtractorOptions {
-    pub(super) excluded_tags: Vec<String>,
-    pub(super) target_elements: Vec<String>,
-    pub(super) only_text: bool,
-    pub(super) wait_until: PageWaitUntil,
-    pub(super) wait_for_images: bool,
-    pub(super) flatten_shadow_dom: bool,
-    pub(super) word_count_threshold: usize,
-    pub(super) render_settle_delay: Duration,
-    pub(super) page_timeout: Option<Duration>,
-    pub(super) wait_for_timeout: Option<Duration>,
+pub(crate) struct OwnedExtractorOptions {
+    pub(crate) excluded_tags: Vec<String>,
+    pub(crate) target_elements: Vec<String>,
+    pub(crate) only_text: bool,
+    pub(crate) wait_until: PageWaitUntil,
+    pub(crate) wait_for_images: bool,
+    pub(crate) flatten_shadow_dom: bool,
+    pub(crate) word_count_threshold: usize,
+    pub(crate) render_settle_delay: Duration,
+    pub(crate) page_timeout: Option<Duration>,
+    pub(crate) wait_for_timeout: Option<Duration>,
 }
 
 impl Default for OwnedExtractorOptions {
@@ -39,7 +39,7 @@ impl Default for OwnedExtractorOptions {
     }
 }
 
-pub(super) fn validate_owned_extraction_options(
+pub(crate) fn validate_owned_extraction_options(
     options: &GetOptions,
 ) -> Result<OwnedExtractorOptions, AgetError> {
     if let Some(wait_for) = &options.wait_for_selector {

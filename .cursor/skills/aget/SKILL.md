@@ -14,6 +14,7 @@ Use `aget` as a generic local fetcher. It returns page content and extraction ou
 - Never collect, type, script, store, or ask the user to reveal credentials.
 - Do not try to bypass paywalls, access controls, anti-bot systems, or site policy.
 - Do not use ambient browser auth silently. Authenticated fetches require an explicit named session.
+- Do not use `current-tab` unless the user explicitly approves reading the selected local browser tab and provides or approves the CDP port.
 - For OAuth-backed sites, prefer importing a user-authorized real browser session over opening an automation-controlled login browser.
 - Treat session files, storage-state temp files, screenshots, authenticated markdown, and envelope content as private local data.
 - Prefer `--output <path>` for large or sensitive content so the agent can read only the needed artifact.
@@ -34,7 +35,7 @@ Error shape:
 {"ok": false, "schema_version": "aget.envelope.v1", "command": "get", "error": {"code": "requires_user_action", "message": "..."}}
 ```
 
-For `get`, artifact paths are in `data.artifacts`, selected sessions are in `data.sessions`, and extracted page content is in `data.content` only when `--inline-content` includes it. The default `--inline-content auto` omits `data.content` for session-backed/sensitive fetches; read the local artifact path instead, or use `--inline-content always` only when the user explicitly wants authenticated content embedded in the envelope.
+For `get` and `current-tab`, artifact paths are in `data.artifacts`, selected sessions are in `data.sessions`, and extracted page content is in `data.content` only when `--inline-content` includes it. The default `--inline-content auto` omits `data.content` for session-backed/sensitive fetches and current-tab output; read the local artifact path instead, or use `--inline-content always` only when the user explicitly wants authenticated content embedded in the envelope.
 
 ## Basic Fetch
 
@@ -49,6 +50,16 @@ For long output:
 ```bash
 aget --envelope json get "https://example.com/docs" --content-format markdown --output /tmp/aget-page.md --max-chars 12000
 ```
+
+## Current Tab
+
+Use current-tab only after explicit user approval, because it can read authenticated/private content already open in the local browser. The user must provide or approve the Chrome DevTools debugging port:
+
+```bash
+aget --envelope json current-tab --cdp-port 9222 --allow-private-content --output /tmp/current-tab.md
+```
+
+Do not scan ports or profiles. Do not use `--inline-content always` unless the user explicitly wants the selected tab content embedded in the envelope.
 
 ## Gated Page Flow
 

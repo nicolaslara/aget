@@ -1,4 +1,6 @@
-use crate::aget_browser::AgetBrowser;
+use std::time::Duration;
+
+use crate::aget_browser::{AgetBrowser, CurrentTabRequest};
 use crate::error::AgetError;
 use crate::extraction::{
     AgetExtractorBackend, BrowserFallbackBackend, BrowserFallbackRequest, BrowserFallbackResult,
@@ -18,6 +20,32 @@ pub trait BrowserAutomationBackend {
     fn start_login(&self, options: LoginStartOptions) -> Result<LoginStartResult, AgetError>;
     fn finish_login(&self, options: LoginFinishOptions) -> Result<LoginFinishResult, AgetError>;
     fn cancel_login(&self, options: LoginCancelOptions) -> Result<LoginCancelResult, AgetError>;
+}
+
+pub struct BrowserCurrentTabRequest {
+    pub port: u16,
+    pub wait_for_selector: Option<String>,
+    pub wait_for_images: bool,
+    pub flatten_shadow_dom: bool,
+    pub settle_delay: Duration,
+    pub discovery_timeout: Duration,
+    pub page_timeout: Duration,
+    pub wait_for_timeout: Option<Duration>,
+    pub timeout: Duration,
+}
+
+pub struct BrowserCurrentTabResult {
+    pub cdp_ws_url: String,
+    pub final_url: String,
+    pub html: String,
+    pub warnings: Vec<String>,
+}
+
+pub trait BrowserCurrentTabBackend {
+    fn render_current_tab(
+        &self,
+        request: BrowserCurrentTabRequest,
+    ) -> Result<BrowserCurrentTabResult, AgetError>;
 }
 
 #[derive(Clone)]
@@ -124,6 +152,18 @@ impl BrowserFallbackBackend for DefaultBrowserAutomationBackend {
     }
 }
 
+impl BrowserCurrentTabBackend for DefaultBrowserAutomationBackend {
+    fn render_current_tab(
+        &self,
+        request: BrowserCurrentTabRequest,
+    ) -> Result<BrowserCurrentTabResult, AgetError> {
+        match self {
+            Self::Aget(backend) => backend.render_current_tab(request),
+            Self::Command(backend) => backend.render_current_tab(request),
+        }
+    }
+}
+
 #[derive(Clone)]
 pub struct CommandBrowserAutomationBackend;
 
@@ -151,6 +191,19 @@ impl BrowserFallbackBackend for CommandBrowserAutomationBackend {
         request: BrowserFallbackRequest<'_>,
     ) -> Result<BrowserFallbackResult, AgetError> {
         CommandBrowserFallbackBackend.extract_with_state(request)
+    }
+}
+
+impl BrowserCurrentTabBackend for CommandBrowserAutomationBackend {
+    fn render_current_tab(
+        &self,
+        _request: BrowserCurrentTabRequest,
+    ) -> Result<BrowserCurrentTabResult, AgetError> {
+        Err(crate::error::AgetError::Stable {
+            code: crate::error::ErrorCode::BackendUnavailable,
+            message: "current-tab extraction is available only through the owned browser backend"
+                .to_string(),
+        })
     }
 }
 
@@ -189,5 +242,30 @@ impl BrowserFallbackBackend for AgetBrowserBackend {
         request: BrowserFallbackRequest<'_>,
     ) -> Result<BrowserFallbackResult, AgetError> {
         self.browser.extract_with_state(request)
+    }
+}
+
+impl BrowserCurrentTabBackend for AgetBrowserBackend {
+    fn render_current_tab(
+        &self,
+        request: BrowserCurrentTabRequest,
+    ) -> Result<BrowserCurrentTabResult, AgetError> {
+        let rendered = self.browser.render_current_tab(CurrentTabRequest {
+            port: request.port,
+            wait_for_selector: request.wait_for_selector.as_deref(),
+            wait_for_images: request.wait_for_images,
+            flatten_shadow_dom: request.flatten_shadow_dom,
+            settle_delay: request.settle_delay,
+            discovery_timeout: request.discovery_timeout,
+            page_timeout: request.page_timeout,
+            wait_for_timeout: request.wait_for_timeout,
+            timeout: request.timeout,
+        })?;
+        Ok(BrowserCurrentTabResult {
+            cdp_ws_url: rendered.cdp_ws_url,
+            final_url: rendered.final_url,
+            html: rendered.html,
+            warnings: rendered.warnings,
+        })
     }
 }
