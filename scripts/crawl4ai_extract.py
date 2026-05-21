@@ -106,6 +106,9 @@ EXTRACTOR_OPTION_TYPES = {
     "wait_for_timeout": ("crawler", "int"),
     "delay_before_return_html": ("crawler", "float"),
     "wait_for_images": ("crawler", "bool"),
+    "scan_full_page": ("crawler", "bool"),
+    "scroll_delay": ("crawler", "float"),
+    "max_scroll_steps": ("crawler", "int"),
     "flatten_shadow_dom": ("crawler", "bool"),
 }
 

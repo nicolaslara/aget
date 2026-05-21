@@ -1165,6 +1165,20 @@ Status note:
 
 - Completed with D218. Source inspection found Crawl4AI’s scan runs before pre-wait JS/interactions, scrolls by viewport height, defaults to `scroll_delay=0.2`, treats `max_scroll_steps=None` as a runtime cap of 10 in `_handle_full_page_scan`, and warns while continuing on timeout/failure. Owned extraction now validates `crawl4ai.scan_full_page`, `crawl4ai.scroll_delay`, and `crawl4ai.max_scroll_steps`, propagates them through rendered URL and current-tab CDP capture, scrolls by viewport height before selector/image waits and HTML capture, and continues with a warning when scanning fails. Deterministic coverage exercises option validation, the generated CDP scan expression, and mock-CDP attached-page capture order.
 
+### ✅ Task I19bb: Align Crawl4AI command compatibility options with owned scan readiness
+
+Acceptance criteria:
+
+- Keep the explicit Crawl4AI command helper option allowlist aligned with owned `crawl4ai.scan_full_page`, `crawl4ai.scroll_delay`, and `crawl4ai.max_scroll_steps`.
+- Preserve the compatibility helper's safety boundary: JavaScript waits remain rejected and unsupported options still fail explicitly.
+- Add deterministic command-adapter coverage proving scan options pass through validation and are forwarded as backend options.
+- Record the compatibility boundary in `knowledge.md`.
+- Verify with focused command-adapter coverage plus the standard check set.
+
+Status note:
+
+- Completed with D219. `scripts/crawl4ai_extract.py` now accepts `crawl4ai.scan_full_page`, `crawl4ai.scroll_delay`, and `crawl4ai.max_scroll_steps` as explicit compatibility options while preserving JavaScript-wait rejection and explicit unknown-option failures. Deterministic command-adapter coverage proves the scan options pass validation and are forwarded as backend options.
+
 ### ✅ Task I20: Design OAuth-safe browser login and profile import flow
 
 Acceptance criteria:

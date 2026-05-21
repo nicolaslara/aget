@@ -6,6 +6,42 @@ use serde_json::json;
 use crate::support::get_cli::{metadata_files, mock_backend_command};
 
 #[test]
+fn get_command_backend_accepts_scan_full_page_options() {
+    let temp = tempfile::tempdir().unwrap();
+    let aget_home = temp.path().join("aget-home");
+    let fake_backend = mock_backend_command(
+        temp.path(),
+        json!({
+            "behavior": "success",
+            "validate_crawl4ai_options": true,
+            "expect_extractor_options": [
+                "crawl4ai.scan_full_page=true",
+                "crawl4ai.scroll_delay=0.3",
+                "crawl4ai.max_scroll_steps=5"
+            ]
+        }),
+    );
+
+    let mut cmd = Command::cargo_bin("aget").unwrap();
+    cmd.env("AGET_HOME", &aget_home)
+        .env("AGET_CRAWL4AI_COMMAND", &fake_backend)
+        .args([
+            "--envelope",
+            "json",
+            "get",
+            "https://example.com/scan-options",
+            "--backend-option",
+            "crawl4ai.scan_full_page=true",
+            "--backend-option",
+            "crawl4ai.scroll_delay=0.3",
+            "--backend-option",
+            "crawl4ai.max_scroll_steps=5",
+        ])
+        .assert()
+        .success();
+}
+
+#[test]
 fn get_real_helper_rejects_unsupported_extractor_option_before_crawl4ai_import() {
     let temp = tempfile::tempdir().unwrap();
     let aget_home = temp.path().join("aget-home");
