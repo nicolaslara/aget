@@ -2142,6 +2142,20 @@ Validation:
 
 Confidence: High for the CDP process split. The split is mechanical, focused process/lifecycle coverage passed, and the full standard suite is green.
 
+### D130: I19i splits CDP discovery and startup classification
+
+The next `browser_cdp` decomposition slice moved Chrome DevTools endpoint discovery and startup classification from `src/browser_cdp.rs` to `src/browser_cdp/discovery.rs`. The new module owns `DevToolsActivePort` parsing, stderr `DevTools listening on ...` URL fallback, Chrome startup stderr classification and hints, existing-profile CDP attach discovery, stale `DevToolsActivePort` cleanup, `/json/version` and `/json/list` discovery, direct `/devtools/browser` WebSocket verification, WebSocket host rewriting, and profile-browser shutdown polling. The CDP protocol client and target/session helpers remain in `src/browser_cdp.rs`.
+
+Validation:
+
+- `cargo fmt --check`
+- `git diff --check`
+- `cargo test browser_cdp::tests::discovers_cdp_websocket_url_from_json_version`
+- `cargo test browser_cdp::tests::parses_devtools_ws_url_from_chrome_stderr`
+- `cargo test`
+
+Confidence: High for the CDP discovery split. The split is mechanical, focused discovery/startup coverage passed, and the full standard suite is green.
+
 ## Open Questions
 
 - Can pure Rust browser automation provide reliable persistent profiles and CDP attach, or do we need a small Node/Playwright sidecar?
