@@ -2060,7 +2060,7 @@ fn render_link(node: NodeRef<'_, Node>, writer: &mut MarkdownWriter) {
         render_children(node, writer);
         return;
     };
-    if href.starts_with("mailto:") {
+    if href.starts_with("mailto:") || href.starts_with('#') {
         render_children(node, writer);
         return;
     }

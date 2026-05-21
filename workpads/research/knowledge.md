@@ -1882,6 +1882,21 @@ Validation:
 
 Confidence: High. The behavior is source-backed and covered by deterministic tests for both invalid include and exclude selector cases. It is limited to Crawl4AI-compatible selector tolerance and does not relax JavaScript wait safety.
 
+### D113: I19d suppresses fragment-only markdown links
+
+The next markdown link-default slice ports Crawl4AI/html2text's internal-link behavior. Before changing the owned renderer, I19d re-inspected `references/repos/crawl4ai/crawl4ai/html2text/config.py`, where `SKIP_INTERNAL_LINKS` defaults to true, and `references/repos/crawl4ai/crawl4ai/html2text/__init__.py`, where an anchor is not pushed onto the link stack when `href` starts with `#`.
+
+`OwnedExtractorBackend` now renders fragment-only anchors such as `<a href="#details">within page</a>` as plain child text instead of resolving them against the page URL. This matches the existing owned `mailto:` suppression path and keeps markdown output focused on fetchable external/page URLs rather than in-document targets.
+
+Validation:
+
+- `cargo fmt --check`
+- `git diff --check`
+- `cargo test --test mock_site_cli homegrown_extractor_backend_covers_static_http_parity_slice`
+- `cargo test`
+
+Confidence: High for fragment-only anchors. The behavior is source-backed and covered by the existing deterministic link-default fixture; broader Crawl4AI link/reference formatting remains separate I19d work.
+
 ## Open Questions
 
 - Can pure Rust browser automation provide reliable persistent profiles and CDP attach, or do we need a small Node/Playwright sidecar?
