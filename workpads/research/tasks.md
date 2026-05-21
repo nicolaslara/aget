@@ -1635,6 +1635,21 @@ Status note:
 
 - Completed with D248. `tests/mock_site_cli/aget_extractor_site.rs` now stays as a 21-line route composer, while dense route bodies live under `tests/mock_site_cli/aget_extractor_site/` by formats/options, main-content, selector, markdown, and cleanup behavior. The `aget_extractor_parity_site()` helper and parity assertions remain unchanged, route/asset strings match the previous fixture, and `workpads/research/tasks.md` remains un-compacted.
 
+### ✅ Task I19cf: Split session authorization CLI tests by behavior
+
+Acceptance criteria:
+
+- Preserve current `aget session authorize` CLI test behavior and assertions.
+- Move individual authorization scenarios out of `tests/session_cli/authorize.rs` into behavior-focused modules.
+- Keep the parent `tests/session_cli.rs` module route stable.
+- Do not compact or remove planned tasks from `workpads/research/tasks.md`.
+- Record the resulting test boundary in `knowledge.md`.
+- Verify with focused session authorization coverage plus the standard check set.
+
+Status note:
+
+- Completed with D249. `tests/session_cli/authorize.rs` now routes focused authorization scenarios for verified import, verification failure, `requires_user_action`, unsupported browser rejection, and re-import-after-login behavior under `tests/session_cli/authorize/`. The parent `tests/session_cli.rs` route remains stable, assertions and command arguments are preserved, and `workpads/research/tasks.md` remains un-compacted.
+
 ### ✅ Task I20: Design OAuth-safe browser login and profile import flow
 
 Acceptance criteria:
