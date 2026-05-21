@@ -1420,6 +1420,21 @@ Validation:
 
 Confidence: Medium-high. This closes the compatibility-option gap without inventing behavior upstream does not currently prove; the remaining I19d gaps are broader quality/readiness work rather than a helper-option mismatch.
 
+### D82: I19d ports bounded `crawl4ai.wait_until=networkidle` support to owned CDP rendering
+
+The next rendered-readiness slice completes the safe `wait_until` value set that the PoC helper exposed. Before changing the owned renderer, I19d re-inspected `references/repos/crawl4ai/crawl4ai/async_configs.py`, where `CrawlerRunConfig.wait_until` is the navigation wait condition, and `references/repos/crawl4ai/crawl4ai/async_crawler_strategy.py`, where Crawl4AI passes that value into Playwright navigation before later image waits or HTML capture.
+
+The owned CDP renderer now accepts `crawl4ai.wait_until=networkidle`. It sends `Page.navigate` without discarding interleaved CDP events, requires the navigation response plus `Page.domContentEventFired`, tracks same-target `Network.requestWillBeSent`, `Network.loadingFinished`, and `Network.loadingFailed` events, and considers the page idle after there are no in-flight tracked requests for 500 ms. This is a bounded CDP implementation of the Playwright concept, not a broader smart-readiness system: long-polling, websockets, service-worker behavior, virtual scrolling, and app-specific readiness still belong to later I19d work.
+
+The supported owned `crawl4ai.wait_until` values are now `domcontentloaded`, `load`, and `networkidle`.
+
+Validation:
+
+- `cargo test --test mock_site_cli homegrown_extractor_backend_covers_static_http_parity_slice`
+- `cargo test --test mock_site_cli owned_extractor_backend_honors_networkidle_wait_until_with_chrome -- --ignored`
+
+Confidence: Medium. The local Chrome smoke proves the owned network-idle wait for a delayed same-origin fetch, but this should still be treated as bounded parity rather than full Playwright readiness equivalence.
+
 ## Open Questions
 
 - Can pure Rust browser automation provide reliable persistent profiles and CDP attach, or do we need a small Node/Playwright sidecar?

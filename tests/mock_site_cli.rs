@@ -478,13 +478,13 @@ fn homegrown_extractor_backend_covers_static_http_parity_slice() {
     let unsupported_wait_until = Aget::new(&aget_home)
         .with_extractor_backend(OwnedExtractorBackend)
         .get(site.url("/formats"))
-        .backend_option("crawl4ai.wait_until", "networkidle")
+        .backend_option("crawl4ai.wait_until", "commit")
         .run()
         .unwrap_err();
     assert_eq!(unsupported_wait_until.code(), ErrorCode::ExtractionFailed);
-    assert!(unsupported_wait_until
-        .to_string()
-        .contains("crawl4ai.wait_until supports only 'domcontentloaded' or 'load'"));
+    assert!(unsupported_wait_until.to_string().contains(
+        "crawl4ai.wait_until supports only 'domcontentloaded', 'load', or 'networkidle'"
+    ));
 
     let invalid_wait_for_images = Aget::new(&aget_home)
         .with_extractor_backend(OwnedExtractorBackend)
@@ -771,6 +771,54 @@ fn owned_extractor_backend_honors_wait_for_images_option_with_chrome() {
     assert_eq!(extraction.extractor, "aget-owned-extractor");
     assert_eq!(extraction.content, "Image Shell Image Loaded");
     assert!(extraction.warnings.is_empty());
+}
+
+#[test]
+#[ignore = "requires local Chrome/Chromium; set AGET_CHROME_COMMAND if auto-discovery fails"]
+fn owned_extractor_backend_honors_networkidle_wait_until_with_chrome() {
+    let temp = tempfile::tempdir().unwrap();
+    let aget_home = temp.path().join("aget-home");
+    let site = MockSite::builder()
+        .route(
+            "/networkidle",
+            MockResponse::html(
+                r##"
+<html>
+  <body>
+    <main>
+      <h1>Network Shell</h1>
+      <p id="network-result">Loading</p>
+    </main>
+    <script>
+      fetch("/slow-fragment")
+        .then((response) => response.text())
+        .then((text) => { document.querySelector("#network-result").textContent = text })
+    </script>
+  </body>
+</html>
+"##,
+            ),
+        )
+        .route(
+            "/slow-fragment",
+            MockResponse::html("Network Settled")
+                .content_type("text/plain")
+                .delay(Duration::from_millis(650)),
+        )
+        .start();
+
+    let extraction = Aget::new(&aget_home)
+        .with_extractor_backend(OwnedExtractorBackend)
+        .get(site.url("/networkidle"))
+        .content_format(OutputFormat::Text)
+        .backend_option("crawl4ai.wait_until", "networkidle")
+        .backend_option("crawl4ai.delay_before_return_html", "0")
+        .backend_option("crawl4ai.page_timeout", "5000")
+        .run()
+        .unwrap();
+
+    assert_eq!(extraction.extractor, "aget-owned-extractor");
+    assert_eq!(extraction.content, "Network Shell Network Settled");
 }
 
 #[test]

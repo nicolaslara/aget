@@ -18,6 +18,7 @@ use crate::session::{PlaywrightCookie, PlaywrightOrigin, PlaywrightState, Storag
 
 const CDP_READ_POLL: Duration = Duration::from_millis(100);
 const CHROME_SHUTDOWN_WAIT: Duration = Duration::from_secs(1);
+const NETWORK_IDLE_DURATION: Duration = Duration::from_millis(500);
 
 pub(crate) struct BrowserRenderRequest<'a> {
     pub(crate) tmp_dir: &'a Path,
@@ -36,13 +37,15 @@ pub(crate) struct BrowserRenderRequest<'a> {
 pub(crate) enum PageWaitUntil {
     DomContentLoaded,
     Load,
+    NetworkIdle,
 }
 
 impl PageWaitUntil {
-    fn event_name(self) -> &'static str {
+    fn lifecycle_event_name(self) -> Option<&'static str> {
         match self {
-            Self::DomContentLoaded => "Page.domContentEventFired",
-            Self::Load => "Page.loadEventFired",
+            Self::DomContentLoaded => Some("Page.domContentEventFired"),
+            Self::Load => Some("Page.loadEventFired"),
+            Self::NetworkIdle => None,
         }
     }
 }
@@ -655,13 +658,117 @@ impl CdpClient {
         wait_until: PageWaitUntil,
         timeout: Duration,
     ) -> Result<(), AgetError> {
-        self.send(
+        let navigate_id = self.send_no_wait(
             "Page.navigate",
             Some(json!({ "url": url })),
             Some(session_id),
-            timeout,
         )?;
-        self.wait_for_event(wait_until.event_name(), Some(session_id), timeout)
+        match wait_until.lifecycle_event_name() {
+            Some(event_name) => {
+                self.wait_for_navigation_event(navigate_id, event_name, session_id, timeout)
+            }
+            None => self.wait_for_network_idle(navigate_id, session_id, timeout),
+        }
+    }
+
+    fn wait_for_navigation_event(
+        &mut self,
+        navigate_id: u64,
+        event_name: &str,
+        session_id: &str,
+        timeout: Duration,
+    ) -> Result<(), AgetError> {
+        let deadline = Instant::now() + timeout;
+        loop {
+            let message = self.read_message(deadline)?;
+            if message.get("id").and_then(Value::as_u64) == Some(navigate_id) {
+                self.handle_navigate_response(&message)?;
+                continue;
+            }
+            if message.get("method").and_then(Value::as_str) != Some(event_name) {
+                continue;
+            }
+            if message.get("sessionId").and_then(Value::as_str) == Some(session_id) {
+                return Ok(());
+            }
+        }
+    }
+
+    fn wait_for_network_idle(
+        &mut self,
+        navigate_id: u64,
+        session_id: &str,
+        timeout: Duration,
+    ) -> Result<(), AgetError> {
+        let deadline = Instant::now() + timeout;
+        let mut navigate_response_seen = false;
+        let mut dom_content_loaded = false;
+        let mut inflight_requests = BTreeSet::new();
+        let mut idle_since = Instant::now();
+
+        loop {
+            if navigate_response_seen
+                && dom_content_loaded
+                && inflight_requests.is_empty()
+                && idle_since.elapsed() >= NETWORK_IDLE_DURATION
+            {
+                return Ok(());
+            }
+
+            let Some(message) = self.try_read_message(deadline)? else {
+                continue;
+            };
+
+            if message.get("id").and_then(Value::as_u64) == Some(navigate_id) {
+                self.handle_navigate_response(&message)?;
+                navigate_response_seen = true;
+                if inflight_requests.is_empty() {
+                    idle_since = Instant::now();
+                }
+                continue;
+            }
+            if message.get("sessionId").and_then(Value::as_str) != Some(session_id) {
+                continue;
+            }
+
+            match message.get("method").and_then(Value::as_str) {
+                Some("Page.domContentEventFired") => {
+                    dom_content_loaded = true;
+                    if inflight_requests.is_empty() {
+                        idle_since = Instant::now();
+                    }
+                }
+                Some("Network.requestWillBeSent") => {
+                    if let Some(request_id) = network_request_id(&message) {
+                        inflight_requests.insert(request_id.to_string());
+                        idle_since = Instant::now();
+                    }
+                }
+                Some("Network.loadingFinished" | "Network.loadingFailed") => {
+                    if let Some(request_id) = network_request_id(&message) {
+                        inflight_requests.remove(request_id);
+                        if inflight_requests.is_empty() {
+                            idle_since = Instant::now();
+                        }
+                    }
+                }
+                _ => {}
+            }
+        }
+    }
+
+    fn handle_navigate_response(&self, message: &Value) -> Result<(), AgetError> {
+        if let Some(error) = message.get("error") {
+            let text = error
+                .get("message")
+                .and_then(Value::as_str)
+                .unwrap_or("CDP command failed");
+            return Err(AgetError::Stable {
+                code: ErrorCode::ExtractionFailed,
+                message: format!("owned browser fallback CDP Page.navigate failed: {text}"),
+            });
+        }
+        Ok(())
     }
 
     fn wait_for_selector(
@@ -835,81 +942,79 @@ impl CdpClient {
         }
     }
 
-    fn wait_for_event(
-        &mut self,
-        method: &str,
-        session_id: Option<&str>,
-        timeout: Duration,
-    ) -> Result<(), AgetError> {
-        let deadline = Instant::now() + timeout;
+    fn read_message(&mut self, deadline: Instant) -> Result<Value, AgetError> {
         loop {
-            let message = self.read_message(deadline)?;
-            if message.get("method").and_then(Value::as_str) != Some(method) {
-                continue;
+            if let Some(message) = self.try_read_message(deadline)? {
+                return Ok(message);
             }
-            if let Some(expected_session_id) = session_id {
-                if message.get("sessionId").and_then(Value::as_str) != Some(expected_session_id) {
-                    continue;
-                }
-            }
-            return Ok(());
         }
     }
 
-    fn read_message(&mut self, deadline: Instant) -> Result<Value, AgetError> {
-        loop {
-            if Instant::now() >= deadline {
-                return Err(AgetError::Stable {
-                    code: ErrorCode::Timeout,
-                    message: "owned browser fallback timed out waiting for Chrome CDP".to_string(),
-                });
+    fn try_read_message(&mut self, deadline: Instant) -> Result<Option<Value>, AgetError> {
+        if Instant::now() >= deadline {
+            return Err(AgetError::Stable {
+                code: ErrorCode::Timeout,
+                message: "owned browser fallback timed out waiting for Chrome CDP".to_string(),
+            });
+        }
+        match self.socket.read() {
+            Ok(Message::Text(text)) => {
+                let text: &str = text.as_ref();
+                serde_json::from_str(text)
+                    .map(Some)
+                    .map_err(|error| AgetError::Stable {
+                        code: ErrorCode::ExtractionFailed,
+                        message: format!(
+                            "owned browser fallback received malformed CDP JSON: {error}"
+                        ),
+                    })
             }
-            match self.socket.read() {
-                Ok(Message::Text(text)) => {
-                    let text: &str = text.as_ref();
-                    return serde_json::from_str(text).map_err(|error| AgetError::Stable {
+            Ok(Message::Binary(bytes)) => {
+                let text =
+                    String::from_utf8(bytes.to_vec()).map_err(|error| AgetError::Stable {
+                        code: ErrorCode::ExtractionFailed,
+                        message: format!(
+                            "owned browser fallback received non-UTF8 CDP JSON: {error}"
+                        ),
+                    })?;
+                serde_json::from_str(&text)
+                    .map(Some)
+                    .map_err(|error| AgetError::Stable {
                         code: ErrorCode::ExtractionFailed,
                         message: format!(
                             "owned browser fallback received malformed CDP JSON: {error}"
                         ),
-                    });
-                }
-                Ok(Message::Binary(bytes)) => {
-                    let text =
-                        String::from_utf8(bytes.to_vec()).map_err(|error| AgetError::Stable {
-                            code: ErrorCode::ExtractionFailed,
-                            message: format!(
-                                "owned browser fallback received non-UTF8 CDP JSON: {error}"
-                            ),
-                        })?;
-                    return serde_json::from_str(&text).map_err(|error| AgetError::Stable {
-                        code: ErrorCode::ExtractionFailed,
-                        message: format!(
-                            "owned browser fallback received malformed CDP JSON: {error}"
-                        ),
-                    });
-                }
-                Ok(Message::Ping(bytes)) => self
-                    .socket
+                    })
+            }
+            Ok(Message::Ping(bytes)) => {
+                self.socket
                     .send(Message::Pong(bytes))
-                    .map_err(cdp_io_error)?,
-                Ok(Message::Pong(_)) => {}
-                Ok(Message::Frame(_)) => {}
-                Ok(Message::Close(_)) => {
-                    return Err(AgetError::Stable {
-                        code: ErrorCode::ExtractionFailed,
-                        message: "owned browser fallback Chrome CDP connection closed".to_string(),
-                    });
-                }
-                Err(tungstenite::Error::Io(error))
-                    if matches!(
-                        error.kind(),
-                        io::ErrorKind::WouldBlock | io::ErrorKind::TimedOut
-                    ) => {}
-                Err(error) => return Err(cdp_io_error(error)),
+                    .map_err(cdp_io_error)?;
+                Ok(None)
             }
+            Ok(Message::Pong(_)) | Ok(Message::Frame(_)) => Ok(None),
+            Ok(Message::Close(_)) => Err(AgetError::Stable {
+                code: ErrorCode::ExtractionFailed,
+                message: "owned browser fallback Chrome CDP connection closed".to_string(),
+            }),
+            Err(tungstenite::Error::Io(error))
+                if matches!(
+                    error.kind(),
+                    io::ErrorKind::WouldBlock | io::ErrorKind::TimedOut
+                ) =>
+            {
+                Ok(None)
+            }
+            Err(error) => Err(cdp_io_error(error)),
         }
     }
+}
+
+fn network_request_id(message: &Value) -> Option<&str> {
+    message
+        .get("params")
+        .and_then(|params| params.get("requestId"))
+        .and_then(Value::as_str)
 }
 
 fn cdp_cookies(cookies: &[PlaywrightCookie]) -> Vec<Value> {

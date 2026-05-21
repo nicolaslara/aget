@@ -1156,8 +1156,9 @@ fn parse_owned_wait_until(value: &str) -> Result<PageWaitUntil, AgetError> {
     match value.trim().to_ascii_lowercase().as_str() {
         "domcontentloaded" => Ok(PageWaitUntil::DomContentLoaded),
         "load" => Ok(PageWaitUntil::Load),
+        "networkidle" => Ok(PageWaitUntil::NetworkIdle),
         _ => Err(extraction_failed(format!(
-            "crawl4ai.wait_until supports only 'domcontentloaded' or 'load' in the owned extractor, got '{value}'"
+            "crawl4ai.wait_until supports only 'domcontentloaded', 'load', or 'networkidle' in the owned extractor, got '{value}'"
         ))),
     }
 }
