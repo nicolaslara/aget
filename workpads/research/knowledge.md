@@ -2702,6 +2702,20 @@ Validation:
 
 Confidence: Medium-high. This is source-backed and deterministic, but it is a local markdown-boundary improvement rather than full Crawl4AI readability parity.
 
+### D164: I19d keeps automatic absolute links title-insensitive
+
+The next markdown-default slice ports a small Crawl4AI/html2text automatic-link edge case. Source inspection used `references/repos/crawl4ai/crawl4ai/html2text/__init__.py`, where `handle_data` emits `<absolute-url>` as soon as an anchor's visible text exactly matches its absolute `href`; the later anchor-close branch clears the pending automatic link and does not render the anchor `title`.
+
+`aget` now preserves the same behavior in the owned markdown renderer. Absolute URL anchors still become automatic markdown links even when the source anchor has a `title` attribute. Ordinary non-automatic links continue to preserve escaped titles.
+
+Coverage in `tests/mock_site_cli/owned.rs` adds a titled canonical URL link and verifies the output remains `<https://example.com/docs>` instead of `[https://example.com/docs](https://example.com/docs "Docs title")`.
+
+Validation:
+
+- `cargo test homegrown_extractor_backend_covers_static_http_parity_slice --test mock_site_cli`
+
+Confidence: High. The behavior is source-backed, narrow, and covered by the existing owned markdown link-default fixture.
+
 ## Open Questions
 
 - Can pure Rust browser automation provide reliable persistent profiles and CDP attach, or do we need a small Node/Playwright sidecar?

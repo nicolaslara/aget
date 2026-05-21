@@ -510,7 +510,7 @@ fn render_link(node: NodeRef<'_, Node>, writer: &mut MarkdownWriter) {
     }
 
     let label = inline_markdown_from_children(node, writer);
-    if title.is_empty() && !label.is_empty() && label == href && is_absolute_http_url(href) {
+    if !label.is_empty() && label == href && is_absolute_http_url(href) {
         writer.push_inline(&format!("<{}>", href));
         return;
     }
