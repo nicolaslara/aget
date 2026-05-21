@@ -5,6 +5,7 @@ mod login;
 mod page_scripts;
 mod process;
 mod render;
+mod session_data;
 mod state;
 
 use std::fs;

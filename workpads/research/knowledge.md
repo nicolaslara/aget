@@ -2285,6 +2285,21 @@ Validation:
 
 Confidence: High for the CDP test-module split. The move is mechanical, the CDP unit slice passed, and the full standard suite is green.
 
+### D139: I19i splits CDP session data conversion helpers
+
+The next CDP client decomposition slice moved Playwright/CDP session data conversion helpers from `src/browser_cdp/client.rs` to `src/browser_cdp/session_data.rs`. The new module owns CDP cookie payload construction, CDP cookie parsing and deduplication, allowed-domain storage-origin expansion, Runtime storage result parsing into `PlaywrightOrigin`, and target selection filtering for existing page attachment. `client.rs` now keeps socket/session command handling, navigation/wait logic, state load/export orchestration, and CDP request/response plumbing while re-exporting the moved helpers for existing unit tests.
+
+Validation:
+
+- `cargo check`
+- `cargo fmt`
+- `cargo fmt --check`
+- `git diff --check`
+- `cargo test browser_cdp::tests::`
+- `cargo test`
+
+Confidence: High for the CDP session data split. The move is mechanical, the CDP unit slice passed, and the full standard suite is green.
+
 ## Open Questions
 
 - Can pure Rust browser automation provide reliable persistent profiles and CDP attach, or do we need a small Node/Playwright sidecar?
