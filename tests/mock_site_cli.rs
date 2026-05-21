@@ -398,6 +398,7 @@ fn homegrown_extractor_backend_covers_static_http_parity_slice() {
       <p>Jump <a href="#details">within page</a>.</p>
       <p>Empty <a href="/empty"></a> marker.</p>
       <p>Asset <a href="/release(2026)">release notes</a> and <img src="/assets/diagram(1).png" alt="A [diagram] (v1)">.</p>
+      <p>Icon <a href="/download"><img src="/icons/app(1).svg" alt="Download [app]"></a>.</p>
     </main>
   </body>
 </html>
@@ -550,14 +551,20 @@ fn homegrown_extractor_backend_covers_static_http_parity_slice() {
         .url("/assets/diagram(1).png")
         .replace('(', "\\(")
         .replace(')', "\\)");
+    let icon_url = site
+        .url("/icons/app(1).svg")
+        .replace('(', "\\(")
+        .replace(')', "\\)");
     assert_eq!(
         markdown_links.content,
         format!(
-            "# Link Defaults\n\nRead [the guide]({} \"Guide \\\"title\\\" \\[v1\\] \\(draft\\)\") or email support.\n\nCanonical <https://example.com/docs>.\n\nJump within page.\n\nEmpty []({}) marker.\n\nAsset [release notes]({}) and ![A \\[diagram\\] \\(v1\\)]({}).",
+            "# Link Defaults\n\nRead [the guide]({} \"Guide \\\"title\\\" \\[v1\\] \\(draft\\)\") or email support.\n\nCanonical <https://example.com/docs>.\n\nJump within page.\n\nEmpty []({}) marker.\n\nAsset [release notes]({}) and ![A \\[diagram\\] \\(v1\\)]({}).\n\nIcon [![Download \\[app\\]]({})]({}).",
             site.url("/guide"),
             site.url("/empty"),
             release_url,
-            diagram_url
+            diagram_url,
+            icon_url,
+            site.url("/download")
         )
     );
 

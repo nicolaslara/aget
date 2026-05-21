@@ -2095,23 +2095,53 @@ fn render_link(node: NodeRef<'_, Node>, writer: &mut MarkdownWriter) {
         render_children(node, writer);
         return;
     }
-    let label = inline_markdown_from_children(node, writer);
     let title = element.attr("title").unwrap_or("").trim();
-    if title.is_empty() && !label.is_empty() && label == href && is_absolute_http_url(href) {
-        writer.push_inline(&format!("<{}>", href));
-        return;
-    }
     let title = if title.is_empty() {
         String::new()
     } else {
         format!(" \"{}\"", escape_link_title(title))
     };
+
+    if let Some(image_node) = single_image_child(node) {
+        if let Some(image) = image_markdown(image_node, writer) {
+            writer.push_inline(&format!(
+                "[{}]({}{})",
+                image,
+                escape_markdown_link_target(&writer.resolve_url(href)),
+                title
+            ));
+            return;
+        }
+    }
+
+    let label = inline_markdown_from_children(node, writer);
+    if title.is_empty() && !label.is_empty() && label == href && is_absolute_http_url(href) {
+        writer.push_inline(&format!("<{}>", href));
+        return;
+    }
     writer.push_inline(&format!(
         "[{}]({}{})",
         escape_link_text(&label),
         escape_markdown_link_target(&writer.resolve_url(href)),
         title
     ));
+}
+
+fn single_image_child(node: NodeRef<'_, Node>) -> Option<NodeRef<'_, Node>> {
+    let mut image = None;
+    let mut child = node.first_child();
+    while let Some(current) = child {
+        let next = current.next_sibling();
+        match current.value() {
+            Node::Text(text) if text.trim().is_empty() => {}
+            Node::Element(element) if element.name() == "img" && image.is_none() => {
+                image = Some(current);
+            }
+            _ => return None,
+        }
+        child = next;
+    }
+    image
 }
 
 fn render_abbreviation(node: NodeRef<'_, Node>, writer: &mut MarkdownWriter) {
@@ -2129,21 +2159,27 @@ fn render_abbreviation(node: NodeRef<'_, Node>, writer: &mut MarkdownWriter) {
 }
 
 fn render_image(node: NodeRef<'_, Node>, writer: &mut MarkdownWriter) {
+    if let Some(markdown) = image_markdown(node, writer) {
+        writer.push_inline(&markdown);
+    }
+}
+
+fn image_markdown(node: NodeRef<'_, Node>, writer: &MarkdownWriter) -> Option<String> {
     let Some(element) = ElementRef::wrap(node) else {
-        return;
+        return None;
     };
     let Some(src) = element.attr("src") else {
-        return;
+        return None;
     };
     if src.trim().is_empty() {
-        return;
+        return None;
     }
     let alt = element.attr("alt").unwrap_or("");
-    writer.push_inline(&format!(
+    Some(format!(
         "![{}]({})",
         escape_markdown_link_target(alt),
         escape_markdown_link_target(&writer.resolve_url(src))
-    ));
+    ))
 }
 
 fn render_blockquote(node: NodeRef<'_, Node>, writer: &mut MarkdownWriter) {

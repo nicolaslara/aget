@@ -2007,6 +2007,21 @@ Validation:
 
 Confidence: High for rendered style-overlay cleanup on this machine. The behavior is source-backed, the script contract is covered by a deterministic unit test, and a local Chrome ignored smoke proves a style-only fixed overlay is removed before text extraction. Broader Crawl4AI-quality markdown/readability and richer rendered-readiness heuristics remain separate I19d work.
 
+### D121: I19d preserves linked image markdown
+
+The next markdown-quality slice ports a Crawl4AI/html2text image-inside-link behavior. Before changing the owned renderer, I19d re-inspected `references/repos/crawl4ai/crawl4ai/html2text/__init__.py`, where `HTML2Text.handle_tag` opens a link label before an `<img>` child and emits image markdown before the anchor close renders the outer link target. With inline links enabled by default, an anchor wrapping a single image becomes linked-image markdown such as `[![alt](image)](href)`.
+
+`OwnedExtractorBackend` now detects the narrow single-image-anchor case and renders it as linked-image markdown instead of escaping the image markdown into the link label text. Mixed text/image anchors continue through the existing generic link path until a broader html2text inline-label model is justified.
+
+Validation:
+
+- `cargo fmt --check`
+- `cargo test --test mock_site_cli homegrown_extractor_backend_covers_static_http_parity_slice`
+- `git diff --check`
+- `cargo test`
+
+Confidence: High for single-image anchors. The behavior is source-backed and covered by the static markdown parity fixture; broader mixed inline link-image formatting remains a separate markdown-quality follow-up.
+
 ## Open Questions
 
 - Can pure Rust browser automation provide reliable persistent profiles and CDP attach, or do we need a small Node/Playwright sidecar?
