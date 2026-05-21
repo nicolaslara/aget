@@ -35,6 +35,7 @@ Safety boundary remains unchanged: `aget` is a generic fetcher for content the u
 - D171: the second I19j code slice introduced `AgetExtractor` and `AgetExtractorBackend`; default extraction and standalone `get_url` helpers now route through the extractor/browser engine wrappers while legacy `OwnedExtractorBackend` remains as a compatibility shim.
 - D172: `AgetExtractor` now has direct engine-level coverage that bypasses the `Aget` facade, and active mock-site extractor tests/docs use `AgetExtractor` naming instead of the migration-era `owned` label.
 - D173: `AgetBrowser` now has direct engine-level cancellation coverage without the `Aget` facade or command backend, and active browser fallback tests/docs use `AgetBrowser` naming where behavior is current rather than historical.
+- D174: support-file compaction now keeps `tasks.md` intact while moving dense `references.md` detail into `archive/references/` and leaving the top-level references file as a current routing index.
 
 ## Archive Index
 
@@ -52,6 +53,7 @@ Safety boundary remains unchanged: `aget` is a generic fetcher for content the u
 | D171 | `archive/knowledge/d171-aget-extractor-wrapper.md` | first `AgetExtractor` wrapper and default extractor backend wiring slice |
 | D172 | `archive/knowledge/d172-aget-extractor-direct-test.md` | direct `AgetExtractor` unit test plus active extractor test/doc naming cleanup |
 | D173 | `archive/knowledge/d173-aget-browser-direct-test.md` | direct `AgetBrowser` cancellation test plus active browser test/doc naming cleanup |
+| D174 | `archive/knowledge/d174-reference-compaction.md` | support-file reference compaction with `tasks.md` preserved as the active plan |
 
 ## Current Verification Expectations
 

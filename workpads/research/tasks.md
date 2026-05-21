@@ -536,6 +536,20 @@ Status note:
 
 - Started with D170-D173. The first mechanical browser slice introduced `AgetBrowser` and `AgetBrowserBackend`, routed `DefaultBrowserAutomationBackend::Owned` through the new backend, and kept `OwnedBrowserAutomationBackend` as a compatibility shim for existing callers/tests. The second mechanical extractor slice introduced `AgetExtractor` and `AgetExtractorBackend`, routed `DefaultExtractorBackend::Owned` and standalone `get_url` helpers through the new extractor/browser wrappers, and kept `OwnedExtractorBackend` as a compatibility shim. D172 added direct `AgetExtractor` engine coverage without the `Aget` facade and renamed active mock-site extractor tests/docs to `AgetExtractor` terminology. D173 added direct `AgetBrowser` cancellation coverage without the `Aget` facade or command backend and renamed active browser fallback tests/docs to `AgetBrowser` terminology. Focused API, mock-site browser, and mock-site extractor tests pass, but I19j remains in progress because remaining compatibility shim names, broader direct engine tests, and final validation are not complete.
 
+### ✅ Task I19k: Compact support workpad reference files without compacting tasks
+
+Acceptance criteria:
+
+- Preserve `workpads/research/tasks.md` as the active planned-task source of truth; do not replace it with a compact summary.
+- Move dense support-reference detail out of top-level workpad files into referenced archive files.
+- Keep top-level support files focused on current routing, active architecture pointers, and where to open deeper evidence.
+- Record the compaction decision in `knowledge.md` and keep historical reference rows available.
+- Validate that archived reference files exist, top-level routing is readable, and Markdown/link formatting is coherent.
+
+Status note:
+
+- Completed with D174 after the user clarified that task compaction is not wanted. `workpads/research/references.md` is now a compact routing index, dense historical reference rows live under `workpads/research/archive/references/`, and `workpads/research/tasks.md` remains the planned-task source of truth.
+
 ### ✅ Task I20: Design OAuth-safe browser login and profile import flow
 
 Acceptance criteria:
