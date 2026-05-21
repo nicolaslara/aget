@@ -141,7 +141,7 @@ pub(super) fn relevant_chrome_stderr(stderr: &str) -> String {
         .take(5)
         .collect::<Vec<_>>();
     if relevant.is_empty() {
-        stderr
+        let lines = stderr
             .lines()
             .map(str::trim)
             .filter(|line| !line.is_empty())
@@ -151,7 +151,13 @@ pub(super) fn relevant_chrome_stderr(stderr: &str) -> String {
             .into_iter()
             .rev()
             .collect::<Vec<_>>()
-            .join("\n  ")
+            .join("\n  ");
+        if lines.is_empty() {
+            String::new()
+        } else {
+            let count = lines.lines().count();
+            format!("Chrome stderr (last {count} lines):\n  {lines}")
+        }
     } else {
         append_chrome_startup_hint(relevant.join("\n  "))
     }

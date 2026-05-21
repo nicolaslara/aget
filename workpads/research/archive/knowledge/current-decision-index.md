@@ -30,6 +30,7 @@ This archive file keeps the denser decision routing that used to live in top-lev
 | D211 | `d211-current-tab-compat-env.md` | Current-tab stays on the owned browser/CDP engine when compatibility command env is set. |
 | D212 | `d212-cli-parser-test-split.md` | Mechanical CLI parser unit-test split by command surface. |
 | D213 | `d213-cli-integration-test-split.md` | Mechanical CLI integration-test split by behavior. |
+| D214 | `d214-chrome-startup-stderr-diagnostics.md` | agent-browser-inspired labeled generic Chrome startup stderr diagnostics. |
 
 ## Full Archive Routing
 
@@ -42,10 +43,10 @@ This archive file keeps the denser decision routing that used to live in top-lev
 | D151-D157 | `d151-d157-auth-and-browser-import.md` | OAuth-safe authorization API/CLI and conservative browser-neutral Chrome import surface. |
 | D158-D167 | `d158-d167-recent-migration-followups.md` | Recent source-backed extraction improvements and follow-up decomposition slices. |
 | D168-D176 | Per-decision files | Knowledge/reference compaction, engine-refactor planning, wrapper introduction, naming cleanup, and direct engine coverage. |
-| D177-D213 | Per-decision files | Module/test decomposition plus the latest owned extractor/browser parity improvements. |
+| D177-D214 | Per-decision files | Module/test decomposition plus the latest owned extractor/browser parity improvements. |
 
 ## Current Open Migration Gaps
 
 - I19d remains open for fuller Crawl4AI-quality readability/markdown and richer rendered-page readiness.
-- I19e remains open for broader rendered JavaScript parity, real logged-in profile/keychain smoke coverage, cross-platform close/process lifecycle parity, and fuller startup/error classification.
+- I19e remains open for broader rendered JavaScript parity, real logged-in profile/keychain smoke coverage, cross-platform close/process lifecycle parity, and still-fuller startup/error classification.
 - I19h remains open because final migration review requires review subagents for test adequacy, architecture cohesion, and security/privacy.

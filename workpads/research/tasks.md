@@ -459,7 +459,7 @@ Acceptance criteria:
 
 Status note:
 
-- Started after the first I19d owned extractor slices and documented in `knowledge.md` D58, D60, D64-D68, D83-D85, D96-D97, D101-D103, and D116-D118. `OwnedBrowserAutomationBackend` now has an owned session-backed fallback extraction path for static and scripted cookie-backed pages, a minimal Chrome/CDP renderer for localStorage/sessionStorage-backed fallback extraction, explicit user-data-dir Chrome import, named Chrome profile resolution/copying into temporary user-data-dir imports, a first owned dedicated-profile login start/finish/cancel lifecycle, stale owned-login profile sweeping, PID-backed cleanup for detached owned login browsers, profile-in-use Chrome startup classification as `requires_user_action`, Chrome stderr `DevTools listening on ...` URL startup fallback, sandbox/namespace startup hints, no-stderr Chrome startup hints, `/json/version`, `/json/list`, plus direct `/devtools/browser` CDP discovery fallbacks when attaching to an existing profile browser, three-attempt owned Chrome launch retries, and stale `DevToolsActivePort` removal when existing-profile attach finds a dead endpoint. I19e remains in progress because current-tab attach, broader rendered JavaScript parity, real logged-in profile/keychain smoke coverage, cross-platform close/process lifecycle parity, and fuller startup/error classification still require deeper CDP/profile work.
+- Started after the first I19d owned extractor slices and documented in `knowledge.md` D58, D60, D64-D68, D83-D85, D96-D97, D101-D103, D116-D118, and D214. `OwnedBrowserAutomationBackend` now has an owned session-backed fallback extraction path for static and scripted cookie-backed pages, a minimal Chrome/CDP renderer for localStorage/sessionStorage-backed fallback extraction, explicit user-data-dir Chrome import, named Chrome profile resolution/copying into temporary user-data-dir imports, a first owned dedicated-profile login start/finish/cancel lifecycle, stale owned-login profile sweeping, PID-backed cleanup for detached owned login browsers, profile-in-use Chrome startup classification as `requires_user_action`, Chrome stderr `DevTools listening on ...` URL startup fallback, sandbox/namespace startup hints, no-stderr Chrome startup hints, source-backed labeled generic Chrome stderr diagnostics, `/json/version`, `/json/list`, plus direct `/devtools/browser` CDP discovery fallbacks when attaching to an existing profile browser, three-attempt owned Chrome launch retries, and stale `DevToolsActivePort` removal when existing-profile attach finds a dead endpoint. I19e remains in progress because broader rendered JavaScript parity, real logged-in profile/keychain smoke coverage, cross-platform close/process lifecycle parity, and still-fuller startup/error classification require deeper CDP/profile work.
 
 ### ✅ Task I19f: Switch default runtime path to homegrown backends
 
@@ -1086,6 +1086,21 @@ Acceptance criteria:
 Status note:
 
 - Completed with D213. The CLI integration tests now keep `tests/cli.rs` as the stable entrypoint and route help/error, top-level `get`/envelope, current-tab, and shared local-server/mock-tool helpers through focused modules under `tests/cli/`. `workpads/research/tasks.md` was not compacted. The first focused run caught integration-test module path resolution, fixed with explicit `#[path = "cli/..."]` module routes. Validation passed with focused CLI integration coverage plus the standard check set.
+
+### ✅ Task I19aw: Port source-backed generic Chrome startup stderr diagnostics
+
+Acceptance criteria:
+
+- Inspect `agent-browser` Chrome launch-error handling before changing owned diagnostics.
+- Preserve current owned Chrome startup classifications, including sandbox hints, silent-exit hints, and `requires_user_action` for profile-in-use cases.
+- Improve generic Chrome startup stderr reporting so non-matching stderr lines are explicitly labeled as recent Chrome stderr rather than appended without context.
+- Add deterministic unit coverage for generic stderr tail diagnostics and classified startup errors.
+- Record the source-backed diagnostic boundary in `knowledge.md`.
+- Verify with focused browser CDP discovery tests plus the standard check set.
+
+Status note:
+
+- Completed with D214 after inspecting `agent-browser` Chrome launch-error handling in `references/repos/agent-browser/cli/src/native/cdp/chrome.rs`. Owned Chrome startup diagnostics now label generic non-matching stderr as recent Chrome stderr while preserving sandbox hints, silent-exit hints, and profile/user-action classification. Deterministic discovery tests cover generic stderr tails and classified startup errors. Validation passed with focused browser CDP discovery coverage plus the standard check set.
 
 ### ✅ Task I20: Design OAuth-safe browser login and profile import flow
 

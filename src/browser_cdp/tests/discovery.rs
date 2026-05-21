@@ -40,6 +40,22 @@ fn chrome_stderr_detail_includes_sandbox_hint() {
 }
 
 #[test]
+fn chrome_stderr_detail_labels_generic_tail_lines() {
+    let detail = relevant_chrome_stderr(
+        "info: startup preparing\n\
+         info: still warming\n\
+         note: first generic line\n\
+         trace: second generic line",
+    );
+
+    assert!(detail.contains("Chrome stderr (last 3 lines):"));
+    assert!(!detail.contains("startup preparing"));
+    assert!(detail.contains("info: still warming"));
+    assert!(detail.contains("note: first generic line"));
+    assert!(detail.contains("trace: second generic line"));
+}
+
+#[test]
 fn chrome_startup_error_adds_silent_exit_hint_without_stderr() {
     let temp = tempfile::tempdir().unwrap();
     let stderr_capture = TempOutputFile::new(temp.path(), "chrome-stderr").unwrap();
@@ -54,6 +70,31 @@ fn chrome_startup_error_adds_silent_exit_hint_without_stderr() {
     let message = classified.to_string();
     assert!(message.contains("Chrome exited without startup diagnostics"));
     assert!(message.contains("AGET_CHROME_COMMAND"));
+}
+
+#[test]
+fn chrome_startup_error_includes_labeled_generic_stderr() {
+    let temp = tempfile::tempdir().unwrap();
+    let stderr_capture = TempOutputFile::new(temp.path(), "chrome-stderr").unwrap();
+    fs::write(
+        stderr_capture.path(),
+        "startup line one\nstartup line two\nstartup line three\nstartup line four\n",
+    )
+    .unwrap();
+    let error = AgetError::Stable {
+        code: ErrorCode::BackendUnavailable,
+        message: "owned browser fallback Chrome exited before CDP startup".to_string(),
+    };
+
+    let classified = classify_chrome_startup_error("owned Chrome test", error, &stderr_capture);
+
+    assert_eq!(classified.code(), ErrorCode::BackendUnavailable);
+    let message = classified.to_string();
+    assert!(message.contains("Chrome stderr (last 3 lines):"));
+    assert!(!message.contains("startup line one"));
+    assert!(message.contains("startup line two"));
+    assert!(message.contains("startup line three"));
+    assert!(message.contains("startup line four"));
 }
 
 #[cfg(unix)]
