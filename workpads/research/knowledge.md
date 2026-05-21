@@ -1852,6 +1852,21 @@ Validation:
 
 Confidence: High. The behavior is source-backed, part of the user-facing selector contract, and covered by deterministic tests for all-match selection and selector-scoped target elements.
 
+### D111: I19d preserves selected wrappers in multi-element HTML output
+
+The D110 selector change exposed an adjacent cleaned-HTML parity detail. Crawl4AI's `LXMLWebScrapingStrategy._scrap` copies selected elements into a temporary wrapper and serializes `content_element` with `lhtml.tostring(...)`, so selected element tags are retained in `cleaned_html` rather than returning only their children.
+
+`OwnedExtractorBackend` now serializes multi-element selections and target-element selections with each selected element's outer HTML. Single-root extraction keeps the existing inner-HTML behavior so unselected full-page output remains stable. The deterministic selector fixture verifies that multi-match HTML output keeps `<section class="result">` wrappers and excludes unselected sidebar content.
+
+Validation:
+
+- `cargo fmt --check`
+- `git diff --check`
+- `cargo test --test mock_site_cli homegrown_extractor_backend_covers_static_http_parity_slice`
+- `cargo test`
+
+Confidence: High. The behavior is source-backed and covered for the multi-match selector case; exact pretty-print wrapper formatting remains intentionally simpler than Crawl4AI's lxml serialization.
+
 ## Open Questions
 
 - Can pure Rust browser automation provide reliable persistent profiles and CDP attach, or do we need a small Node/Playwright sidecar?

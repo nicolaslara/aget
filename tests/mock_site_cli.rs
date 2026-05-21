@@ -667,6 +667,19 @@ fn homegrown_extractor_backend_covers_static_http_parity_slice() {
         "First Result Alpha body. Second Result Beta body."
     );
 
+    let selector_multiple_html = Aget::new(&aget_home)
+        .with_extractor_backend(OwnedExtractorBackend)
+        .get(site.url("/selector-multiple"))
+        .content_format(OutputFormat::Html)
+        .selector(".result")
+        .run()
+        .unwrap();
+    assert!(selector_multiple_html
+        .content
+        .contains(r#"<section class="result">"#));
+    assert!(selector_multiple_html.content.contains("Second Result"));
+    assert!(!selector_multiple_html.content.contains("Sidebar body."));
+
     let selector_scoped_targets = Aget::new(&aget_home)
         .with_extractor_backend(OwnedExtractorBackend)
         .get(site.url("/selector-multiple"))

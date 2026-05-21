@@ -1373,7 +1373,7 @@ fn extract_target_owned_elements(
 
     let html = elements
         .iter()
-        .map(|element| element.inner_html())
+        .map(|element| element.html())
         .collect::<Vec<_>>()
         .join("\n");
     let markdown = normalize_markdown(
