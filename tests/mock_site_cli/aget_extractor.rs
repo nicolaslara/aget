@@ -268,6 +268,17 @@ fn aget_extractor_backend_covers_static_http_parity_slice() {
         "# Dense Article\n\nDense useful body text should win because it has direct prose instead of mostly navigation links.\n\nThe local scorer should prefer low-link-density content for agent-ready extraction."
     );
 
+    let class_id_noise_markdown = Aget::new(&aget_home)
+        .with_extractor_backend(AgetExtractorBackend::default())
+        .get(site.url("/main-content-class-id-noise"))
+        .content_format(OutputFormat::Markdown)
+        .run()
+        .unwrap();
+    assert_eq!(
+        class_id_noise_markdown.content,
+        "# Primary Article\n\nThe primary article should win even when a noisy comments block has enough text to look important."
+    );
+
     let overlay_text = Aget::new(&aget_home)
         .with_extractor_backend(AgetExtractorBackend::default())
         .get(site.url("/overlay-content"))

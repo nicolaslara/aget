@@ -847,6 +847,21 @@ Status note:
 
 - Completed with D197 after the user clarified that `tasks.md` should not be compacted. The full historical session-wrapper PoC spec and implementation plan moved under `workpads/research/archive/support/`, their old top-level paths now route to the archived versions, and dense `knowledge.md` decision routing moved into `workpads/research/archive/knowledge/current-decision-index.md`. `workpads/research/tasks.md` remains the detailed executable backlog.
 
+### ✅ Task I19ag: Penalize noisy class/id main-content candidates
+
+Acceptance criteria:
+
+- Inspect Crawl4AI source for class/id noise handling before changing the scorer.
+- Preserve current `AgetExtractor` public behavior while improving default main-content candidate choice.
+- Add deterministic mocked coverage for a comments/promotional candidate that uses otherwise content-like labels.
+- Keep the heuristic generic and source-backed; do not introduce site-specific rules.
+- Run focused extractor coverage plus the standard validation set before committing.
+- Record source paths, heuristic boundaries, and validation in `knowledge.md`.
+
+Status note:
+
+- Completed with D198 after inspecting Crawl4AI `PruningContentFilter._compute_class_id_weight` and `RelevantContentFilter.negative_patterns` in `references/repos/crawl4ai/crawl4ai/content_filter_strategy.py`. `AgetExtractor` main-content scoring now applies a generic class/id noise penalty for Crawl4AI-style navigation, advertising, comments, promo, social, and sharing labels, and mocked coverage verifies that a dense comments block does not beat a primary article. Validation passed with focused extractor coverage, `cargo fmt --check`, `cargo test`, and `git diff --check`.
+
 ### ✅ Task I20: Design OAuth-safe browser login and profile import flow
 
 Acceptance criteria:

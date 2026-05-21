@@ -123,6 +123,26 @@ pub(crate) fn aget_extractor_parity_site() -> MockSite {
             ),
         )
         .route(
+            "/main-content-class-id-noise",
+            MockResponse::html(
+                r#"
+<html>
+  <body>
+    <article id="comments-panel" class="content story">
+      <h1>Community Comments</h1>
+      <p>This discussion thread has many words and looks like content, but the class and id mark it as comments noise.</p>
+      <p>Additional replies mention setup docs migration release examples and troubleshooting to make the block deceptively dense.</p>
+    </article>
+    <div id="content" class="story-body">
+      <h1>Primary Article</h1>
+      <p>The primary article should win even when a noisy comments block has enough text to look important.</p>
+    </div>
+  </body>
+</html>
+"#,
+            ),
+        )
+        .route(
             "/selector-miss",
             MockResponse::html(
                 r#"

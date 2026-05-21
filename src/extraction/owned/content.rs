@@ -189,10 +189,12 @@ fn score_main_content_candidate(element: ElementRef<'_>) -> Result<i64, AgetErro
         return Ok(0);
     }
     let label_penalty = content_label_penalty(element) as i64;
+    let class_id_noise_penalty = crawl4ai_like_class_id_noise_penalty(element) as i64;
     let pruning_score = crawl4ai_like_pruning_score(element, &link_selector);
     Ok(
         (text_words as i64 * 8) - (link_words as i64 * 12) + tag_bonus + positive_label_bonus
             - label_penalty
+            - class_id_noise_penalty
             + pruning_score,
     )
 }
@@ -229,6 +231,27 @@ fn crawl4ai_like_pruning_score(element: ElementRef<'_>, link_selector: &scraper:
         + (tag_weight * 80.0)
         + (length_bonus * 20.0))
         .round() as i64
+}
+
+fn crawl4ai_like_class_id_noise_penalty(element: ElementRef<'_>) -> usize {
+    // Crawl4AI's PruningContentFilter includes a class/id metric keyed off
+    // generic navigation, advertising, comments, promo, and social labels.
+    ["class", "id"]
+        .into_iter()
+        .filter_map(|attribute| element.attr(attribute))
+        .filter(|value| has_crawl4ai_negative_label(value))
+        .count()
+        * 350
+}
+
+fn has_crawl4ai_negative_label(value: &str) -> bool {
+    let lower = value.to_ascii_lowercase();
+    [
+        "nav", "footer", "header", "sidebar", "ads", "comment", "promo", "advert", "social",
+        "share",
+    ]
+    .into_iter()
+    .any(|needle| lower.starts_with(needle))
 }
 
 fn word_count<'a>(pieces: impl IntoIterator<Item = &'a str>) -> usize {
