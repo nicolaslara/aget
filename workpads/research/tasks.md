@@ -789,6 +789,21 @@ Status note:
 
 - Completed with D193 after I19aa completed and committed. The mechanical split kept public `aget::extraction::*` paths stable while moving extraction DTOs/traits into `src/extraction/types.rs` and backend adapter structs into `src/extraction/backends.rs`; orchestration stayed in `src/extraction/mod.rs`, which dropped to 380 lines. Validation passed with focused extraction/API/mock-site tests, `cargo fmt --check`, `cargo test`, and `git diff --check`. The first full-suite run hit a transient `session_cli::authorize` localhost connection refusal; the affected authorize subset and a second full-suite run passed.
 
+### ✅ Task I19ac: Split markdown renderer writer and inline helpers
+
+Acceptance criteria:
+
+- Preserve current AgetExtractor markdown output behavior while reducing `src/extraction/markdown/mod.rs`.
+- Move renderer state/writer helpers into a focused submodule.
+- Move inline link/image/abbreviation/text helpers into a focused submodule.
+- Keep block/list/table orchestration behavior unchanged.
+- Run focused markdown/extractor coverage plus the standard validation set before committing.
+- Record the resulting module boundaries in `knowledge.md`.
+
+Status note:
+
+- Completed with D194 after I19ab completed and committed. The mechanical split kept markdown output behavior unchanged while moving renderer state/blank-line/abbreviation helpers into `src/extraction/markdown/writer.rs` and link/image/abbreviation/raw-text helpers into `src/extraction/markdown/inline.rs`; `src/extraction/markdown/mod.rs` now focuses on block/list/render dispatch and is 283 lines. Validation passed with focused markdown/extractor coverage, `cargo fmt --check`, `cargo test`, and `git diff --check`.
+
 ### ✅ Task I20: Design OAuth-safe browser login and profile import flow
 
 Acceptance criteria:

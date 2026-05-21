@@ -55,6 +55,7 @@ Safety boundary remains unchanged: `aget` is a generic fetcher for content the u
 - D191: Aget facade/backend API tests were split into `tests/aget_api.rs` plus support, extraction, authorization, session-backend, and default browser-backend submodules without changing backend contract coverage.
 - D192: session import CLI tests were split into `tests/session_cli/imports.rs` plus browser, command-backed Chrome, owned Chrome, and real-smoke submodules without changing import behavior.
 - D193: extraction public DTOs/traits and backend adapter structs were split into `src/extraction/types.rs` and `src/extraction/backends.rs` without changing extraction API paths or runtime behavior.
+- D194: markdown renderer state and inline helpers were split into `src/extraction/markdown/writer.rs` and `inline.rs`, reducing the core renderer while preserving current markdown output behavior.
 
 ## Archive Index
 
@@ -92,6 +93,7 @@ Safety boundary remains unchanged: `aget` is a generic fetcher for content the u
 | D191 | `archive/knowledge/d191-aget-api-test-split.md` | mechanical Aget facade/backend API test split into support, extraction, authorization, session backend, and default browser backend modules |
 | D192 | `archive/knowledge/d192-session-import-test-split.md` | mechanical session import CLI test split into browser, command-backed Chrome, owned Chrome, and real-smoke modules |
 | D193 | `archive/knowledge/d193-extraction-types-backends-split.md` | mechanical extraction split into public DTO/trait and backend adapter submodules |
+| D194 | `archive/knowledge/d194-markdown-writer-inline-split.md` | mechanical markdown renderer split into writer state and inline helper submodules |
 
 ## Current Verification Expectations
 

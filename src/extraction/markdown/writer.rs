@@ -1,0 +1,109 @@
+use std::cell::RefCell;
+use std::rc::Rc;
+
+use url::Url;
+
+use super::normalize::{
+    escape_markdown_line_start, escape_markdown_text_backslashes, is_markdown_line_start,
+    needs_space_before_inline, normalize_inline_markdown, resolve_markdown_url,
+    starts_with_closing_punctuation, trailing_newline_count, trim_trailing_horizontal_space,
+};
+
+pub(super) struct MarkdownWriter {
+    pub(super) output: String,
+    base_url: Option<Url>,
+    pub(super) only_text: bool,
+    pub(super) list_depth: usize,
+    abbreviations: Rc<RefCell<Vec<(String, String)>>>,
+}
+
+impl MarkdownWriter {
+    pub(super) fn new(base_url: &str, only_text: bool) -> Self {
+        Self {
+            output: String::new(),
+            base_url: Url::parse(base_url).ok(),
+            only_text,
+            list_depth: 0,
+            abbreviations: Rc::new(RefCell::new(Vec::new())),
+        }
+    }
+
+    pub(super) fn child(&self) -> Self {
+        Self {
+            output: String::new(),
+            base_url: self.base_url.clone(),
+            only_text: self.only_text,
+            list_depth: self.list_depth,
+            abbreviations: Rc::clone(&self.abbreviations),
+        }
+    }
+
+    pub(super) fn resolve_url(&self, raw: &str) -> String {
+        self.base_url
+            .as_ref()
+            .map(|base| resolve_markdown_url(base.as_str(), raw))
+            .unwrap_or_else(|| raw.to_string())
+    }
+
+    pub(super) fn push_text(&mut self, text: &str) {
+        let mut text = normalize_inline_markdown(text);
+        text = escape_markdown_text_backslashes(&text);
+        if is_markdown_line_start(&self.output) {
+            text = escape_markdown_line_start(&text);
+        }
+        self.push_inline(&text);
+    }
+
+    pub(super) fn push_inline(&mut self, text: &str) {
+        let text = text.trim();
+        if text.is_empty() {
+            return;
+        }
+        if needs_space_before_inline(&self.output) && !starts_with_closing_punctuation(text) {
+            self.output.push(' ');
+        }
+        self.output.push_str(text);
+    }
+
+    pub(super) fn ensure_blank_line(&mut self) {
+        trim_trailing_horizontal_space(&mut self.output);
+        if self.output.is_empty() {
+            return;
+        }
+        match trailing_newline_count(&self.output) {
+            0 => self.output.push_str("\n\n"),
+            1 => self.output.push('\n'),
+            _ => {}
+        }
+    }
+
+    pub(super) fn record_abbreviation(&mut self, text: String, title: String) {
+        if text.is_empty() || title.is_empty() {
+            return;
+        }
+        let mut abbreviations = self.abbreviations.borrow_mut();
+        if let Some((_, existing_title)) = abbreviations
+            .iter_mut()
+            .find(|(existing_text, _)| existing_text == &text)
+        {
+            *existing_title = title;
+        } else {
+            abbreviations.push((text, title));
+        }
+    }
+
+    pub(super) fn append_abbreviation_definitions(&mut self) {
+        let abbreviations = self.abbreviations.borrow().clone();
+        if abbreviations.is_empty() {
+            return;
+        }
+        self.ensure_blank_line();
+        for (text, title) in abbreviations {
+            self.output.push_str("  *[");
+            self.output.push_str(&text);
+            self.output.push_str("]: ");
+            self.output.push_str(&title);
+            self.output.push('\n');
+        }
+    }
+}
