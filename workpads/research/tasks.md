@@ -606,6 +606,20 @@ Status note:
 
 - Completed with D180 after I19n completed and committed. The mechanical split kept `src/extraction/mod.rs` as the `aget get` orchestration surface while moving output/limit metadata helpers into `src/extraction/output.rs` and replay-scope enforcement into `src/extraction/replay_scope.rs`. Validation passed with focused extraction/replay-scope tests, `cargo fmt --check`, `cargo test`, and `git diff --check`.
 
+### ✅ Task I19p: Split Playwright session composition internals
+
+Acceptance criteria:
+
+- Preserve current session composition and temporary Playwright state file behavior while splitting `src/session/playwright.rs` into smaller modules.
+- Keep the existing `session::playwright` public interface unchanged for callers.
+- Split mechanically first, prioritizing composition/conflict helpers and temp state file/private-permission helpers because they are cohesive and low-risk.
+- Run focused session/playwright tests plus the standard validation set before committing.
+- Record the resulting module boundaries in `knowledge.md`.
+
+Status note:
+
+- Completed with D181 after I19o completed and committed. The mechanical split moved Playwright session composition into `src/session/playwright/compose.rs`, temp state file/private-permission handling into `state_file.rs`, and existing unit coverage into `tests.rs`, while keeping public Playwright state types and re-exports in `mod.rs`. Validation passed with focused `session::playwright` tests, `cargo fmt --check`, `cargo test`, and `git diff --check`.
+
 ### ✅ Task I20: Design OAuth-safe browser login and profile import flow
 
 Acceptance criteria:
