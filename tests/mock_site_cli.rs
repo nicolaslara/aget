@@ -309,6 +309,7 @@ fn homegrown_extractor_backend_covers_static_http_parity_slice() {
       <h1>Reference Bits</h1>
       <p>Status: <del>removed</del>, <em>soft</em>, <u>under</u>, <kbd>Cmd K</kbd>, <tt>TTY</tt>, <q>quoted</q>, <abbr title="HyperText Markup Language">HTML</abbr>.</p>
       <hr>
+      <blockquote><p>Quoted <strong>block</strong>.</p><p>Second line.</p></blockquote>
       <dl>
         <dt>Term</dt>
         <dd>Definition with <strong>detail</strong>.</dd>
@@ -474,7 +475,7 @@ fn homegrown_extractor_backend_covers_static_http_parity_slice() {
         .unwrap();
     assert_eq!(
         markdown_inline_blocks.content,
-        "# Reference Bits\n\nStatus: ~~removed~~, _soft_, _under_, `Cmd K`, `TTY`, \"quoted\", HTML.\n\n* * *\n\nTerm\n    Definition with **detail**.\n\n  *[HTML]: HyperText Markup Language"
+        "# Reference Bits\n\nStatus: ~~removed~~, _soft_, _under_, `Cmd K`, `TTY`, \"quoted\", HTML.\n\n* * *\n\n> Quoted **block**.\n>\n> Second line.\n\nTerm\n    Definition with **detail**.\n\n  *[HTML]: HyperText Markup Language"
     );
 
     let markdown_nested_lists = Aget::new(&aget_home)

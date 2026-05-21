@@ -1762,6 +1762,21 @@ Validation:
 
 Confidence: High. The behavior is source-backed, deterministic, and limited to equivalent Markdown bullet syntax. It does not affect list structure, selectors, browser rendering, or session replay.
 
+### D105: I19d preserves blockquote paragraph breaks
+
+The next markdown-quality slice ports another Crawl4AI/html2text formatting behavior. Before changing the owned renderer, I19d re-inspected `references/repos/crawl4ai/crawl4ai/html2text/__init__.py`, where `HTML2Text.handle_tag` enters blockquote mode with a `> ` prefix and the output path prefixes subsequent lines while preserving paragraph breaks inside the quote.
+
+`OwnedExtractorBackend` now renders blockquote children through the block markdown path before prefixing each resulting line with `>`. This preserves multiple paragraphs inside a blockquote instead of collapsing them through inline rendering. The static markdown parity fixture now covers a two-paragraph blockquote with inline strong text.
+
+Validation:
+
+- `cargo fmt --check`
+- `git diff --check`
+- `cargo test --test mock_site_cli homegrown_extractor_backend_covers_static_http_parity_slice`
+- `cargo test`
+
+Confidence: High. The behavior is source-backed and covered by a deterministic fixture. It is limited to blockquote markdown rendering and does not alter extraction selection, browser rendering, or session replay.
+
 ## Open Questions
 
 - Can pure Rust browser automation provide reliable persistent profiles and CDP attach, or do we need a small Node/Playwright sidecar?
