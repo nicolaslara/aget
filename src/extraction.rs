@@ -33,6 +33,9 @@ const DEFAULT_RENDER_SETTLE_DELAY: Duration = Duration::from_millis(100);
 const CRAWL4AI_IMPORTANT_ATTRS: &[&str] = &[
     "src", "href", "alt", "title", "width", "height", "class", "id",
 ];
+const CRAWL4AI_EMPTY_ELEMENT_BYPASS_TAGS: &[&str] = &[
+    "a", "img", "br", "hr", "input", "meta", "link", "source", "track", "wbr", "tr", "td", "th",
+];
 
 #[derive(Clone)]
 pub struct GetOptions {
@@ -1310,6 +1313,7 @@ fn extract_owned_content(
     // Match Crawl4AI's cleanup order: selectors see original attributes, but
     // serialized cleaned HTML keeps only its small important-attribute allowlist.
     document = clean_owned_base64_image_sources(document);
+    document = remove_owned_empty_elements(document, root_id, &target_ids);
     document = prune_owned_unwanted_attributes(document);
 
     if owned_options.target_elements.is_empty() {
@@ -1444,6 +1448,60 @@ fn clean_owned_base64_image_sources(mut document: Html) -> Html {
         }
     }
     document
+}
+
+fn remove_owned_empty_elements(document: Html, root_id: NodeId, target_ids: &[NodeId]) -> Html {
+    let node_ids = document
+        .tree
+        .nodes()
+        .filter_map(|node| ElementRef::wrap(node).map(|element| element.id()))
+        .collect::<Vec<_>>();
+    let sink = HtmlTreeSink::new(document);
+    for id in node_ids.into_iter().rev() {
+        let should_remove = {
+            let document = sink.0.borrow();
+            should_remove_owned_empty_element(&document, id, root_id, target_ids)
+        };
+        if should_remove {
+            sink.remove_from_parent(&id);
+        }
+    }
+    sink.finish()
+}
+
+fn should_remove_owned_empty_element(
+    document: &Html,
+    id: NodeId,
+    root_id: NodeId,
+    target_ids: &[NodeId],
+) -> bool {
+    if id == root_id || target_ids.contains(&id) {
+        return false;
+    }
+    let Some(element) = document.tree.get(id).and_then(ElementRef::wrap) else {
+        return false;
+    };
+    if element.parent().is_none() {
+        return false;
+    }
+    let tag = element.value().name();
+    if CRAWL4AI_EMPTY_ELEMENT_BYPASS_TAGS.contains(&tag) || is_descendant_of_code_block(element) {
+        return false;
+    }
+    if element.child_elements().next().is_some() {
+        return false;
+    }
+    element
+        .text()
+        .all(|text| text.split_whitespace().next().is_none())
+}
+
+fn is_descendant_of_code_block(element: ElementRef<'_>) -> bool {
+    element.ancestors().any(|ancestor| {
+        ElementRef::wrap(ancestor)
+            .map(|ancestor| matches!(ancestor.value().name(), "pre" | "code"))
+            .unwrap_or(false)
+    })
 }
 
 fn is_base64_image_src(src: &str) -> bool {

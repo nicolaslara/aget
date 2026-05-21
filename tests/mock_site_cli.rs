@@ -316,6 +316,11 @@ fn homegrown_extractor_backend_covers_static_http_parity_slice() {
       <a id="kept-link" class="cta" href="/kept" title="Kept title" rel="nofollow" data-private="link-secret">Kept link</a>
       <img id="diagram" class="figure" src="/diagram.png" alt="Diagram" width="640" height="480" data-private="image-secret" style="display:none">
       <img id="inline-image" src="data:image/png;base64,QUJDRA==" alt="Inline image">
+      <section id="empty-wrapper"><span id="empty-span"></span></section>
+      <a id="empty-anchor" href="/empty"></a>
+      <br id="empty-break">
+      <table><tbody><tr id="empty-row"><td id="empty-cell"></td></tr></tbody></table>
+      <pre><code><span id="code-space"> </span></code></pre>
       <meta name="body-meta" content="remove me">
       <link rel="preload" href="/asset.css">
       <script>window.secret = "remove me";</script>
@@ -428,6 +433,12 @@ fn homegrown_extractor_backend_covers_static_http_parity_slice() {
     assert!(cleaned_html.content.contains("height=\"480\""));
     assert!(cleaned_html.content.contains("id=\"inline-image\""));
     assert!(cleaned_html.content.contains("alt=\"Inline image\""));
+    assert!(cleaned_html.content.contains("id=\"empty-anchor\""));
+    assert!(cleaned_html.content.contains("href=\"/empty\""));
+    assert!(cleaned_html.content.contains("id=\"empty-break\""));
+    assert!(cleaned_html.content.contains("id=\"empty-row\""));
+    assert!(cleaned_html.content.contains("id=\"empty-cell\""));
+    assert!(cleaned_html.content.contains("id=\"code-space\""));
     assert!(!cleaned_html.content.contains("<meta"));
     assert!(!cleaned_html.content.contains("<link"));
     assert!(!cleaned_html.content.contains("<style"));
@@ -441,6 +452,8 @@ fn homegrown_extractor_backend_covers_static_http_parity_slice() {
     assert!(!cleaned_html.content.contains("rel=\"nofollow\""));
     assert!(!cleaned_html.content.contains("data:image/png;base64"));
     assert!(!cleaned_html.content.contains("QUJDRA"));
+    assert!(!cleaned_html.content.contains("empty-wrapper"));
+    assert!(!cleaned_html.content.contains("empty-span"));
 
     let selected_by_pruned_attr = Aget::new(&aget_home)
         .with_extractor_backend(OwnedExtractorBackend)

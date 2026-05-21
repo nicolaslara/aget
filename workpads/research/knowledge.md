@@ -1536,6 +1536,21 @@ Validation:
 
 Confidence: High for this narrow privacy/output-size slice. The behavior is source-backed, deterministic, and only removes inline image payloads from output; it does not fetch or interpret images.
 
+### D90: I19d removes empty owned cleaned-HTML leaf elements
+
+The next cleaned-output slice ports Crawl4AI's empty-element pruning. Before changing the owned path, I19d re-inspected `references/repos/crawl4ai/crawl4ai/content_scraping_strategy.py`, where `remove_empty_elements_fast(root, 1)` walks descendants bottom-up after base64 image cleanup and before attribute pruning, removes childless elements with no words, skips a bypass tag set such as `a`, `img`, `br`, table cells/rows, and preserves whitespace-only descendants inside `pre`/`code`.
+
+`OwnedExtractorBackend` now runs a bottom-up cleanup pass in the same order. It removes empty leaf elements, recomputing childlessness after earlier removals so empty wrappers can also disappear. It protects the selected root and `crawl4ai.target_elements` IDs so selector-driven extraction cannot fail by deleting the element it is about to serialize. The fixture proves empty wrapper/span elements are removed while empty anchors, breaks, table cells/rows, and whitespace-only code spans are kept.
+
+Validation:
+
+- `cargo fmt --check`
+- `git diff --check`
+- `cargo test --test mock_site_cli homegrown_extractor_backend_covers_static_http_parity_slice`
+- `cargo test`
+
+Confidence: Medium-high. The behavior is source-backed and deterministic, with one deliberate guard: selected roots and target elements are preserved to keep the owned extractor's public selector contract stable.
+
 ## Open Questions
 
 - Can pure Rust browser automation provide reliable persistent profiles and CDP attach, or do we need a small Node/Playwright sidecar?
