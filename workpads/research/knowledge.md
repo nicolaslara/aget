@@ -2110,6 +2110,22 @@ Validation:
 
 Confidence: High for the owned HTML cleanup split. The split is mechanical, focused owned-extractor coverage passed, and the full standard suite is green.
 
+### D128: I19i splits owned HTTP fetch
+
+The next extraction decomposition slice moved owned direct HTTP fetch and cookie replay helpers from `src/extraction/mod.rs` to `src/extraction/http.rs`. The new module owns URL parsing and http/https validation, `ureq` agent setup, redirect-aware final URL capture, User-Agent setup, Playwright-state cookie header construction, cookie domain/path/secure matching for requests, and `ureq` timeout/error mapping. The parent extraction module still owns the higher-level static-or-rendered decision and passes the fetched response into existing HTML extraction.
+
+Validation:
+
+- `cargo fmt`
+- `cargo fmt --check`
+- `git diff --check`
+- `cargo test --test mock_site_cli default_cli_fetch_uses_owned_backend_without_command_dependencies`
+- `cargo test --test mock_site_cli mock_site_replays_cookie_and_storage_sessions`
+- `cargo test --test mock_site_cli homegrown_extractor_backend_covers_static_http_parity_slice`
+- `cargo test`
+
+Confidence: High for the owned HTTP fetch split. The split is mechanical, focused public fetch plus cookie replay coverage passed, and the full standard suite is green.
+
 ## Open Questions
 
 - Can pure Rust browser automation provide reliable persistent profiles and CDP attach, or do we need a small Node/Playwright sidecar?
