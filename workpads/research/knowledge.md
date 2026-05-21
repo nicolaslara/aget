@@ -1822,6 +1822,21 @@ Validation:
 
 Confidence: High. The behavior is directly source-backed and deterministic, and the change is limited to rendered markdown link titles.
 
+### D109: I19d preserves markdown hard breaks for `<br>`
+
+The next markdown-quality slice ports Crawl4AI/html2text line-break behavior. Before changing the owned renderer, I19d re-inspected `references/repos/crawl4ai/crawl4ai/html2text/__init__.py`, where `HTML2Text.handle_tag` emits `  \n` for a starting `<br>` tag, with a blockquote-specific `> ` prefix variant.
+
+`OwnedExtractorBackend` now emits Markdown hard breaks for `<br>` and keeps those two trailing spaces through final markdown normalization. The static markdown parity fixture covers this in both normal markdown and `crawl4ai.only_text=true` output. Blockquote prefixing is already handled by the owned blockquote renderer, so the same hard-break line is preserved before quote-line prefixing.
+
+Validation:
+
+- `cargo fmt --check`
+- `git diff --check`
+- `cargo test --test mock_site_cli homegrown_extractor_backend_covers_static_http_parity_slice`
+- `cargo test`
+
+Confidence: High. The behavior is directly source-backed, covered by deterministic fixture output, and limited to Markdown line-break preservation.
+
 ## Open Questions
 
 - Can pure Rust browser automation provide reliable persistent profiles and CDP attach, or do we need a small Node/Playwright sidecar?

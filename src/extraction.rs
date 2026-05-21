@@ -1692,7 +1692,7 @@ fn render_element(node: NodeRef<'_, Node>, tag: &str, writer: &mut MarkdownWrite
     match tag {
         "h1" | "h2" | "h3" | "h4" | "h5" | "h6" => render_heading(node, tag, writer),
         "p" => render_block(node, writer),
-        "br" => writer.output.push('\n'),
+        "br" => writer.output.push_str("  \n"),
         "hr" => render_horizontal_rule(writer),
         "ul" => render_list(node, false, writer),
         "ol" => render_list(node, true, writer),
@@ -2151,7 +2151,7 @@ fn collect_raw_text(node: NodeRef<'_, Node>, output: &mut String) {
 fn normalize_markdown(markdown: &str) -> String {
     let mut output = String::new();
     let mut blank_lines = 0usize;
-    for line in markdown.lines().map(str::trim_end) {
+    for line in markdown.lines().map(normalize_markdown_line_end) {
         if line.trim().is_empty() {
             blank_lines += 1;
             if blank_lines <= 1 && !output.is_empty() {
@@ -2163,10 +2163,21 @@ fn normalize_markdown(markdown: &str) -> String {
         if !output.is_empty() && !output.ends_with('\n') {
             output.push('\n');
         }
-        output.push_str(line);
+        output.push_str(&line);
         output.push('\n');
     }
     output.trim().to_string()
+}
+
+fn normalize_markdown_line_end(line: &str) -> String {
+    let without_tabs = line.trim_end_matches('\t');
+    if without_tabs.ends_with("  ") {
+        let without_spaces = without_tabs.trim_end_matches(' ');
+        if !without_spaces.is_empty() {
+            return format!("{without_spaces}  ");
+        }
+    }
+    line.trim_end().to_string()
 }
 
 fn normalize_inline_markdown(text: &str) -> String {
