@@ -2270,6 +2270,21 @@ Validation:
 
 Confidence: High for the owned extraction split. The move is mechanical, focused owned-extraction integration tests passed, and the full standard suite is green.
 
+### D138: I19i splits CDP unit tests from the public module
+
+The next CDP decomposition slice moved the `browser_cdp` unit test module from `src/browser_cdp.rs` to `src/browser_cdp/tests.rs`. The parent CDP module now contains only submodule declarations, public capability re-exports, shared Chrome startup constants, private directory helpers, and shared I/O error conversion. Test-only imports moved with the tests, so the production module is no longer visually dominated by local Chrome, CDP discovery, page script, storage, and login smoke tests.
+
+Validation:
+
+- `cargo check`
+- `cargo fmt`
+- `cargo fmt --check`
+- `git diff --check`
+- `cargo test browser_cdp::tests::`
+- `cargo test`
+
+Confidence: High for the CDP test-module split. The move is mechanical, the CDP unit slice passed, and the full standard suite is green.
+
 ## Open Questions
 
 - Can pure Rust browser automation provide reliable persistent profiles and CDP attach, or do we need a small Node/Playwright sidecar?
