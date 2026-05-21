@@ -102,7 +102,7 @@ export const fetch = tool({
     backend_options: tool.schema
       .array(tool.schema.string())
       .optional()
-      .describe("Optional unstable backend.key=value strings; AgetExtractor currently supports crawl4ai.target_elements, crawl4ai.excluded_tags, crawl4ai.only_text, crawl4ai.word_count_threshold, crawl4ai.delay_before_return_html, crawl4ai.page_timeout, crawl4ai.wait_for_timeout, crawl4ai.wait_until=domcontentloaded|load|networkidle, and crawl4ai.wait_for_images."),
+      .describe("Optional unstable backend.key=value strings; AgetExtractor currently supports crawl4ai.target_elements, crawl4ai.excluded_tags, crawl4ai.only_text, crawl4ai.word_count_threshold, crawl4ai.delay_before_return_html, crawl4ai.page_timeout, crawl4ai.wait_for_timeout, crawl4ai.wait_until=domcontentloaded|load|networkidle, crawl4ai.wait_for_images, crawl4ai.scan_full_page, crawl4ai.scroll_delay, crawl4ai.max_scroll_steps, and crawl4ai.flatten_shadow_dom."),
   },
   async execute(args, context) {
     const cliArgs: string[] = []

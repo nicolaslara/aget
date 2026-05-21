@@ -7,7 +7,7 @@ use serde_json::{json, Value};
 use super::transport::remaining;
 use super::CdpClient;
 use crate::browser_cdp::page_scripts::{
-    rendered_overlay_cleanup_expression, selector_exists_expression,
+    full_page_scan_expression, rendered_overlay_cleanup_expression, selector_exists_expression,
 };
 use crate::browser_cdp::PageWaitUntil;
 use crate::error::{AgetError, ErrorCode};
@@ -276,6 +276,26 @@ impl CdpClient {
             }
             thread::sleep(Duration::from_millis(100));
         }
+    }
+
+    pub(in crate::browser_cdp) fn scan_full_page(
+        &mut self,
+        session_id: &str,
+        scroll_delay: Duration,
+        max_scroll_steps: usize,
+        timeout: Duration,
+    ) -> Result<(), AgetError> {
+        self.send(
+            "Runtime.evaluate",
+            Some(json!({
+                "expression": full_page_scan_expression(scroll_delay, max_scroll_steps),
+                "returnByValue": true,
+                "awaitPromise": true,
+            })),
+            self.session_param(session_id),
+            timeout,
+        )?;
+        Ok(())
     }
 
     pub(in crate::browser_cdp) fn remove_rendered_overlay_elements(

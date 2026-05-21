@@ -82,6 +82,28 @@ pub(super) fn assert_backend_options_redirects_and_waits(aget_home: &Path, site:
         .to_string()
         .contains("crawl4ai.wait_for_images expects a boolean value"));
 
+    let invalid_scroll_delay = Aget::new(aget_home)
+        .with_extractor_backend(AgetExtractorBackend::default())
+        .get(site.url("/formats"))
+        .backend_option("crawl4ai.scroll_delay", "later")
+        .run()
+        .unwrap_err();
+    assert_eq!(invalid_scroll_delay.code(), ErrorCode::ExtractionFailed);
+    assert!(invalid_scroll_delay
+        .to_string()
+        .contains("crawl4ai.scroll_delay expects a non-negative number of seconds"));
+
+    let invalid_max_scroll_steps = Aget::new(aget_home)
+        .with_extractor_backend(AgetExtractorBackend::default())
+        .get(site.url("/formats"))
+        .backend_option("crawl4ai.max_scroll_steps", "many")
+        .run()
+        .unwrap_err();
+    assert_eq!(invalid_max_scroll_steps.code(), ErrorCode::ExtractionFailed);
+    assert!(invalid_max_scroll_steps
+        .to_string()
+        .contains("crawl4ai.max_scroll_steps expects a non-negative integer value"));
+
     let unsupported_option = Aget::new(aget_home)
         .with_extractor_backend(AgetExtractorBackend::default())
         .get(site.url("/formats"))
@@ -92,7 +114,7 @@ pub(super) fn assert_backend_options_redirects_and_waits(aget_home: &Path, site:
     assert!(unsupported_option
         .to_string()
         .contains(
-            "supported options: crawl4ai.delay_before_return_html, crawl4ai.excluded_tags, crawl4ai.flatten_shadow_dom, crawl4ai.only_text, crawl4ai.page_timeout, crawl4ai.target_elements, crawl4ai.wait_for_images, crawl4ai.wait_for_timeout, crawl4ai.wait_until, crawl4ai.word_count_threshold"
+            "supported options: crawl4ai.delay_before_return_html, crawl4ai.excluded_tags, crawl4ai.flatten_shadow_dom, crawl4ai.max_scroll_steps, crawl4ai.only_text, crawl4ai.page_timeout, crawl4ai.scan_full_page, crawl4ai.scroll_delay, crawl4ai.target_elements, crawl4ai.wait_for_images, crawl4ai.wait_for_timeout, crawl4ai.wait_until, crawl4ai.word_count_threshold"
         ));
 
     let redirect = Aget::new(aget_home)

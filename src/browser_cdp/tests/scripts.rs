@@ -2,9 +2,9 @@ use serde_json::json;
 
 use super::super::client::preferred_page_target_id;
 use super::super::page_scripts::{
-    local_storage_set_expression, rendered_overlay_cleanup_expression, selector_exists_expression,
-    session_storage_set_expression, shadow_dom_attach_override_expression,
-    shadow_dom_flatten_expression,
+    full_page_scan_expression, local_storage_set_expression, rendered_overlay_cleanup_expression,
+    selector_exists_expression, session_storage_set_expression,
+    shadow_dom_attach_override_expression, shadow_dom_flatten_expression,
 };
 
 #[test]
@@ -68,6 +68,18 @@ fn selector_wait_expression_strips_explicit_css_prefix() {
         expression,
         r#"document.querySelector("main #ready") !== null"#
     );
+}
+
+#[test]
+fn full_page_scan_expression_uses_bounded_viewport_scrolls() {
+    let expression = full_page_scan_expression(std::time::Duration::from_millis(250), 7);
+
+    assert!(expression.contains("const delayMs = 250"));
+    assert!(expression.contains("const maxSteps = 7"));
+    assert!(expression.contains("currentPosition + viewportHeight()"));
+    assert!(expression.contains("steps < maxSteps"));
+    assert!(expression.contains("window.scrollTo(0, 0)"));
+    assert!(expression.contains("window.scrollTo(0, totalHeight)"));
 }
 
 #[test]

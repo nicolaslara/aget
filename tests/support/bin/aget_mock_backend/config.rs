@@ -68,6 +68,9 @@ fn validate_crawl4ai_options(args: &Args) -> Result<(), String> {
         "wait_for_timeout",
         "delay_before_return_html",
         "wait_for_images",
+        "scan_full_page",
+        "scroll_delay",
+        "max_scroll_steps",
     ];
     for option in &args.extractor_options {
         let Some((key, _value)) = option.split_once('=') else {

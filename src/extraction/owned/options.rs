@@ -7,6 +7,8 @@ use crate::extraction::html_clean::parse_css_selector;
 use crate::extraction::{extraction_failed, GetOptions};
 
 const DEFAULT_RENDER_SETTLE_DELAY: Duration = Duration::from_millis(100);
+const DEFAULT_FULL_PAGE_SCROLL_DELAY: Duration = Duration::from_millis(200);
+const DEFAULT_FULL_PAGE_MAX_SCROLL_STEPS: usize = 10;
 
 #[derive(Debug)]
 pub(crate) struct OwnedExtractorOptions {
@@ -15,6 +17,9 @@ pub(crate) struct OwnedExtractorOptions {
     pub(crate) only_text: bool,
     pub(crate) wait_until: PageWaitUntil,
     pub(crate) wait_for_images: bool,
+    pub(crate) scan_full_page: bool,
+    pub(crate) scroll_delay: Duration,
+    pub(crate) max_scroll_steps: usize,
     pub(crate) flatten_shadow_dom: bool,
     pub(crate) word_count_threshold: usize,
     pub(crate) render_settle_delay: Duration,
@@ -30,6 +35,9 @@ impl Default for OwnedExtractorOptions {
             only_text: false,
             wait_until: PageWaitUntil::Load,
             wait_for_images: false,
+            scan_full_page: false,
+            scroll_delay: DEFAULT_FULL_PAGE_SCROLL_DELAY,
+            max_scroll_steps: DEFAULT_FULL_PAGE_MAX_SCROLL_STEPS,
             flatten_shadow_dom: false,
             word_count_threshold: 1,
             render_settle_delay: DEFAULT_RENDER_SETTLE_DELAY,
@@ -93,13 +101,24 @@ pub(crate) fn validate_owned_extraction_options(
                 owned_options.wait_for_images =
                     parse_owned_bool("crawl4ai.wait_for_images", &option.value)?;
             }
+            "scan_full_page" => {
+                owned_options.scan_full_page =
+                    parse_owned_bool("crawl4ai.scan_full_page", &option.value)?;
+            }
+            "scroll_delay" => {
+                owned_options.scroll_delay =
+                    parse_owned_seconds("crawl4ai.scroll_delay", &option.value)?;
+            }
+            "max_scroll_steps" => {
+                owned_options.max_scroll_steps = parse_owned_max_scroll_steps(&option.value)?;
+            }
             "flatten_shadow_dom" => {
                 owned_options.flatten_shadow_dom =
                     parse_owned_bool("crawl4ai.flatten_shadow_dom", &option.value)?;
             }
             _ => {
                 return Err(extraction_failed(format!(
-                    "owned extractor does not support backend option '{}'; supported options: crawl4ai.delay_before_return_html, crawl4ai.excluded_tags, crawl4ai.flatten_shadow_dom, crawl4ai.only_text, crawl4ai.page_timeout, crawl4ai.target_elements, crawl4ai.wait_for_images, crawl4ai.wait_for_timeout, crawl4ai.wait_until, crawl4ai.word_count_threshold",
+                    "owned extractor does not support backend option '{}'; supported options: crawl4ai.delay_before_return_html, crawl4ai.excluded_tags, crawl4ai.flatten_shadow_dom, crawl4ai.max_scroll_steps, crawl4ai.only_text, crawl4ai.page_timeout, crawl4ai.scan_full_page, crawl4ai.scroll_delay, crawl4ai.target_elements, crawl4ai.wait_for_images, crawl4ai.wait_for_timeout, crawl4ai.wait_until, crawl4ai.word_count_threshold",
                     option.key
                 )));
             }
@@ -148,14 +167,18 @@ fn parse_owned_target_elements(value: &str) -> Result<Vec<String>, AgetError> {
 }
 
 fn parse_owned_render_delay(value: &str) -> Result<Duration, AgetError> {
+    parse_owned_seconds("crawl4ai.delay_before_return_html", value)
+}
+
+fn parse_owned_seconds(name: &str, value: &str) -> Result<Duration, AgetError> {
     let seconds = value.trim().parse::<f64>().map_err(|_| {
         extraction_failed(format!(
-            "crawl4ai.delay_before_return_html expects a non-negative number of seconds, got '{value}'"
+            "{name} expects a non-negative number of seconds, got '{value}'"
         ))
     })?;
     if !seconds.is_finite() || seconds < 0.0 {
         return Err(extraction_failed(format!(
-            "crawl4ai.delay_before_return_html expects a non-negative finite number of seconds, got '{value}'"
+            "{name} expects a non-negative finite number of seconds, got '{value}'"
         )));
     }
     Ok(Duration::from_secs_f64(seconds))
@@ -184,6 +207,14 @@ fn parse_owned_word_count_threshold(value: &str) -> Result<usize, AgetError> {
     value.trim().parse::<usize>().map_err(|_| {
         extraction_failed(format!(
             "crawl4ai.word_count_threshold expects a non-negative integer value, got '{value}'"
+        ))
+    })
+}
+
+fn parse_owned_max_scroll_steps(value: &str) -> Result<usize, AgetError> {
+    value.trim().parse::<usize>().map_err(|_| {
+        extraction_failed(format!(
+            "crawl4ai.max_scroll_steps expects a non-negative integer value, got '{value}'"
         ))
     })
 }

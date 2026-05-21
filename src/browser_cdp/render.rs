@@ -17,6 +17,9 @@ pub(crate) struct BrowserRenderRequest<'a> {
     pub(crate) wait_for_selector: Option<&'a str>,
     pub(crate) wait_until: PageWaitUntil,
     pub(crate) wait_for_images: bool,
+    pub(crate) scan_full_page: bool,
+    pub(crate) scroll_delay: Duration,
+    pub(crate) max_scroll_steps: usize,
     pub(crate) flatten_shadow_dom: bool,
     pub(crate) settle_delay: Duration,
     pub(crate) page_timeout: Duration,
@@ -31,6 +34,9 @@ pub(crate) struct BrowserAttachedPageRenderRequest<'a> {
     pub(crate) ws_url: &'a str,
     pub(crate) wait_for_selector: Option<&'a str>,
     pub(crate) wait_for_images: bool,
+    pub(crate) scan_full_page: bool,
+    pub(crate) scroll_delay: Duration,
+    pub(crate) max_scroll_steps: usize,
     pub(crate) flatten_shadow_dom: bool,
     pub(crate) settle_delay: Duration,
     pub(crate) page_timeout: Duration,
@@ -84,6 +90,9 @@ pub(crate) fn render_page(request: BrowserRenderRequest<'_>) -> Result<RenderedP
         AttachedPageCaptureOptions {
             wait_for_selector: request.wait_for_selector,
             wait_for_images: request.wait_for_images,
+            scan_full_page: request.scan_full_page,
+            scroll_delay: request.scroll_delay,
+            max_scroll_steps: request.max_scroll_steps,
             flatten_shadow_dom: request.flatten_shadow_dom,
             settle_delay: request.settle_delay,
             page_timeout: request.page_timeout,
@@ -119,6 +128,9 @@ pub(crate) fn render_attached_page(
         AttachedPageCaptureOptions {
             wait_for_selector: request.wait_for_selector,
             wait_for_images: request.wait_for_images,
+            scan_full_page: request.scan_full_page,
+            scroll_delay: request.scroll_delay,
+            max_scroll_steps: request.max_scroll_steps,
             flatten_shadow_dom: request.flatten_shadow_dom,
             settle_delay: request.settle_delay,
             page_timeout: request.page_timeout,
@@ -130,6 +142,9 @@ pub(crate) fn render_attached_page(
 struct AttachedPageCaptureOptions<'a> {
     wait_for_selector: Option<&'a str>,
     wait_for_images: bool,
+    scan_full_page: bool,
+    scroll_delay: Duration,
+    max_scroll_steps: usize,
     flatten_shadow_dom: bool,
     settle_delay: Duration,
     page_timeout: Duration,
@@ -141,6 +156,19 @@ fn capture_attached_page(
     page: &PageSession,
     options: AttachedPageCaptureOptions<'_>,
 ) -> Result<RenderedPage, AgetError> {
+    let mut warnings = Vec::new();
+    if options.scan_full_page {
+        if let Err(error) = client.scan_full_page(
+            &page.session_id,
+            options.scroll_delay,
+            options.max_scroll_steps,
+            options.page_timeout,
+        ) {
+            warnings.push(format!(
+                "crawl4ai.scan_full_page failed; continuing with partial scroll: {error}"
+            ));
+        }
+    }
     if let Some(selector) = options.wait_for_selector {
         client.wait_for_selector(
             &page.session_id,
@@ -148,7 +176,6 @@ fn capture_attached_page(
             options.wait_for_timeout.unwrap_or(options.page_timeout),
         )?;
     }
-    let mut warnings = Vec::new();
     if options.wait_for_images && !client.wait_for_images_complete(&page.session_id)? {
         warnings.push(
             "some images did not finish loading before crawl4ai.wait_for_images timeout"
