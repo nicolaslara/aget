@@ -833,6 +833,20 @@ Status note:
 
 - Completed with D196 after I19ad completed and committed. The scorer change was based on Crawl4AI `PruningContentFilter` signals from `references/repos/crawl4ai/crawl4ai/content_filter_strategy.py`: text density, link density, tag weights, and text length. The owned extractor now keeps its existing transparent label/tag scoring while adding a deterministic density score so link-heavy candidates lose to denser article bodies. Validation passed with focused extractor coverage, `cargo fmt --check`, `cargo test`, and `git diff --check`.
 
+### ✅ Task I19af: Compact top-level support workpad files without compacting tasks
+
+Acceptance criteria:
+
+- Preserve `workpads/research/tasks.md` as the detailed executable backlog; do not shorten completed or planned task entries.
+- Move dense historical support material out of top-level workpad files into referenced archive files.
+- Keep top-level support files focused on current routing, active decisions, and where to open deeper evidence.
+- Preserve existing paths with small routing stubs when old paths are useful entrypoints for agents.
+- Validate that archived files exist, Markdown references resolve locally, and `git diff --check` passes.
+
+Status note:
+
+- Completed with D197 after the user clarified that `tasks.md` should not be compacted. The full historical session-wrapper PoC spec and implementation plan moved under `workpads/research/archive/support/`, their old top-level paths now route to the archived versions, and dense `knowledge.md` decision routing moved into `workpads/research/archive/knowledge/current-decision-index.md`. `workpads/research/tasks.md` remains the detailed executable backlog.
+
 ### ✅ Task I20: Design OAuth-safe browser login and profile import flow
 
 Acceptance criteria:
