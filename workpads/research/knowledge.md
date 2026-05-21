@@ -2374,6 +2374,20 @@ Validation:
 
 Confidence: High for the session CLI helper split. The helper move is mechanical, the affected integration target passed, and the full standard suite is green.
 
+### D145: I19i splits session import CLI tests
+
+The next session CLI decomposition slice moved the cmux import, Chrome import, owned Chrome import error-classification, and ignored real-cmux replay tests from `tests/session_cli.rs` into `tests/session_cli/imports.rs`. The root `tests/session_cli.rs` now declares that module with an explicit path, keeping the behavior-focused import tests out of the root file without making the submodule an independent Cargo integration target.
+
+Validation:
+
+- `cargo fmt`
+- `cargo fmt --check`
+- `cargo test --test session_cli`
+- `git diff --check`
+- `cargo test`
+
+Confidence: High for the import-test split. The move is mechanical, the affected integration target passed, and the full standard suite is green.
+
 ## Open Questions
 
 - Can pure Rust browser automation provide reliable persistent profiles and CDP attach, or do we need a small Node/Playwright sidecar?
