@@ -360,7 +360,12 @@ impl ChromeProcess {
                 executable.display()
             ),
         })?;
-        let ws_url = match wait_for_devtools_active_port(&mut child, &user_data_dir, timeout) {
+        let ws_url = match wait_for_devtools_active_port(
+            &mut child,
+            &user_data_dir,
+            &stderr_capture,
+            timeout,
+        ) {
             Ok(ws_url) => ws_url,
             Err(error) => {
                 terminate_child(&mut child);
@@ -1301,6 +1306,7 @@ fn string_field(value: &Value, field: &str, context: &str) -> Result<String, Age
 fn wait_for_devtools_active_port(
     child: &mut Child,
     user_data_dir: &Path,
+    stderr_capture: &TempOutputFile,
     timeout: Duration,
 ) -> Result<String, AgetError> {
     let deadline = Instant::now() + timeout;
@@ -1316,11 +1322,31 @@ fn wait_for_devtools_active_port(
         if let Some((port, path)) = read_devtools_active_port(user_data_dir) {
             return Ok(format!("ws://127.0.0.1:{port}{path}"));
         }
+        if let Some(ws_url) = devtools_ws_url_from_chrome_stderr(stderr_capture) {
+            return Ok(ws_url);
+        }
         thread::sleep(Duration::from_millis(50));
     }
     Err(AgetError::Stable {
         code: ErrorCode::Timeout,
         message: "owned browser fallback timed out waiting for Chrome CDP startup".to_string(),
+    })
+}
+
+fn devtools_ws_url_from_chrome_stderr(stderr_capture: &TempOutputFile) -> Option<String> {
+    let stderr = stderr_capture.read_to_string().ok()?;
+    devtools_ws_url_from_stderr(&stderr)
+}
+
+fn devtools_ws_url_from_stderr(stderr: &str) -> Option<String> {
+    stderr.lines().find_map(|line| {
+        let rest = line.trim().strip_prefix("DevTools listening on ")?;
+        let url = rest.split_whitespace().next().unwrap_or(rest);
+        if url.starts_with("ws://") || url.starts_with("wss://") {
+            Some(url.to_string())
+        } else {
+            None
+        }
     })
 }
 
@@ -2116,6 +2142,57 @@ mod tests {
             expression,
             r#"document.querySelector("main[data-name=\"a b\"]") !== null"#
         );
+    }
+
+    #[test]
+    fn parses_devtools_ws_url_from_chrome_stderr() {
+        let stderr = "\
+noise
+DevTools listening on ws://127.0.0.1:9222/devtools/browser/fallback
+more noise";
+
+        assert_eq!(
+            devtools_ws_url_from_stderr(stderr).as_deref(),
+            Some("ws://127.0.0.1:9222/devtools/browser/fallback")
+        );
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn wait_for_devtools_active_port_uses_stderr_fallback() {
+        use std::os::unix::fs::PermissionsExt;
+
+        let temp = tempfile::tempdir().unwrap();
+        let stderr_capture = TempOutputFile::new(temp.path(), "chrome-stderr").unwrap();
+        let stderr = create_private_file(stderr_capture.path()).unwrap();
+        let fake_chrome = temp.path().join("fake-chrome");
+        fs::write(
+            &fake_chrome,
+            "#!/bin/sh\n\
+             echo 'DevTools listening on ws://127.0.0.1:9222/devtools/browser/fallback' >&2\n\
+             sleep 5\n",
+        )
+        .unwrap();
+        let mut permissions = fs::metadata(&fake_chrome).unwrap().permissions();
+        permissions.set_mode(0o700);
+        fs::set_permissions(&fake_chrome, permissions).unwrap();
+        let mut child = Command::new(&fake_chrome)
+            .stdin(Stdio::null())
+            .stdout(Stdio::null())
+            .stderr(Stdio::from(stderr))
+            .spawn()
+            .unwrap();
+
+        let ws_url = wait_for_devtools_active_port(
+            &mut child,
+            temp.path(),
+            &stderr_capture,
+            Duration::from_secs(2),
+        )
+        .unwrap();
+        terminate_child(&mut child);
+
+        assert_eq!(ws_url, "ws://127.0.0.1:9222/devtools/browser/fallback");
     }
 
     #[test]

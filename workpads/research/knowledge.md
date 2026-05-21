@@ -1626,6 +1626,21 @@ Validation:
 
 Confidence: Medium-high. The behavior is source-backed and deterministic. It intentionally handles the primary caption text case without trying to reproduce every upstream whitespace variant for unusual nested table/caption shapes.
 
+### D96: I19e uses Chrome stderr as a CDP startup fallback
+
+The next owned browser/session parity slice ports a small but important Chrome startup behavior from `agent-browser`. Before changing the owned path, I19e re-inspected `references/repos/agent-browser/cli/src/native/cdp/chrome.rs`, where Chrome launch first waits for `DevToolsActivePort` and then falls back to parsing stderr for a `DevTools listening on ...` WebSocket URL when the active-port file path is unavailable.
+
+`OwnedBrowserAutomationBackend` now keeps the existing `DevToolsActivePort` startup path as primary, but also polls the private Chrome stderr capture for a `DevTools listening on ws://...` or `wss://...` URL before treating startup as failed. This makes owned Chrome startup more tolerant of platform-specific active-port behavior while preserving the existing private stderr capture and startup error classification.
+
+Validation:
+
+- `cargo fmt --check`
+- `git diff --check`
+- `cargo test browser_cdp::tests::`
+- `cargo test`
+
+Confidence: Medium-high. The behavior is source-backed and deterministically tested with a fake Chrome child process, without requiring local Chrome. Broader current-tab attach, real logged-in profile/keychain smoke coverage, and cross-platform process lifecycle checks remain open I19e work.
+
 ## Open Questions
 
 - Can pure Rust browser automation provide reliable persistent profiles and CDP attach, or do we need a small Node/Playwright sidecar?
