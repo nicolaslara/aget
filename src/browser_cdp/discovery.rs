@@ -11,7 +11,8 @@ use url::Url;
 use crate::error::{AgetError, ErrorCode};
 use crate::process::TempOutputFile;
 
-use super::{CdpClient, CHROME_SANDBOX_STARTUP_HINT, CHROME_SILENT_STARTUP_HINT};
+use super::client::CdpClient;
+use super::{CHROME_SANDBOX_STARTUP_HINT, CHROME_SILENT_STARTUP_HINT};
 
 pub(super) fn wait_for_devtools_active_port(
     child: &mut Child,

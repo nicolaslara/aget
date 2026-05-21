@@ -2236,6 +2236,24 @@ Validation:
 
 Confidence: High for the CDP state split. The split is mechanical, the CDP-focused unit slice passed, deterministic owned Chrome import classification paths still pass, and the full standard suite is green.
 
+### D136: I19i splits CDP login lifecycle orchestration
+
+The next `browser_cdp` decomposition slice moved owned login lifecycle orchestration from `src/browser_cdp.rs` to `src/browser_cdp/login.rs`. The new module owns `BrowserLoginStartRequest`, `StartedLoginBrowser`, `BrowserLoginStateExportRequest`, `BrowserLoginCloseRequest`, login profile directory setup, headed login Chrome launch/detach, existing-profile CDP attach for login finish/cancel, existing-page reuse, created-page cleanup, login state export, Browser.close shutdown polling, PID-backed process cleanup, and fallback export after a closed login browser. The parent `browser_cdp` module now mostly re-exports public capability entrypoints while lower-level CDP discovery depends directly on `client::CdpClient` instead of a parent import.
+
+Validation:
+
+- `cargo check`
+- `cargo test --test session_cli session_login_start_opens_aget_owned_browser_and_records_pending_flow`
+- `cargo test --test session_cli session_login_finish_saves_only_url_scoped_state_and_cleans_temp_files`
+- `cargo test --test session_cli session_login_cancel_cleans_profile_and_pending_when_close_fails`
+- `cargo test browser_cdp::tests::`
+- `cargo fmt`
+- `cargo fmt --check`
+- `git diff --check`
+- `cargo test`
+
+Confidence: High for the CDP login split. The split is mechanical, focused login lifecycle paths passed, the CDP unit slice passed, and the full standard suite is green.
+
 ## Open Questions
 
 - Can pure Rust browser automation provide reliable persistent profiles and CDP attach, or do we need a small Node/Playwright sidecar?

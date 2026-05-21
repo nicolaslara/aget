@@ -1,6 +1,7 @@
 mod chrome_process;
 mod client;
 mod discovery;
+mod login;
 mod page_scripts;
 mod process;
 mod render;
@@ -13,18 +14,23 @@ use std::time::Duration;
 #[cfg(test)]
 use std::{env, path::PathBuf, time::SystemTime, time::UNIX_EPOCH};
 
+#[cfg(test)]
 use self::chrome_process::ChromeProcess;
+#[cfg(test)]
 use self::client::CdpClient;
 #[cfg(test)]
 use self::client::{
     cdp_cookies, origin_storage_from_runtime_result, playwright_cookies_from_cdp,
     preferred_page_target_id, storage_candidate_origins,
 };
-use self::discovery::{connect_existing_profile_browser, wait_for_profile_browser_shutdown};
 #[cfg(test)]
 use self::discovery::{
     devtools_ws_url_from_stderr, discover_cdp_ws_url, read_devtools_active_port,
     relevant_chrome_stderr, rewrite_cdp_ws_host,
+};
+pub(crate) use self::login::{
+    close_login_browser, export_login_browser_state, start_login_browser, BrowserLoginCloseRequest,
+    BrowserLoginStartRequest, BrowserLoginStateExportRequest,
 };
 #[cfg(test)]
 use self::page_scripts::{
@@ -32,106 +38,13 @@ use self::page_scripts::{
     session_storage_set_expression, shadow_dom_attach_override_expression,
     shadow_dom_flatten_expression,
 };
-use self::process::ensure_login_browser_exited;
 pub(crate) use self::render::{render_page, BrowserRenderRequest, PageWaitUntil};
 pub(crate) use self::state::{export_browser_state, BrowserStateExportRequest};
 use crate::error::{AgetError, ErrorCode};
-use serde_json::json;
-
-use crate::session::PlaywrightState;
 
 const CHROME_SHUTDOWN_WAIT: Duration = Duration::from_secs(1);
 const CHROME_SANDBOX_STARTUP_HINT: &str = "Hint: Chrome sandbox/namespace startup failure; in containers or VMs, set AGET_CHROME_COMMAND to a Chrome/Chromium executable that can run with --no-sandbox";
 const CHROME_SILENT_STARTUP_HINT: &str = "Hint: Chrome exited without startup diagnostics; in containers or VMs, set AGET_CHROME_COMMAND to a Chrome/Chromium wrapper that can run with --no-sandbox";
-
-pub(crate) struct BrowserLoginStartRequest<'a> {
-    pub(crate) profile_dir: &'a Path,
-    pub(crate) url: &'a str,
-    pub(crate) timeout: Duration,
-}
-
-pub(crate) struct StartedLoginBrowser {
-    pub(crate) pid: u32,
-}
-
-pub(crate) struct BrowserLoginStateExportRequest<'a> {
-    pub(crate) profile_dir: &'a Path,
-    pub(crate) allowed_domains: &'a [String],
-    pub(crate) pid: Option<u32>,
-    pub(crate) timeout: Duration,
-}
-
-pub(crate) struct BrowserLoginCloseRequest<'a> {
-    pub(crate) profile_dir: &'a Path,
-    pub(crate) pid: Option<u32>,
-    pub(crate) timeout: Duration,
-}
-
-pub(crate) fn start_login_browser(
-    request: BrowserLoginStartRequest<'_>,
-) -> Result<StartedLoginBrowser, AgetError> {
-    create_private_dir(request.profile_dir).map_err(io_aget_error)?;
-    let chrome = ChromeProcess::launch_login(
-        request.profile_dir,
-        request.url,
-        request.timeout,
-        "owned login start",
-    )?;
-    let pid = chrome.id();
-    chrome.detach();
-    Ok(StartedLoginBrowser { pid })
-}
-
-pub(crate) fn export_login_browser_state(
-    request: BrowserLoginStateExportRequest<'_>,
-) -> Result<PlaywrightState, AgetError> {
-    if let Some(mut client) =
-        connect_existing_profile_browser(request.profile_dir, request.timeout)?
-    {
-        let existing_page = client.attach_existing_page(request.timeout)?;
-        let created_page = existing_page.is_none();
-        let page = match existing_page {
-            Some(page) => page,
-            None => client.create_page(request.timeout)?,
-        };
-        client.enable_page_domains(&page.session_id, request.timeout)?;
-        let state =
-            client.export_state(&page.session_id, request.allowed_domains, request.timeout)?;
-        if created_page {
-            let _ = client.send(
-                "Target.closeTarget",
-                Some(json!({ "targetId": page.target_id })),
-                None,
-                Duration::from_secs(1),
-            );
-        }
-        client.close_browser(request.timeout)?;
-        wait_for_profile_browser_shutdown(request.profile_dir, Duration::from_secs(5));
-        ensure_login_browser_exited(request.profile_dir, request.pid, Duration::from_secs(5))?;
-        return Ok(state);
-    }
-
-    ensure_login_browser_exited(request.profile_dir, request.pid, Duration::from_secs(5))?;
-
-    export_browser_state(BrowserStateExportRequest {
-        profile_dir: request.profile_dir,
-        profile_directory: None,
-        use_real_keychain: false,
-        allowed_domains: request.allowed_domains,
-        timeout: request.timeout,
-    })
-}
-
-pub(crate) fn close_login_browser(request: BrowserLoginCloseRequest<'_>) -> Result<(), AgetError> {
-    if let Some(mut client) =
-        connect_existing_profile_browser(request.profile_dir, request.timeout)?
-    {
-        client.close_browser(request.timeout)?;
-        wait_for_profile_browser_shutdown(request.profile_dir, Duration::from_secs(5));
-    }
-    ensure_login_browser_exited(request.profile_dir, request.pid, Duration::from_secs(5))?;
-    Ok(())
-}
 
 fn io_aget_error(error: impl ToString) -> AgetError {
     AgetError::Stable {
@@ -162,12 +75,15 @@ mod tests {
     use std::process::{Command, Stdio};
     use std::thread;
 
-    use super::discovery::{classify_chrome_startup_error, wait_for_devtools_active_port};
+    use super::discovery::{
+        classify_chrome_startup_error, connect_existing_profile_browser,
+        wait_for_devtools_active_port,
+    };
     use super::process::terminate_child;
     use super::*;
     use crate::process::{create_private_file, TempOutputFile};
     use crate::session::PlaywrightCookie;
-    use serde_json::Value;
+    use serde_json::{json, Value};
     use tungstenite::Message;
 
     static ENV_LOCK: std::sync::Mutex<()> = std::sync::Mutex::new(());
