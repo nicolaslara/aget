@@ -516,6 +516,22 @@ Status note:
 
 - Completed after D149, with later CLI/binary follow-ups recorded in D161 and D162. The original agent-context bottlenecks are now split into behavior-owned modules: extraction orchestration, owned extraction, markdown, command adapters, fallback adapters, HTML cleanup, HTTP/static fetch, artifacts/redaction, CDP page scripts, process helpers, discovery, Chrome process launch, CDP client/session plumbing, session data conversion, rendered-page orchestration, profile state export, login lifecycle orchestration, and CDP unit tests. The large integration targets were also split into support helpers plus behavior modules for mock-site docs/browser/session/owned coverage, session CLI import/login coverage, and get CLI session-backed replay/fallback coverage. The post-split size profile keeps the formerly 2k-3k line files below the original problem range, the CLI parser is now split into top-level parser, get command, session command, and parser-test modules, and binary session-command execution now lives outside `src/main.rs`.
 
+### 📋 Task I19j: Refactor local replacement engines into `AgetExtractor` and `AgetBrowser`
+
+Acceptance criteria:
+
+- Read `workpads/research/aget-engine-refactor-plan.md` before making code changes.
+- Update `workpads/research/aget-engine-refactor-plan.md` as needed when implementation reveals better boundaries, naming conflicts, or policy that belongs at a different layer.
+- Introduce self-contained internal engines:
+  - `AgetExtractor` for the local Crawl4AI-like extraction behavior that `aget` depends on.
+  - `AgetBrowser` for the local `agent-browser`-like browser/CDP behavior that `aget` depends on.
+- Keep `Aget` as the public product facade for named sessions, persistence, artifacts, JSON envelopes, authorization workflow, and CLI-facing policy.
+- Keep compatibility command adapters explicit and separate; do not add automatic fallback to Crawl4AI or `agent-browser`.
+- Stop using `owned` for active local backend names in live code and current docs. Prefer `AgetExtractor`, `AgetExtractorBackend`, `AgetBrowser`, and `AgetBrowserBackend`. Historical workpad notes may keep `owned` when describing past commits.
+- Preserve existing public CLI/API behavior and current backend trait contracts unless a follow-up task explicitly approves a behavior change.
+- Add or adjust direct engine-level tests so extraction/browser behavior can be tested without full `Aget` orchestration when the behavior is engine-local.
+- Verify each mechanical slice with focused tests plus the standard check set, and record final boundaries and validation evidence in `knowledge.md`.
+
 ### ✅ Task I20: Design OAuth-safe browser login and profile import flow
 
 Acceptance criteria:

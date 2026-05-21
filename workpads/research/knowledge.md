@@ -30,6 +30,7 @@ Safety boundary remains unchanged: `aget` is a generic fetcher for content the u
 - D163-D164: owned markdown now preserves semantic figure/details/address block boundaries and keeps automatic absolute links title-insensitive like Crawl4AI/html2text.
 - D165-D167: follow-up test decomposition split owned mock-site fixtures, cmux session-import tests, and CDP discovery tests. This was done for agent ergonomics; behavior should remain unchanged.
 - D168: workpad knowledge history was compacted into archive files so active agents can load current routing context without reading the full append-only record.
+- D169: I19j now plans a mechanical rename/boundary refactor from migration-era `owned` backend names toward product engine names: `AgetExtractor`, `AgetExtractorBackend`, `AgetBrowser`, and `AgetBrowserBackend`.
 
 ## Archive Index
 
@@ -42,6 +43,7 @@ Safety boundary remains unchanged: `aget` is a generic fetcher for content the u
 | D151-D157 | `archive/knowledge/d151-d157-auth-and-browser-import.md` | OAuth-safe authorization API/CLI and conservative browser-neutral Chrome import surface |
 | D158-D167 | `archive/knowledge/d158-d167-recent-migration-followups.md` | recent source-backed extraction improvements and follow-up decomposition slices |
 | D168 | `archive/knowledge/d168-workpad-knowledge-compaction.md` | workpad knowledge compaction decision and validation |
+| D169 | `archive/knowledge/d169-engine-refactor-plan.md` | planned `AgetExtractor`/`AgetBrowser` engine boundaries and I19j guardrails |
 
 ## Current Verification Expectations
 
