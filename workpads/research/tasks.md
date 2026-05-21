@@ -459,7 +459,7 @@ Acceptance criteria:
 
 Status note:
 
-- Started after the first I19d owned extractor slices and documented in `knowledge.md` D58, D60, D64-D68, D83-D85, D96-D97, D101-D103, D116-D118, and D214. `OwnedBrowserAutomationBackend` now has an owned session-backed fallback extraction path for static and scripted cookie-backed pages, a minimal Chrome/CDP renderer for localStorage/sessionStorage-backed fallback extraction, explicit user-data-dir Chrome import, named Chrome profile resolution/copying into temporary user-data-dir imports, a first owned dedicated-profile login start/finish/cancel lifecycle, stale owned-login profile sweeping, PID-backed cleanup for detached owned login browsers, profile-in-use Chrome startup classification as `requires_user_action`, Chrome stderr `DevTools listening on ...` URL startup fallback, sandbox/namespace startup hints, no-stderr Chrome startup hints, source-backed labeled generic Chrome stderr diagnostics, `/json/version`, `/json/list`, plus direct `/devtools/browser` CDP discovery fallbacks when attaching to an existing profile browser, three-attempt owned Chrome launch retries, and stale `DevToolsActivePort` removal when existing-profile attach finds a dead endpoint. I19e remains in progress because broader rendered JavaScript parity, real logged-in profile/keychain smoke coverage, cross-platform close/process lifecycle parity, and still-fuller startup/error classification require deeper CDP/profile work.
+- Started after the first I19d owned extractor slices and documented in `knowledge.md` D58, D60, D64-D68, D83-D85, D96-D97, D101-D103, D116-D118, D214, and D215. `OwnedBrowserAutomationBackend` now has an owned session-backed fallback extraction path for static and scripted cookie-backed pages, a minimal Chrome/CDP renderer for localStorage/sessionStorage-backed fallback extraction, explicit user-data-dir Chrome import, named Chrome profile resolution/copying into temporary user-data-dir imports, a first owned dedicated-profile login start/finish/cancel lifecycle, stale owned-login profile sweeping, PID-backed cleanup for detached owned login browsers, profile-in-use Chrome startup classification as `requires_user_action`, Chrome stderr `DevTools listening on ...` URL startup fallback, sandbox/namespace startup hints, no-stderr Chrome startup hints, source-backed labeled generic Chrome stderr diagnostics, `/json/version`, `/json/list`, plus direct `/devtools/browser` CDP discovery fallbacks when attaching to an existing profile browser, three-attempt owned Chrome launch retries, stale `DevToolsActivePort` removal when existing-profile attach finds a dead endpoint, and stronger opt-in real-profile import smoke assertions for persisted scoped auth state. I19e remains in progress because broader rendered JavaScript parity, manual real logged-in profile/keychain smoke execution, cross-platform close/process lifecycle parity, and still-fuller startup/error classification require deeper CDP/profile work.
 
 ### ✅ Task I19f: Switch default runtime path to homegrown backends
 
@@ -1101,6 +1101,22 @@ Acceptance criteria:
 Status note:
 
 - Completed with D214 after inspecting `agent-browser` Chrome launch-error handling in `references/repos/agent-browser/cli/src/native/cdp/chrome.rs`. Owned Chrome startup diagnostics now label generic non-matching stderr as recent Chrome stderr while preserving sandbox hints, silent-exit hints, and profile/user-action classification. Deterministic discovery tests cover generic stderr tails and classified startup errors. Validation passed with focused browser CDP discovery coverage plus the standard check set.
+
+### ✅ Task I19ax: Strengthen real Chrome profile import smoke coverage
+
+Acceptance criteria:
+
+- Inspect `agent-browser` named Chrome profile copy/keychain behavior before changing smoke coverage.
+- Preserve the opt-in/manual nature of the real Chrome profile smoke.
+- Require explicit `AGET_REAL_BROWSER_PROFILE` and `AGET_REAL_BROWSER_DOMAIN`; do not default the domain to a public placeholder.
+- After successful `session import browser --browser chrome`, assert the saved session exists and contains scoped cookies or storage for the requested domain.
+- Keep raw/private cookie or storage values out of test output.
+- Record the smoke boundary in `knowledge.md`.
+- Verify with the focused ignored smoke build/run path plus the standard check set.
+
+Status note:
+
+- Completed with D215 after inspecting `agent-browser` named profile copy behavior in `references/repos/agent-browser/cli/src/native/cdp/chrome.rs`. The ignored real Chrome import smoke now requires both approved profile and scoped domain env vars, parses the JSON envelope, loads the persisted session through `SessionStore`, verifies Chrome profile provenance, checks the allowlist, and asserts nonempty scoped auth state without printing cookie or storage values. Validation passed with the ignored smoke path returning early without env vars plus the standard check set.
 
 ### ✅ Task I20: Design OAuth-safe browser login and profile import flow
 
