@@ -952,6 +952,20 @@ Status note:
 
 - Completed with D204. The large AgetExtractor mock-site parity body now routes through smaller behavior-focused helper modules for basic formats/auth, markdown rendering, cleanup, main-content scoring, selector/target options, and backend options/waits. The public integration test name, fixture routes, and assertions remain behavior-identical. `workpads/research/tasks.md` was not compacted. Validation passed with focused AgetExtractor parity coverage, `cargo fmt --check`, `cargo test`, and `git diff --check`.
 
+### ✅ Task I19an: Split browser CDP Chrome tests by behavior
+
+Acceptance criteria:
+
+- Preserve the existing browser CDP Chrome test behavior and test names.
+- Split `src/browser_cdp/tests/chrome.rs` into smaller behavior-focused helper modules.
+- Keep mock WebSocket helpers local to the Chrome test namespace.
+- Do not compact `workpads/research/tasks.md`.
+- Verify with focused browser CDP Chrome coverage plus the standard check set.
+
+Status note:
+
+- Completed with D205. The browser CDP Chrome tests now route through smaller behavior-focused modules for mock CDP client/navigation behavior, Chrome launch retry behavior, and ignored real-Chrome profile/login smokes. The WebSocket request/reply helpers remain local to the Chrome test namespace, existing test behavior is preserved, and `workpads/research/tasks.md` was not compacted. Validation passed with focused browser CDP Chrome coverage, `cargo fmt --check`, `cargo test`, and `git diff --check`.
+
 ### ✅ Task I20: Design OAuth-safe browser login and profile import flow
 
 Acceptance criteria:
