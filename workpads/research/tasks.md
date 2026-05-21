@@ -459,7 +459,7 @@ Acceptance criteria:
 
 Status note:
 
-- Started after the first I19d owned extractor slices and documented in `knowledge.md` D58, D60, D64-D68, D83-D85, D96-D97, D101-D103, D116-D118, D214, and D215. `OwnedBrowserAutomationBackend` now has an owned session-backed fallback extraction path for static and scripted cookie-backed pages, a minimal Chrome/CDP renderer for localStorage/sessionStorage-backed fallback extraction, explicit user-data-dir Chrome import, named Chrome profile resolution/copying into temporary user-data-dir imports, a first owned dedicated-profile login start/finish/cancel lifecycle, stale owned-login profile sweeping, PID-backed cleanup for detached owned login browsers, profile-in-use Chrome startup classification as `requires_user_action`, Chrome stderr `DevTools listening on ...` URL startup fallback, sandbox/namespace startup hints, no-stderr Chrome startup hints, source-backed labeled generic Chrome stderr diagnostics, `/json/version`, `/json/list`, plus direct `/devtools/browser` CDP discovery fallbacks when attaching to an existing profile browser, three-attempt owned Chrome launch retries, stale `DevToolsActivePort` removal when existing-profile attach finds a dead endpoint, and stronger opt-in real-profile import smoke assertions for persisted scoped auth state. I19e remains in progress because broader rendered JavaScript parity, manual real logged-in profile/keychain smoke execution, cross-platform close/process lifecycle parity, and still-fuller startup/error classification require deeper CDP/profile work.
+- Started after the first I19d owned extractor slices and documented in `knowledge.md` D58, D60, D64-D68, D83-D85, D96-D97, D101-D103, D116-D118, D214, D215, and D241. `OwnedBrowserAutomationBackend` now has an owned session-backed fallback extraction path for static and scripted cookie-backed pages, a minimal Chrome/CDP renderer for localStorage/sessionStorage-backed fallback extraction, explicit user-data-dir Chrome import, named Chrome profile resolution/copying into temporary user-data-dir imports, a first owned dedicated-profile login start/finish/cancel lifecycle, stale owned-login profile sweeping, PID-backed cleanup for detached owned login browsers including Windows pid termination hooks, profile-in-use Chrome startup classification as `requires_user_action`, Chrome stderr `DevTools listening on ...` URL startup fallback, sandbox/namespace startup hints, no-stderr Chrome startup hints, source-backed labeled generic Chrome stderr diagnostics, `/json/version`, `/json/list`, plus direct `/devtools/browser` CDP discovery fallbacks when attaching to an existing profile browser, three-attempt owned Chrome launch retries, stale `DevToolsActivePort` removal when existing-profile attach finds a dead endpoint, Windows detached process-group Chrome launch flags, and stronger opt-in real-profile import smoke assertions for persisted scoped auth state. I19e remains in progress because broader rendered JavaScript parity, manual real logged-in profile/keychain smoke execution, and still-fuller startup/error classification require deeper CDP/profile work.
 
 ### ✅ Task I19f: Switch default runtime path to homegrown backends
 
@@ -1512,6 +1512,22 @@ Acceptance criteria:
 Status note:
 
 - Completed with D240. Source inspection found Crawl4AI's `CustomHTML2Text` emits inline-code backticks only when not inside an anchor. Owned markdown now renders `code`/`kbd`/`tt` inside link labels as plain label text while preserving standalone inline-code marking. Deterministic mock-site coverage proves code inside a link label and standalone inline code on the same page.
+
+### ✅ Task I19bx: Port agent-browser Windows Chrome process lifecycle hooks
+
+Acceptance criteria:
+
+- Inspect `agent-browser` Windows daemon/process launch and termination behavior before changing owned Chrome process helpers.
+- Apply source-backed Windows process-group/detached launch flags to owned Chrome launches.
+- Replace non-Unix no-op process termination paths with Windows pid termination for owned Chrome/login cleanup.
+- Keep Unix behavior unchanged.
+- Add deterministic coverage for the source-backed Windows flags/termination command construction without requiring a Windows runner.
+- Record the source-backed boundary in `knowledge.md`.
+- Verify with focused browser/CDP coverage plus the standard check set.
+
+Status note:
+
+- Completed with D241. Source inspection found agent-browser uses Windows detached process-group launch flags and pid-based termination for stale/unreachable processes. Owned Chrome process helpers now apply those Windows launch flags, use `taskkill /PID <pid> /F` for Windows cleanup before `Child::kill`, preserve Unix process-group behavior, and include deterministic helper coverage for the source-backed flag and command construction.
 
 ### ✅ Task I20: Design OAuth-safe browser login and profile import flow
 
