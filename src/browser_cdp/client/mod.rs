@@ -52,6 +52,12 @@ impl CdpClient {
         if self.direct_page_connection {
             return Ok(Some(direct_page_session()));
         }
+        self.send(
+            "Target.setDiscoverTargets",
+            Some(json!({ "discover": true })),
+            None,
+            timeout,
+        )?;
         let targets = self.send("Target.getTargets", Some(json!({})), None, timeout)?;
         let Some(target_infos) = targets.get("targetInfos").and_then(Value::as_array) else {
             return Ok(None);
@@ -107,6 +113,18 @@ impl CdpClient {
             self.session_param(session_id),
             timeout,
         )?;
+        if !self.direct_page_connection {
+            let _ = self.send(
+                "Target.setAutoAttach",
+                Some(json!({
+                    "autoAttach": true,
+                    "waitForDebuggerOnStart": false,
+                    "flatten": true,
+                })),
+                self.session_param(session_id),
+                Duration::from_secs(1),
+            );
+        }
         Ok(())
     }
 

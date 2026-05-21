@@ -878,6 +878,21 @@ Status note:
 
 - Completed with D199 after inspecting `agent-browser` direct-page CDP handling in `references/repos/agent-browser/cli/src/native/browser.rs`. The owned CDP client now detects direct page/webview WebSocket connections, treats them as already attached page sessions, enables Page/Runtime/Network without flattened `sessionId`, and keeps browser-level target creation/attach/close unchanged. This is a lower-level prerequisite for current-tab/existing-page extraction and does not add a public CLI surface. Validation passed with focused browser CDP coverage, `cargo fmt --check`, `cargo test`, and `git diff --check`.
 
+### ✅ Task I19ai: Enable CDP target discovery and auto-attach for existing pages
+
+Acceptance criteria:
+
+- Inspect `agent-browser` source for target discovery and auto-attach behavior before porting.
+- Preserve direct page CDP WebSocket behavior without target/session IDs.
+- Enable target discovery before reading browser-level target lists.
+- Best-effort enable flattened target auto-attach after page domains are enabled for non-direct sessions.
+- Add deterministic mock CDP coverage for discovery-before-attach and non-direct auto-attach.
+- Verify with focused browser CDP tests plus the standard check set.
+
+Status note:
+
+- Completed with D200 after inspecting `agent-browser` target discovery and domain enablement behavior in `references/repos/agent-browser/cli/src/native/browser.rs`. Browser-level existing-page attach now enables CDP target discovery before reading targets, non-direct page-domain setup best-effort enables flattened target auto-attach, and direct page/webview CDP sessions keep their no-session behavior. Validation passed with focused browser CDP coverage, `cargo fmt --check`, `cargo test`, and `git diff --check`.
+
 ### ✅ Task I20: Design OAuth-safe browser login and profile import flow
 
 Acceptance criteria:
