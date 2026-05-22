@@ -3249,6 +3249,21 @@ Status note:
 
 - Completed with D353. Source inspection found agent-browser's default dialog handler auto-accepts `alert` and `beforeunload` dialogs so they do not block the agent, while `confirm` and `prompt` remain explicit-agent decisions. Owned CDP transport now consumes `Page.javascriptDialogOpening` events for `alert` and `beforeunload`, sends `Page.handleJavaScriptDialog` with `accept: true` and the event session when present, and keeps active command waits running until their real response arrives. Deterministic mock WebSocket coverage verifies alert auto-acceptance and prompt non-acceptance. `workpads/research/tasks.md` was not compacted. Focused browser CDP coverage passed; the standard gate passed before commit.
 
+### ✅ Task I19ge: Split CDP transport tests out of setup tests
+
+Acceptance criteria:
+
+- Preserve `workpads/research/tasks.md` as the full task backlog; do not compact it.
+- Move transport-oriented CDP client tests out of `src/browser_cdp/tests/chrome/cdp_client/setup.rs` into a smaller behavior-owned module.
+- Keep setup/attach/domain-enabling tests in `setup.rs`.
+- Make no intentional behavior changes.
+- Record the split boundary in `knowledge.md`.
+- Verify focused CDP tests plus the standard check set.
+
+Status note:
+
+- Completed with D354. Transport-oriented CDP client tests now live in `src/browser_cdp/tests/chrome/cdp_client/transport.rs`, covering WebSocket config, keepalive, dialog auto-handling, binary frames, invalid binary frames, and malformed frames. `setup.rs` now stays focused on direct page connections, existing-page attachment setup, and page-domain enablement, dropping from 400 lines to 144 lines. No production behavior changed. `workpads/research/tasks.md` was not compacted. Focused CDP coverage passed; the standard gate passed before commit.
+
 ### ✅ Task I20: Design OAuth-safe browser login and profile import flow
 
 Acceptance criteria:
