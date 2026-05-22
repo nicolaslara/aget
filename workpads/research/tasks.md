@@ -1769,6 +1769,21 @@ Status note:
 
 - Completed with D257. `src/browser_cdp/discovery.rs` now keeps DevToolsActivePort polling, existing-profile attach, `/json/version`, `/json/list`, direct `/devtools/browser` discovery, WebSocket host rewriting, and profile-browser shutdown polling, while `src/browser_cdp/discovery/diagnostics.rs` owns Chrome stderr DevTools URL fallback parsing, startup error classification, requires-user-action matching, relevant stderr filtering, sandbox/no-stderr hints, and generic stderr tails. Existing Chrome process and browser CDP test access stays routed through `discovery`, and `workpads/research/tasks.md` remains un-compacted.
 
+### ✅ Task I19co: Split owned content main-content scoring helpers
+
+Acceptance criteria:
+
+- Preserve current owned content extraction behavior, including selector fallback, target elements, cleanup order, main-content selection, markdown/text/html output, and base URL handling.
+- Move main-content candidate selection and scoring helpers out of `src/extraction/owned/content.rs` into a focused submodule.
+- Keep `extract_owned_content` and `markdown_base_url` internal access compatible for owned extraction callers.
+- Do not compact or remove planned tasks from `workpads/research/tasks.md`.
+- Record the resulting owned content boundary in `knowledge.md`.
+- Verify with focused AgetExtractor main-content coverage plus the standard check set.
+
+Status note:
+
+- Completed with D258. `src/extraction/owned/content.rs` now keeps owned content extraction composition, selector fallback, target-element collection, cleanup order, output assembly, selected-element lookup, and markdown base URL handling, while `src/extraction/owned/content/main_content.rs` owns default main-content candidate discovery and scoring, including Crawl4AI-like pruning density, label bonuses/penalties, class/id noise penalties, excluded ancestor checks, and word-threshold gating. `extract_owned_content` and `markdown_base_url` remain owned-extraction internal entrypoints, and `workpads/research/tasks.md` remains un-compacted.
+
 ### ✅ Task I20: Design OAuth-safe browser login and profile import flow
 
 Acceptance criteria:
