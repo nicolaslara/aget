@@ -49,6 +49,7 @@ EXTRACTOR_OPTION_TYPES = {
     "skip_internal_links": ("markdown", "bool"),
     "strong_mark": ("markdown", "str"),
     "ul_item_mark": ("markdown", "str"),
+    "unicode_snob": ("markdown", "bool"),
     "use_automatic_links": ("markdown", "bool"),
 }
 

@@ -6,8 +6,8 @@ use url::Url;
 use super::normalize::{
     escape_markdown_line_start, escape_markdown_snob_text, escape_markdown_text_backslashes,
     is_markdown_line_start, needs_space_before_inline, normalize_inline_markdown,
-    resolve_markdown_url, starts_with_closing_punctuation, trailing_newline_count,
-    trim_trailing_horizontal_space,
+    normalize_unicode_snob_text, resolve_markdown_url, starts_with_closing_punctuation,
+    trailing_newline_count, trim_trailing_horizontal_space,
 };
 
 pub(super) struct MarkdownWriter {
@@ -32,6 +32,7 @@ pub(super) struct MarkdownWriter {
     pub(super) bypass_tables: bool,
     pub(super) protect_links: bool,
     pub(super) use_automatic_links: bool,
+    unicode_snob: bool,
     escape_snob: bool,
     pub(super) include_sup_sub: bool,
     pub(super) inside_link: bool,
@@ -61,6 +62,7 @@ impl MarkdownWriter {
         bypass_tables: bool,
         protect_links: bool,
         use_automatic_links: bool,
+        unicode_snob: bool,
         escape_snob: bool,
         include_sup_sub: bool,
     ) -> Self {
@@ -86,6 +88,7 @@ impl MarkdownWriter {
             bypass_tables,
             protect_links,
             use_automatic_links,
+            unicode_snob,
             escape_snob,
             include_sup_sub,
             inside_link: false,
@@ -117,6 +120,7 @@ impl MarkdownWriter {
             bypass_tables: self.bypass_tables,
             protect_links: self.protect_links,
             use_automatic_links: self.use_automatic_links,
+            unicode_snob: self.unicode_snob,
             escape_snob: self.escape_snob,
             include_sup_sub: self.include_sup_sub,
             inside_link: self.inside_link,
@@ -145,6 +149,9 @@ impl MarkdownWriter {
 
     pub(super) fn push_text(&mut self, text: &str) {
         let mut text = normalize_inline_markdown(text);
+        if !self.unicode_snob {
+            text = normalize_unicode_snob_text(&text);
+        }
         text = escape_markdown_text_backslashes(&text);
         if self.escape_snob {
             text = escape_markdown_snob_text(&text);

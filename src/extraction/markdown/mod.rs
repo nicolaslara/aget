@@ -44,6 +44,7 @@ pub(super) fn element_to_markdown(
     bypass_tables: bool,
     protect_links: bool,
     use_automatic_links: bool,
+    unicode_snob: bool,
     escape_snob: bool,
     include_sup_sub: bool,
     single_line_break: bool,
@@ -70,6 +71,7 @@ pub(super) fn element_to_markdown(
         bypass_tables,
         protect_links,
         use_automatic_links,
+        unicode_snob,
         escape_snob,
         include_sup_sub,
     );

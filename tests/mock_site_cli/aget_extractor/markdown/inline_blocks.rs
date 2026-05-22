@@ -80,6 +80,23 @@ pub(super) fn assert_inline_blocks(aget_home: &Path, site: &MockSite) {
         )
     );
 
+    let markdown_unicode_default = markdown_content(aget_home, site, "/markdown-unicode-snob", &[]);
+    assert_eq!(
+        markdown_unicode_default,
+        "# Unicode Snob\n\n© — “quote” → ← · œuvre café."
+    );
+
+    let markdown_unicode_ascii = markdown_content(
+        aget_home,
+        site,
+        "/markdown-unicode-snob",
+        &[("crawl4ai.unicode_snob", "false")],
+    );
+    assert_eq!(
+        markdown_unicode_ascii,
+        "# Unicode Snob\n\n(C) -- \"quote\" -> <- * oeuvre cafe."
+    );
+
     let markdown_body_width = markdown_content(
         aget_home,
         site,

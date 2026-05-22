@@ -96,6 +96,21 @@ pub(crate) fn routes(builder: MockSiteBuilder) -> MockSiteBuilder {
             ),
         )
         .route(
+            "/markdown-unicode-snob",
+            MockResponse::html(
+                r#"
+<html>
+  <body>
+    <main class="article">
+      <h1>Unicode Snob</h1>
+      <p>&copy; &#8212; &ldquo;quote&rdquo; &rarr; &larr; &middot; &oelig;uvre caf&eacute;.</p>
+    </main>
+  </body>
+</html>
+"#,
+            ),
+        )
+        .route(
             "/markdown-body-width",
             MockResponse::html(
                 r#"
