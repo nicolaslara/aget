@@ -20,8 +20,9 @@ pub(super) fn element_to_markdown(
     base_url: &str,
     only_text: bool,
     skip_internal_links: bool,
+    include_sup_sub: bool,
 ) -> String {
-    let mut writer = MarkdownWriter::new(base_url, only_text, skip_internal_links);
+    let mut writer = MarkdownWriter::new(base_url, only_text, skip_internal_links, include_sup_sub);
     render_node(*element, &mut writer);
     writer.append_abbreviation_definitions();
     normalize_markdown(&writer.output)
@@ -72,6 +73,10 @@ fn render_element(node: NodeRef<'_, Node>, tag: &str, writer: &mut MarkdownWrite
         "q" => {
             let inner = inline_markdown_from_children(node, writer);
             writer.push_inline(&format!("\"{inner}\""));
+        }
+        "sub" | "sup" if writer.include_sup_sub => {
+            let inner = inline_markdown_from_children(node, writer);
+            writer.push_inline(&format!("<{tag}>{inner}</{tag}>"));
         }
         "a" => render_link(node, writer),
         "abbr" => render_abbreviation(node, writer),

@@ -2295,6 +2295,22 @@ Status note:
 
 - Completed with D293. Source inspection found Crawl4AI's active `CustomHTML2Text` defaults `skip_internal_links` to `false` and suppresses only raw fragment-only `href` targets when enabled. Owned extraction now supports `crawl4ai.skip_internal_links=false` by default, preserves existing fragment-link markdown by default, and renders fragment-only anchors as visible text without markdown link targets when opted in. The Crawl4AI command compatibility helper routes the option through `DefaultMarkdownGenerator(options=...)`, and mock-backend validation, README, OpenCode tool text, and unsupported-option error text are aligned. `workpads/research/tasks.md` was not compacted. Focused owned markdown, command-option validation, helper syntax checks, and the standard gate passed.
 
+### ✅ Task I19dy: Support Crawl4AI `include_sup_sub` markdown option
+
+Acceptance criteria:
+
+- Inspect Crawl4AI `CustomHTML2Text` before changing owned markdown behavior.
+- Add owned backend option support for `crawl4ai.include_sup_sub` with the source-backed default of `false`.
+- Preserve the default plain-text rendering of `sup`/`sub` content while emitting literal `<sup>` and `<sub>` wrappers when opted in.
+- Keep the Crawl4AI command compatibility helper, mock-backend validation, README, OpenCode tool text, and unsupported-option error text aligned.
+- Do not compact `workpads/research/tasks.md`.
+- Record the source-backed boundary in `knowledge.md`.
+- Verify with focused owned markdown and command-option coverage plus the standard check set.
+
+Status note:
+
+- Completed with D294. Source inspection found Crawl4AI's active `CustomHTML2Text` defaults `include_sup_sub` to `false` and emits literal `<sup>`/`<sub>` wrappers only when the option is enabled. Owned extraction now supports `crawl4ai.include_sup_sub=false` by default, preserves existing plain-text `sup`/`sub` output by default, and emits literal wrappers when opted in. The Crawl4AI command compatibility helper routes the option through `DefaultMarkdownGenerator(options=...)`, and mock-backend validation, README, OpenCode tool text, and unsupported-option error text are aligned. `workpads/research/tasks.md` was not compacted. Focused owned markdown, command-option validation, helper syntax checks, and the standard gate passed.
+
 ### ✅ Task I20: Design OAuth-safe browser login and profile import flow
 
 Acceptance criteria:

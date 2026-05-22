@@ -52,7 +52,7 @@ pub(crate) fn routes(builder: MockSiteBuilder) -> MockSiteBuilder {
   <body>
     <main class="article">
       <h1>Reference Bits</h1>
-      <p>Status: <del>removed</del>, <em>soft</em>, <u>under</u>, <kbd>Cmd K</kbd>, <tt>TTY</tt>, <q>quoted</q>, <abbr title="HyperText Markup Language">HTML</abbr>.</p>
+      <p>Status: <del>removed</del>, <em>soft</em>, <u>under</u>, <kbd>Cmd K</kbd>, <tt>TTY</tt>, <q>quoted</q>, <abbr title="HyperText Markup Language">HTML</abbr>, power <sup>2</sup>, and water <sub>2</sub>.</p>
       <p>1. Not a generated list.</p>
       <p>- Not a generated bullet.</p>
       <p>+ Not a generated plus bullet.</p>

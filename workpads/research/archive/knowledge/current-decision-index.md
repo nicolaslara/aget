@@ -110,6 +110,7 @@ This archive file keeps the denser decision routing that used to live in top-lev
 | D291 | `d291-owned-page-rendering-split.md` | Mechanical split of owned page rendering request and script/readiness helpers into child modules. |
 | D292 | `d292-aget-facade-sessions-split.md` | Mechanical split of Aget facade session/import/login orchestration into a child module. |
 | D293 | `d293-skip-internal-links.md` | Crawl4AI `skip_internal_links` markdown option for owned markdown and command compatibility. |
+| D294 | `d294-include-sup-sub.md` | Crawl4AI `include_sup_sub` markdown option for owned markdown and command compatibility. |
 
 ## Full Archive Routing
 
@@ -129,7 +130,7 @@ This archive file keeps the denser decision routing that used to live in top-lev
 | D151-D157 | `d151-d157-auth-and-browser-import.md` | OAuth-safe authorization API/CLI and conservative browser-neutral Chrome import surface. |
 | D158-D167 | `d158-d167-recent-migration-followups.md` | Recent source-backed extraction improvements and follow-up decomposition slices. |
 | D168-D176 | Per-decision files | Knowledge/reference compaction, engine-refactor planning, wrapper introduction, naming cleanup, and direct engine coverage. |
-| D177-D293 | Per-decision files | Module/test/support decomposition plus the latest owned extractor/browser parity improvements and agent-facing option docs. |
+| D177-D294 | Per-decision files | Module/test/support decomposition plus the latest owned extractor/browser parity improvements and agent-facing option docs. |
 
 ## Current Open Migration Gaps
 
