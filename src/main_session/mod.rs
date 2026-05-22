@@ -1,21 +1,20 @@
 use std::time::Instant;
 
-use aget::{
-    Aget, AuthorizeSessionOptions, BrowserChoice, ErrorCode, ErrorResponse, ImportSessionSource,
-    LoginSessionSubcommand, SessionSubcommand, TimingMs,
-};
+use aget::{Aget, AuthorizeSessionOptions, ErrorResponse, SessionSubcommand, TimingMs};
 
 mod command_name;
 mod envelope;
+mod import_command;
 mod inspect;
+mod login_command;
 mod profile;
 
 use command_name::session_command_name;
 use envelope::authorize_envelope_data;
+use import_command::run_import;
 use inspect::{session_view, source_suffix};
-use profile::{resolve_browser_import_profile, resolve_chrome_authorize_profile};
-
-const OAUTH_LOGIN_WARNING: &str = "OAuth providers may reject automation-controlled login browsers. If this site uses OAuth, prefer signing in with your real browser and importing a scoped session, for example: aget session import browser --browser chrome --browser-profile <profile> --name <name> --allow-domain <domain>.";
+use login_command::run_login;
+use profile::resolve_chrome_authorize_profile;
 
 pub(super) fn run_session(
     command: SessionSubcommand,
@@ -159,106 +158,7 @@ pub(super) fn run_session(
                 }
                 Ok(())
             }
-            SessionSubcommand::Import(import) => match import.source {
-                ImportSessionSource::Cmux(cmux) => {
-                    let session = aget
-                        .import_cmux_session(cmux.surface, cmux.name, cmux.allow_domain)
-                        .map_err(super::error_response)?;
-                    if json {
-                        super::print_success_envelope(
-                            command_name,
-                            serde_json::json!({
-                                "source": "cmux",
-                                "name": session.name,
-                                "cookie_count": session.cookies.len(),
-                            }),
-                            Vec::<String>::new(),
-                            elapsed_timing(started),
-                        )?;
-                    } else {
-                        println!(
-                            "Imported cmux session {} with {} cookies",
-                            session.name,
-                            session.cookies.len()
-                        );
-                    }
-                    Ok(())
-                }
-                ImportSessionSource::Browser(browser) => {
-                    let profile = resolve_browser_import_profile(
-                        browser.browser,
-                        browser.browser_profile,
-                        browser.profile_path,
-                    )?;
-                    let session = match browser.browser {
-                        BrowserChoice::Chrome => aget
-                            .import_chrome_session(profile, browser.name, browser.allow_domain)
-                            .map_err(super::error_response)?,
-                        unsupported => {
-                            return Err(ErrorResponse::new(
-                                ErrorCode::UsageError,
-                                format!(
-                                    "session import browser does not support '{}' yet; use --browser chrome for the verified local import path, or use session login start as an explicit fallback for controlled non-OAuth flows",
-                                    unsupported.as_str()
-                                ),
-                            ));
-                        }
-                    };
-                    if json {
-                        super::print_success_envelope(
-                            command_name,
-                            serde_json::json!({
-                                "source": "browser_profile",
-                                "browser": browser.browser.as_str(),
-                                "name": session.name,
-                                "cookie_count": session.cookies.len(),
-                                "origin_count": session.origins.len(),
-                            }),
-                            Vec::<String>::new(),
-                            elapsed_timing(started),
-                        )?;
-                    } else {
-                        println!(
-                            "Imported {} browser session {} with {} cookies and {} origins",
-                            browser.browser.as_str(),
-                            session.name,
-                            session.cookies.len(),
-                            session.origins.len()
-                        );
-                    }
-                    Ok(())
-                }
-                ImportSessionSource::Chrome(chrome) => {
-                    let session = aget
-                        .import_chrome_session(
-                            chrome.chrome_profile,
-                            chrome.name,
-                            chrome.allow_domain,
-                        )
-                        .map_err(super::error_response)?;
-                    if json {
-                        super::print_success_envelope(
-                            command_name,
-                            serde_json::json!({
-                                "source": "chrome",
-                                "name": session.name,
-                                "cookie_count": session.cookies.len(),
-                                "origin_count": session.origins.len(),
-                            }),
-                            Vec::<String>::new(),
-                            elapsed_timing(started),
-                        )?;
-                    } else {
-                        println!(
-                            "Imported chrome session {} with {} cookies and {} origins",
-                            session.name,
-                            session.cookies.len(),
-                            session.origins.len()
-                        );
-                    }
-                    Ok(())
-                }
-            },
+            SessionSubcommand::Import(import) => run_import(&aget, import, json, command_name, started),
             SessionSubcommand::Compose(compose) => {
                 let source_count = compose.session.len();
                 let source_sessions = compose.session.clone();
@@ -288,98 +188,13 @@ pub(super) fn run_session(
                 }
                 Ok(())
             }
-            SessionSubcommand::Login(login) => match login.command {
-                LoginSessionSubcommand::Start(start) => {
-                    let result = aget
-                        .start_login_session(start.name, start.profile, start.url)
-                        .map_err(super::error_response)?;
-                    let warnings = vec![OAUTH_LOGIN_WARNING.to_string()];
-                    if json {
-                        super::print_success_envelope(
-                            command_name,
-                            serde_json::json!({
-                                "state": "login_started",
-                                "name": result.pending.name,
-                                "profile": result.pending.profile,
-                                "agent_session": result.pending.agent_session,
-                                "url": result.pending.url,
-                                "allowed_domains": result.pending.allowed_domains,
-                                "next_command": [
-                                    "aget",
-                                    "session",
-                                    "login",
-                                    "finish",
-                                    result.pending.name,
-                                ],
-                            }),
-                            warnings,
-                            elapsed_timing(started),
-                        )?;
-                    } else {
-                        println!("Warning: {OAUTH_LOGIN_WARNING}");
-                        println!(
-                            "Opened login bucket {} in profile {}. After completing login, run: aget session login finish {}",
-                            result.pending.name,
-                            result.pending.profile,
-                            result.pending.name,
-                        );
-                    }
-                    Ok(())
-                }
-                LoginSessionSubcommand::Finish(finish) => {
-                    let session = aget
-                        .finish_login_session(finish.name)
-                        .map_err(super::error_response)?;
-                    if json {
-                        super::print_success_envelope(
-                            command_name,
-                            serde_json::json!({
-                                "state": "login_finished",
-                                "name": session.name,
-                                "source": "agent_browser",
-                                "cookie_count": session.cookies.len(),
-                                "origin_count": session.origins.len(),
-                            }),
-                            Vec::<String>::new(),
-                            elapsed_timing(started),
-                        )?;
-                    } else {
-                        println!(
-                            "Saved session {} with {} cookies and {} origins",
-                            session.name,
-                            session.cookies.len(),
-                            session.origins.len(),
-                        );
-                    }
-                    Ok(())
-                }
-                LoginSessionSubcommand::Cancel(cancel) => {
-                    let result = aget
-                        .cancel_login_session(cancel.name)
-                        .map_err(super::error_response)?;
-                    if json {
-                        super::print_success_envelope(
-                            command_name,
-                            serde_json::json!({
-                                "state": "login_cancelled",
-                                "name": result.pending.name,
-                                "agent_session": result.pending.agent_session,
-                            }),
-                            Vec::<String>::new(),
-                            elapsed_timing(started),
-                        )?;
-                    } else {
-                        println!("Cancelled login flow {}", result.pending.name);
-                    }
-                    Ok(())
-                }
-            },
+            SessionSubcommand::Login(login) => run_login(&aget, login, json, command_name, started),
         }
     })()
     .map_err(|error: ErrorResponse| error.with_command(command_name))
 }
 
-fn elapsed_timing(started: Instant) -> TimingMs {
+pub(super) fn elapsed_timing(started: Instant) -> TimingMs {
     TimingMs {
         total: started.elapsed().as_millis(),
     }

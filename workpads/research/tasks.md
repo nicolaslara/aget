@@ -1739,6 +1739,21 @@ Status note:
 
 - Completed with D255. `src/extraction/owned/mod.rs` now keeps backend adapter entrypoints, compatibility labels, artifact writes, and public owned extractor exports, while `src/extraction/owned/page.rs` owns static-versus-rendered routing, rendered waits, direct rendered-HTML extraction, script detection, HTML cleanup sequencing, selector/fallback selection, and output-format shaping. Internal access to `run_owned_extractor_backend`, `run_owned_browser_fallback`, `extract_owned_rendered_html`, `validate_owned_extraction_options`, and `OWNED_EXTRACTOR` remains stable, and `workpads/research/tasks.md` remains un-compacted.
 
+### ✅ Task I19cm: Split binary session import and login command handlers
+
+Acceptance criteria:
+
+- Preserve current `aget session import` and `aget session login` CLI behavior, JSON envelopes, plain output, warnings, and error classification.
+- Move import and login command handler bodies out of `src/main_session/mod.rs` into focused submodules.
+- Keep `main_session::run_session` as the binary-facing dispatcher and keep existing command-name/profile/envelope/inspect helper boundaries stable.
+- Do not compact or remove planned tasks from `workpads/research/tasks.md`.
+- Record the resulting command-handler boundary in `knowledge.md`.
+- Verify with focused session import/login CLI coverage plus the standard check set.
+
+Status note:
+
+- Completed with D256. `src/main_session/mod.rs` remains the `run_session` dispatcher and keeps list/authorize/inspect/delete/compose routing, while `src/main_session/import_command.rs` owns cmux/browser/Chrome import output and dispatch, and `src/main_session/login_command.rs` owns login start/finish/cancel output, envelope shaping, and OAuth warning text. Command names, JSON fields, plain output, unsupported-browser usage errors, and error-response wrapping remain stable, and `workpads/research/tasks.md` remains un-compacted.
+
 ### ✅ Task I20: Design OAuth-safe browser login and profile import flow
 
 Acceptance criteria:
