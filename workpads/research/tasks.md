@@ -1784,6 +1784,21 @@ Status note:
 
 - Completed with D258. `src/extraction/owned/content.rs` now keeps owned content extraction composition, selector fallback, target-element collection, cleanup order, output assembly, selected-element lookup, and markdown base URL handling, while `src/extraction/owned/content/main_content.rs` owns default main-content candidate discovery and scoring, including Crawl4AI-like pruning density, label bonuses/penalties, class/id noise penalties, excluded ancestor checks, and word-threshold gating. `extract_owned_content` and `markdown_base_url` remain owned-extraction internal entrypoints, and `workpads/research/tasks.md` remains un-compacted.
 
+### ✅ Task I19cp: Split agent-browser fallback command adapter helpers
+
+Acceptance criteria:
+
+- Preserve current command-compat browser fallback behavior, including state load, open/get/close sequencing, timeout use, close-error handling, output formatting, text fallback, and failure classification.
+- Move agent-browser command execution, temporary file/profile helpers, and fallback HTML-to-text conversion out of `src/extraction/fallback_command.rs` into focused submodules.
+- Keep `CommandBrowserFallbackBackend` and `run_agent_browser_fallback` internal access compatible for extraction callers.
+- Do not compact or remove planned tasks from `workpads/research/tasks.md`.
+- Record the resulting compatibility fallback boundary in `knowledge.md`.
+- Verify with focused session fallback CLI coverage plus the standard check set.
+
+Status note:
+
+- Completed with D259. `src/extraction/fallback_command.rs` now keeps command-compat browser fallback orchestration for state load, open, content extraction, close handling, warnings, and result shaping, while `src/extraction/fallback_command/command.rs` owns `AGET_AGENT_BROWSER_COMMAND` subprocess execution and failure classification, `src/extraction/fallback_command/temp.rs` owns private temporary fallback profile/output files and cleanup, and `src/extraction/fallback_command/text.rs` owns the compatibility HTML-to-text conversion used for fallback markdown/text/json content. `CommandBrowserFallbackBackend` and `run_agent_browser_fallback` remain extraction-internal entrypoints, and `workpads/research/tasks.md` remains un-compacted.
+
 ### ✅ Task I20: Design OAuth-safe browser login and profile import flow
 
 Acceptance criteria:
