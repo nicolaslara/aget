@@ -1694,6 +1694,21 @@ Status note:
 
 - Completed with D252. The historical D123-D150 module-decomposition archive now keeps its old path as a 9-line routing index and preserves the original decision text in three section files under `archive/knowledge/d123-d150-module-decomposition/`. Concatenating the split files with the original title reconstructs the previous archive content exactly, current routing points at the section files, and `workpads/research/tasks.md` remains un-compacted.
 
+### ✅ Task I19cj: Split remaining session CLI root tests by behavior
+
+Acceptance criteria:
+
+- Preserve current `aget session` list/delete, compose, and inspect integration-test behavior.
+- Move the remaining root tests out of `tests/session_cli.rs` into behavior-focused modules under `tests/session_cli/`.
+- Keep the `tests/session_cli.rs` integration target and existing authorize/import/login module routing stable.
+- Do not compact or remove planned tasks from `workpads/research/tasks.md`.
+- Record the resulting test boundary in `knowledge.md`.
+- Verify with focused `session_cli` coverage plus the standard check set.
+
+Status note:
+
+- Completed with D253. `tests/session_cli.rs` is now a small integration-target router, while remaining list/delete, compose, and inspect scenarios live in behavior-focused modules under `tests/session_cli/`. Test names, assertions, command arguments, existing authorize/import/login routing, and ignored real-smoke annotations remain stable, and `workpads/research/tasks.md` remains un-compacted.
+
 ### ✅ Task I20: Design OAuth-safe browser login and profile import flow
 
 Acceptance criteria:
