@@ -2816,6 +2816,24 @@ Status note:
 
 - Completed with D327. Source inspection found Crawl4AI `DefaultMarkdownGenerator` defaults `mark_code` to `true`, while the active `CustomHTML2Text` path produces the same inline backticks and fenced-code output for `mark_code=true` and `mark_code=false`. Owned extraction now validates and accepts `crawl4ai.mark_code` as a compatibility no-op, preserving existing code markdown output while keeping the Crawl4AI command helper, mock-backend validation, README, OpenCode tool text, and unsupported-option error text aligned. `workpads/research/tasks.md` was not compacted. Focused owned markdown and command-option validation passed.
 
+### ✅ Task I19fe: Support Crawl4AI `single_line_break` markdown option
+
+Acceptance criteria:
+
+- Inspect Crawl4AI `CustomHTML2Text` before changing owned paragraph-spacing behavior.
+- Add owned backend option support for `crawl4ai.single_line_break`.
+- Preserve existing owned default markdown spacing unless the option is supplied explicitly.
+- Collapse non-code blank lines when `crawl4ai.single_line_break=true`.
+- Preserve fenced code block contents while applying compact spacing outside code fences.
+- Keep the Crawl4AI command compatibility helper, mock-backend validation, README, OpenCode tool text, and unsupported-option error text aligned.
+- Do not compact `workpads/research/tasks.md`.
+- Record the source-backed boundary and any default-output parity caveat in `knowledge.md`.
+- Verify with focused owned markdown and command-option coverage plus the standard check set.
+
+Status note:
+
+- Completed with D328. Source inspection found Crawl4AI `DefaultMarkdownGenerator` defaults `single_line_break` to `true`, and direct `CustomHTML2Text` source-snapshot execution showed that true collapses paragraph gaps while false preserves blank paragraph gaps. Owned extraction now validates and accepts `crawl4ai.single_line_break`; when true, it collapses non-code blank lines after markdown normalization while preserving fenced-code internals. Existing owned default markdown spacing is preserved unless the option is supplied explicitly, leaving the default-output parity question recorded for final I19d/I19h review instead of silently changing broad markdown output in this small slice. The Crawl4AI command helper, mock-backend validation, README, OpenCode tool text, and unsupported-option error text are aligned. `workpads/research/tasks.md` was not compacted. Focused owned markdown and command-option validation passed.
+
 ### ✅ Task I20: Design OAuth-safe browser login and profile import flow
 
 Acceptance criteria:

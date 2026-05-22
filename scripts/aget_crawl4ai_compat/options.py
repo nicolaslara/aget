@@ -45,6 +45,7 @@ EXTRACTOR_OPTION_TYPES = {
     "mark_code": ("markdown", "bool"),
     "open_quote": ("markdown", "str"),
     "protect_links": ("markdown", "bool"),
+    "single_line_break": ("markdown", "bool"),
     "skip_internal_links": ("markdown", "bool"),
     "strong_mark": ("markdown", "str"),
     "ul_item_mark": ("markdown", "str"),

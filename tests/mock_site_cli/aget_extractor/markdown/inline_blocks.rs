@@ -99,4 +99,24 @@ pub(super) fn assert_inline_blocks(aget_home: &Path, site: &MockSite) {
             "```"
         )
     );
+
+    let markdown_single_line_break = markdown_content(
+        aget_home,
+        site,
+        "/markdown-single-line-break",
+        &[("crawl4ai.single_line_break", "true")],
+    );
+    assert_eq!(
+        markdown_single_line_break,
+        concat!(
+            "# Single Line Break\n",
+            "First paragraph.\n",
+            "Second paragraph with `inline` code.\n",
+            "```\n",
+            "first\n",
+            "\n",
+            "second\n",
+            "```"
+        )
+    );
 }

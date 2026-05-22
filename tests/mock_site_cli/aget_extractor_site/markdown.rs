@@ -113,6 +113,25 @@ pub(crate) fn routes(builder: MockSiteBuilder) -> MockSiteBuilder {
             ),
         )
         .route(
+            "/markdown-single-line-break",
+            MockResponse::html(
+                r#"
+<html>
+  <body>
+    <main class="article">
+      <h1>Single Line Break</h1>
+      <p>First paragraph.</p>
+      <p>Second paragraph with <code>inline</code> code.</p>
+      <pre><code>first
+
+second</code></pre>
+    </main>
+  </body>
+</html>
+"#,
+            ),
+        )
+        .route(
             "/markdown-nested-lists",
             MockResponse::html(
                 r#"

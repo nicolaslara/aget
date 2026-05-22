@@ -74,6 +74,34 @@ pub(in crate::extraction) fn apply_markdown_body_width(
     output.trim_end().to_string()
 }
 
+pub(in crate::extraction) fn apply_markdown_single_line_break(
+    markdown: &str,
+    single_line_break: bool,
+) -> String {
+    if !single_line_break || markdown.is_empty() {
+        return markdown.to_string();
+    }
+
+    let mut output = String::new();
+    let mut in_code_fence = false;
+    for line in markdown.lines() {
+        if is_code_fence_line(line) {
+            push_wrapped_line(&mut output, line);
+            in_code_fence = !in_code_fence;
+            continue;
+        }
+        if in_code_fence {
+            push_wrapped_line(&mut output, line);
+            continue;
+        }
+        if line.trim().is_empty() {
+            continue;
+        }
+        push_wrapped_line(&mut output, line);
+    }
+    output.trim_end().to_string()
+}
+
 fn is_code_fence_line(line: &str) -> bool {
     line.trim_start().starts_with("```")
 }
