@@ -87,6 +87,7 @@ This archive file keeps the denser decision routing that used to live in top-lev
 | D268 | `d268-r12-architecture-archive-split.md` | Support-file split of the historical R12 architecture proposal into smaller routed archive files without compacting tasks. |
 | D269 | `d269-d092-d108-archive-split.md` | Support-file split of the historical D92-D108 markdown/browser decision bundle into smaller routed archive files without compacting tasks. |
 | D270 | `d270-d064-d076-archive-split.md` | Support-file split of the historical D64-D76 browser/default-switch decision bundle into smaller routed archive files without compacting tasks. |
+| D271 | `d271-engine-refactor-plan-split.md` | Support-file split of the historical Aget engine refactor plan into smaller routed files without compacting tasks. |
 
 ## Full Archive Routing
 
@@ -106,7 +107,7 @@ This archive file keeps the denser decision routing that used to live in top-lev
 | D151-D157 | `d151-d157-auth-and-browser-import.md` | OAuth-safe authorization API/CLI and conservative browser-neutral Chrome import surface. |
 | D158-D167 | `d158-d167-recent-migration-followups.md` | Recent source-backed extraction improvements and follow-up decomposition slices. |
 | D168-D176 | Per-decision files | Knowledge/reference compaction, engine-refactor planning, wrapper introduction, naming cleanup, and direct engine coverage. |
-| D177-D270 | Per-decision files | Module/test/support decomposition plus the latest owned extractor/browser parity improvements. |
+| D177-D271 | Per-decision files | Module/test/support decomposition plus the latest owned extractor/browser parity improvements. |
 
 ## Current Open Migration Gaps
 

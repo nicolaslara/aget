@@ -1961,6 +1961,20 @@ Status note:
 
 - Completed with D270. `workpads/research/archive/knowledge/d064-d076-browser-default-switch.md` is now a 9-line routing index, with historical D64-D68 Chrome import/login detail, D69-D73 extraction/rendering option detail, and D74-D76 owned-default/audit detail moved into three smaller section files under `archive/knowledge/d064-d076-browser-default-switch/`. `workpads/research/tasks.md` was not compacted. Line-count checks and `git diff --check` passed.
 
+### ✅ Task I19db: Split Aget engine refactor plan support file
+
+Acceptance criteria:
+
+- Preserve `workpads/research/tasks.md` as the full planned-task source of truth; do not compact or remove planned tasks.
+- Convert `workpads/research/aget-engine-refactor-plan.md` into a compact routing index.
+- Move the dense historical engine-refactor plan content into smaller referenced files.
+- Update current knowledge routing and decision index so the split is discoverable.
+- Verify the split with line-count checks and `git diff --check`.
+
+Status note:
+
+- Completed with D271. `workpads/research/aget-engine-refactor-plan.md` is now an 8-line routing index, with historical engine goal/boundary/naming detail and migration/testing/guardrail detail moved into two smaller section files under `workpads/research/aget-engine-refactor-plan/`. `workpads/research/tasks.md` was not compacted. Line-count checks and `git diff --check` passed.
+
 ### ✅ Task I20: Design OAuth-safe browser login and profile import flow
 
 Acceptance criteria:
