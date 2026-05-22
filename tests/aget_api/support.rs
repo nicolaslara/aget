@@ -198,6 +198,7 @@ impl BrowserFallbackBackend for TestBrowserBackend {
                 .fallback_content
                 .clone()
                 .expect("fallback content should be configured"),
+            page_metadata: Default::default(),
             warnings: vec!["custom browser fallback".to_string()],
             extractor: "test-browser-fallback".to_string(),
         })

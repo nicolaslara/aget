@@ -114,6 +114,7 @@ pub struct BrowserFallbackRequest<'a> {
 pub struct BrowserFallbackResult {
     pub final_url: String,
     pub content: String,
+    pub page_metadata: BTreeMap<String, Value>,
     pub warnings: Vec<String>,
     pub extractor: String,
 }

@@ -149,11 +149,13 @@ fn get_session_backend_failure_uses_agent_browser_fallback_with_composed_state()
         serde_json::json!(["agent-browser fallback used after Crawl4AI failed"])
     );
     assert_eq!(json["content"], "Fallback Title\n\nUseful & local content");
+    assert_eq!(json["page_metadata"], serde_json::json!({}));
 
     let metadata_path = PathBuf::from(json["artifacts"]["metadata"].as_str().unwrap());
     let metadata: serde_json::Value =
         serde_json::from_str(&fs::read_to_string(&metadata_path).unwrap()).unwrap();
     assert_eq!(metadata["extractor"], "agent-browser-fallback");
+    assert_eq!(metadata["page_metadata"], serde_json::json!({}));
     let backend_stderr =
         fs::read_to_string(metadata_path.with_file_name("backend-stderr.txt")).unwrap();
     assert!(!backend_stderr.contains("cookie-secret-value"));

@@ -36,7 +36,16 @@ pub(super) fn response_for(
         "/protected" if has_cookie(request, "app_session", "valid-app") => html(
             200,
             &[],
-            r#"<html><body><main><h1>Protected Account</h1><p>Private account body.</p></main></body></html>"#,
+            r#"
+<html>
+  <head>
+    <title>Protected Account Metadata</title>
+    <meta name="description" content="Protected account description">
+    <meta property="og:title" content="Protected Account OG">
+  </head>
+  <body><main><h1>Protected Account</h1><p>Private account body.</p></main></body>
+</html>
+"#,
         ),
         "/protected" if has_cookie(request, "app_session", "expired") => html(
             401,

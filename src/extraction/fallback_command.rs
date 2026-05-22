@@ -83,6 +83,7 @@ pub(super) fn run_agent_browser_fallback(
     Ok(BrowserFallbackResult {
         final_url: url.to_string(),
         content,
+        page_metadata: Default::default(),
         warnings: vec![FALLBACK_WARNING.to_string()],
         extractor: FALLBACK_EXTRACTOR.to_string(),
     })

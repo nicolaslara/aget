@@ -144,7 +144,7 @@ pub(super) fn try_session_fallback(
         .map(|fallback| SuccessfulExtraction {
             final_url: fallback.final_url,
             content: fallback.content,
-            page_metadata: BTreeMap::new(),
+            page_metadata: fallback.page_metadata,
             warnings: fallback.warnings,
             extractor: fallback.extractor,
         })

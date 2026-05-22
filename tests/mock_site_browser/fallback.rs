@@ -24,6 +24,15 @@ fn aget_browser_fallback_replays_cookie_backed_session_without_agent_browser() {
     assert_eq!(fallback.extractor, "aget-owned-browser-fallback");
     assert_eq!(fallback.content, "Protected Account\nPrivate account body.");
     assert_eq!(
+        fallback.page_metadata["title"],
+        "Protected Account Metadata"
+    );
+    assert_eq!(
+        fallback.page_metadata["description"],
+        "Protected account description"
+    );
+    assert_eq!(fallback.page_metadata["og:title"], "Protected Account OG");
+    assert_eq!(
         fallback.warnings,
         vec!["aget-owned fallback used after primary extractor failed"]
     );

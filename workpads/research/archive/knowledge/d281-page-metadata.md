@@ -13,7 +13,7 @@ Implementation boundary:
 - Owned extraction reads generic `<head>` metadata before cleanup removes `title`, `meta`, or `link` elements.
 - The public field is named `page_metadata` to avoid confusion with the run metadata artifact path.
 - The compatibility Crawl4AI helper forwards `result.metadata` into the same field when available.
-- Browser fallback and direct current-tab paths currently return an empty metadata map unless a later browser-specific slice extracts page metadata there.
+- Owned browser fallback now preserves this metadata after D282; command-backed fallback and direct current-tab paths still return an empty metadata map unless a later browser-specific slice extracts page metadata there.
 
 Validation:
 

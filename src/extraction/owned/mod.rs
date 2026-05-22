@@ -78,6 +78,7 @@ pub(crate) fn run_owned_browser_fallback(
     Ok(BrowserFallbackResult {
         final_url: extraction.final_url,
         content: extraction.content,
+        page_metadata: extraction.page_metadata,
         warnings,
         extractor: OWNED_BROWSER_FALLBACK.to_string(),
     })
