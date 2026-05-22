@@ -21,6 +21,8 @@ pub(super) fn element_to_markdown(
     only_text: bool,
     skip_internal_links: bool,
     default_image_alt: &str,
+    open_quote: &str,
+    close_quote: &str,
     ignore_images: bool,
     images_as_html: bool,
     images_to_alt: bool,
@@ -40,6 +42,8 @@ pub(super) fn element_to_markdown(
         only_text,
         skip_internal_links,
         default_image_alt,
+        open_quote,
+        close_quote,
         ignore_images,
         images_as_html,
         images_to_alt,
@@ -105,7 +109,10 @@ fn render_element(node: NodeRef<'_, Node>, tag: &str, writer: &mut MarkdownWrite
         }
         "q" => {
             let inner = inline_markdown_from_children(node, writer);
-            writer.push_inline(&format!("\"{inner}\""));
+            writer.push_inline(&format!(
+                "{}{inner}{}",
+                writer.open_quote, writer.close_quote
+            ));
         }
         "sub" | "sup" if writer.include_sup_sub => {
             let inner = inline_markdown_from_children(node, writer);

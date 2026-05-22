@@ -125,6 +125,7 @@ This archive file keeps the denser decision routing that used to live in top-lev
 | D306 | `d306-images-with-size.md` | Crawl4AI `images_with_size` markdown option for owned markdown and command compatibility. |
 | D307 | `d307-default-image-alt.md` | Crawl4AI `default_image_alt` markdown option for owned markdown and command compatibility. |
 | D308 | `d308-workpad-support-routing.md` | Workpad support-file routing refresh that keeps `tasks.md` intact and moves dense current-history detail to archive. |
+| D309 | `d309-quote-markers.md` | Crawl4AI `open_quote` and `close_quote` markdown options for owned markdown and command compatibility. |
 
 ## Full Archive Routing
 
@@ -144,7 +145,7 @@ This archive file keeps the denser decision routing that used to live in top-lev
 | D151-D157 | `d151-d157-auth-and-browser-import.md` | OAuth-safe authorization API/CLI and conservative browser-neutral Chrome import surface. |
 | D158-D167 | `d158-d167-recent-migration-followups.md` | Recent source-backed extraction improvements and follow-up decomposition slices. |
 | D168-D176 | Per-decision files | Knowledge/reference compaction, engine-refactor planning, wrapper introduction, naming cleanup, and direct engine coverage. |
-| D177-D308 | Per-decision files | Module/test/support decomposition plus the latest owned extractor/browser parity improvements, agent-facing option docs, and support-file routing refreshes. |
+| D177-D309 | Per-decision files | Module/test/support decomposition plus the latest owned extractor/browser parity improvements, agent-facing option docs, and support-file routing refreshes. |
 
 ## Current Open Migration Gaps
 

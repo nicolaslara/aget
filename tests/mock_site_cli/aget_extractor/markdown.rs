@@ -116,6 +116,19 @@ pub(super) fn assert_markdown_rendering(aget_home: &Path, site: &MockSite) {
     assert!(!markdown_ignore_emphasis.content.contains("**detail**"));
     assert!(markdown_ignore_emphasis.content.contains("~~removed~~"));
 
+    let markdown_quote_markers = Aget::new(aget_home)
+        .with_extractor_backend(AgetExtractorBackend::default())
+        .get(site.url("/markdown-inline-blocks"))
+        .content_format(OutputFormat::Markdown)
+        .selector("main.article")
+        .backend_option("crawl4ai.open_quote", "<<")
+        .backend_option("crawl4ai.close_quote", ">>")
+        .run()
+        .unwrap();
+    assert!(markdown_quote_markers
+        .content
+        .contains("`Cmd K`, `TTY`, <<quoted>>, HTML"));
+
     let markdown_escape_snob = Aget::new(aget_home)
         .with_extractor_backend(AgetExtractorBackend::default())
         .get(site.url("/markdown-escape-snob"))
