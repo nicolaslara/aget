@@ -130,6 +130,30 @@ pub(super) fn assert_markdown_rendering(aget_home: &Path, site: &MockSite) {
         )
     );
 
+    let markdown_ignore_links = Aget::new(aget_home)
+        .with_extractor_backend(AgetExtractorBackend::default())
+        .get(site.url("/markdown-links"))
+        .content_format(OutputFormat::Markdown)
+        .selector("main.article")
+        .backend_option("crawl4ai.ignore_links", "true")
+        .run()
+        .unwrap();
+    assert!(markdown_ignore_links.content.contains("## Linked Heading"));
+    assert!(markdown_ignore_links
+        .content
+        .contains("Read the guide or email support."));
+    assert!(markdown_ignore_links
+        .content
+        .contains("Icon ![Download \\[app\\]]("));
+    assert!(!markdown_ignore_links.content.contains("[the guide]("));
+    assert!(!markdown_ignore_links.content.contains("[Linked Heading]("));
+    assert!(!markdown_ignore_links
+        .content
+        .contains("Guide \\\"title\\\""));
+    assert!(!markdown_ignore_links
+        .content
+        .contains(&site.url("/download")));
+
     let markdown_skip_internal_links = Aget::new(aget_home)
         .with_extractor_backend(AgetExtractorBackend::default())
         .get(site.url("/markdown-links"))

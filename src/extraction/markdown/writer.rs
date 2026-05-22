@@ -14,6 +14,7 @@ pub(super) struct MarkdownWriter {
     base_url: Option<Url>,
     pub(super) only_text: bool,
     pub(super) skip_internal_links: bool,
+    pub(super) ignore_links: bool,
     pub(super) include_sup_sub: bool,
     pub(super) inside_link: bool,
     pub(super) list_depth: usize,
@@ -25,6 +26,7 @@ impl MarkdownWriter {
         base_url: &str,
         only_text: bool,
         skip_internal_links: bool,
+        ignore_links: bool,
         include_sup_sub: bool,
     ) -> Self {
         Self {
@@ -32,6 +34,7 @@ impl MarkdownWriter {
             base_url: Url::parse(base_url).ok(),
             only_text,
             skip_internal_links,
+            ignore_links,
             include_sup_sub,
             inside_link: false,
             list_depth: 0,
@@ -45,6 +48,7 @@ impl MarkdownWriter {
             base_url: self.base_url.clone(),
             only_text: self.only_text,
             skip_internal_links: self.skip_internal_links,
+            ignore_links: self.ignore_links,
             include_sup_sub: self.include_sup_sub,
             inside_link: self.inside_link,
             list_depth: self.list_depth,

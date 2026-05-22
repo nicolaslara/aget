@@ -20,9 +20,16 @@ pub(super) fn element_to_markdown(
     base_url: &str,
     only_text: bool,
     skip_internal_links: bool,
+    ignore_links: bool,
     include_sup_sub: bool,
 ) -> String {
-    let mut writer = MarkdownWriter::new(base_url, only_text, skip_internal_links, include_sup_sub);
+    let mut writer = MarkdownWriter::new(
+        base_url,
+        only_text,
+        skip_internal_links,
+        ignore_links,
+        include_sup_sub,
+    );
     render_node(*element, &mut writer);
     writer.append_abbreviation_definitions();
     normalize_markdown(&writer.output)

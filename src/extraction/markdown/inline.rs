@@ -9,6 +9,10 @@ use super::render_children;
 use super::writer::MarkdownWriter;
 
 pub(super) fn render_link(node: NodeRef<'_, Node>, writer: &mut MarkdownWriter) {
+    if writer.ignore_links {
+        render_children(node, writer);
+        return;
+    }
     let Some(element) = ElementRef::wrap(node) else {
         render_children(node, writer);
         return;

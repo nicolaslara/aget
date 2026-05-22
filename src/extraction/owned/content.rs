@@ -91,6 +91,7 @@ fn extract_single_owned_element(
             base_url,
             owned_options.only_text,
             owned_options.skip_internal_links,
+            owned_options.ignore_links,
             owned_options.include_sup_sub,
         ),
         text: element_to_text(element),
@@ -138,6 +139,7 @@ fn extract_target_owned_elements(
                     base_url,
                     owned_options.only_text,
                     owned_options.skip_internal_links,
+                    owned_options.ignore_links,
                     owned_options.include_sup_sub,
                 )
             })
