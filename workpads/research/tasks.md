@@ -2800,6 +2800,22 @@ Status note:
 
 - Completed with D324. `tests/session_cli/imports/chrome_command.rs` remains the command-backed Chrome import test route and delegates successful import, success assertions, missing-backend classification, profile-lock user action classification, and malformed-state cleanup scenarios to child modules. The split is mechanical; session import behavior is unchanged, and `workpads/research/tasks.md` was not compacted. The parent route is 10 lines and all child modules are 133 lines or less. Focused Chrome command import coverage and the standard gate passed.
 
+### ✅ Task I19fd: Support Crawl4AI `mark_code` markdown option
+
+Acceptance criteria:
+
+- Inspect Crawl4AI `CustomHTML2Text` before changing owned code markdown behavior.
+- Add owned backend option support for `crawl4ai.mark_code` with the source-backed markdown default of `true`.
+- Preserve existing owned inline-code and fenced-code markdown output when `mark_code` is omitted, true, or false if source inspection shows no active output difference.
+- Keep the Crawl4AI command compatibility helper, mock-backend validation, README, OpenCode tool text, and unsupported-option error text aligned.
+- Do not compact `workpads/research/tasks.md`.
+- Record the source-backed boundary in `knowledge.md`.
+- Verify with focused owned markdown and command-option coverage plus the standard check set.
+
+Status note:
+
+- Completed with D327. Source inspection found Crawl4AI `DefaultMarkdownGenerator` defaults `mark_code` to `true`, while the active `CustomHTML2Text` path produces the same inline backticks and fenced-code output for `mark_code=true` and `mark_code=false`. Owned extraction now validates and accepts `crawl4ai.mark_code` as a compatibility no-op, preserving existing code markdown output while keeping the Crawl4AI command helper, mock-backend validation, README, OpenCode tool text, and unsupported-option error text aligned. `workpads/research/tasks.md` was not compacted. Focused owned markdown and command-option validation passed.
+
 ### ✅ Task I20: Design OAuth-safe browser login and profile import flow
 
 Acceptance criteria:

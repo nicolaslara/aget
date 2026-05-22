@@ -42,6 +42,7 @@ EXTRACTOR_OPTION_TYPES = {
     "ignore_mailto_links": ("markdown", "bool"),
     "ignore_tables": ("markdown", "bool"),
     "include_sup_sub": ("markdown", "bool"),
+    "mark_code": ("markdown", "bool"),
     "open_quote": ("markdown", "str"),
     "protect_links": ("markdown", "bool"),
     "skip_internal_links": ("markdown", "bool"),

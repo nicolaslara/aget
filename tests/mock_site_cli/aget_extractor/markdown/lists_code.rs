@@ -37,6 +37,14 @@ pub(super) fn assert_lists_and_code_blocks(aget_home: &Path, site: &MockSite) {
         )
     );
 
+    let markdown_mark_code_false = markdown_content(
+        aget_home,
+        site,
+        "/markdown-code-whitespace",
+        &[("crawl4ai.mark_code", "false")],
+    );
+    assert_eq!(markdown_mark_code_false, markdown_code_whitespace);
+
     let markdown_ordered_start = markdown_content(aget_home, site, "/markdown-ordered-start", &[]);
     assert_eq!(
         markdown_ordered_start,

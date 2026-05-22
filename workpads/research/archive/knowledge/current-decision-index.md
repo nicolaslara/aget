@@ -143,6 +143,7 @@ This archive file keeps the denser decision routing that used to live in top-lev
 | D324 | `d324-chrome-command-import-test-split.md` | Mechanical split of command-backed Chrome import CLI tests into scenario-owned child modules. |
 | D325 | `d325-login-session-injection.md` | Explicit provider-session injection for owned login start with conflict-before-browser behavior. |
 | D326 | `d326-body-width-markdown.md` | Crawl4AI `body_width` markdown option for owned paragraph wrapping and command compatibility. |
+| D327 | `d327-mark-code-option.md` | Crawl4AI `mark_code` markdown option accepted as a source-backed owned compatibility no-op. |
 
 ## Full Archive Routing
 
@@ -162,7 +163,7 @@ This archive file keeps the denser decision routing that used to live in top-lev
 | D151-D157 | `d151-d157-auth-and-browser-import.md` | OAuth-safe authorization API/CLI and conservative browser-neutral Chrome import surface. |
 | D158-D167 | `d158-d167-recent-migration-followups.md` | Recent source-backed extraction improvements and follow-up decomposition slices. |
 | D168-D176 | Per-decision files | Knowledge/reference compaction, engine-refactor planning, wrapper introduction, naming cleanup, and direct engine coverage. |
-| D177-D326 | Per-decision files | Module/test/support decomposition plus the latest owned extractor/browser parity improvements, agent-facing option docs, support-file routing refreshes, login-session injection, and body-width markdown wrapping. |
+| D177-D327 | Per-decision files | Module/test/support decomposition plus the latest owned extractor/browser parity improvements, agent-facing option docs, support-file routing refreshes, login-session injection, body-width markdown wrapping, and mark-code compatibility. |
 
 ## Current Open Migration Gaps
 
