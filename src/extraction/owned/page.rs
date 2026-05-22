@@ -11,7 +11,8 @@ use crate::session::PlaywrightState;
 use super::super::html_clean::{
     parse_css_selector, remove_owned_comments, remove_owned_excluded_domain_urls,
     remove_owned_excluded_tags, remove_owned_external_images, remove_owned_external_links,
-    remove_owned_overlay_elements, remove_owned_social_media_links, remove_selected_elements,
+    remove_owned_internal_links, remove_owned_overlay_elements, remove_owned_social_media_links,
+    remove_selected_elements,
 };
 use super::super::http::{owned_fetch, OwnedHttpResponse};
 use super::super::{extraction_failed, GetOptions};
@@ -243,6 +244,10 @@ fn extract_owned_html(
 
     if owned_options.exclude_external_links {
         document = remove_owned_external_links(document, &base_url)?;
+    }
+
+    if owned_options.exclude_internal_links {
+        document = remove_owned_internal_links(document, &base_url)?;
     }
 
     if owned_options.exclude_social_media_links {

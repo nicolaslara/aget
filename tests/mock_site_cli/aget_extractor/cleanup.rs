@@ -19,6 +19,8 @@ pub(super) fn assert_cleanup_outputs(aget_home: &Path, site: &MockSite) {
     assert!(cleaned_html.content.contains("class=\"article\""));
     assert!(cleaned_html.content.contains("href=\"/kept\""));
     assert!(cleaned_html.content.contains("title=\"Kept title\""));
+    assert!(cleaned_html.content.contains("id=\"same-domain-link\""));
+    assert!(cleaned_html.content.contains("href=\"/same-domain\""));
     assert!(cleaned_html.content.contains("src=\"/diagram.png\""));
     assert!(cleaned_html.content.contains("alt=\"Diagram\""));
     assert!(cleaned_html.content.contains("width=\"640\""));
@@ -31,6 +33,10 @@ pub(super) fn assert_cleanup_outputs(aget_home: &Path, site: &MockSite) {
     assert!(cleaned_html
         .content
         .contains("href=\"https://external.example/out\""));
+    assert!(cleaned_html.content.contains("id=\"mailto-link\""));
+    assert!(cleaned_html
+        .content
+        .contains("href=\"mailto:help@example.com\""));
     assert!(cleaned_html.content.contains("id=\"social-link\""));
     assert!(cleaned_html
         .content
@@ -109,6 +115,9 @@ pub(super) fn assert_cleanup_outputs(aget_home: &Path, site: &MockSite) {
         .run()
         .unwrap();
     assert!(no_external_links.content.contains("href=\"/kept\""));
+    assert!(no_external_links
+        .content
+        .contains("id=\"same-domain-link\""));
     assert!(!no_external_links.content.contains("id=\"external-link\""));
     assert!(!no_external_links
         .content
@@ -119,6 +128,33 @@ pub(super) fn assert_cleanup_outputs(aget_home: &Path, site: &MockSite) {
         .contains("id=\"custom-social-link\""));
     assert!(no_external_links.content.contains("id=\"remote-image\""));
     assert!(no_external_links.content.contains("id=\"social-image\""));
+
+    let no_internal_links = Aget::new(aget_home)
+        .with_extractor_backend(AgetExtractorBackend::default())
+        .get(site.url("/html-cleanup"))
+        .content_format(OutputFormat::Html)
+        .backend_option("crawl4ai.exclude_internal_links", "true")
+        .run()
+        .unwrap();
+    assert!(!no_internal_links.content.contains("id=\"kept-link\""));
+    assert!(!no_internal_links
+        .content
+        .contains("id=\"same-domain-link\""));
+    assert!(!no_internal_links.content.contains("href=\"/same-domain\""));
+    assert!(!no_internal_links.content.contains("id=\"empty-anchor\""));
+    assert!(no_internal_links.content.contains("id=\"external-link\""));
+    assert!(no_internal_links
+        .content
+        .contains("https://external.example/out"));
+    assert!(no_internal_links.content.contains("id=\"mailto-link\""));
+    assert!(no_internal_links
+        .content
+        .contains("href=\"mailto:help@example.com\""));
+    assert!(no_internal_links.content.contains("id=\"social-link\""));
+    assert!(no_internal_links
+        .content
+        .contains("id=\"custom-social-link\""));
+    assert!(no_internal_links.content.contains("id=\"remote-image\""));
 
     let no_external_images = Aget::new(aget_home)
         .with_extractor_backend(AgetExtractorBackend::default())

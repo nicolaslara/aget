@@ -103,6 +103,7 @@ EXTRACTOR_OPTION_TYPES = {
     "exclude_domains": ("crawler", "list"),
     "exclude_external_images": ("crawler", "bool"),
     "exclude_external_links": ("crawler", "bool"),
+    "exclude_internal_links": ("crawler", "bool"),
     "exclude_social_media_domains": ("crawler", "list"),
     "exclude_social_media_links": ("crawler", "bool"),
     "only_text": ("crawler", "bool"),

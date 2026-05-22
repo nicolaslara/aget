@@ -14,7 +14,7 @@ pub(super) use self::attributes::{
 };
 pub(super) use self::urls::{
     remove_owned_excluded_domain_urls, remove_owned_external_images, remove_owned_external_links,
-    remove_owned_social_media_links,
+    remove_owned_internal_links, remove_owned_social_media_links,
 };
 
 const CRAWL4AI_OVERLAY_SELECTORS: &[&str] = &[
@@ -126,6 +126,29 @@ mod tests {
         assert!(cleaned.contains("id=\"same-domain\""));
         assert!(!cleaned.contains("id=\"external\""));
         assert!(!cleaned.contains("id=\"mailto\""));
+    }
+
+    #[test]
+    fn internal_link_cleanup_removes_relative_and_same_base_domain_links() {
+        let document = Html::parse_document(
+            r#"
+<main>
+  <a id="relative" href="/guide">Relative</a>
+  <a id="same-domain" href="https://www.example.com/docs">Same domain</a>
+  <a id="external" href="https://other.test/docs">External</a>
+  <a id="mailto" href="mailto:help@example.com">Mail</a>
+</main>
+"#,
+        );
+
+        let cleaned = cleaned_html(
+            remove_owned_internal_links(document, "https://docs.example.com/page").unwrap(),
+        );
+
+        assert!(!cleaned.contains("id=\"relative\""));
+        assert!(!cleaned.contains("id=\"same-domain\""));
+        assert!(cleaned.contains("id=\"external\""));
+        assert!(cleaned.contains("id=\"mailto\""));
     }
 
     #[test]

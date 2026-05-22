@@ -18,7 +18,9 @@ pub(crate) fn routes(builder: MockSiteBuilder) -> MockSiteBuilder {
       <!-- debug-secret should not survive owned cleanup -->
       <p data-select="summary" data-private="paragraph-secret" style="color:blue" onclick="steal()" aria-label="private label">Visible body.</p>
       <a id="kept-link" class="cta" href="/kept" title="Kept title" rel="nofollow" data-private="link-secret">Kept link</a>
+      <a id="same-domain-link" href="/same-domain">Same-domain link</a>
       <a id="external-link" href="https://external.example/out">External link</a>
+      <a id="mailto-link" href="mailto:help@example.com">Mail link</a>
       <a id="social-link" href="https://www.linkedin.com/company/aget">Social link</a>
       <a id="custom-social-link" href="https://social.example/company/aget">Custom social link</a>
       <img id="diagram" class="figure" src="/diagram.png" alt="Diagram" width="640" height="480" data-private="image-secret" style="display:none">

@@ -13,6 +13,13 @@ pub(in crate::extraction) fn remove_owned_external_links(
     remove_external_url_elements(document, "a[href]", "href", base_url)
 }
 
+pub(in crate::extraction) fn remove_owned_internal_links(
+    document: Html,
+    base_url: &str,
+) -> Result<Html, AgetError> {
+    remove_internal_url_elements(document, "a[href]", "href", base_url)
+}
+
 pub(in crate::extraction) fn remove_owned_external_images(
     document: Html,
     base_url: &str,
@@ -71,6 +78,28 @@ fn remove_external_url_elements(
         .filter_map(|element| {
             let value = element.value().attr(attribute)?;
             is_crawl4ai_like_external_url(value, base_url, &base_domain).then_some(element.id())
+        })
+        .collect::<Vec<_>>();
+    let tree = HtmlTreeSink::new(document);
+    for id in node_ids {
+        tree.remove_from_parent(&id);
+    }
+    Ok(tree.finish())
+}
+
+fn remove_internal_url_elements(
+    document: Html,
+    selector_list: &str,
+    attribute: &str,
+    base_url: &str,
+) -> Result<Html, AgetError> {
+    let selector = parse_css_selector(selector_list)?;
+    let base_domain = crawl4ai_like_base_domain(base_url);
+    let node_ids = document
+        .select(&selector)
+        .filter_map(|element| {
+            let value = element.value().attr(attribute)?;
+            (!is_crawl4ai_like_external_url(value, base_url, &base_domain)).then_some(element.id())
         })
         .collect::<Vec<_>>();
     let tree = HtmlTreeSink::new(document);
