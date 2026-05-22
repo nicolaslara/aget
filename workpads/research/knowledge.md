@@ -22,7 +22,7 @@ Safety boundary remains unchanged: `aget` is a generic fetcher for content the u
 - I19d remains open for full Crawl4AI-quality readability/markdown and still-richer rendered-page readiness after D267 preserved Crawl4AI linked-heading markdown behavior.
 - I19e remains open for broader rendered JavaScript parity, manual real logged-in profile/keychain smoke execution, and still-fuller startup/error classification after D262 split Chrome process launch command helpers.
 - I19h remains open because final migration review requires review subagents for test adequacy, architecture cohesion, and security/privacy.
-- Current support-file rule: do not compact `workpads/research/tasks.md`; compact supporting files by moving dense detail to referenced archive files. The largest historical knowledge bundles now route through split archive indexes after D232, the historical session-wrapper PoC spec and implementation plan route through smaller support slices after D243/D263-D265, and the R12/D64-D76/D77-D91/D92-D108/D109-D122/engine-refactor bundles route through smaller support slices after D268-D273.
+- Current support-file rule: do not compact `workpads/research/tasks.md`; compact supporting files by moving dense detail to referenced archive files. The largest historical knowledge bundles now route through split archive indexes after D232, the historical session-wrapper PoC spec and implementation plan route through smaller support slices after D243/D263-D265, and the R12/D64-D76/D77-D91/D92-D108/D109-D122/engine-refactor/OAuth-design bundles route through smaller support slices after D268-D274.
 
 ## Decision Routing
 
@@ -35,7 +35,7 @@ Safety boundary remains unchanged: `aget` is a generic fetcher for content the u
 | Original module-decomposition sequence | `archive/knowledge/d123-d150-module-decomposition.md` index to `d123-d150-module-decomposition/d123-d132-core-production-splits.md`, `d123-d150-module-decomposition/d133-d141-orchestration-and-test-target-splits.md`, and `d123-d150-module-decomposition/d142-d150-integration-test-splits.md` |
 | Auth/browser import and browser-choice design | `archive/knowledge/d151-d157-auth-and-browser-import.md` |
 | Recent migration follow-ups and source-backed extraction improvements | `archive/knowledge/d158-d167-recent-migration-followups.md` |
-| Latest individual decisions | `archive/knowledge/d168-workpad-knowledge-compaction.md` through `archive/knowledge/d273-d109-d122-archive-split.md` |
+| Latest individual decisions | `archive/knowledge/d168-workpad-knowledge-compaction.md` through `archive/knowledge/d274-oauth-login-design-split.md` |
 
 ## Historical Support Docs
 
@@ -44,6 +44,7 @@ Safety boundary remains unchanged: `aget` is a generic fetcher for content the u
 | `session-wrapper-poc-spec.md` | `archive/support/session-wrapper-poc-spec.md` index to section files |
 | `session-wrapper-implementation-plan.md` | `archive/support/session-wrapper-implementation-plan.md` |
 | `aget-engine-refactor-plan.md` | `aget-engine-refactor-plan.md` index to section files |
+| `oauth-safe-browser-login-design.md` | `oauth-safe-browser-login-design.md` index to section files |
 
 ## Current Verification Expectations
 

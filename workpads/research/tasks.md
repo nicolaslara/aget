@@ -2003,6 +2003,20 @@ Status note:
 
 - Completed with D273. `workpads/research/archive/knowledge/d109-d122-selector-overlay-shadow.md` is now a 9-line routing index, with historical D109-D115 markdown/selector/escaping detail, D116-D120 Chrome/overlay cleanup detail, and D121-D122 linked-image/shadow-DOM detail moved into three smaller section files under `archive/knowledge/d109-d122-selector-overlay-shadow/`. `workpads/research/tasks.md` was not compacted. Line-count checks and `git diff --check` passed.
 
+### ✅ Task I19de: Split OAuth-safe browser login design support file
+
+Acceptance criteria:
+
+- Preserve `workpads/research/tasks.md` as the full planned-task source of truth; do not compact or remove planned tasks.
+- Convert `workpads/research/oauth-safe-browser-login-design.md` into a compact routing index.
+- Move the dense OAuth-safe browser login design content into smaller referenced files.
+- Update current knowledge routing and decision index so the split is discoverable.
+- Verify the split with line-count checks and `git diff --check`.
+
+Status note:
+
+- Completed with D274. `workpads/research/oauth-safe-browser-login-design.md` is now an 8-line routing index, with historical vocabulary/decision-tree detail and browser/errors/tests/manual-smoke detail moved into two smaller section files under `workpads/research/oauth-safe-browser-login-design/`. `workpads/research/tasks.md` was not compacted. Line-count checks and `git diff --check` passed.
+
 ### ✅ Task I20: Design OAuth-safe browser login and profile import flow
 
 Acceptance criteria:
