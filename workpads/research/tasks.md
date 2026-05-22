@@ -3469,6 +3469,23 @@ Status note:
 
 - Completed with D367. Source inspection found Crawl4AI's `CrawlerRunConfig.remove_consent_popups` is default false, triggers browser-backed cleanup, and runs consent-popup cleanup before generic overlay cleanup. Owned extraction now accepts `crawl4ai.remove_consent_popups`, removes generic cookie/GDPR consent elements before overlay cleanup, keeps `crawl4ai.remove_overlay_elements=false` separate, and does not click consent controls, set cookies, or add site-specific paywall/login handling. Command/mock validation, README, OpenCode tool text, and compact knowledge routing were updated. `workpads/research/tasks.md` was not compacted. Focused owned extractor cleanup coverage, command-backend option validation, `cargo fmt --check`, `git diff --check`, and full `cargo test` passed.
 
+### ✅ Task I19gs: Support Crawl4AI `css_selector` extraction option
+
+Acceptance criteria:
+
+- Inspect Crawl4AI source before changing owned selector extraction.
+- Accept `crawl4ai.css_selector` as a backend option that selects matching content before owned output rendering.
+- Preserve the existing top-level `--selector`/API selector behavior and precedence.
+- Preserve Crawl4AI/static-scraper-style fallback behavior for invalid selectors and selector misses.
+- Keep `crawl4ai.target_elements` scoped under the selected content when both options are supplied.
+- Do not compact `workpads/research/tasks.md`.
+- Record the source-backed boundary in `knowledge.md`.
+- Verify with focused owned selector coverage, command-backend option validation, and the standard check set.
+
+Status note:
+
+- Completed with D368. Source inspection found Crawl4AI's `CrawlerRunConfig.css_selector` extracts a specific page portion, with the static scraper selecting matches into a wrapper and falling back to body on selector misses or selector errors, while the rendered path serializes `querySelectorAll` matches before scraping. Owned extraction now accepts `crawl4ai.css_selector`, keeps top-level `--selector`/API selector precedence, falls back to the document root for misses/invalid selectors, and scopes `crawl4ai.target_elements` under selected content. The command mock, README, OpenCode tool text, and Crawl4AI compatibility helper were aligned; the helper allowlist also now includes the recently added `excluded_selector` and `remove_consent_popups` options. `workpads/research/tasks.md` was not compacted. Focused owned selector coverage, command-backend option validation, Python helper syntax checks, `cargo fmt --check`, `git diff --check`, and full `cargo test` passed.
+
 ### ✅ Task I20: Design OAuth-safe browser login and profile import flow
 
 Acceptance criteria:

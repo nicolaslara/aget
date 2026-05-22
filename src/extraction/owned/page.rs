@@ -170,7 +170,11 @@ fn extract_owned_html(
         document = remove_selected_elements(document, "img")?;
     }
 
-    let selector = options.selector.as_deref().or(fallback_selector);
+    let selector = options
+        .selector
+        .as_deref()
+        .or(owned_options.css_selector.as_deref())
+        .or(fallback_selector);
     let configured_base_url = owned_options.base_url.as_deref().unwrap_or(&final_url);
     let base_url = markdown_base_url(&document, configured_base_url)?;
 

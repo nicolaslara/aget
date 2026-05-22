@@ -44,6 +44,7 @@ Open the referenced child indexes for older per-decision rows, then open the per
 | D365 | `d365-frame-tree-storage-export.md` | agent-browser-style frame-tree storage origin export within explicit allow-domain scope. |
 | D366 | `d366-excluded-selector-option.md` | Crawl4AI `excluded_selector` cleanup option for owned extraction selector removal. |
 | D367 | `d367-remove-consent-popups-option.md` | Crawl4AI `remove_consent_popups` cleanup option for generic cookie/GDPR consent removal. |
+| D368 | `d368-css-selector-option.md` | Crawl4AI `css_selector` compatibility option for owned extraction content selection. |
 
 ## Full Archive Routing
 
@@ -62,7 +63,7 @@ Open the referenced child indexes for older per-decision rows, then open the per
 | D123-D150 | `d123-d150-module-decomposition.md` index to section files | Original extraction/CDP/test module decomposition through I19i completion. |
 | D151-D157 | `d151-d157-auth-and-browser-import.md` | OAuth-safe authorization API/CLI and conservative browser-neutral Chrome import surface. |
 | D158-D167 | `d158-d167-recent-migration-followups.md` | Recent source-backed extraction improvements and follow-up decomposition slices. |
-| D168-D367 | `decision-index/` plus per-decision files | Module/test/support decomposition plus owned extractor/browser parity improvements, agent-facing option docs, support-file routing refreshes, login-session injection, markdown options, metadata coverage, CDP diagnostics, transport/readiness coverage, ignored local Chrome smoke refreshes, support-file archive splits, the current no-task-compaction size audit, frame-tree storage export, excluded selector cleanup, and consent-popup cleanup. |
+| D168-D368 | `decision-index/` plus per-decision files | Module/test/support decomposition plus owned extractor/browser parity improvements, agent-facing option docs, support-file routing refreshes, login-session injection, markdown options, metadata coverage, CDP diagnostics, transport/readiness coverage, ignored local Chrome smoke refreshes, support-file archive splits, the current no-task-compaction size audit, frame-tree storage export, excluded selector cleanup, consent-popup cleanup, and CSS selector option support. |
 
 ## Current Open Migration Gaps
 

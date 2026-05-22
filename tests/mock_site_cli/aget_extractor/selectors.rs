@@ -67,6 +67,55 @@ pub(super) fn assert_selector_and_target_options(aget_home: &Path, site: &MockSi
     assert!(selector_multiple_html.content.contains("Second Result"));
     assert!(!selector_multiple_html.content.contains("Sidebar body."));
 
+    let backend_css_selector = Aget::new(aget_home)
+        .with_extractor_backend(AgetExtractorBackend::default())
+        .get(site.url("/selector-multiple"))
+        .content_format(OutputFormat::Text)
+        .backend_option("crawl4ai.css_selector", ".result")
+        .run()
+        .unwrap();
+    assert_eq!(
+        backend_css_selector.content,
+        "First Result\nAlpha body.\nSecond Result\nBeta body."
+    );
+
+    let backend_css_selector_miss = Aget::new(aget_home)
+        .with_extractor_backend(AgetExtractorBackend::default())
+        .get(site.url("/selector-miss"))
+        .content_format(OutputFormat::Text)
+        .backend_option("crawl4ai.css_selector", ".does-not-exist")
+        .run()
+        .unwrap();
+    assert_eq!(
+        backend_css_selector_miss.content,
+        "Selector Header\nSelector Main\nSelector body text.\nSelector Footer"
+    );
+
+    let backend_css_selector_invalid = Aget::new(aget_home)
+        .with_extractor_backend(AgetExtractorBackend::default())
+        .get(site.url("/selector-miss"))
+        .content_format(OutputFormat::Text)
+        .backend_option("crawl4ai.css_selector", "[[[invalid")
+        .run()
+        .unwrap();
+    assert_eq!(
+        backend_css_selector_invalid.content,
+        "Selector Header\nSelector Main\nSelector body text.\nSelector Footer"
+    );
+
+    let top_level_selector_precedes_backend_css_selector = Aget::new(aget_home)
+        .with_extractor_backend(AgetExtractorBackend::default())
+        .get(site.url("/selector-multiple"))
+        .content_format(OutputFormat::Text)
+        .selector("aside")
+        .backend_option("crawl4ai.css_selector", ".result")
+        .run()
+        .unwrap();
+    assert_eq!(
+        top_level_selector_precedes_backend_css_selector.content,
+        "Sidebar body."
+    );
+
     let selector_scoped_targets = Aget::new(aget_home)
         .with_extractor_backend(AgetExtractorBackend::default())
         .get(site.url("/selector-multiple"))
@@ -76,6 +125,19 @@ pub(super) fn assert_selector_and_target_options(aget_home: &Path, site: &MockSi
         .run()
         .unwrap();
     assert_eq!(selector_scoped_targets.content, "Alpha body.\nBeta body.");
+
+    let backend_css_selector_scoped_targets = Aget::new(aget_home)
+        .with_extractor_backend(AgetExtractorBackend::default())
+        .get(site.url("/selector-multiple"))
+        .content_format(OutputFormat::Text)
+        .backend_option("crawl4ai.css_selector", ".result")
+        .backend_option("crawl4ai.target_elements", "p")
+        .run()
+        .unwrap();
+    assert_eq!(
+        backend_css_selector_scoped_targets.content,
+        "Alpha body.\nBeta body."
+    );
 
     let excluded_tags = Aget::new(aget_home)
         .with_extractor_backend(AgetExtractorBackend::default())

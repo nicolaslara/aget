@@ -60,6 +60,7 @@ pub(crate) fn assert_expected_args(args: &Args, config: &Value) -> Result<(), St
 fn validate_crawl4ai_options(args: &Args) -> Result<(), String> {
     const ALLOWED: &[&str] = &[
         "base_url",
+        "css_selector",
         "target_elements",
         "excluded_selector",
         "excluded_tags",

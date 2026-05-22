@@ -17,6 +17,7 @@ const DEFAULT_FULL_PAGE_MAX_SCROLL_STEPS: usize = 10;
 #[derive(Debug)]
 pub(crate) struct OwnedExtractorOptions {
     pub(crate) base_url: Option<String>,
+    pub(crate) css_selector: Option<String>,
     pub(crate) excluded_tags: Vec<String>,
     pub(crate) excluded_selectors: Vec<String>,
     pub(crate) target_elements: Vec<String>,
@@ -87,6 +88,7 @@ impl Default for OwnedExtractorOptions {
     fn default() -> Self {
         Self {
             base_url: None,
+            css_selector: None,
             excluded_tags: Vec::new(),
             excluded_selectors: Vec::new(),
             target_elements: Vec::new(),
