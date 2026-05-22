@@ -3437,6 +3437,22 @@ Status note:
 
 - Completed with D365. Source inspection found agent-browser merges current frame-tree origins into storage-state saving, then collects storage for remaining origins via a temporary target. Owned CDP state export now asks `Page.getFrameTree`, adds only frame origins whose hosts remain within the explicit allow-domain scope, and keeps disallowed frame origins and non-origin URLs out of saved state. Existing cookie export, explicit origin candidates, storage load, and blank-response navigation behavior remain unchanged. `workpads/research/tasks.md` was not compacted. Focused CDP tests, `cargo fmt --check`, `git diff --check`, and full `cargo test` passed.
 
+### ✅ Task I19gq: Support Crawl4AI `excluded_selector` cleanup option
+
+Acceptance criteria:
+
+- Inspect Crawl4AI source before changing owned extraction cleanup.
+- Accept `crawl4ai.excluded_selector` as a backend option that removes matching CSS-selected elements before owned content extraction.
+- Preserve the existing top-level `--exclude-selector` behavior and invalid-selector tolerance.
+- Keep cleanup ordering aligned with Crawl4AI's form/tag/selector removal boundary where practical in the owned pipeline.
+- Do not compact `workpads/research/tasks.md`.
+- Record the source-backed boundary in `knowledge.md`.
+- Verify with focused owned extractor option/cleanup coverage plus the standard check set.
+
+Status note:
+
+- Completed with D366. Source inspection found Crawl4AI's `CrawlerRunConfig.excluded_selector` stores a CSS selector string, removes matching elements after form/tag cleanup in the scraping strategy, and tolerates selector errors. Owned extraction now accepts repeated non-empty `crawl4ai.excluded_selector` backend options, removes matching elements through the existing invalid-selector-tolerant cleanup helper, preserves top-level `--exclude-selector`, and keeps command/mock validation, README, and OpenCode tool text aligned. `workpads/research/tasks.md` was not compacted. Focused owned selector coverage, command-backend option validation, `cargo fmt --check`, `git diff --check`, and full `cargo test` passed.
+
 ### ✅ Task I20: Design OAuth-safe browser login and profile import flow
 
 Acceptance criteria:

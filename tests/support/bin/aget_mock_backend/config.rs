@@ -61,6 +61,7 @@ fn validate_crawl4ai_options(args: &Args) -> Result<(), String> {
     const ALLOWED: &[&str] = &[
         "base_url",
         "target_elements",
+        "excluded_selector",
         "excluded_tags",
         "exclude_all_images",
         "exclude_domains",

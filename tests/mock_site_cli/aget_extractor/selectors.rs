@@ -86,6 +86,30 @@ pub(super) fn assert_selector_and_target_options(aget_home: &Path, site: &MockSi
         .unwrap();
     assert_eq!(excluded_tags.content, "Tag Filtering\nKept article body.");
 
+    let excluded_selector = Aget::new(aget_home)
+        .with_extractor_backend(AgetExtractorBackend::default())
+        .get(site.url("/excluded-tags"))
+        .content_format(OutputFormat::Text)
+        .backend_option("crawl4ai.excluded_selector", "aside,footer")
+        .run()
+        .unwrap();
+    assert_eq!(
+        excluded_selector.content,
+        "Tag Filtering\nKept article body."
+    );
+
+    let invalid_excluded_selector = Aget::new(aget_home)
+        .with_extractor_backend(AgetExtractorBackend::default())
+        .get(site.url("/excluded-tags"))
+        .content_format(OutputFormat::Text)
+        .backend_option("crawl4ai.excluded_selector", "[[[invalid")
+        .run()
+        .unwrap();
+    assert_eq!(
+        invalid_excluded_selector.content,
+        "Tag Filtering\nPromotional Sidebar\nKept article body.\nArticle Footer"
+    );
+
     let target_elements = Aget::new(aget_home)
         .with_extractor_backend(AgetExtractorBackend::default())
         .get(site.url("/excluded-tags"))

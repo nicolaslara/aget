@@ -146,6 +146,10 @@ fn extract_owned_html(
         document = remove_owned_overlay_elements(document)?;
     }
 
+    if owned_options.remove_forms {
+        document = remove_selected_elements(document, "form")?;
+    }
+
     if !owned_options.excluded_tags.is_empty() {
         document = remove_owned_excluded_tags(document, &owned_options.excluded_tags)?;
     }
@@ -154,8 +158,8 @@ fn extract_owned_html(
         document = remove_selected_elements(document, exclude_selector)?;
     }
 
-    if owned_options.remove_forms {
-        document = remove_selected_elements(document, "form")?;
+    for excluded_selector in &owned_options.excluded_selectors {
+        document = remove_selected_elements(document, excluded_selector)?;
     }
 
     if owned_options.exclude_all_images {
