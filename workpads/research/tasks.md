@@ -2767,6 +2767,22 @@ Status note:
 
 - Completed with D322. `src/aget_browser/tests.rs` remains the AgetBrowser engine test route and delegates pending-login cancellation, explicit-port CDP discovery, current-tab rendering, attached-page rendering, and shared mock-CDP helpers to behavior-owned child modules. The split is mechanical; AgetBrowser runtime behavior is unchanged, and `workpads/research/tasks.md` was not compacted. The parent route is 5 lines and all child modules are 140 lines or less. Focused AgetBrowser coverage and the standard gate passed.
 
+### ✅ Task I19fb: Split Playwright session composition implementation
+
+Acceptance criteria:
+
+- Preserve current Playwright state composition and composed-session behavior.
+- Keep `session::playwright::{compose_playwright_state, compose_session}` public exports stable.
+- Move cookie normalization/conflict helpers, storage merge helpers, Playwright-state composition, and composed-session construction into smaller modules.
+- Keep the split mechanical with no intentional session behavior changes.
+- Do not compact `workpads/research/tasks.md`.
+- Record the resulting module boundary in `knowledge.md`.
+- Verify with focused `session::playwright` tests plus the standard check set.
+
+Status note:
+
+- Completed with D323. `src/session/playwright/compose.rs` remains the composition route and re-exports the stable `compose_playwright_state` and `compose_session` functions while cookie normalization/conflict helpers, storage merge helpers, Playwright-state composition, and persisted composed-session construction live in focused child modules. The split is mechanical; session composition behavior is unchanged, and `workpads/research/tasks.md` was not compacted. Focused `session::playwright` coverage and the standard gate passed.
+
 ### ✅ Task I20: Design OAuth-safe browser login and profile import flow
 
 Acceptance criteria:
