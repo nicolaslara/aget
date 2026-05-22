@@ -1844,6 +1844,21 @@ Status note:
 
 - Completed with D262. `src/browser_cdp/chrome_process.rs` now keeps `ChromeProcess` temp/profile/login launch entrypoints, launch retry orchestration, startup diagnostics classification, child process lifecycle, detach/wait-or-kill behavior, and owned temp profile cleanup, while `src/browser_cdp/chrome_process/launch.rs` owns Chrome launch command construction, launch flags, process-group configuration, Chrome binary discovery, platform candidate lookup, PATH lookup, and temp owned-profile directory creation. Existing render/import/login callers and Chrome process launch tests continue to route through `chrome_process`, and `workpads/research/tasks.md` remains un-compacted.
 
+### ✅ Task I19ct: Split dense session-wrapper support archive slice
+
+Acceptance criteria:
+
+- Do not compact or remove planned tasks from `workpads/research/tasks.md`.
+- Preserve the historical V1 thin-wrapper implementation spec content under `workpads/research/archive/support/session-wrapper-poc-spec/`.
+- Convert `v1-implementation-spec.md` into a compact routing index and move dense architecture/storage, command-surface, adapter/composition, and output metadata detail into smaller referenced files.
+- Keep existing archive entrypoints usable for agents that need historical session-wrapper context.
+- Record the support-file boundary in `knowledge.md`.
+- Verify with markdown routing checks and a tracked workpad line-count scan.
+
+Status note:
+
+- Completed with D263. `workpads/research/archive/support/session-wrapper-poc-spec/v1-implementation-spec.md` is now a compact routing index, with historical V1 architecture/storage detail in `v1-architecture-storage.md`, command-surface detail in `v1-command-surface.md`, and adapter/composition/output metadata detail in `v1-adapters-composition-output.md`. `workpads/research/tasks.md` was not compacted; it only records this completed support-file split. Routing checks, line-count checks, and `git diff --check` passed.
+
 ### ✅ Task I20: Design OAuth-safe browser login and profile import flow
 
 Acceptance criteria:
