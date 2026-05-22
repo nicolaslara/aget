@@ -162,6 +162,7 @@ This archive file keeps the denser decision routing that used to live in top-lev
 | D343 | `d343-blank-navigation-error-text.md` | CDP blank-response storage navigation surfaces `Page.navigate` `errorText`. |
 | D344 | `d344-image-readiness-timeout-boundary.md` | Crawl4AI image readiness keeps its own short timeout boundary separate from `wait_for_timeout`. |
 | D345 | `d345-google-doc-markdown-option.md` | Crawl4AI `google_doc` markdown option for source-compatible styled inline emphasis. |
+| D346 | `d346-binary-cdp-response-frames.md` | agent-browser-style binary CDP WebSocket response frames accepted by owned transport. |
 
 ## Full Archive Routing
 

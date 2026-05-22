@@ -6,7 +6,36 @@ use serde_json::json;
 
 use crate::browser_cdp::client::CdpClient;
 
-use super::super::{read_cdp_request, reply_ok};
+use super::super::{read_cdp_request, reply_ok, reply_ok_binary};
+
+#[test]
+fn browser_cdp_accepts_binary_response_frames() {
+    let listener = TcpListener::bind(("127.0.0.1", 0)).unwrap();
+    let port = listener.local_addr().unwrap().port();
+    let handle = thread::spawn(move || {
+        let (stream, _) = listener.accept().unwrap();
+        let mut websocket = tungstenite::accept(stream).unwrap();
+        let request = read_cdp_request(&mut websocket);
+        assert_eq!(request["method"], "Browser.getVersion");
+        reply_ok_binary(
+            &mut websocket,
+            &request,
+            json!({ "product": "Chrome/mock-binary" }),
+        );
+        let _ = websocket.close(None);
+    });
+
+    let mut client = CdpClient::connect(
+        &format!("ws://127.0.0.1:{port}/devtools/browser/mock"),
+        Duration::from_secs(2),
+    )
+    .unwrap();
+    let result = client
+        .send("Browser.getVersion", None, None, Duration::from_secs(2))
+        .unwrap();
+    assert_eq!(result["product"], "Chrome/mock-binary");
+    handle.join().unwrap();
+}
 
 #[test]
 fn direct_page_cdp_connection_enables_domains_without_session_ids() {

@@ -25,3 +25,14 @@ fn reply_ok(websocket: &mut WebSocket<TcpStream>, request: &Value, result: Value
         ))
         .unwrap();
 }
+
+fn reply_ok_binary(websocket: &mut WebSocket<TcpStream>, request: &Value, result: Value) {
+    let id = request
+        .get("id")
+        .and_then(serde_json::Value::as_u64)
+        .unwrap();
+    let bytes = json!({ "id": id, "result": result })
+        .to_string()
+        .into_bytes();
+    websocket.send(Message::Binary(bytes.into())).unwrap();
+}
