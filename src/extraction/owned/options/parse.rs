@@ -102,6 +102,18 @@ pub(super) fn parse_owned_bool(name: &str, value: &str) -> Result<bool, AgetErro
     }
 }
 
+pub(super) fn parse_owned_cache_mode(name: &str, value: &str) -> Result<(), AgetError> {
+    match value.trim().to_ascii_lowercase().replace('-', "_").as_str() {
+        "bypass" | "disabled" | "disable" | "no_cache" | "none" | "off" => Ok(()),
+        "enabled" | "read_only" | "write_only" => Err(extraction_failed(format!(
+            "{name}='{value}' requires an owned cache store; the owned extractor currently supports only bypass/disabled cache modes"
+        ))),
+        _ => Err(extraction_failed(format!(
+            "{name} supports only bypass, disabled, enabled, read_only, or write_only, got '{value}'"
+        ))),
+    }
+}
+
 pub(super) fn parse_owned_milliseconds(name: &str, value: &str) -> Result<Duration, AgetError> {
     let milliseconds = value.trim().parse::<u64>().map_err(|_| {
         extraction_failed(format!(

@@ -3486,6 +3486,23 @@ Status note:
 
 - Completed with D368. Source inspection found Crawl4AI's `CrawlerRunConfig.css_selector` extracts a specific page portion, with the static scraper selecting matches into a wrapper and falling back to body on selector misses or selector errors, while the rendered path serializes `querySelectorAll` matches before scraping. Owned extraction now accepts `crawl4ai.css_selector`, keeps top-level `--selector`/API selector precedence, falls back to the document root for misses/invalid selectors, and scopes `crawl4ai.target_elements` under selected content. The command mock, README, OpenCode tool text, and Crawl4AI compatibility helper were aligned; the helper allowlist also now includes the recently added `excluded_selector` and `remove_consent_popups` options. `workpads/research/tasks.md` was not compacted. Focused owned selector coverage, command-backend option validation, Python helper syntax checks, `cargo fmt --check`, `git diff --check`, and full `cargo test` passed.
 
+### ✅ Task I19gt: Align Crawl4AI cache-mode compatibility options
+
+Acceptance criteria:
+
+- Inspect Crawl4AI source before changing cache-option validation.
+- Accept bypass/no-cache cache options that preserve the owned extractor's current uncached behavior.
+- Reject cache read/write modes in the owned extractor until `aget` has an owned cache store.
+- Keep the optional Crawl4AI command compatibility helper able to pass valid `CacheMode` values to real Crawl4AI.
+- Preserve output metadata recording of backend options.
+- Do not compact `workpads/research/tasks.md`.
+- Record the source-backed boundary in `knowledge.md`.
+- Verify with focused option validation, command-backend forwarding, helper syntax checks, and the standard check set.
+
+Status note:
+
+- Completed with D369. Source inspection found Crawl4AI's `CrawlerRunConfig.cache_mode` defaults to `CacheMode.BYPASS`, `CacheMode` supports enabled/disabled/read_only/write_only/bypass, and cache read/write behavior is routed through `CacheContext` only when a cache store exists. Owned extraction now accepts `crawl4ai.cache` and `crawl4ai.cache_mode` only for bypass/disabled no-cache modes, rejects enabled/read_only/write_only until `aget` has an owned extraction cache store, and keeps backend-option output metadata recording unchanged. The optional Crawl4AI compatibility helper validates cache modes, maps the existing `crawl4ai.cache` alias to `cache_mode`, and converts strings into the installed `CacheMode` enum before building `CrawlerRunConfig`. Command mock validation, README, OpenCode tool text, and compact knowledge routing were updated. `workpads/research/tasks.md` was not compacted. Focused owned option validation, command-backend option validation, Python helper syntax and conversion checks, `cargo fmt --check`, `git diff --check`, and full `cargo test` passed.
+
 ### ✅ Task I20: Design OAuth-safe browser login and profile import flow
 
 Acceptance criteria:

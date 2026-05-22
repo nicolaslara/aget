@@ -80,6 +80,42 @@ pub(super) fn assert_backend_options_redirects_and_waits(aget_home: &Path, site:
         .to_string()
         .contains("crawl4ai.word_count_threshold expects a non-negative integer value"));
 
+    let cache_bypass = Aget::new(aget_home)
+        .with_extractor_backend(AgetExtractorBackend::default())
+        .get(site.url("/formats"))
+        .content_format(OutputFormat::Text)
+        .selector("main.article")
+        .backend_option("crawl4ai.cache", "bypass")
+        .backend_option("crawl4ai.cache_mode", "disabled")
+        .run()
+        .unwrap();
+    assert_eq!(
+        cache_bypass.content,
+        "Format Heading\nFormat body text.\nPromotional aside."
+    );
+
+    let cache_enabled = Aget::new(aget_home)
+        .with_extractor_backend(AgetExtractorBackend::default())
+        .get(site.url("/formats"))
+        .backend_option("crawl4ai.cache_mode", "enabled")
+        .run()
+        .unwrap_err();
+    assert_eq!(cache_enabled.code(), ErrorCode::ExtractionFailed);
+    assert!(cache_enabled
+        .to_string()
+        .contains("requires an owned cache store"));
+
+    let invalid_cache_mode = Aget::new(aget_home)
+        .with_extractor_backend(AgetExtractorBackend::default())
+        .get(site.url("/formats"))
+        .backend_option("crawl4ai.cache", "sometimes")
+        .run()
+        .unwrap_err();
+    assert_eq!(invalid_cache_mode.code(), ErrorCode::ExtractionFailed);
+    assert!(invalid_cache_mode.to_string().contains(
+        "crawl4ai.cache supports only bypass, disabled, enabled, read_only, or write_only"
+    ));
+
     let invalid_body_width = Aget::new(aget_home)
         .with_extractor_backend(AgetExtractorBackend::default())
         .get(site.url("/formats"))
@@ -361,7 +397,7 @@ pub(super) fn assert_backend_options_redirects_and_waits(aget_home: &Path, site:
     assert!(unsupported_option
         .to_string()
         .contains(
-            "supported options: crawl4ai.base_url, crawl4ai.body_width, crawl4ai.bypass_tables, crawl4ai.close_quote, crawl4ai.css_selector, crawl4ai.default_image_alt, crawl4ai.delay_before_return_html, crawl4ai.emphasis_mark, crawl4ai.escape_backslash, crawl4ai.escape_dash, crawl4ai.escape_dot, crawl4ai.escape_plus, crawl4ai.escape_snob, crawl4ai.exclude_all_images, crawl4ai.exclude_domains, crawl4ai.exclude_external_images, crawl4ai.exclude_external_links, crawl4ai.exclude_internal_links, crawl4ai.exclude_social_media_domains, crawl4ai.exclude_social_media_links, crawl4ai.excluded_selector, crawl4ai.excluded_tags, crawl4ai.flatten_shadow_dom, crawl4ai.google_doc, crawl4ai.google_list_indent, crawl4ai.handle_code_in_pre, crawl4ai.hide_strikethrough, crawl4ai.ignore_anchors, crawl4ai.ignore_emphasis, crawl4ai.ignore_images, crawl4ai.ignore_links, crawl4ai.ignore_mailto_links, crawl4ai.ignore_tables, crawl4ai.images_as_html, crawl4ai.images_to_alt, crawl4ai.images_with_size, crawl4ai.include_sup_sub, crawl4ai.inline_links, crawl4ai.keep_data_attributes, crawl4ai.links_each_paragraph, crawl4ai.mark_code, crawl4ai.max_scroll_steps, crawl4ai.only_text, crawl4ai.open_quote, crawl4ai.pad_tables, crawl4ai.page_timeout, crawl4ai.preserve_tags, crawl4ai.process_iframes, crawl4ai.protect_links, crawl4ai.remove_consent_popups, crawl4ai.remove_forms, crawl4ai.remove_overlay_elements, crawl4ai.scan_full_page, crawl4ai.scroll_delay, crawl4ai.single_line_break, crawl4ai.skip_internal_links, crawl4ai.strong_mark, crawl4ai.target_elements, crawl4ai.ul_item_mark, crawl4ai.unicode_snob, crawl4ai.use_automatic_links, crawl4ai.wait_for_images, crawl4ai.wait_for_timeout, crawl4ai.wait_until, crawl4ai.word_count_threshold, crawl4ai.wrap_links, crawl4ai.wrap_list_items, crawl4ai.wrap_tables"
+            "supported options: crawl4ai.base_url, crawl4ai.body_width, crawl4ai.bypass_tables, crawl4ai.cache, crawl4ai.cache_mode, crawl4ai.close_quote, crawl4ai.css_selector, crawl4ai.default_image_alt, crawl4ai.delay_before_return_html, crawl4ai.emphasis_mark, crawl4ai.escape_backslash, crawl4ai.escape_dash, crawl4ai.escape_dot, crawl4ai.escape_plus, crawl4ai.escape_snob, crawl4ai.exclude_all_images, crawl4ai.exclude_domains, crawl4ai.exclude_external_images, crawl4ai.exclude_external_links, crawl4ai.exclude_internal_links, crawl4ai.exclude_social_media_domains, crawl4ai.exclude_social_media_links, crawl4ai.excluded_selector, crawl4ai.excluded_tags, crawl4ai.flatten_shadow_dom, crawl4ai.google_doc, crawl4ai.google_list_indent, crawl4ai.handle_code_in_pre, crawl4ai.hide_strikethrough, crawl4ai.ignore_anchors, crawl4ai.ignore_emphasis, crawl4ai.ignore_images, crawl4ai.ignore_links, crawl4ai.ignore_mailto_links, crawl4ai.ignore_tables, crawl4ai.images_as_html, crawl4ai.images_to_alt, crawl4ai.images_with_size, crawl4ai.include_sup_sub, crawl4ai.inline_links, crawl4ai.keep_data_attributes, crawl4ai.links_each_paragraph, crawl4ai.mark_code, crawl4ai.max_scroll_steps, crawl4ai.only_text, crawl4ai.open_quote, crawl4ai.pad_tables, crawl4ai.page_timeout, crawl4ai.preserve_tags, crawl4ai.process_iframes, crawl4ai.protect_links, crawl4ai.remove_consent_popups, crawl4ai.remove_forms, crawl4ai.remove_overlay_elements, crawl4ai.scan_full_page, crawl4ai.scroll_delay, crawl4ai.single_line_break, crawl4ai.skip_internal_links, crawl4ai.strong_mark, crawl4ai.target_elements, crawl4ai.ul_item_mark, crawl4ai.unicode_snob, crawl4ai.use_automatic_links, crawl4ai.wait_for_images, crawl4ai.wait_for_timeout, crawl4ai.wait_until, crawl4ai.word_count_threshold, crawl4ai.wrap_links, crawl4ai.wrap_list_items, crawl4ai.wrap_tables"
         ));
 
     let redirect = Aget::new(aget_home)

@@ -3,6 +3,8 @@ import inspect
 
 EXTRACTOR_OPTION_TYPES = {
     "base_url": ("crawler", "str"),
+    "cache": ("crawler", "cache_mode"),
+    "cache_mode": ("crawler", "cache_mode"),
     "css_selector": ("crawler", "str"),
     "target_elements": ("crawler", "list"),
     "excluded_selector": ("crawler", "str"),
@@ -128,6 +130,20 @@ def parse_extractor_value(key: str, value: str, value_type: str):
             return float(value)
         except ValueError as error:
             raise ValueError(f"extractor option '{key}' expects a numeric value") from error
+    if value_type == "cache_mode":
+        normalized = value.strip().lower().replace("-", "_")
+        aliases = {
+            "disable": "disabled",
+            "no_cache": "disabled",
+            "none": "disabled",
+            "off": "disabled",
+        }
+        normalized = aliases.get(normalized, normalized)
+        if normalized not in {"enabled", "disabled", "read_only", "write_only", "bypass"}:
+            raise ValueError(
+                f"extractor option '{key}' expects one of enabled, disabled, read_only, write_only, or bypass"
+            )
+        return normalized
     return value
 
 
@@ -142,7 +158,13 @@ def apply_compatible_options(
     signature = inspect.signature(config_type)
     accepted = set(signature.parameters)
     for key, value in options.items():
+        if key == "cache":
+            key = "cache_mode"
         if key in accepted:
+            if key == "cache_mode":
+                default = signature.parameters[key].default
+                enum_type = default.__class__
+                value = enum_type(value)
             target_kwargs[key] = value
         elif key not in other_kwargs:
             raise ValueError(
