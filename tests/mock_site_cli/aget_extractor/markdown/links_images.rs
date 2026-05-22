@@ -39,6 +39,7 @@ pub(super) fn assert_links_and_images(aget_home: &Path, site: &MockSite) {
     assert_automatic_links_option(aget_home, site);
     assert_image_options(aget_home, site, &release_url);
     assert_link_options(aget_home, site, &icon_url);
+    assert_reference_link_option(aget_home, site);
 }
 
 fn assert_automatic_links_option(aget_home: &Path, site: &MockSite) {
@@ -227,4 +228,33 @@ fn assert_link_options(aget_home: &Path, site: &MockSite, icon_url: &str) {
     );
     assert!(markdown_skip_internal_links.contains("Jump within page."));
     assert!(!markdown_skip_internal_links.contains("/markdown-links#details"));
+}
+
+fn assert_reference_link_option(aget_home: &Path, site: &MockSite) {
+    let markdown_reference_links = markdown_content(
+        aget_home,
+        site,
+        "/markdown-links",
+        &[("crawl4ai.inline_links", "false")],
+    );
+    assert!(markdown_reference_links.contains("## [Linked Heading][1]"));
+    assert!(markdown_reference_links.contains("Read [the guide][2] or email support."));
+    assert!(markdown_reference_links.contains("Canonical <https://example.com/docs>."));
+    assert!(markdown_reference_links.contains("Jump [within page][3]."));
+    assert!(markdown_reference_links.contains("Link label [API v1][4]"));
+    assert!(markdown_reference_links
+        .contains("Asset [release notes][6] and ![A \\[diagram\\] \\(v1\\)][7]."));
+    assert!(markdown_reference_links.contains("Icon [![Download \\[app\\]][8]][9]."));
+    assert!(markdown_reference_links.contains(&format!(
+        "   [1]: {} (Heading title)",
+        site.url("/linked-heading")
+    )));
+    assert!(markdown_reference_links.contains(&format!(
+        "   [2]: {} (Guide \\\"title\\\" \\[v1\\] \\(draft\\))",
+        site.url("/guide")
+    )));
+    assert!(markdown_reference_links
+        .contains(&format!("   [3]: {}", site.url("/markdown-links#details"))));
+    assert!(markdown_reference_links.contains(&format!("   [9]: {}", site.url("/download"))));
+    assert!(!markdown_reference_links.contains("[the guide]("));
 }

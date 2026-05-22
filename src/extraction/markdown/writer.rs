@@ -27,6 +27,7 @@ pub(super) struct MarkdownWriter {
     pub(super) images_with_size: bool,
     pub(super) ignore_emphasis: bool,
     pub(super) ignore_links: bool,
+    pub(super) inline_links: bool,
     pub(super) ignore_mailto_links: bool,
     pub(super) ignore_tables: bool,
     pub(super) bypass_tables: bool,
@@ -38,7 +39,14 @@ pub(super) struct MarkdownWriter {
     pub(super) include_sup_sub: bool,
     pub(super) inside_link: bool,
     pub(super) list_depth: usize,
+    reference_links: Rc<RefCell<Vec<ReferenceLink>>>,
     abbreviations: Rc<RefCell<Vec<(String, String)>>>,
+}
+
+#[derive(Clone)]
+struct ReferenceLink {
+    href: String,
+    title: String,
 }
 
 impl MarkdownWriter {
@@ -58,6 +66,7 @@ impl MarkdownWriter {
         images_with_size: bool,
         ignore_emphasis: bool,
         ignore_links: bool,
+        inline_links: bool,
         ignore_mailto_links: bool,
         ignore_tables: bool,
         bypass_tables: bool,
@@ -85,6 +94,7 @@ impl MarkdownWriter {
             images_with_size,
             ignore_emphasis,
             ignore_links,
+            inline_links,
             ignore_mailto_links,
             ignore_tables,
             bypass_tables,
@@ -96,6 +106,7 @@ impl MarkdownWriter {
             include_sup_sub,
             inside_link: false,
             list_depth: 0,
+            reference_links: Rc::new(RefCell::new(Vec::new())),
             abbreviations: Rc::new(RefCell::new(Vec::new())),
         }
     }
@@ -118,6 +129,7 @@ impl MarkdownWriter {
             images_with_size: self.images_with_size,
             ignore_emphasis: self.ignore_emphasis,
             ignore_links: self.ignore_links,
+            inline_links: self.inline_links,
             ignore_mailto_links: self.ignore_mailto_links,
             ignore_tables: self.ignore_tables,
             bypass_tables: self.bypass_tables,
@@ -129,6 +141,7 @@ impl MarkdownWriter {
             include_sup_sub: self.include_sup_sub,
             inside_link: self.inside_link,
             list_depth: self.list_depth,
+            reference_links: Rc::clone(&self.reference_links),
             abbreviations: Rc::clone(&self.abbreviations),
         }
     }
@@ -201,6 +214,41 @@ impl MarkdownWriter {
             *existing_title = title;
         } else {
             abbreviations.push((text, title));
+        }
+    }
+
+    pub(super) fn reference_link(&mut self, href: &str, title: &str) -> usize {
+        let href = self.resolve_url(href);
+        let title = title.trim().to_string();
+        let mut reference_links = self.reference_links.borrow_mut();
+        if let Some((index, _)) = reference_links
+            .iter()
+            .enumerate()
+            .find(|(_, link)| link.href == href && link.title == title)
+        {
+            return index + 1;
+        }
+        reference_links.push(ReferenceLink { href, title });
+        reference_links.len()
+    }
+
+    pub(super) fn append_reference_link_definitions(&mut self) {
+        let reference_links = self.reference_links.borrow().clone();
+        if reference_links.is_empty() {
+            return;
+        }
+        self.ensure_blank_line();
+        for (index, link) in reference_links.iter().enumerate() {
+            self.output.push_str("   [");
+            self.output.push_str(&(index + 1).to_string());
+            self.output.push_str("]: ");
+            self.output.push_str(&link.href);
+            if !link.title.is_empty() {
+                self.output.push_str(" (");
+                self.output.push_str(&link.title);
+                self.output.push(')');
+            }
+            self.output.push('\n');
         }
     }
 

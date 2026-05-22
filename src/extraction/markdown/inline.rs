@@ -42,12 +42,19 @@ pub(super) fn render_link(node: NodeRef<'_, Node>, writer: &mut MarkdownWriter) 
             writer.ensure_blank_line();
             writer.output.push_str(&"#".repeat(level));
             writer.output.push(' ');
-            writer.output.push_str(&format!(
-                "[{}]({}{})",
-                escape_link_text(&label),
-                markdown_link_target(writer, href),
-                title
-            ));
+            if writer.inline_links {
+                writer.output.push_str(&format!(
+                    "[{}]({}{})",
+                    escape_link_text(&label),
+                    markdown_link_target(writer, href),
+                    title
+                ));
+            } else {
+                let reference = writer.reference_link(href, &reference_title(title.trim()));
+                writer
+                    .output
+                    .push_str(&format!("[{}][{reference}]", escape_link_text(&label)));
+            }
             writer.ensure_blank_line();
             return;
         }
@@ -63,12 +70,17 @@ pub(super) fn render_link(node: NodeRef<'_, Node>, writer: &mut MarkdownWriter) 
                 writer.push_inline(&format!("<{}>", href));
                 return;
             }
-            writer.push_inline(&format!(
-                "[{}]({}{})",
-                image,
-                markdown_link_target(writer, href),
-                title
-            ));
+            if writer.inline_links {
+                writer.push_inline(&format!(
+                    "[{}]({}{})",
+                    image,
+                    markdown_link_target(writer, href),
+                    title
+                ));
+            } else {
+                let reference = writer.reference_link(href, &reference_title(title.trim()));
+                writer.push_inline(&format!("[{}][{reference}]", image));
+            }
             return;
         }
     }
@@ -82,12 +94,25 @@ pub(super) fn render_link(node: NodeRef<'_, Node>, writer: &mut MarkdownWriter) 
         writer.push_inline(&format!("<{}>", href));
         return;
     }
-    writer.push_inline(&format!(
-        "[{}]({}{})",
-        escape_link_text(&label),
-        markdown_link_target(writer, href),
-        title
-    ));
+    if writer.inline_links {
+        writer.push_inline(&format!(
+            "[{}]({}{})",
+            escape_link_text(&label),
+            markdown_link_target(writer, href),
+            title
+        ));
+    } else {
+        let reference = writer.reference_link(href, &reference_title(title.trim()));
+        writer.push_inline(&format!("[{}][{reference}]", escape_link_text(&label)));
+    }
+}
+
+fn reference_title(title: &str) -> String {
+    title
+        .strip_prefix('"')
+        .and_then(|value| value.strip_suffix('"'))
+        .unwrap_or(title)
+        .to_string()
 }
 
 fn markdown_link_target(writer: &MarkdownWriter, href: &str) -> String {
@@ -162,7 +187,7 @@ pub(super) fn render_image(node: NodeRef<'_, Node>, writer: &mut MarkdownWriter)
     }
 }
 
-fn image_markdown(node: NodeRef<'_, Node>, writer: &MarkdownWriter) -> Option<String> {
+fn image_markdown(node: NodeRef<'_, Node>, writer: &mut MarkdownWriter) -> Option<String> {
     if writer.ignore_images {
         return None;
     }
@@ -171,16 +196,23 @@ fn image_markdown(node: NodeRef<'_, Node>, writer: &MarkdownWriter) -> Option<St
     if src.trim().is_empty() {
         return None;
     }
-    let alt = writer.image_alt(element.attr("alt"));
+    let alt = writer.image_alt(element.attr("alt")).to_string();
     if writer.images_as_html || (writer.images_with_size && image_has_size(element)) {
-        return Some(image_html(element, src, alt));
+        return Some(image_html(element, src, &alt));
     }
     if writer.images_to_alt {
-        return Some(escape_markdown_link_target(alt));
+        return Some(escape_markdown_link_target(&alt));
+    }
+    if !writer.inline_links {
+        let reference = writer.reference_link(src, "");
+        return Some(format!(
+            "![{}][{reference}]",
+            escape_markdown_link_target(&alt)
+        ));
     }
     Some(format!(
         "![{}]({})",
-        escape_markdown_link_target(alt),
+        escape_markdown_link_target(&alt),
         escape_markdown_link_target(&writer.resolve_url(src))
     ))
 }

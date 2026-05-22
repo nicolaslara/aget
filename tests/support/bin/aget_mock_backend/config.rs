@@ -97,6 +97,7 @@ fn validate_crawl4ai_options(args: &Args) -> Result<(), String> {
         "images_to_alt",
         "images_with_size",
         "ignore_links",
+        "inline_links",
         "ignore_mailto_links",
         "ignore_tables",
         "include_sup_sub",
