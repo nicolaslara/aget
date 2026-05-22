@@ -38,6 +38,23 @@ pub(super) fn assert_markdown_rendering(aget_home: &Path, site: &MockSite) {
         )
     );
 
+    let markdown_bypass_tables = Aget::new(aget_home)
+        .with_extractor_backend(AgetExtractorBackend::default())
+        .get(site.url("/markdown"))
+        .content_format(OutputFormat::Markdown)
+        .selector("main.article")
+        .backend_option("crawl4ai.bypass_tables", "true")
+        .run()
+        .unwrap();
+    assert_eq!(
+        markdown_bypass_tables.content,
+        format!(
+            "# Guide\n\nIntro with **bold** and [docs]({}).\n\nLine one  \nLine two\n\n* First item\n* Second `code`\n\n<table>Data Table\n<tr><th>Name</th><th>Value</th></tr><tr><td>Alpha</td><td>[A|1]({})</td></tr></table>\n\n```\nlet answer = 42;\n```",
+            site.url("/docs"),
+            site.url("/alpha")
+        )
+    );
+
     let markdown_base = Aget::new(aget_home)
         .with_extractor_backend(AgetExtractorBackend::default())
         .get(site.url("/markdown-base"))
