@@ -1665,6 +1665,21 @@ Status note:
 
 - Completed with D250. `tests/mock_site_browser.rs` now routes behavior-focused modules for browser fallback replay/rendering, storage-backed rendering, rendered extraction, and readiness/overlay/image/network waits under `tests/mock_site_browser/`. The integration target, test names, assertions, and ignored real-Chrome annotations remain stable, and `workpads/research/tasks.md` remains un-compacted.
 
+### ✅ Task I19ch: Split extraction pipeline finalization helpers
+
+Acceptance criteria:
+
+- Preserve current `get_url`/`get_url_with_*` behavior, artifacts, metadata, fallback, and direct extraction outputs.
+- Move primary extractor execution, session fallback, selected-session loading, direct extraction finalization, and success/error finalization helpers out of `src/extraction/mod.rs` into a focused submodule.
+- Keep public `crate::extraction::*` API paths and `finish_direct_extraction` internal access compatible for callers.
+- Do not compact or remove planned tasks from `workpads/research/tasks.md`.
+- Record the module boundary in `knowledge.md`.
+- Verify with focused extraction/current-tab coverage plus the standard check set.
+
+Status note:
+
+- Completed with D251. `src/extraction/mod.rs` now keeps public extraction API routing and `get_url_with_session_store` orchestration, while `src/extraction/pipeline.rs` owns selected-session loading, primary extractor execution, session fallback, direct extraction finalization, and success/error output finalization. Public `crate::extraction::*` paths and internal `finish_direct_extraction` access remain stable, and `workpads/research/tasks.md` remains un-compacted.
+
 ### ✅ Task I20: Design OAuth-safe browser login and profile import flow
 
 Acceptance criteria:
