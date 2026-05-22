@@ -157,6 +157,7 @@ This archive file keeps the denser decision routing that used to live in top-lev
 | D338 | `d338-line-start-escape-options.md` | Crawl4AI `escape_dot`, `escape_plus`, and `escape_dash` markdown options for line-start marker escaping. |
 | D339 | `d339-escape-backslash-option.md` | Crawl4AI `escape_backslash` markdown option for literal backslash escaping. |
 | D340 | `d340-runtime-evaluate-exceptions.md` | CDP `Runtime.evaluate` exception details surfaced as stable owned extraction failures. |
+| D341 | `d341-cdp-readiness-evaluate-exceptions.md` | CDP readiness/preprocessing `Runtime.evaluate` exception details surfaced consistently. |
 
 ## Full Archive Routing
 
@@ -176,7 +177,7 @@ This archive file keeps the denser decision routing that used to live in top-lev
 | D151-D157 | `d151-d157-auth-and-browser-import.md` | OAuth-safe authorization API/CLI and conservative browser-neutral Chrome import surface. |
 | D158-D167 | `d158-d167-recent-migration-followups.md` | Recent source-backed extraction improvements and follow-up decomposition slices. |
 | D168-D176 | Per-decision files | Knowledge/reference compaction, engine-refactor planning, wrapper introduction, naming cleanup, and direct engine coverage. |
-| D177-D340 | Per-decision files | Module/test/support decomposition plus the latest owned extractor/browser parity improvements, agent-facing option docs, support-file routing refreshes, login-session injection, body-width markdown wrapping, mark-code compatibility, single-line-break spacing, Chrome profile-lock diagnostics, unicode-snob compatibility, wrap-links compatibility, wrap-list-items compatibility, wrap-tables compatibility, pad-tables compatibility, hide-strikethrough compatibility, inline-links compatibility, links-each-paragraph compatibility, line-start escape option compatibility, backslash escape option compatibility, and CDP evaluation exception reporting. |
+| D177-D341 | Per-decision files | Module/test/support decomposition plus the latest owned extractor/browser parity improvements, agent-facing option docs, support-file routing refreshes, login-session injection, body-width markdown wrapping, mark-code compatibility, single-line-break spacing, Chrome profile-lock diagnostics, unicode-snob compatibility, wrap-links compatibility, wrap-list-items compatibility, wrap-tables compatibility, pad-tables compatibility, hide-strikethrough compatibility, inline-links compatibility, links-each-paragraph compatibility, line-start escape option compatibility, backslash escape option compatibility, and CDP evaluation exception reporting. |
 
 ## Current Open Migration Gaps
 

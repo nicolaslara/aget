@@ -31,6 +31,7 @@ impl CdpClient {
                 self.session_param(session_id),
                 remaining(deadline),
             )?;
+            fail_on_runtime_evaluation_exception(&result)?;
             if result
                 .get("result")
                 .and_then(|result| result.get("value"))
@@ -70,6 +71,7 @@ impl CdpClient {
                 self.session_param(session_id),
                 remaining(deadline),
             )?;
+            fail_on_runtime_evaluation_exception(&result)?;
             if result
                 .get("result")
                 .and_then(|result| result.get("value"))
@@ -89,7 +91,7 @@ impl CdpClient {
         max_scroll_steps: usize,
         timeout: Duration,
     ) -> Result<(), AgetError> {
-        self.send(
+        let result = self.send(
             "Runtime.evaluate",
             Some(json!({
                 "expression": full_page_scan_expression(scroll_delay, max_scroll_steps),
@@ -99,6 +101,7 @@ impl CdpClient {
             self.session_param(session_id),
             timeout,
         )?;
+        fail_on_runtime_evaluation_exception(&result)?;
         Ok(())
     }
 
@@ -107,7 +110,7 @@ impl CdpClient {
         session_id: &str,
         timeout: Duration,
     ) -> Result<(), AgetError> {
-        self.send(
+        let result = self.send(
             "Runtime.evaluate",
             Some(json!({
                 "expression": rendered_overlay_cleanup_expression(),
@@ -117,6 +120,7 @@ impl CdpClient {
             self.session_param(session_id),
             timeout,
         )?;
+        fail_on_runtime_evaluation_exception(&result)?;
         Ok(())
     }
 
@@ -135,6 +139,7 @@ impl CdpClient {
             self.session_param(session_id),
             timeout,
         )?;
+        fail_on_runtime_evaluation_exception(&result)?;
         let raw = result
             .get("result")
             .and_then(|result| result.get("value"))
@@ -180,12 +185,7 @@ impl CdpClient {
             self.session_param(session_id),
             timeout,
         )?;
-        if let Some(message) = runtime_evaluation_exception(&result) {
-            return Err(AgetError::Stable {
-                code: ErrorCode::ExtractionFailed,
-                message: format!("owned browser fallback Runtime.evaluate failed: {message}"),
-            });
-        }
+        fail_on_runtime_evaluation_exception(&result)?;
         Ok(result
             .get("result")
             .and_then(|result| result.get("value"))
@@ -193,6 +193,16 @@ impl CdpClient {
             .unwrap_or_default()
             .to_string())
     }
+}
+
+fn fail_on_runtime_evaluation_exception(result: &Value) -> Result<(), AgetError> {
+    if let Some(message) = runtime_evaluation_exception(result) {
+        return Err(AgetError::Stable {
+            code: ErrorCode::ExtractionFailed,
+            message: format!("owned browser fallback Runtime.evaluate failed: {message}"),
+        });
+    }
+    Ok(())
 }
 
 fn runtime_evaluation_exception(result: &Value) -> Option<String> {
