@@ -49,6 +49,7 @@ pub(super) fn element_to_markdown(
     include_sup_sub: bool,
     single_line_break: bool,
     body_width: usize,
+    wrap_links: bool,
 ) -> String {
     let mut writer = MarkdownWriter::new(
         base_url,
@@ -79,7 +80,7 @@ pub(super) fn element_to_markdown(
     writer.append_abbreviation_definitions();
     let markdown = normalize_markdown(&writer.output);
     let markdown = apply_markdown_single_line_break(&markdown, single_line_break);
-    apply_markdown_body_width(&markdown, body_width)
+    apply_markdown_body_width(&markdown, body_width, wrap_links)
 }
 
 fn render_node(node: NodeRef<'_, Node>, writer: &mut MarkdownWriter) {

@@ -50,6 +50,7 @@ pub(in crate::extraction) fn normalize_markdown(markdown: &str) -> String {
 pub(in crate::extraction) fn apply_markdown_body_width(
     markdown: &str,
     body_width: usize,
+    wrap_links: bool,
 ) -> String {
     if body_width == 0 || markdown.is_empty() {
         return markdown.to_string();
@@ -63,7 +64,7 @@ pub(in crate::extraction) fn apply_markdown_body_width(
             in_code_fence = !in_code_fence;
             continue;
         }
-        if in_code_fence || should_preserve_markdown_line(line) {
+        if in_code_fence || should_preserve_markdown_line(line, wrap_links) {
             push_wrapped_line(&mut output, line);
             continue;
         }
@@ -106,7 +107,7 @@ fn is_code_fence_line(line: &str) -> bool {
     line.trim_start().starts_with("```")
 }
 
-fn should_preserve_markdown_line(line: &str) -> bool {
+fn should_preserve_markdown_line(line: &str, wrap_links: bool) -> bool {
     let trimmed = line.trim_start();
     line.trim().is_empty()
         || line.ends_with("  ")
@@ -121,6 +122,12 @@ fn should_preserve_markdown_line(line: &str) -> bool {
         || trimmed.starts_with("+ ")
         || trimmed == "* * *"
         || starts_with_ordered_list_marker(trimmed)
+        || (!wrap_links && contains_inline_markdown_link(line))
+}
+
+fn contains_inline_markdown_link(line: &str) -> bool {
+    let bytes = line.as_bytes();
+    bytes.windows(2).any(|window| window == b"](")
 }
 
 fn wrap_markdown_line(line: &str, body_width: usize) -> Vec<String> {

@@ -117,6 +117,37 @@ pub(super) fn assert_inline_blocks(aget_home: &Path, site: &MockSite) {
         )
     );
 
+    let markdown_wrap_links_default = markdown_content(
+        aget_home,
+        site,
+        "/markdown-wrap-links",
+        &[("crawl4ai.body_width", "34")],
+    );
+    assert_ne!(
+        markdown_wrap_links_default,
+        format!(
+            "# Wrap Links\n\nAlpha beta [docs link]({}) gamma delta epsilon zeta eta theta.",
+            site.url("/docs")
+        )
+    );
+
+    let markdown_wrap_links_false = markdown_content(
+        aget_home,
+        site,
+        "/markdown-wrap-links",
+        &[
+            ("crawl4ai.body_width", "34"),
+            ("crawl4ai.wrap_links", "false"),
+        ],
+    );
+    assert_eq!(
+        markdown_wrap_links_false,
+        format!(
+            "# Wrap Links\n\nAlpha beta [docs link]({}) gamma delta epsilon zeta eta theta.",
+            site.url("/docs")
+        )
+    );
+
     let markdown_single_line_break = markdown_content(
         aget_home,
         site,

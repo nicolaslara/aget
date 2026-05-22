@@ -111,6 +111,21 @@ pub(crate) fn routes(builder: MockSiteBuilder) -> MockSiteBuilder {
             ),
         )
         .route(
+            "/markdown-wrap-links",
+            MockResponse::html(
+                r#"
+<html>
+  <body>
+    <main class="article">
+      <h1>Wrap Links</h1>
+      <p>Alpha beta <a href="/docs">docs link</a> gamma delta epsilon zeta eta theta.</p>
+    </main>
+  </body>
+</html>
+"#,
+            ),
+        )
+        .route(
             "/markdown-body-width",
             MockResponse::html(
                 r#"
