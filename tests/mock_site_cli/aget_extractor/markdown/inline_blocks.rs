@@ -159,6 +159,22 @@ pub(super) fn assert_inline_blocks(aget_home: &Path, site: &MockSite) {
         )
     );
 
+    let markdown_pad_tables = markdown_content(
+        aget_home,
+        site,
+        "/markdown-wrap-tables",
+        &[("crawl4ai.pad_tables", "true")],
+    );
+    assert_eq!(
+        markdown_pad_tables,
+        concat!(
+            "# Wrap Tables\n\n",
+            "| Name  | Value                                   |\n",
+            "| ------| ----------------------------------------|\n",
+            "| Alpha | one two three four five six seven eight |"
+        )
+    );
+
     let markdown_wrap_tables_true = markdown_content(
         aget_home,
         site,

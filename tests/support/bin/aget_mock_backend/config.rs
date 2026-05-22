@@ -101,6 +101,7 @@ fn validate_crawl4ai_options(args: &Args) -> Result<(), String> {
         "include_sup_sub",
         "mark_code",
         "open_quote",
+        "pad_tables",
         "protect_links",
         "single_line_break",
         "skip_internal_links",

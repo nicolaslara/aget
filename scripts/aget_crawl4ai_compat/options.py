@@ -44,6 +44,7 @@ EXTRACTOR_OPTION_TYPES = {
     "include_sup_sub": ("markdown", "bool"),
     "mark_code": ("markdown", "bool"),
     "open_quote": ("markdown", "str"),
+    "pad_tables": ("markdown", "bool"),
     "protect_links": ("markdown", "bool"),
     "single_line_break": ("markdown", "bool"),
     "skip_internal_links": ("markdown", "bool"),
