@@ -162,6 +162,19 @@ pub(super) fn assert_markdown_rendering(aget_home: &Path, site: &MockSite) {
         "# Nested Steps\n\n1. Install\n  * Open settings\n  * Confirm access\n2. Run fetch"
     );
 
+    let markdown_unordered_marker = Aget::new(aget_home)
+        .with_extractor_backend(AgetExtractorBackend::default())
+        .get(site.url("/markdown-nested-lists"))
+        .content_format(OutputFormat::Markdown)
+        .selector("main.article")
+        .backend_option("crawl4ai.ul_item_mark", "-")
+        .run()
+        .unwrap();
+    assert_eq!(
+        markdown_unordered_marker.content,
+        "# Nested Steps\n\n1. Install\n  - Open settings\n  - Confirm access\n2. Run fetch"
+    );
+
     let markdown_code_whitespace = Aget::new(aget_home)
         .with_extractor_backend(AgetExtractorBackend::default())
         .get(site.url("/markdown-code-whitespace"))

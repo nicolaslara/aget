@@ -21,7 +21,7 @@ Authenticated state and content stay local by default; site-specific paywall/log
 - Main migration umbrella: I19 on branch `dep-migration-homegrown-backends`.
 - Completed migration phase detail is archived in `archive/knowledge/d308-workpad-support-routing.md`.
 - Still open: I19d, I19e, and I19h.
-- I19d remains open for full Crawl4AI-quality readability/markdown and still-richer rendered-page readiness. Recent source-backed markdown option work is D293-D307 plus D309; current-state detail routes through D308.
+- I19d remains open for full Crawl4AI-quality readability/markdown and still-richer rendered-page readiness. Recent source-backed markdown option work is D293-D307 plus D309-D310; current-state detail routes through D308.
 - I19e remains open for broader rendered JavaScript parity, manual real logged-in profile/keychain smoke execution, and startup/error classification. Current wait/startup detail routes through D284 and D287.
 - I19h remains open because final migration review requires review subagents for test adequacy, architecture cohesion, and security/privacy.
 - Current support-file rule: do not compact `workpads/research/tasks.md`. Keep top-level support files as compact routers and move dense completed-history detail to referenced archive files; see D308.
@@ -37,7 +37,7 @@ Authenticated state and content stay local by default; site-specific paywall/log
 | Original module-decomposition sequence | `archive/knowledge/d123-d150-module-decomposition.md` |
 | Auth/browser import and browser-choice design | `archive/knowledge/d151-d157-auth-and-browser-import.md` |
 | Recent migration follow-ups and source-backed extraction improvements | `archive/knowledge/d158-d167-recent-migration-followups.md` |
-| Latest individual decisions | `archive/knowledge/d168-workpad-knowledge-compaction.md` through `archive/knowledge/d309-quote-markers.md` |
+| Latest individual decisions | `archive/knowledge/d168-workpad-knowledge-compaction.md` through `archive/knowledge/d310-ul-item-mark.md` |
 
 ## Historical Support Docs
 

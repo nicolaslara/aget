@@ -47,6 +47,7 @@ fn get_command_backend_accepts_scan_full_page_options() {
                 "crawl4ai.open_quote=<<",
                 "crawl4ai.protect_links=true",
                 "crawl4ai.skip_internal_links=true",
+                "crawl4ai.ul_item_mark=-",
                 "crawl4ai.use_automatic_links=false"
             ]
         }),
@@ -124,6 +125,8 @@ fn get_command_backend_accepts_scan_full_page_options() {
             "crawl4ai.protect_links=true",
             "--backend-option",
             "crawl4ai.skip_internal_links=true",
+            "--backend-option",
+            "crawl4ai.ul_item_mark=-",
             "--backend-option",
             "crawl4ai.use_automatic_links=false",
         ])

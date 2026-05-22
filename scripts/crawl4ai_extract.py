@@ -141,6 +141,7 @@ EXTRACTOR_OPTION_TYPES = {
     "open_quote": ("markdown", "str"),
     "protect_links": ("markdown", "bool"),
     "skip_internal_links": ("markdown", "bool"),
+    "ul_item_mark": ("markdown", "str"),
     "use_automatic_links": ("markdown", "bool"),
 }
 

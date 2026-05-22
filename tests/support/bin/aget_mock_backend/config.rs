@@ -100,6 +100,7 @@ fn validate_crawl4ai_options(args: &Args) -> Result<(), String> {
         "open_quote",
         "protect_links",
         "skip_internal_links",
+        "ul_item_mark",
         "use_automatic_links",
     ];
     for option in &args.extractor_options {

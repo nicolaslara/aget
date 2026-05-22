@@ -23,6 +23,7 @@ pub(super) fn element_to_markdown(
     default_image_alt: &str,
     open_quote: &str,
     close_quote: &str,
+    ul_item_mark: &str,
     ignore_images: bool,
     images_as_html: bool,
     images_to_alt: bool,
@@ -44,6 +45,7 @@ pub(super) fn element_to_markdown(
         default_image_alt,
         open_quote,
         close_quote,
+        ul_item_mark,
         ignore_images,
         images_as_html,
         images_to_alt,
@@ -226,7 +228,8 @@ fn render_list(node: NodeRef<'_, Node>, ordered: bool, writer: &mut MarkdownWrit
                 if ordered {
                     writer.output.push_str(&format!("{index}. "));
                 } else {
-                    writer.output.push_str("* ");
+                    writer.output.push_str(&writer.ul_item_mark);
+                    writer.output.push(' ');
                 }
                 render_children(current, writer);
                 trim_trailing_horizontal_space(&mut writer.output);
