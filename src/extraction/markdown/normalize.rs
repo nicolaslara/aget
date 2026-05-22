@@ -3,7 +3,33 @@ use url::Url;
 pub(in crate::extraction) fn normalize_markdown(markdown: &str) -> String {
     let mut output = String::new();
     let mut blank_lines = 0usize;
-    for line in markdown.lines().map(normalize_markdown_line_end) {
+    let mut in_code_fence = false;
+    for raw_line in markdown.lines() {
+        if in_code_fence {
+            if !output.is_empty() && !output.ends_with('\n') {
+                output.push('\n');
+            }
+            output.push_str(raw_line);
+            output.push('\n');
+            if raw_line.trim_start().starts_with("```") {
+                in_code_fence = false;
+                blank_lines = 0;
+            }
+            continue;
+        }
+
+        let line = normalize_markdown_line_end(raw_line);
+        if line.trim_start().starts_with("```") {
+            blank_lines = 0;
+            if !output.is_empty() && !output.ends_with('\n') {
+                output.push('\n');
+            }
+            output.push_str(&line);
+            output.push('\n');
+            in_code_fence = true;
+            continue;
+        }
+
         if line.trim().is_empty() {
             blank_lines += 1;
             if blank_lines <= 1 && !output.is_empty() {

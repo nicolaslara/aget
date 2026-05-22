@@ -63,6 +63,26 @@ pub(super) fn assert_markdown_rendering(aget_home: &Path, site: &MockSite) {
         "# Nested Steps\n\n1. Install\n  * Open settings\n  * Confirm access\n2. Run fetch"
     );
 
+    let markdown_code_whitespace = Aget::new(aget_home)
+        .with_extractor_backend(AgetExtractorBackend::default())
+        .get(site.url("/markdown-code-whitespace"))
+        .content_format(OutputFormat::Markdown)
+        .selector("main.article")
+        .run()
+        .unwrap();
+    assert_eq!(
+        markdown_code_whitespace.content,
+        concat!(
+            "# Code Whitespace\n\n",
+            "```\n",
+            "first\n",
+            "let padded = true;  \n",
+            "\n",
+            "last\n",
+            "```"
+        )
+    );
+
     let markdown_links = Aget::new(aget_home)
         .with_extractor_backend(AgetExtractorBackend::default())
         .get(site.url("/markdown-links"))

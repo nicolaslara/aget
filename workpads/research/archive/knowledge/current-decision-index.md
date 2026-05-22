@@ -102,6 +102,7 @@ This archive file keeps the denser decision routing that used to live in top-lev
 | D283 | `d283-cdp-networkidle-reset-timeout.md` | agent-browser-style owned CDP networkidle reset and timeout coverage. |
 | D284 | `d284-cdp-navigation-timeout-messages.md` | agent-browser-style owned CDP lifecycle and networkidle timeout messages. |
 | D285 | `d285-agent-facing-option-docs.md` | Agent-facing OpenCode tool option docs aligned with the owned extractor compatibility surface. |
+| D286 | `d286-code-block-whitespace.md` | Crawl4AI-style owned markdown code-block whitespace preservation. |
 
 ## Full Archive Routing
 
@@ -121,7 +122,7 @@ This archive file keeps the denser decision routing that used to live in top-lev
 | D151-D157 | `d151-d157-auth-and-browser-import.md` | OAuth-safe authorization API/CLI and conservative browser-neutral Chrome import surface. |
 | D158-D167 | `d158-d167-recent-migration-followups.md` | Recent source-backed extraction improvements and follow-up decomposition slices. |
 | D168-D176 | Per-decision files | Knowledge/reference compaction, engine-refactor planning, wrapper introduction, naming cleanup, and direct engine coverage. |
-| D177-D285 | Per-decision files | Module/test/support decomposition plus the latest owned extractor/browser parity improvements and agent-facing option docs. |
+| D177-D286 | Per-decision files | Module/test/support decomposition plus the latest owned extractor/browser parity improvements and agent-facing option docs. |
 
 ## Current Open Migration Gaps
 

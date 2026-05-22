@@ -124,6 +124,12 @@ pub(crate) fn routes(builder: MockSiteBuilder) -> MockSiteBuilder {
             ),
         )
         .route(
+            "/markdown-code-whitespace",
+            MockResponse::html(
+                "<html><body><main class=\"article\"><h1>Code Whitespace</h1><pre><code>first\nlet padded = true;  \n\nlast</code></pre></main></body></html>",
+            ),
+        )
+        .route(
             "/markdown-ordered-start",
             MockResponse::html(
                 r#"
