@@ -2751,6 +2751,22 @@ Status note:
 
 - Completed with D321. `src/browser_cdp/tests/chrome/cdp_client/navigation.rs` remains the navigation client test route and delegates same-document navigation, `Page.navigate` error text, lifecycle timeout, and network-idle readiness scenarios to behavior-owned child modules. The split is mechanical; browser/CDP runtime behavior is unchanged, and `workpads/research/tasks.md` was not compacted. The parent route is 4 lines and all child modules are 86 lines or less. Focused navigation CDP coverage and the standard gate passed.
 
+### ✅ Task I19fa: Split AgetBrowser engine tests by behavior
+
+Acceptance criteria:
+
+- Preserve current `AgetBrowser` engine test coverage and assertions.
+- Keep `src/aget_browser/tests.rs` as the engine test route.
+- Move shared mock-CDP helpers and behavior scenarios into smaller child modules.
+- Keep the split mechanical with no intentional `AgetBrowser` behavior changes.
+- Do not compact `workpads/research/tasks.md`.
+- Record the resulting test boundary in `knowledge.md`.
+- Verify with focused `AgetBrowser` tests plus the standard check set.
+
+Status note:
+
+- Completed with D322. `src/aget_browser/tests.rs` remains the AgetBrowser engine test route and delegates pending-login cancellation, explicit-port CDP discovery, current-tab rendering, attached-page rendering, and shared mock-CDP helpers to behavior-owned child modules. The split is mechanical; AgetBrowser runtime behavior is unchanged, and `workpads/research/tasks.md` was not compacted. The parent route is 5 lines and all child modules are 140 lines or less. Focused AgetBrowser coverage and the standard gate passed.
+
 ### ✅ Task I20: Design OAuth-safe browser login and profile import flow
 
 Acceptance criteria:
