@@ -1919,6 +1919,20 @@ Status note:
 
 - Completed with D267. Source inspection found Crawl4AI's active `CustomHTML2Text` path delegates linked headings to the base heading-in-anchor handling, which renders the heading marker outside the link label. Owned markdown now renders anchors whose only non-whitespace child is an `h1`-`h6` as linked headings while preserving normal anchors, linked images, standalone headings, titles, base URL resolution, and linked inline-code label behavior. Focused mock-site markdown coverage and the standard `cargo fmt --check && cargo test && git diff --check` gate passed.
 
+### ✅ Task I19cy: Split R12 architecture proposal archive support file
+
+Acceptance criteria:
+
+- Preserve `workpads/research/tasks.md` as the full planned-task source of truth; do not compact or remove planned tasks.
+- Convert `workpads/research/archive/knowledge/r12-mvp-architecture-proposal.md` into a compact routing index.
+- Move the dense historical R12 architecture proposal content into smaller referenced files.
+- Update current knowledge routing and decision index so the split is discoverable.
+- Verify the split with line-count checks and `git diff --check`.
+
+Status note:
+
+- Completed with D268. `workpads/research/archive/knowledge/r12-mvp-architecture-proposal.md` is now a 9-line routing index, with historical architecture/boundary/CLI detail, config/session/output detail, and privacy/integration/implementation detail moved into three smaller section files under `archive/knowledge/r12-mvp-architecture-proposal/`. `workpads/research/tasks.md` was not compacted. Line-count checks and `git diff --check` passed.
+
 ### ✅ Task I20: Design OAuth-safe browser login and profile import flow
 
 Acceptance criteria:

@@ -84,13 +84,14 @@ This archive file keeps the denser decision routing that used to live in top-lev
 | D265 | `d265-session-wrapper-product-spec-split.md` | Support-file split of the historical session-wrapper product spec into smaller routed archive files without compacting tasks. |
 | D266 | `d266-internal-link-cleanup.md` | Crawl4AI `exclude_internal_links` compatibility option for owned cleanup and command helper forwarding. |
 | D267 | `d267-linked-heading-markdown.md` | Crawl4AI `CustomHTML2Text` linked-heading markdown behavior for anchors wrapping heading elements. |
+| D268 | `d268-r12-architecture-archive-split.md` | Support-file split of the historical R12 architecture proposal into smaller routed archive files without compacting tasks. |
 
 ## Full Archive Routing
 
 | Range | Archive | Contents |
 | --- | --- | --- |
 | D1-D20 | `d001-d020-foundation-research.md` | Product premise, prior art, auth/session research, benchmark findings, and first PoC direction. |
-| R12 | `r12-mvp-architecture-proposal.md` | MVP architecture proposal, CLI/API boundary, session model, security notes, implementation plan, and review recommendations. |
+| R12 | `r12-mvp-architecture-proposal.md` index to section files | MVP architecture proposal, CLI/API boundary, session model, security notes, implementation plan, and review recommendations. |
 | D21-D34 | `d021-d034-poc-session-api.md` | Early implementation, session replay/import, output shaping, auth ownership, login bootstrap, and response API decisions. |
 | D35-D48 | `d035-d048-poc-hardening-backends.md` | Generic extraction follow-up, agent integration, hardening, mocked tests, facade, and backend-pluggability decisions. |
 | D49-D54 | `d049-d054-migration-setup-and-parity.md` | OAuth workflow assessment, API cleanup, dependency migration setup, backend abstractions, and parity matrix. |
@@ -103,7 +104,7 @@ This archive file keeps the denser decision routing that used to live in top-lev
 | D151-D157 | `d151-d157-auth-and-browser-import.md` | OAuth-safe authorization API/CLI and conservative browser-neutral Chrome import surface. |
 | D158-D167 | `d158-d167-recent-migration-followups.md` | Recent source-backed extraction improvements and follow-up decomposition slices. |
 | D168-D176 | Per-decision files | Knowledge/reference compaction, engine-refactor planning, wrapper introduction, naming cleanup, and direct engine coverage. |
-| D177-D267 | Per-decision files | Module/test/support decomposition plus the latest owned extractor/browser parity improvements. |
+| D177-D268 | Per-decision files | Module/test/support decomposition plus the latest owned extractor/browser parity improvements. |
 
 ## Current Open Migration Gaps
 
