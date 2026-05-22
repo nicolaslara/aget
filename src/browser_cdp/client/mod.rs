@@ -9,8 +9,8 @@ use crate::error::{AgetError, ErrorCode};
 
 use super::page_scripts::shadow_dom_attach_override_expression;
 pub(super) use super::session_data::{
-    cdp_cookies, origin_storage_from_runtime_result, playwright_cookies_from_cdp,
-    preferred_page_target_id, storage_candidate_origins,
+    cdp_cookies, frame_storage_candidate_origins, origin_storage_from_runtime_result,
+    playwright_cookies_from_cdp, preferred_page_target_id, storage_candidate_origins,
 };
 
 mod navigation;

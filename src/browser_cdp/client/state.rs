@@ -3,8 +3,9 @@ use std::time::Duration;
 use serde_json::json;
 
 use super::{
-    cdp_cookies, fail_on_runtime_evaluation_exception, origin_storage_from_runtime_result,
-    playwright_cookies_from_cdp, storage_candidate_origins, CdpClient,
+    cdp_cookies, fail_on_runtime_evaluation_exception, frame_storage_candidate_origins,
+    origin_storage_from_runtime_result, playwright_cookies_from_cdp, storage_candidate_origins,
+    CdpClient,
 };
 use crate::browser_cdp::page_scripts::{
     local_storage_set_expression, origin_storage_expression, session_storage_set_expression,
@@ -126,7 +127,20 @@ impl CdpClient {
         allowed_domains: &[String],
         timeout: Duration,
     ) -> Result<Vec<PlaywrightOrigin>, AgetError> {
-        let candidate_origins = storage_candidate_origins(allowed_domains);
+        let mut candidate_origins = storage_candidate_origins(allowed_domains);
+        if let Ok(frame_tree) = self.send(
+            "Page.getFrameTree",
+            None,
+            self.session_param(session_id),
+            Duration::from_secs(1).min(timeout),
+        ) {
+            candidate_origins.extend(frame_storage_candidate_origins(
+                &frame_tree,
+                allowed_domains,
+            ));
+            candidate_origins.sort();
+            candidate_origins.dedup();
+        }
         if candidate_origins.is_empty() {
             return Ok(Vec::new());
         }
