@@ -3453,6 +3453,22 @@ Status note:
 
 - Completed with D366. Source inspection found Crawl4AI's `CrawlerRunConfig.excluded_selector` stores a CSS selector string, removes matching elements after form/tag cleanup in the scraping strategy, and tolerates selector errors. Owned extraction now accepts repeated non-empty `crawl4ai.excluded_selector` backend options, removes matching elements through the existing invalid-selector-tolerant cleanup helper, preserves top-level `--exclude-selector`, and keeps command/mock validation, README, and OpenCode tool text aligned. `workpads/research/tasks.md` was not compacted. Focused owned selector coverage, command-backend option validation, `cargo fmt --check`, `git diff --check`, and full `cargo test` passed.
 
+### ✅ Task I19gr: Support Crawl4AI `remove_consent_popups` cleanup option
+
+Acceptance criteria:
+
+- Inspect Crawl4AI source before changing owned consent-popup cleanup.
+- Accept `crawl4ai.remove_consent_popups` as a backend option that removes generic cookie/GDPR consent elements before owned content extraction.
+- Preserve `aget`'s generic fetcher boundary: do not add site-specific paywall/login handling and do not click consent buttons or set cookies.
+- Keep `crawl4ai.remove_overlay_elements=false` separate from consent-popup cleanup so callers can remove cookie consent noise without removing every modal/dialog.
+- Do not compact `workpads/research/tasks.md`.
+- Record the source-backed boundary in `knowledge.md`.
+- Verify with focused owned extractor option/cleanup coverage plus the standard check set.
+
+Status note:
+
+- Completed with D367. Source inspection found Crawl4AI's `CrawlerRunConfig.remove_consent_popups` is default false, triggers browser-backed cleanup, and runs consent-popup cleanup before generic overlay cleanup. Owned extraction now accepts `crawl4ai.remove_consent_popups`, removes generic cookie/GDPR consent elements before overlay cleanup, keeps `crawl4ai.remove_overlay_elements=false` separate, and does not click consent controls, set cookies, or add site-specific paywall/login handling. Command/mock validation, README, OpenCode tool text, and compact knowledge routing were updated. `workpads/research/tasks.md` was not compacted. Focused owned extractor cleanup coverage, command-backend option validation, `cargo fmt --check`, `git diff --check`, and full `cargo test` passed.
+
 ### ✅ Task I20: Design OAuth-safe browser login and profile import flow
 
 Acceptance criteria:

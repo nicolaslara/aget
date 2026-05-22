@@ -72,6 +72,7 @@ fn validate_crawl4ai_options(args: &Args) -> Result<(), String> {
         "exclude_social_media_links",
         "only_text",
         "process_iframes",
+        "remove_consent_popups",
         "remove_forms",
         "remove_overlay_elements",
         "keep_data_attributes",

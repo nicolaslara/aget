@@ -62,6 +62,23 @@ pub(crate) fn routes(builder: MockSiteBuilder) -> MockSiteBuilder {
             ),
         )
         .route(
+            "/consent-popup-content",
+            MockResponse::html(
+                r#"
+<html>
+  <body>
+    <main class="story">
+      <h1>Consent Story</h1>
+      <div id="cookie-notice">Consent notice text.</div>
+      <section role="dialog">Newsletter modal text.</section>
+      <p>Useful consent article text.</p>
+    </main>
+  </body>
+</html>
+"#,
+            ),
+        )
+        .route(
             "/labeled-content",
             MockResponse::html(
                 r#"

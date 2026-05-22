@@ -37,6 +37,24 @@ const CRAWL4AI_OVERLAY_SELECTORS: &[&str] = &[
     r#"[role="dialog"]"#,
     r#"[role="alertdialog"]"#,
 ];
+const CRAWL4AI_CONSENT_SELECTORS: &[&str] = &[
+    r#"[class*="cookie-consent" i]"#,
+    r#"[id*="cookie-consent" i]"#,
+    r#"[class*="cookie-banner" i]"#,
+    r#"[id*="cookie-banner" i]"#,
+    r#"[class*="cookie-notice" i]"#,
+    r#"[id*="cookie-notice" i]"#,
+    r#"[class*="cookie-law" i]"#,
+    r#"[id*="cookie-law" i]"#,
+    r#"[class*="cookie-popup" i]"#,
+    r#"[id*="cookie-popup" i]"#,
+    r#"[class*="cookie-overlay" i]"#,
+    r#"[id*="cookie-overlay" i]"#,
+    r#"[class*="gdpr" i]"#,
+    r#"[id*="gdpr" i]"#,
+    r#"iframe[title*="cookie" i]"#,
+    r#"iframe[src*="cookie" i]"#,
+];
 const CRAWL4AI_SOCIAL_MEDIA_DOMAINS: &[&str] = &[
     "facebook.com",
     "twitter.com",
@@ -61,6 +79,10 @@ pub(super) fn remove_owned_excluded_tags(
 
 pub(super) fn remove_owned_overlay_elements(document: Html) -> Result<Html, AgetError> {
     remove_selected_elements(document, &CRAWL4AI_OVERLAY_SELECTORS.join(","))
+}
+
+pub(super) fn remove_owned_consent_popups(document: Html) -> Result<Html, AgetError> {
+    remove_selected_elements(document, &CRAWL4AI_CONSENT_SELECTORS.join(","))
 }
 
 pub(super) fn remove_selected_elements(

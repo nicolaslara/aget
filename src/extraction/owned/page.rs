@@ -10,10 +10,10 @@ use crate::error::AgetError;
 use crate::session::PlaywrightState;
 
 use super::super::html_clean::{
-    parse_css_selector, remove_owned_comments, remove_owned_excluded_domain_urls,
-    remove_owned_excluded_tags, remove_owned_external_images, remove_owned_external_links,
-    remove_owned_internal_links, remove_owned_overlay_elements, remove_owned_social_media_links,
-    remove_selected_elements,
+    parse_css_selector, remove_owned_comments, remove_owned_consent_popups,
+    remove_owned_excluded_domain_urls, remove_owned_excluded_tags, remove_owned_external_images,
+    remove_owned_external_links, remove_owned_internal_links, remove_owned_overlay_elements,
+    remove_owned_social_media_links, remove_selected_elements,
 };
 use super::super::http::{owned_fetch, OwnedHttpResponse};
 use super::super::{extraction_failed, GetOptions};
@@ -140,6 +140,10 @@ fn extract_owned_html(
                 "wait selector '{wait_for}' was not found by owned extractor"
             )));
         }
+    }
+
+    if owned_options.remove_consent_popups {
+        document = remove_owned_consent_popups(document)?;
     }
 
     if owned_options.remove_overlay_elements {

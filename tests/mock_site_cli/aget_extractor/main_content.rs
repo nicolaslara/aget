@@ -157,6 +157,19 @@ pub(super) fn assert_main_content_scoring(aget_home: &Path, site: &MockSite) {
         .content
         .contains("Useful article text."));
 
+    let consent_cleanup_without_overlay_cleanup = Aget::new(aget_home)
+        .with_extractor_backend(AgetExtractorBackend::default())
+        .get(site.url("/consent-popup-content"))
+        .content_format(OutputFormat::Text)
+        .backend_option("crawl4ai.remove_consent_popups", "true")
+        .backend_option("crawl4ai.remove_overlay_elements", "false")
+        .run()
+        .unwrap();
+    assert_eq!(
+        consent_cleanup_without_overlay_cleanup.content,
+        "Consent Story\nNewsletter modal text.\nUseful consent article text."
+    );
+
     let main_html = Aget::new(aget_home)
         .with_extractor_backend(AgetExtractorBackend::default())
         .get(site.url("/main-content"))
