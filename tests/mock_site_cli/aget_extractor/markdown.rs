@@ -191,7 +191,7 @@ pub(super) fn assert_markdown_rendering(aget_home: &Path, site: &MockSite) {
     assert_eq!(
         markdown_links.content,
         format!(
-            "# Link Defaults\n\n## [Linked Heading]({} \"Heading title\")\n\nRead [the guide]({} \"Guide \\\"title\\\" \\[v1\\] \\(draft\\)\") or email support.\n\nCanonical <https://example.com/docs>.\n\nJump [within page]({}).\n\nLink label [API v1]({}) and standalone `inline_code`.\n\nEmpty []({}) marker.\n\nAsset [release notes]({}) and ![A \\[diagram\\] \\(v1\\)]({}).\n\nIcon [![Download \\[app\\]]({})]({}).",
+            "# Link Defaults\n\n## [Linked Heading]({} \"Heading title\")\n\nRead [the guide]({} \"Guide \\\"title\\\" \\[v1\\] \\(draft\\)\") or email support.\n\nCanonical <https://example.com/docs>.\n\nJump [within page]({}).\n\nLink label [API v1]({}) and standalone `inline_code`.\n\nEmpty []({}) marker.\n\nAsset [release notes]({}) and ![A \\[diagram\\] \\(v1\\)]({}).\n\nIcon [![Download \\[app\\]]({})]({}).\n\nMissing ![]({}) and empty ![]({}).",
             site.url("/linked-heading"),
             site.url("/guide"),
             site.url("/markdown-links#details"),
@@ -200,7 +200,9 @@ pub(super) fn assert_markdown_rendering(aget_home: &Path, site: &MockSite) {
             release_url,
             diagram_url,
             icon_url,
-            site.url("/download")
+            site.url("/download"),
+            site.url("/missing-alt.png"),
+            site.url("/empty-alt.png")
         )
     );
 
@@ -264,6 +266,33 @@ pub(super) fn assert_markdown_rendering(aget_home: &Path, site: &MockSite) {
         .content
         .contains("![Download \\[app\\]]"));
 
+    let markdown_default_image_alt = Aget::new(aget_home)
+        .with_extractor_backend(AgetExtractorBackend::default())
+        .get(site.url("/markdown-links"))
+        .content_format(OutputFormat::Markdown)
+        .selector("main.article")
+        .backend_option("crawl4ai.default_image_alt", "Missing alt")
+        .run()
+        .unwrap();
+    assert!(markdown_default_image_alt.content.contains(&format!(
+        "Missing ![Missing alt]({}) and empty ![Missing alt]({}).",
+        site.url("/missing-alt.png"),
+        site.url("/empty-alt.png")
+    )));
+
+    let markdown_default_alt_to_alt = Aget::new(aget_home)
+        .with_extractor_backend(AgetExtractorBackend::default())
+        .get(site.url("/markdown-links"))
+        .content_format(OutputFormat::Markdown)
+        .selector("main.article")
+        .backend_option("crawl4ai.default_image_alt", "Missing alt")
+        .backend_option("crawl4ai.images_to_alt", "true")
+        .run()
+        .unwrap();
+    assert!(markdown_default_alt_to_alt
+        .content
+        .contains("Missing Missing alt and empty Missing alt."));
+
     let markdown_images_as_html = Aget::new(aget_home)
         .with_extractor_backend(AgetExtractorBackend::default())
         .get(site.url("/markdown-links"))
@@ -289,6 +318,19 @@ pub(super) fn assert_markdown_rendering(aget_home: &Path, site: &MockSite) {
     assert!(!markdown_images_as_html
         .content
         .contains("A \\[diagram\\] \\(v1\\)."));
+
+    let markdown_default_alt_as_html = Aget::new(aget_home)
+        .with_extractor_backend(AgetExtractorBackend::default())
+        .get(site.url("/markdown-links"))
+        .content_format(OutputFormat::Markdown)
+        .selector("main.article")
+        .backend_option("crawl4ai.default_image_alt", "Missing alt")
+        .backend_option("crawl4ai.images_as_html", "true")
+        .run()
+        .unwrap();
+    assert!(markdown_default_alt_as_html.content.contains(
+        "Missing <img src='/missing-alt.png' alt='Missing alt' /> and empty <img src='/empty-alt.png' alt='Missing alt' />."
+    ));
 
     let markdown_images_with_size = Aget::new(aget_home)
         .with_extractor_backend(AgetExtractorBackend::default())

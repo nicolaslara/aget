@@ -85,6 +85,7 @@ fn validate_crawl4ai_options(args: &Args) -> Result<(), String> {
         "max_scroll_steps",
         "flatten_shadow_dom",
         "bypass_tables",
+        "default_image_alt",
         "escape_snob",
         "ignore_emphasis",
         "ignore_images",

@@ -13,6 +13,7 @@ use super::normalize::{
 pub(super) struct MarkdownWriter {
     pub(super) output: String,
     base_url: Option<Url>,
+    default_image_alt: String,
     pub(super) only_text: bool,
     pub(super) skip_internal_links: bool,
     pub(super) ignore_images: bool,
@@ -38,6 +39,7 @@ impl MarkdownWriter {
         base_url: &str,
         only_text: bool,
         skip_internal_links: bool,
+        default_image_alt: &str,
         ignore_images: bool,
         images_as_html: bool,
         images_to_alt: bool,
@@ -55,6 +57,7 @@ impl MarkdownWriter {
         Self {
             output: String::new(),
             base_url: Url::parse(base_url).ok(),
+            default_image_alt: default_image_alt.to_string(),
             only_text,
             skip_internal_links,
             ignore_images,
@@ -80,6 +83,7 @@ impl MarkdownWriter {
         Self {
             output: String::new(),
             base_url: self.base_url.clone(),
+            default_image_alt: self.default_image_alt.clone(),
             only_text: self.only_text,
             skip_internal_links: self.skip_internal_links,
             ignore_images: self.ignore_images,
@@ -112,6 +116,11 @@ impl MarkdownWriter {
             .as_ref()
             .map(|base| resolve_markdown_url(base.as_str(), raw))
             .unwrap_or_else(|| raw.to_string())
+    }
+
+    pub(super) fn image_alt<'a>(&'a self, raw: Option<&'a str>) -> &'a str {
+        raw.filter(|value| !value.is_empty())
+            .unwrap_or(&self.default_image_alt)
     }
 
     pub(super) fn push_text(&mut self, text: &str) {

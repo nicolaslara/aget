@@ -134,6 +134,7 @@ pub(crate) fn routes(builder: MockSiteBuilder) -> MockSiteBuilder {
       <p>Empty <a href="/empty"></a> marker.</p>
       <p>Asset <a href="/release(2026)">release notes</a> and <img src="/assets/diagram(1).png" alt="A [diagram] (v1)" width="640" height="360">.</p>
       <p>Icon <a href="/download"><img src="/icons/app(1).svg" alt="Download [app]" width="32"></a>.</p>
+      <p>Missing <img src="/missing-alt.png"> and empty <img src="/empty-alt.png" alt="">.</p>
     </main>
   </body>
 </html>

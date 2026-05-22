@@ -171,7 +171,7 @@ fn image_markdown(node: NodeRef<'_, Node>, writer: &MarkdownWriter) -> Option<St
     if src.trim().is_empty() {
         return None;
     }
-    let alt = element.attr("alt").unwrap_or("");
+    let alt = writer.image_alt(element.attr("alt"));
     if writer.images_as_html || (writer.images_with_size && image_has_size(element)) {
         return Some(image_html(element, src, alt));
     }
