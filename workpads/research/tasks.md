@@ -2592,6 +2592,22 @@ Status note:
 
 - Completed with D311. Source inspection found Crawl4AI defaults `emphasis_mark` to `_` and `strong_mark` to `**`, uses those strings for `em`/`i`/`u` and `strong`/`b` output when emphasis is not ignored, and maps CLI `--asterisk-emphasis` to `emphasis_mark="*"` plus `strong_mark="__"`. Owned extraction now supports `crawl4ai.emphasis_mark` and `crawl4ai.strong_mark`, preserves existing `_` and `**` output by default, applies configured marker strings when supplied, and keeps `ignore_emphasis=true` stronger than both marker options. The Crawl4AI command compatibility helper, mock-backend validation, README, OpenCode tool text, and unsupported-option error text are aligned. `workpads/research/tasks.md` was not compacted. Focused owned markdown, command-option validation, helper syntax checks, and the standard gate passed.
 
+### ✅ Task I19eq: Split mock-site extractor markdown assertions
+
+Acceptance criteria:
+
+- Preserve current mock-site owned extractor markdown coverage and assertions.
+- Keep `tests/mock_site_cli/aget_extractor/markdown.rs` as the module route for the existing parent integration test.
+- Move cohesive markdown assertion groups into smaller child modules by behavior.
+- Keep the split mechanical with no intentional extraction behavior changes.
+- Do not compact `workpads/research/tasks.md`.
+- Record the resulting test boundaries in `knowledge.md`.
+- Verify with focused mock-site extractor coverage plus the standard check set.
+
+Status note:
+
+- Completed with D312. `tests/mock_site_cli/aget_extractor/markdown.rs` remains the module route for the existing parent integration test and now delegates to behavior-owned child modules for table/base-link coverage, inline/block constructs, lists/code blocks, and link/image options. The split is mechanical, extraction runtime behavior is unchanged, and `workpads/research/tasks.md` was not compacted. The markdown test route dropped from 511 lines to a 38-line parent plus smaller child modules, with the largest child at 230 lines. Focused mock-site extractor coverage and the standard gate passed.
+
 ### ✅ Task I20: Design OAuth-safe browser login and profile import flow
 
 Acceptance criteria:
