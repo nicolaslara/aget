@@ -76,6 +76,17 @@ pub(super) fn assert_main_content_scoring(aget_home: &Path, site: &MockSite) {
         "# Primary Article\n\nThe primary article should win even when a noisy comments block has enough text to look important."
     );
 
+    let embedded_noise_label_markdown = Aget::new(aget_home)
+        .with_extractor_backend(AgetExtractorBackend::default())
+        .get(site.url("/main-content-embedded-noise-label"))
+        .content_format(OutputFormat::Markdown)
+        .run()
+        .unwrap();
+    assert_eq!(
+        embedded_noise_label_markdown.content,
+        "# Source Article\n\nThe source article should win because embedded comments labels exclude noisy candidates."
+    );
+
     let threshold_markdown = Aget::new(aget_home)
         .with_extractor_backend(AgetExtractorBackend::default())
         .get(site.url("/main-content-word-threshold"))

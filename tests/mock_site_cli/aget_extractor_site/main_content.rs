@@ -149,6 +149,27 @@ pub(crate) fn routes(builder: MockSiteBuilder) -> MockSiteBuilder {
             ),
         )
         .route(
+            "/main-content-embedded-noise-label",
+            MockResponse::html(
+                r#"
+<html>
+  <body>
+    <article class="content story article-comments-panel">
+      <h1>Long Discussion</h1>
+      <p>This discussion thread is intentionally long and repetitive so a scoring-only heuristic could prefer it over the actual source article.</p>
+      <p>Replies include migration notes, setup examples, release commentary, troubleshooting details, and documentation references that look useful but are not the main page content.</p>
+      <p>Additional copied discussion text keeps adding words to make the noisy candidate deceptively strong for default extraction.</p>
+    </article>
+    <div id="content" class="story-body">
+      <h1>Source Article</h1>
+      <p>The source article should win because embedded comments labels exclude noisy candidates.</p>
+    </div>
+  </body>
+</html>
+"#,
+            ),
+        )
+        .route(
             "/main-content-word-threshold",
             MockResponse::html(
                 r#"

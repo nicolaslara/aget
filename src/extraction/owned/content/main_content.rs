@@ -28,6 +28,9 @@ fn best_main_content_candidate_id(
             if is_inside_crawl4ai_pruning_excluded_tag(element) {
                 continue;
             }
+            if has_crawl4ai_negative_class_id_label(element) {
+                continue;
+            }
             let score = score_main_content_candidate(element, word_count_threshold)?;
             if score <= 0 {
                 continue;
@@ -148,6 +151,15 @@ fn crawl4ai_like_class_id_noise_penalty(element: ElementRef<'_>) -> usize {
         * 350
 }
 
+fn has_crawl4ai_negative_class_id_label(element: ElementRef<'_>) -> bool {
+    // Crawl4AI's relevant-content path excludes candidates whose class/id
+    // contains these generic page-chrome and low-signal content labels.
+    ["class", "id"]
+        .into_iter()
+        .filter_map(|attribute| element.attr(attribute))
+        .any(has_crawl4ai_negative_label)
+}
+
 fn has_crawl4ai_negative_label(value: &str) -> bool {
     let lower = value.to_ascii_lowercase();
     [
@@ -155,7 +167,7 @@ fn has_crawl4ai_negative_label(value: &str) -> bool {
         "share",
     ]
     .into_iter()
-    .any(|needle| lower.starts_with(needle))
+    .any(|needle| lower.contains(needle))
 }
 
 fn word_count<'a>(pieces: impl IntoIterator<Item = &'a str>) -> usize {
