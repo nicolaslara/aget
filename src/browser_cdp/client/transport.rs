@@ -12,6 +12,7 @@ use crate::browser_cdp::io_aget_error;
 use crate::error::{AgetError, ErrorCode};
 
 const CDP_READ_POLL: Duration = Duration::from_millis(100);
+const CDP_KEEPALIVE_INTERVAL: Duration = Duration::from_secs(30);
 
 impl CdpClient {
     pub(in crate::browser_cdp) fn connect(
@@ -28,6 +29,8 @@ impl CdpClient {
             socket,
             next_id: 1,
             direct_page_connection: is_direct_page_ws_url(ws_url),
+            keepalive_interval: CDP_KEEPALIVE_INTERVAL,
+            last_keepalive: Instant::now(),
         })
     }
 
@@ -111,6 +114,7 @@ impl CdpClient {
             if let Some(message) = self.try_read_message(deadline)? {
                 return Ok(message);
             }
+            self.send_keepalive_if_due()?;
         }
     }
 
@@ -156,6 +160,24 @@ impl CdpClient {
             }
             Err(error) => Err(cdp_io_error(error)),
         }
+    }
+
+    fn send_keepalive_if_due(&mut self) -> Result<(), AgetError> {
+        let now = Instant::now();
+        if now.duration_since(self.last_keepalive) < self.keepalive_interval {
+            return Ok(());
+        }
+        self.socket
+            .send(Message::Ping(Vec::<u8>::new().into()))
+            .map_err(cdp_io_error)?;
+        self.last_keepalive = now;
+        Ok(())
+    }
+
+    #[cfg(test)]
+    pub(in crate::browser_cdp) fn set_keepalive_interval_for_test(&mut self, interval: Duration) {
+        self.keepalive_interval = interval;
+        self.last_keepalive = Instant::now();
     }
 }
 

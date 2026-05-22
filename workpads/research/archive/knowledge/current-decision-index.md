@@ -28,6 +28,7 @@ Open the referenced child indexes for older per-decision rows, then open the per
 | D349 | `d349-invalid-binary-cdp-frames.md` | agent-browser-style invalid binary CDP WebSocket response frames skipped by owned transport. |
 | D350 | `d350-malformed-cdp-frames.md` | agent-browser-style malformed text and UTF-8 binary CDP WebSocket frames skipped by owned transport. |
 | D351 | `d351-cdp-websocket-size-limits.md` | agent-browser-style unlimited CDP WebSocket message and frame sizes for owned transport. |
+| D352 | `d352-cdp-websocket-keepalive.md` | agent-browser-style CDP WebSocket keepalive pings while waiting for command responses. |
 
 ## Full Archive Routing
 
@@ -46,7 +47,7 @@ Open the referenced child indexes for older per-decision rows, then open the per
 | D123-D150 | `d123-d150-module-decomposition.md` index to section files | Original extraction/CDP/test module decomposition through I19i completion. |
 | D151-D157 | `d151-d157-auth-and-browser-import.md` | OAuth-safe authorization API/CLI and conservative browser-neutral Chrome import surface. |
 | D158-D167 | `d158-d167-recent-migration-followups.md` | Recent source-backed extraction improvements and follow-up decomposition slices. |
-| D168-D351 | `decision-index/` plus per-decision files | Module/test/support decomposition plus owned extractor/browser parity improvements, agent-facing option docs, support-file routing refreshes, login-session injection, markdown options, CDP diagnostics, and transport/readiness coverage. |
+| D168-D352 | `decision-index/` plus per-decision files | Module/test/support decomposition plus owned extractor/browser parity improvements, agent-facing option docs, support-file routing refreshes, login-session injection, markdown options, CDP diagnostics, and transport/readiness coverage. |
 
 ## Current Open Migration Gaps
 

@@ -1,5 +1,5 @@
 use std::net::TcpStream;
-use std::time::Duration;
+use std::time::{Duration, Instant};
 
 use serde_json::{json, Value};
 use tungstenite::stream::MaybeTlsStream;
@@ -30,6 +30,8 @@ pub(super) struct CdpClient {
     socket: WebSocket<MaybeTlsStream<TcpStream>>,
     next_id: u64,
     direct_page_connection: bool,
+    keepalive_interval: Duration,
+    last_keepalive: Instant,
 }
 
 impl CdpClient {
