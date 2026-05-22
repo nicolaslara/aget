@@ -281,13 +281,26 @@ fn is_markdown_backslash_sensitive(character: char) -> bool {
     )
 }
 
-pub(super) fn escape_markdown_line_start(text: &str) -> String {
-    if starts_with_ordered_list_marker(text) {
+pub(super) fn escape_markdown_line_start(
+    text: &str,
+    escape_dot: bool,
+    escape_plus: bool,
+    escape_dash: bool,
+) -> String {
+    if escape_dot && starts_with_ordered_list_marker(text) {
         return text.replacen('.', "\\.", 1);
     }
-    if text
-        .strip_prefix(['-', '+'])
-        .is_some_and(|rest| rest.starts_with(char::is_whitespace))
+    if escape_dash
+        && text
+            .strip_prefix('-')
+            .is_some_and(|rest| rest.starts_with(char::is_whitespace))
+    {
+        return format!("\\{text}");
+    }
+    if escape_plus
+        && text
+            .strip_prefix('+')
+            .is_some_and(|rest| rest.starts_with(char::is_whitespace))
     {
         return format!("\\{text}");
     }

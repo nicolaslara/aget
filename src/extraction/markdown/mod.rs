@@ -50,6 +50,9 @@ pub(super) fn element_to_markdown(
     use_automatic_links: bool,
     unicode_snob: bool,
     escape_snob: bool,
+    escape_dot: bool,
+    escape_plus: bool,
+    escape_dash: bool,
     include_sup_sub: bool,
     single_line_break: bool,
     body_width: usize,
@@ -83,6 +86,9 @@ pub(super) fn element_to_markdown(
         use_automatic_links,
         unicode_snob,
         escape_snob,
+        escape_dot,
+        escape_plus,
+        escape_dash,
         include_sup_sub,
     );
     render_node(*element, &mut writer);

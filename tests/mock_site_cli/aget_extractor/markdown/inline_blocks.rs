@@ -14,6 +14,23 @@ pub(super) fn assert_inline_blocks(aget_home: &Path, site: &MockSite) {
         )
     );
 
+    let markdown_line_start_escapes = markdown_content(
+        aget_home,
+        site,
+        "/markdown-inline-blocks",
+        &[
+            ("crawl4ai.escape_dot", "false"),
+            ("crawl4ai.escape_dash", "false"),
+            ("crawl4ai.escape_plus", "false"),
+        ],
+    );
+    assert!(markdown_line_start_escapes.contains("\n\n1. Not a generated list.\n\n"));
+    assert!(markdown_line_start_escapes.contains("\n\n- Not a generated bullet.\n\n"));
+    assert!(markdown_line_start_escapes.contains("\n\n+ Not a generated plus bullet.\n\n"));
+    assert!(!markdown_line_start_escapes.contains("1\\. Not a generated list."));
+    assert!(!markdown_line_start_escapes.contains("\\- Not a generated bullet."));
+    assert!(!markdown_line_start_escapes.contains("\\+ Not a generated plus bullet."));
+
     let markdown_include_sup_sub = markdown_content(
         aget_home,
         site,

@@ -37,6 +37,9 @@ pub(super) struct MarkdownWriter {
     pub(super) use_automatic_links: bool,
     unicode_snob: bool,
     escape_snob: bool,
+    escape_dot: bool,
+    escape_plus: bool,
+    escape_dash: bool,
     pub(super) include_sup_sub: bool,
     pub(super) inside_link: bool,
     pub(super) list_depth: usize,
@@ -78,6 +81,9 @@ impl MarkdownWriter {
         use_automatic_links: bool,
         unicode_snob: bool,
         escape_snob: bool,
+        escape_dot: bool,
+        escape_plus: bool,
+        escape_dash: bool,
         include_sup_sub: bool,
     ) -> Self {
         Self {
@@ -107,6 +113,9 @@ impl MarkdownWriter {
             use_automatic_links,
             unicode_snob,
             escape_snob,
+            escape_dot,
+            escape_plus,
+            escape_dash,
             include_sup_sub,
             inside_link: false,
             list_depth: 0,
@@ -143,6 +152,9 @@ impl MarkdownWriter {
             use_automatic_links: self.use_automatic_links,
             unicode_snob: self.unicode_snob,
             escape_snob: self.escape_snob,
+            escape_dot: self.escape_dot,
+            escape_plus: self.escape_plus,
+            escape_dash: self.escape_dash,
             include_sup_sub: self.include_sup_sub,
             inside_link: self.inside_link,
             list_depth: self.list_depth,
@@ -179,7 +191,12 @@ impl MarkdownWriter {
             text = escape_markdown_snob_text(&text);
         }
         if is_markdown_line_start(&self.output) {
-            text = escape_markdown_line_start(&text);
+            text = escape_markdown_line_start(
+                &text,
+                self.escape_dot,
+                self.escape_plus,
+                self.escape_dash,
+            );
         }
         self.push_inline(&text);
     }
