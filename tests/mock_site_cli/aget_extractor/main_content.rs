@@ -65,6 +65,17 @@ pub(super) fn assert_main_content_scoring(aget_home: &Path, site: &MockSite) {
         "# Dense Article\n\nDense useful body text should win because it has direct prose instead of mostly navigation links.\n\nThe local scorer should prefer low-link-density content for agent-ready extraction."
     );
 
+    let unlabeled_density_markdown = Aget::new(aget_home)
+        .with_extractor_backend(AgetExtractorBackend::default())
+        .get(site.url("/main-content-unlabeled-density"))
+        .content_format(OutputFormat::Markdown)
+        .run()
+        .unwrap();
+    assert_eq!(
+        unlabeled_density_markdown.content,
+        "# Unlabeled Report\n\nThis unlabeled report carries the main body text even though it has no helpful class, id, role, or aria label.\n\nThe content block should win because it has strong prose density and very few links."
+    );
+
     let class_id_noise_markdown = Aget::new(aget_home)
         .with_extractor_backend(AgetExtractorBackend::default())
         .get(site.url("/main-content-class-id-noise"))

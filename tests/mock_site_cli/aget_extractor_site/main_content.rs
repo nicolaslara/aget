@@ -129,6 +129,28 @@ pub(crate) fn routes(builder: MockSiteBuilder) -> MockSiteBuilder {
             ),
         )
         .route(
+            "/main-content-unlabeled-density",
+            MockResponse::html(
+                r#"
+<html>
+  <body>
+    <nav>
+      <a href="/docs">Docs</a>
+      <a href="/pricing">Pricing</a>
+      <a href="/community">Community</a>
+    </nav>
+    <div>
+      <h1>Unlabeled Report</h1>
+      <p>This unlabeled report carries the main body text even though it has no helpful class, id, role, or aria label.</p>
+      <p>The content block should win because it has strong prose density and very few links.</p>
+    </div>
+    <footer>Footer links and legal navigation</footer>
+  </body>
+</html>
+"#,
+            ),
+        )
+        .route(
             "/main-content-class-id-noise",
             MockResponse::html(
                 r#"

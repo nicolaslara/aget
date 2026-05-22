@@ -92,18 +92,43 @@ fn score_main_content_candidate(
         _ => 150,
     };
     let positive_label_bonus = content_label_bonus(element) as i64;
-    if matches!(element.value().name(), "div" | "section") && positive_label_bonus == 0 {
-        return Ok(0);
-    }
     let label_penalty = content_label_penalty(element) as i64;
     let class_id_noise_penalty = crawl4ai_like_class_id_noise_penalty(element) as i64;
     let pruning_score = crawl4ai_like_pruning_score(element, &link_selector);
+    if matches!(element.value().name(), "div" | "section")
+        && positive_label_bonus == 0
+        && !is_crawl4ai_dense_generic_candidate(element, pruning_score)?
+    {
+        return Ok(0);
+    }
     Ok(
         (text_words as i64 * 8) - (link_words as i64 * 12) + tag_bonus + positive_label_bonus
             - label_penalty
             - class_id_noise_penalty
             + pruning_score,
     )
+}
+
+fn is_crawl4ai_dense_generic_candidate(
+    element: ElementRef<'_>,
+    pruning_score: i64,
+) -> Result<bool, AgetError> {
+    if pruning_score < 450 {
+        return Ok(false);
+    }
+    if contains_descendant_positive_content_container(element)? {
+        return Ok(false);
+    }
+    Ok(true)
+}
+
+fn contains_descendant_positive_content_container(
+    element: ElementRef<'_>,
+) -> Result<bool, AgetError> {
+    let selector = parse_css_selector(r#"main, [role="main"], article, section, div"#)?;
+    Ok(element
+        .select(&selector)
+        .any(|descendant| descendant.id() != element.id() && content_label_bonus(descendant) > 0))
 }
 
 fn crawl4ai_like_pruning_score(element: ElementRef<'_>, link_selector: &scraper::Selector) -> i64 {
