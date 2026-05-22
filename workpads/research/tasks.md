@@ -3503,6 +3503,23 @@ Status note:
 
 - Completed with D369. Source inspection found Crawl4AI's `CrawlerRunConfig.cache_mode` defaults to `CacheMode.BYPASS`, `CacheMode` supports enabled/disabled/read_only/write_only/bypass, and cache read/write behavior is routed through `CacheContext` only when a cache store exists. Owned extraction now accepts `crawl4ai.cache` and `crawl4ai.cache_mode` only for bypass/disabled no-cache modes, rejects enabled/read_only/write_only until `aget` has an owned extraction cache store, and keeps backend-option output metadata recording unchanged. The optional Crawl4AI compatibility helper validates cache modes, maps the existing `crawl4ai.cache` alias to `cache_mode`, and converts strings into the installed `CacheMode` enum before building `CrawlerRunConfig`. Command mock validation, README, OpenCode tool text, and compact knowledge routing were updated. `workpads/research/tasks.md` was not compacted. Focused owned option validation, command-backend option validation, Python helper syntax and conversion checks, `cargo fmt --check`, `git diff --check`, and full `cargo test` passed.
 
+### ✅ Task I19gu: Support Crawl4AI `keep_attrs` cleanup option
+
+Acceptance criteria:
+
+- Inspect Crawl4AI source before changing owned attribute cleanup.
+- Accept `crawl4ai.keep_attrs` as a backend option that preserves the named attributes during owned cleaned-HTML serialization.
+- Preserve existing selector behavior: selectors still run before attribute pruning.
+- Keep `crawl4ai.keep_data_attributes` behavior unchanged.
+- Keep the optional Crawl4AI command compatibility helper able to pass `keep_attrs` to real Crawl4AI when the installed version accepts it.
+- Do not compact `workpads/research/tasks.md`.
+- Record the source-backed boundary in `knowledge.md`.
+- Verify with focused owned cleanup coverage, command-backend option validation, helper syntax checks, and the standard check set.
+
+Status note:
+
+- Completed with D370. Source inspection found `CrawlerRunConfig.keep_attrs` is documented and serialized as a list of attributes to keep, while the current static scraper snapshot only threads the fixed important-attribute allowlist plus `keep_data_attributes` into `remove_unwanted_attributes_fast`. Owned extraction now accepts `crawl4ai.keep_attrs`, preserves explicitly named attributes during owned cleaned-HTML serialization, keeps selectors running before attribute pruning, and leaves `crawl4ai.keep_data_attributes` unchanged. The optional Crawl4AI compatibility helper, command mock validation, README, OpenCode tool text, and compact knowledge routing were updated. `workpads/research/tasks.md` was not compacted. Focused owned cleanup coverage, command-backend option validation, Python helper syntax and parsing checks, `cargo fmt --check`, `git diff --check`, and full `cargo test` passed.
+
 ### ✅ Task I20: Design OAuth-safe browser login and profile import flow
 
 Acceptance criteria:

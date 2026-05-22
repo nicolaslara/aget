@@ -21,6 +21,7 @@ EXTRACTOR_OPTION_TYPES = {
     "remove_consent_popups": ("crawler", "bool"),
     "remove_forms": ("crawler", "bool"),
     "remove_overlay_elements": ("crawler", "bool"),
+    "keep_attrs": ("crawler", "list"),
     "keep_data_attributes": ("crawler", "bool"),
     "word_count_threshold": ("crawler", "int"),
     "wait_until": ("crawler", "str"),

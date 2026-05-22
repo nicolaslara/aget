@@ -82,6 +82,7 @@ pub(super) fn extract_owned_content(
     document = prune_owned_unwanted_attributes(
         document,
         owned_options.keep_data_attributes,
+        &owned_options.keep_attrs,
         owned_options.google_doc,
     );
 

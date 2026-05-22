@@ -96,6 +96,19 @@ pub(super) fn assert_cleanup_outputs(aget_home: &Path, site: &MockSite) {
     assert!(!data_attributes.content.contains("aria-label="));
     assert!(!data_attributes.content.contains("rel=\"nofollow\""));
 
+    let kept_attrs = Aget::new(aget_home)
+        .with_extractor_backend(AgetExtractorBackend::default())
+        .get(site.url("/html-cleanup"))
+        .content_format(OutputFormat::Html)
+        .backend_option("crawl4ai.keep_attrs", "aria-label,rel")
+        .run()
+        .unwrap();
+    assert!(kept_attrs.content.contains("aria-label=\"private label\""));
+    assert!(kept_attrs.content.contains("rel=\"nofollow\""));
+    assert!(!kept_attrs.content.contains("data-private"));
+    assert!(!kept_attrs.content.contains("style="));
+    assert!(!kept_attrs.content.contains("onclick="));
+
     let no_images = Aget::new(aget_home)
         .with_extractor_backend(AgetExtractorBackend::default())
         .get(site.url("/html-cleanup"))

@@ -78,6 +78,7 @@ fn validate_crawl4ai_options(args: &Args) -> Result<(), String> {
         "remove_consent_popups",
         "remove_forms",
         "remove_overlay_elements",
+        "keep_attrs",
         "keep_data_attributes",
         "word_count_threshold",
         "wait_until",
