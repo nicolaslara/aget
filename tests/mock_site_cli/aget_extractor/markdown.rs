@@ -214,6 +214,21 @@ pub(super) fn assert_markdown_rendering(aget_home: &Path, site: &MockSite) {
         .content
         .contains(&site.url("/download")));
 
+    let markdown_include_mailto_links = Aget::new(aget_home)
+        .with_extractor_backend(AgetExtractorBackend::default())
+        .get(site.url("/markdown-links"))
+        .content_format(OutputFormat::Markdown)
+        .selector("main.article")
+        .backend_option("crawl4ai.ignore_mailto_links", "false")
+        .run()
+        .unwrap();
+    assert!(markdown_include_mailto_links
+        .content
+        .contains("Read [the guide]("));
+    assert!(markdown_include_mailto_links
+        .content
+        .contains("[email support](mailto:help@example.com)."));
+
     let markdown_protect_links = Aget::new(aget_home)
         .with_extractor_backend(AgetExtractorBackend::default())
         .get(site.url("/markdown-links"))

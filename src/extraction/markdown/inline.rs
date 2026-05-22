@@ -25,7 +25,7 @@ pub(super) fn render_link(node: NodeRef<'_, Node>, writer: &mut MarkdownWriter) 
         render_children(node, writer);
         return;
     }
-    if href.starts_with("mailto:") {
+    if writer.ignore_mailto_links && href.starts_with("mailto:") {
         render_children(node, writer);
         return;
     }

@@ -35,6 +35,7 @@ fn get_command_backend_accepts_scan_full_page_options() {
                 "crawl4ai.ignore_emphasis=true",
                 "crawl4ai.ignore_images=true",
                 "crawl4ai.ignore_links=true",
+                "crawl4ai.ignore_mailto_links=false",
                 "crawl4ai.include_sup_sub=true",
                 "crawl4ai.protect_links=true",
                 "crawl4ai.skip_internal_links=true"
@@ -90,6 +91,8 @@ fn get_command_backend_accepts_scan_full_page_options() {
             "crawl4ai.ignore_images=true",
             "--backend-option",
             "crawl4ai.ignore_links=true",
+            "--backend-option",
+            "crawl4ai.ignore_mailto_links=false",
             "--backend-option",
             "crawl4ai.include_sup_sub=true",
             "--backend-option",

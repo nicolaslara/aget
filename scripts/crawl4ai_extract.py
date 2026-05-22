@@ -129,6 +129,7 @@ EXTRACTOR_OPTION_TYPES = {
     "ignore_emphasis": ("markdown", "bool"),
     "ignore_images": ("markdown", "bool"),
     "ignore_links": ("markdown", "bool"),
+    "ignore_mailto_links": ("markdown", "bool"),
     "include_sup_sub": ("markdown", "bool"),
     "protect_links": ("markdown", "bool"),
     "skip_internal_links": ("markdown", "bool"),
