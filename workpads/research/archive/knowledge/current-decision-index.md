@@ -68,6 +68,7 @@ This archive file keeps the denser decision routing that used to live in top-lev
 | D249 | `d249-session-authorize-test-split.md` | Mechanical split of session authorization CLI tests into behavior-owned scenario modules. |
 | D250 | `d250-mock-site-browser-test-split.md` | Mechanical split of mock-site browser integration tests into behavior-owned modules. |
 | D251 | `d251-extraction-pipeline-helper-split.md` | Mechanical split of extraction pipeline finalization helpers from public extraction orchestration. |
+| D252 | `d252-module-decomposition-archive-split.md` | Split the historical D123-D150 module-decomposition archive into smaller routed section files. |
 
 ## Full Archive Routing
 
@@ -83,11 +84,11 @@ This archive file keeps the denser decision routing that used to live in top-lev
 | D77-D91 | `d077-d091-owned-extractor-options-cleanup.md` | Owned extractor options, CDP rendering controls, cleaned-HTML cleanup, and early markdown tags. |
 | D92-D108 | `d092-d108-markdown-browser-slices.md` | Markdown fidelity improvements plus Chrome/CDP discovery and startup fallback slices. |
 | D109-D122 | `d109-d122-selector-overlay-shadow.md` | Hard breaks, selector behavior, Chrome retry diagnostics, overlay cleanup, linked images, and shadow DOM flattening. |
-| D123-D150 | `d123-d150-module-decomposition.md` | Original extraction/CDP/test module decomposition through I19i completion. |
+| D123-D150 | `d123-d150-module-decomposition.md` index to section files | Original extraction/CDP/test module decomposition through I19i completion. |
 | D151-D157 | `d151-d157-auth-and-browser-import.md` | OAuth-safe authorization API/CLI and conservative browser-neutral Chrome import surface. |
 | D158-D167 | `d158-d167-recent-migration-followups.md` | Recent source-backed extraction improvements and follow-up decomposition slices. |
 | D168-D176 | Per-decision files | Knowledge/reference compaction, engine-refactor planning, wrapper introduction, naming cleanup, and direct engine coverage. |
-| D177-D251 | Per-decision files | Module/test/support decomposition plus the latest owned extractor/browser parity improvements. |
+| D177-D252 | Per-decision files | Module/test/support decomposition plus the latest owned extractor/browser parity improvements. |
 
 ## Current Open Migration Gaps
 

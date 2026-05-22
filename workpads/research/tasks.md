@@ -1680,6 +1680,20 @@ Status note:
 
 - Completed with D251. `src/extraction/mod.rs` now keeps public extraction API routing and `get_url_with_session_store` orchestration, while `src/extraction/pipeline.rs` owns selected-session loading, primary extractor execution, session fallback, direct extraction finalization, and success/error output finalization. Public `crate::extraction::*` paths and internal `finish_direct_extraction` access remain stable, and `workpads/research/tasks.md` remains un-compacted.
 
+### ✅ Task I19ci: Split historical module-decomposition archive support file
+
+Acceptance criteria:
+
+- Preserve the full D123-D150 decision text under referenced archive files.
+- Keep `workpads/research/archive/knowledge/d123-d150-module-decomposition.md` as the stable routing entrypoint.
+- Do not compact or remove planned tasks from `workpads/research/tasks.md`.
+- Update current knowledge routing and decision index so the split is discoverable.
+- Verify the split with reconstruction/content checks and `git diff --check`.
+
+Status note:
+
+- Completed with D252. The historical D123-D150 module-decomposition archive now keeps its old path as a 9-line routing index and preserves the original decision text in three section files under `archive/knowledge/d123-d150-module-decomposition/`. Concatenating the split files with the original title reconstructs the previous archive content exactly, current routing points at the section files, and `workpads/research/tasks.md` remains un-compacted.
+
 ### ✅ Task I20: Design OAuth-safe browser login and profile import flow
 
 Acceptance criteria:
