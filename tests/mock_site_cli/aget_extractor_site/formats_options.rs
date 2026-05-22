@@ -44,6 +44,25 @@ pub(crate) fn routes(builder: MockSiteBuilder) -> MockSiteBuilder {
             ),
         )
         .route(
+            "/metadata-title-fallback",
+            MockResponse::html(
+                r#"
+<html>
+  <head>
+    <meta property="og:title" content="Fallback Open Graph Title">
+    <meta name="twitter:title" content="Fallback Twitter Title">
+  </head>
+  <body>
+    <main class="article">
+      <h1>Fallback Metadata Body</h1>
+      <p>Fallback metadata body text.</p>
+    </main>
+  </body>
+</html>
+"#,
+            ),
+        )
+        .route(
             "/word-threshold",
             MockResponse::html(
                 r#"

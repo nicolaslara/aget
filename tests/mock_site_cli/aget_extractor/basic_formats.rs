@@ -94,4 +94,27 @@ pub(super) fn assert_public_session_and_formats(aget_home: &Path, site: &MockSit
         artifact_metadata["page_metadata"]["description"],
         "Metadata description"
     );
+
+    let fallback_metadata = Aget::new(aget_home)
+        .with_extractor_backend(AgetExtractorBackend::default())
+        .get(site.url("/metadata-title-fallback"))
+        .content_format(OutputFormat::Text)
+        .run()
+        .unwrap();
+    assert_eq!(
+        fallback_metadata.content,
+        "Fallback Metadata Body\nFallback metadata body text."
+    );
+    assert_eq!(
+        fallback_metadata.page_metadata["title"],
+        "Fallback Open Graph Title"
+    );
+    assert_eq!(
+        fallback_metadata.page_metadata["og:title"],
+        "Fallback Open Graph Title"
+    );
+    assert_eq!(
+        fallback_metadata.page_metadata["twitter:title"],
+        "Fallback Twitter Title"
+    );
 }
