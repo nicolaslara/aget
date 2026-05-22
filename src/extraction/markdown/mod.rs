@@ -24,6 +24,8 @@ pub(super) fn element_to_markdown(
     open_quote: &str,
     close_quote: &str,
     ul_item_mark: &str,
+    emphasis_mark: &str,
+    strong_mark: &str,
     ignore_images: bool,
     images_as_html: bool,
     images_to_alt: bool,
@@ -46,6 +48,8 @@ pub(super) fn element_to_markdown(
         open_quote,
         close_quote,
         ul_item_mark,
+        emphasis_mark,
+        strong_mark,
         ignore_images,
         images_as_html,
         images_to_alt,
@@ -98,12 +102,18 @@ fn render_element(node: NodeRef<'_, Node>, tag: &str, writer: &mut MarkdownWrite
         "strong" | "b" if writer.ignore_emphasis => render_children(node, writer),
         "strong" | "b" => {
             let inner = inline_markdown_from_children(node, writer);
-            writer.push_inline(&format!("**{inner}**"));
+            writer.push_inline(&format!(
+                "{}{inner}{}",
+                writer.strong_mark, writer.strong_mark
+            ));
         }
         "em" | "i" | "u" if writer.ignore_emphasis => render_children(node, writer),
         "em" | "i" | "u" => {
             let inner = inline_markdown_from_children(node, writer);
-            writer.push_inline(&format!("_{inner}_"));
+            writer.push_inline(&format!(
+                "{}{inner}{}",
+                writer.emphasis_mark, writer.emphasis_mark
+            ));
         }
         "del" | "strike" | "s" => {
             let inner = inline_markdown_from_children(node, writer);

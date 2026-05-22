@@ -87,6 +87,7 @@ fn validate_crawl4ai_options(args: &Args) -> Result<(), String> {
         "bypass_tables",
         "close_quote",
         "default_image_alt",
+        "emphasis_mark",
         "escape_snob",
         "ignore_emphasis",
         "ignore_images",
@@ -100,6 +101,7 @@ fn validate_crawl4ai_options(args: &Args) -> Result<(), String> {
         "open_quote",
         "protect_links",
         "skip_internal_links",
+        "strong_mark",
         "ul_item_mark",
         "use_automatic_links",
     ];

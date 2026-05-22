@@ -128,6 +128,7 @@ EXTRACTOR_OPTION_TYPES = {
     "bypass_tables": ("markdown", "bool"),
     "close_quote": ("markdown", "str"),
     "default_image_alt": ("markdown", "str"),
+    "emphasis_mark": ("markdown", "str"),
     "escape_snob": ("markdown", "bool"),
     "ignore_emphasis": ("markdown", "bool"),
     "ignore_images": ("markdown", "bool"),
@@ -141,6 +142,7 @@ EXTRACTOR_OPTION_TYPES = {
     "open_quote": ("markdown", "str"),
     "protect_links": ("markdown", "bool"),
     "skip_internal_links": ("markdown", "bool"),
+    "strong_mark": ("markdown", "str"),
     "ul_item_mark": ("markdown", "str"),
     "use_automatic_links": ("markdown", "bool"),
 }

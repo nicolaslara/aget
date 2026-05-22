@@ -116,6 +116,24 @@ pub(super) fn assert_markdown_rendering(aget_home: &Path, site: &MockSite) {
     assert!(!markdown_ignore_emphasis.content.contains("**detail**"));
     assert!(markdown_ignore_emphasis.content.contains("~~removed~~"));
 
+    let markdown_emphasis_markers = Aget::new(aget_home)
+        .with_extractor_backend(AgetExtractorBackend::default())
+        .get(site.url("/markdown-inline-blocks"))
+        .content_format(OutputFormat::Markdown)
+        .selector("main.article")
+        .backend_option("crawl4ai.emphasis_mark", "*")
+        .backend_option("crawl4ai.strong_mark", "__")
+        .run()
+        .unwrap();
+    assert!(markdown_emphasis_markers
+        .content
+        .contains("Status: ~~removed~~, *soft*, *under*,"));
+    assert!(markdown_emphasis_markers
+        .content
+        .contains("Definition with __detail__."));
+    assert!(!markdown_emphasis_markers.content.contains("_soft_"));
+    assert!(!markdown_emphasis_markers.content.contains("**detail**"));
+
     let markdown_quote_markers = Aget::new(aget_home)
         .with_extractor_backend(AgetExtractorBackend::default())
         .get(site.url("/markdown-inline-blocks"))
