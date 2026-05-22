@@ -100,7 +100,12 @@ impl CdpClient {
     ) -> Result<(), AgetError> {
         let deadline = Instant::now() + timeout;
         loop {
-            let message = self.read_message(deadline)?;
+            if Instant::now() >= deadline {
+                return Err(navigation_wait_timeout(event_name));
+            }
+            let Some(message) = self.try_read_message(deadline)? else {
+                continue;
+            };
             if message.get("id").and_then(Value::as_u64) == Some(navigate_id) {
                 if self.handle_navigate_response(&message)? == NavigationOutcome::SameDocument {
                     return Ok(());
@@ -135,6 +140,9 @@ impl CdpClient {
                 && idle_since.elapsed() >= NETWORK_IDLE_DURATION
             {
                 return Ok(());
+            }
+            if Instant::now() >= deadline {
+                return Err(navigation_wait_timeout("networkidle"));
             }
 
             let Some(message) = self.try_read_message(deadline)? else {
@@ -222,6 +230,18 @@ fn network_request_id(message: &Value) -> Option<&str> {
         .get("params")
         .and_then(|params| params.get("requestId"))
         .and_then(Value::as_str)
+}
+
+fn navigation_wait_timeout(wait_until: &str) -> AgetError {
+    let wait_until = match wait_until {
+        "Page.domContentEventFired" => "domcontentloaded",
+        "Page.loadEventFired" => "load",
+        other => other,
+    };
+    AgetError::Stable {
+        code: ErrorCode::Timeout,
+        message: format!("owned browser fallback timed out waiting for {wait_until}"),
+    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

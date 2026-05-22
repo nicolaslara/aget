@@ -459,7 +459,7 @@ Acceptance criteria:
 
 Status note:
 
-- Started after the first I19d owned extractor slices and documented in `knowledge.md` D58, D60, D64-D68, D83-D85, D96-D97, D101-D103, D116-D118, D214, D215, D241, D242, D244, D245, and D283. `OwnedBrowserAutomationBackend` now has an owned session-backed fallback extraction path for static and scripted cookie-backed pages, a minimal Chrome/CDP renderer for localStorage/sessionStorage-backed fallback extraction, explicit user-data-dir Chrome import, named Chrome profile resolution/copying into temporary user-data-dir imports, a first owned dedicated-profile login start/finish/cancel lifecycle, stale owned-login profile sweeping, PID-backed cleanup for detached owned login browsers including Windows pid termination hooks, profile-in-use Chrome startup classification as `requires_user_action`, Chrome stderr `DevTools listening on ...` URL startup fallback, sandbox/namespace startup hints, no-stderr Chrome startup hints, source-backed labeled generic Chrome stderr diagnostics including bounded five-line generic stderr tails, `/json/version`, `/json/list`, plus direct `/devtools/browser` CDP discovery fallbacks when attaching to an existing profile browser, three-attempt owned Chrome launch retries, stale `DevToolsActivePort` removal when existing-profile attach finds a dead endpoint, Windows detached process-group Chrome launch flags, agent-browser-style generic Chrome stability/noise-control launch flags, an agent-browser-style headed Chrome window-size boundary, stronger opt-in real-profile import smoke assertions for persisted scoped auth state, and agent-browser-style networkidle reset/timeout coverage for the owned CDP navigation wait. I19e remains in progress because broader rendered JavaScript parity, manual real logged-in profile/keychain smoke execution, and still-fuller startup/error classification require deeper CDP/profile work.
+- Started after the first I19d owned extractor slices and documented in `knowledge.md` D58, D60, D64-D68, D83-D85, D96-D97, D101-D103, D116-D118, D214, D215, D241, D242, D244, D245, and D283-D284. `OwnedBrowserAutomationBackend` now has an owned session-backed fallback extraction path for static and scripted cookie-backed pages, a minimal Chrome/CDP renderer for localStorage/sessionStorage-backed fallback extraction, explicit user-data-dir Chrome import, named Chrome profile resolution/copying into temporary user-data-dir imports, a first owned dedicated-profile login start/finish/cancel lifecycle, stale owned-login profile sweeping, PID-backed cleanup for detached owned login browsers including Windows pid termination hooks, profile-in-use Chrome startup classification as `requires_user_action`, Chrome stderr `DevTools listening on ...` URL startup fallback, sandbox/namespace startup hints, no-stderr Chrome startup hints, source-backed labeled generic Chrome stderr diagnostics including bounded five-line generic stderr tails, `/json/version`, `/json/list`, plus direct `/devtools/browser` CDP discovery fallbacks when attaching to an existing profile browser, three-attempt owned Chrome launch retries, stale `DevToolsActivePort` removal when existing-profile attach finds a dead endpoint, Windows detached process-group Chrome launch flags, agent-browser-style generic Chrome stability/noise-control launch flags, an agent-browser-style headed Chrome window-size boundary, stronger opt-in real-profile import smoke assertions for persisted scoped auth state, agent-browser-style networkidle reset/timeout coverage for the owned CDP navigation wait, and agent-browser-style lifecycle/networkidle timeout messages for owned CDP navigation waits. I19e remains in progress because broader rendered JavaScript parity, manual real logged-in profile/keychain smoke execution, and still-fuller startup/error classification require deeper CDP/profile work.
 
 ### ✅ Task I19f: Switch default runtime path to homegrown backends
 
@@ -2150,6 +2150,20 @@ Acceptance criteria:
 Status note:
 
 - Completed with D283. Source inspection confirmed `agent-browser` resets its 500 ms `networkidle` quiet window when new requests arrive, starts a new quiet window when in-flight requests empty, and returns an overall timeout when idle is never reached. Owned CDP navigation already matched that bounded behavior, so this slice added deterministic mock-CDP coverage for reset and timeout behavior without changing runtime code. Validation passed with focused `browser_cdp_networkidle` tests, `cargo fmt --check`, `cargo test`, and `git diff --check`.
+
+### ✅ Task I19do: Port agent-browser-style CDP navigation wait timeout messages
+
+Acceptance criteria:
+
+- Re-inspect `agent-browser` source for lifecycle and `networkidle` wait timeout messages before changing owned CDP errors.
+- Return specific owned CDP timeout messages for lifecycle waits and `networkidle` instead of the generic Chrome-CDP polling timeout.
+- Add deterministic mock-CDP coverage for lifecycle timeout and `networkidle` timeout classification.
+- Record the source-backed boundary in `knowledge.md`.
+- Verify with focused browser CDP navigation tests and the standard check set.
+
+Status note:
+
+- Completed with D284. Source inspection confirmed `agent-browser` reports lifecycle wait timeouts as `Timeout waiting for {event_name}` and `networkidle` timeouts as `Timeout waiting for networkidle`. Owned CDP navigation now preserves the existing `timeout` error code while reporting `load`, `domcontentloaded`, or `networkidle` as the timed-out wait condition. Deterministic mock-CDP coverage verifies lifecycle and `networkidle` timeout classification. Validation passed with focused browser CDP navigation tests, `cargo fmt --check`, `cargo test`, and `git diff --check`.
 
 ### ✅ Task I20: Design OAuth-safe browser login and profile import flow
 
