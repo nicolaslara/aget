@@ -85,6 +85,7 @@ where
                 scroll_delay: owned_options.scroll_delay,
                 max_scroll_steps: owned_options.max_scroll_steps,
                 flatten_shadow_dom: owned_options.flatten_shadow_dom,
+                process_iframes: owned_options.process_iframes,
                 settle_delay: owned_options.render_settle_delay,
                 discovery_timeout: timeout,
                 page_timeout: owned_options.page_timeout.unwrap_or(timeout),

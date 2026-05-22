@@ -113,6 +113,17 @@ pub(super) fn assert_backend_options_redirects_and_waits(aget_home: &Path, site:
         .to_string()
         .contains("crawl4ai.wait_for_images expects a boolean value"));
 
+    let invalid_process_iframes = Aget::new(aget_home)
+        .with_extractor_backend(AgetExtractorBackend::default())
+        .get(site.url("/formats"))
+        .backend_option("crawl4ai.process_iframes", "maybe")
+        .run()
+        .unwrap_err();
+    assert_eq!(invalid_process_iframes.code(), ErrorCode::ExtractionFailed);
+    assert!(invalid_process_iframes
+        .to_string()
+        .contains("crawl4ai.process_iframes expects a boolean value"));
+
     let invalid_scroll_delay = Aget::new(aget_home)
         .with_extractor_backend(AgetExtractorBackend::default())
         .get(site.url("/formats"))
@@ -145,7 +156,7 @@ pub(super) fn assert_backend_options_redirects_and_waits(aget_home: &Path, site:
     assert!(unsupported_option
         .to_string()
         .contains(
-            "supported options: crawl4ai.delay_before_return_html, crawl4ai.exclude_all_images, crawl4ai.exclude_domains, crawl4ai.exclude_external_images, crawl4ai.exclude_external_links, crawl4ai.exclude_internal_links, crawl4ai.exclude_social_media_domains, crawl4ai.exclude_social_media_links, crawl4ai.excluded_tags, crawl4ai.flatten_shadow_dom, crawl4ai.keep_data_attributes, crawl4ai.max_scroll_steps, crawl4ai.only_text, crawl4ai.page_timeout, crawl4ai.remove_forms, crawl4ai.remove_overlay_elements, crawl4ai.scan_full_page, crawl4ai.scroll_delay, crawl4ai.target_elements, crawl4ai.wait_for_images, crawl4ai.wait_for_timeout, crawl4ai.wait_until, crawl4ai.word_count_threshold"
+            "supported options: crawl4ai.delay_before_return_html, crawl4ai.exclude_all_images, crawl4ai.exclude_domains, crawl4ai.exclude_external_images, crawl4ai.exclude_external_links, crawl4ai.exclude_internal_links, crawl4ai.exclude_social_media_domains, crawl4ai.exclude_social_media_links, crawl4ai.excluded_tags, crawl4ai.flatten_shadow_dom, crawl4ai.keep_data_attributes, crawl4ai.max_scroll_steps, crawl4ai.only_text, crawl4ai.page_timeout, crawl4ai.process_iframes, crawl4ai.remove_forms, crawl4ai.remove_overlay_elements, crawl4ai.scan_full_page, crawl4ai.scroll_delay, crawl4ai.target_elements, crawl4ai.wait_for_images, crawl4ai.wait_for_timeout, crawl4ai.wait_until, crawl4ai.word_count_threshold"
         ));
 
     let redirect = Aget::new(aget_home)

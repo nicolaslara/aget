@@ -6,7 +6,8 @@ use serde_json::{json, Value};
 use super::super::transport::remaining;
 use super::super::CdpClient;
 use crate::browser_cdp::page_scripts::{
-    full_page_scan_expression, rendered_overlay_cleanup_expression, selector_exists_expression,
+    full_page_scan_expression, iframe_process_expression, rendered_overlay_cleanup_expression,
+    selector_exists_expression,
 };
 use crate::error::{AgetError, ErrorCode};
 
@@ -117,6 +118,50 @@ impl CdpClient {
             timeout,
         )?;
         Ok(())
+    }
+
+    pub(in crate::browser_cdp) fn process_iframes(
+        &mut self,
+        session_id: &str,
+        timeout: Duration,
+    ) -> Result<(usize, usize, usize), AgetError> {
+        let result = self.send(
+            "Runtime.evaluate",
+            Some(json!({
+                "expression": iframe_process_expression(),
+                "returnByValue": true,
+                "awaitPromise": true,
+            })),
+            self.session_param(session_id),
+            timeout,
+        )?;
+        let raw = result
+            .get("result")
+            .and_then(|result| result.get("value"))
+            .and_then(Value::as_str)
+            .ok_or_else(|| AgetError::Stable {
+                code: ErrorCode::ExtractionFailed,
+                message: "crawl4ai.process_iframes returned no iframe processing result"
+                    .to_string(),
+            })?;
+        let summary: Value = serde_json::from_str(raw).map_err(|error| AgetError::Stable {
+            code: ErrorCode::ExtractionFailed,
+            message: format!("crawl4ai.process_iframes returned invalid summary JSON: {error}"),
+        })?;
+        Ok((
+            summary
+                .get("total")
+                .and_then(Value::as_u64)
+                .unwrap_or_default() as usize,
+            summary
+                .get("replaced")
+                .and_then(Value::as_u64)
+                .unwrap_or_default() as usize,
+            summary
+                .get("inaccessible")
+                .and_then(Value::as_u64)
+                .unwrap_or_default() as usize,
+        ))
     }
 
     pub(in crate::browser_cdp) fn evaluate_string(

@@ -21,6 +21,7 @@ pub(crate) struct BrowserRenderRequest<'a> {
     pub(crate) scroll_delay: Duration,
     pub(crate) max_scroll_steps: usize,
     pub(crate) flatten_shadow_dom: bool,
+    pub(crate) process_iframes: bool,
     pub(crate) settle_delay: Duration,
     pub(crate) page_timeout: Duration,
     pub(crate) wait_for_timeout: Option<Duration>,
@@ -38,6 +39,7 @@ pub(crate) struct BrowserAttachedPageRenderRequest<'a> {
     pub(crate) scroll_delay: Duration,
     pub(crate) max_scroll_steps: usize,
     pub(crate) flatten_shadow_dom: bool,
+    pub(crate) process_iframes: bool,
     pub(crate) settle_delay: Duration,
     pub(crate) page_timeout: Duration,
     pub(crate) wait_for_timeout: Option<Duration>,
@@ -94,6 +96,7 @@ pub(crate) fn render_page(request: BrowserRenderRequest<'_>) -> Result<RenderedP
             scroll_delay: request.scroll_delay,
             max_scroll_steps: request.max_scroll_steps,
             flatten_shadow_dom: request.flatten_shadow_dom,
+            process_iframes: request.process_iframes,
             settle_delay: request.settle_delay,
             page_timeout: request.page_timeout,
             wait_for_timeout: request.wait_for_timeout,
@@ -132,6 +135,7 @@ pub(crate) fn render_attached_page(
             scroll_delay: request.scroll_delay,
             max_scroll_steps: request.max_scroll_steps,
             flatten_shadow_dom: request.flatten_shadow_dom,
+            process_iframes: request.process_iframes,
             settle_delay: request.settle_delay,
             page_timeout: request.page_timeout,
             wait_for_timeout: request.wait_for_timeout,
@@ -146,6 +150,7 @@ struct AttachedPageCaptureOptions<'a> {
     scroll_delay: Duration,
     max_scroll_steps: usize,
     flatten_shadow_dom: bool,
+    process_iframes: bool,
     settle_delay: Duration,
     page_timeout: Duration,
     wait_for_timeout: Option<Duration>,
@@ -184,6 +189,17 @@ fn capture_attached_page(
     }
     if !options.settle_delay.is_zero() {
         thread::sleep(options.settle_delay);
+    }
+    if options.process_iframes {
+        match client.process_iframes(&page.session_id, options.page_timeout) {
+            Ok((_total, _replaced, inaccessible)) if inaccessible > 0 => warnings.push(format!(
+                "crawl4ai.process_iframes could not access {inaccessible} iframe(s); continuing with accessible content only"
+            )),
+            Ok(_) => {}
+            Err(error) => warnings.push(format!(
+                "crawl4ai.process_iframes failed; continuing with unprocessed iframes: {error}"
+            )),
+        }
     }
     if let Err(error) =
         client.remove_rendered_overlay_elements(&page.session_id, options.page_timeout)

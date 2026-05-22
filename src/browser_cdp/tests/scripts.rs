@@ -2,9 +2,10 @@ use serde_json::json;
 
 use super::super::client::preferred_page_target_id;
 use super::super::page_scripts::{
-    full_page_scan_expression, local_storage_set_expression, rendered_overlay_cleanup_expression,
-    selector_exists_expression, session_storage_set_expression,
-    shadow_dom_attach_override_expression, shadow_dom_flatten_expression,
+    full_page_scan_expression, iframe_process_expression, local_storage_set_expression,
+    rendered_overlay_cleanup_expression, selector_exists_expression,
+    session_storage_set_expression, shadow_dom_attach_override_expression,
+    shadow_dom_flatten_expression,
 };
 
 #[test]
@@ -93,6 +94,20 @@ fn rendered_overlay_cleanup_expression_uses_generic_crawl4ai_rules() {
     assert!(expression.contains("style.position === \"fixed\""));
     assert!(expression.contains("style.position === \"absolute\""));
     assert!(expression.contains("zIndex > 999"));
+    assert!(!expression.contains("hellointerview"));
+}
+
+#[test]
+fn iframe_process_expression_extracts_accessible_iframe_bodies() {
+    let expression = iframe_process_expression();
+
+    assert!(expression.contains("querySelectorAll(\"iframe\")"));
+    assert!(expression.contains("iframe.contentDocument"));
+    assert!(expression.contains("DOMParser"));
+    assert!(expression.contains("doc.body.innerHTML"));
+    assert!(expression.contains("extracted-iframe-content"));
+    assert!(expression.contains("JSON.stringify"));
+    assert!(expression.contains("inaccessible"));
     assert!(!expression.contains("hellointerview"));
 }
 

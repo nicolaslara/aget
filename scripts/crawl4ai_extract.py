@@ -107,6 +107,7 @@ EXTRACTOR_OPTION_TYPES = {
     "exclude_social_media_domains": ("crawler", "list"),
     "exclude_social_media_links": ("crawler", "bool"),
     "only_text": ("crawler", "bool"),
+    "process_iframes": ("crawler", "bool"),
     "remove_forms": ("crawler", "bool"),
     "remove_overlay_elements": ("crawler", "bool"),
     "keep_data_attributes": ("crawler", "bool"),

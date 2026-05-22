@@ -34,7 +34,7 @@ pub(super) fn extract_owned_static_or_rendered(
     fallback_selector: Option<&str>,
 ) -> Result<OwnedPageExtraction, AgetError> {
     let owned_options = validate_owned_extraction_options(options)?;
-    if owned_options.wait_for_images {
+    if owned_options.wait_for_images || owned_options.process_iframes {
         return extract_owned_rendered_page(
             tmp_dir,
             url,
@@ -107,6 +107,7 @@ fn extract_owned_rendered_page(
         scroll_delay: owned_options.scroll_delay,
         max_scroll_steps: owned_options.max_scroll_steps,
         flatten_shadow_dom: owned_options.flatten_shadow_dom,
+        process_iframes: owned_options.process_iframes,
         settle_delay: owned_options.render_settle_delay,
         page_timeout: owned_options.page_timeout.unwrap_or(timeout),
         wait_for_timeout: owned_options.wait_for_timeout,
