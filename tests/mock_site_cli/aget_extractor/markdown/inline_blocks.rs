@@ -31,6 +31,15 @@ pub(super) fn assert_inline_blocks(aget_home: &Path, site: &MockSite) {
     assert!(!markdown_line_start_escapes.contains("\\- Not a generated bullet."));
     assert!(!markdown_line_start_escapes.contains("\\+ Not a generated plus bullet."));
 
+    let markdown_backslash_escape = markdown_content(
+        aget_home,
+        site,
+        "/markdown-inline-blocks",
+        &[("crawl4ai.escape_backslash", "false")],
+    );
+    assert!(markdown_backslash_escape.contains(r"Literal \*stars\* and \[brackets\]."));
+    assert!(!markdown_backslash_escape.contains(r"Literal \\*stars\\* and \\[brackets\\]."));
+
     let markdown_include_sup_sub = markdown_content(
         aget_home,
         site,

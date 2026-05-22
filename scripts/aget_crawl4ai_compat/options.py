@@ -32,6 +32,7 @@ EXTRACTOR_OPTION_TYPES = {
     "close_quote": ("markdown", "str"),
     "default_image_alt": ("markdown", "str"),
     "emphasis_mark": ("markdown", "str"),
+    "escape_backslash": ("markdown", "bool"),
     "escape_dash": ("markdown", "bool"),
     "escape_dot": ("markdown", "bool"),
     "escape_plus": ("markdown", "bool"),

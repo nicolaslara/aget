@@ -89,6 +89,7 @@ fn validate_crawl4ai_options(args: &Args) -> Result<(), String> {
         "close_quote",
         "default_image_alt",
         "emphasis_mark",
+        "escape_backslash",
         "escape_dash",
         "escape_dot",
         "escape_plus",

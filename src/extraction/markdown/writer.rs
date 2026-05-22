@@ -36,6 +36,7 @@ pub(super) struct MarkdownWriter {
     pub(super) protect_links: bool,
     pub(super) use_automatic_links: bool,
     unicode_snob: bool,
+    escape_backslash: bool,
     escape_snob: bool,
     escape_dot: bool,
     escape_plus: bool,
@@ -80,6 +81,7 @@ impl MarkdownWriter {
         protect_links: bool,
         use_automatic_links: bool,
         unicode_snob: bool,
+        escape_backslash: bool,
         escape_snob: bool,
         escape_dot: bool,
         escape_plus: bool,
@@ -112,6 +114,7 @@ impl MarkdownWriter {
             protect_links,
             use_automatic_links,
             unicode_snob,
+            escape_backslash,
             escape_snob,
             escape_dot,
             escape_plus,
@@ -151,6 +154,7 @@ impl MarkdownWriter {
             protect_links: self.protect_links,
             use_automatic_links: self.use_automatic_links,
             unicode_snob: self.unicode_snob,
+            escape_backslash: self.escape_backslash,
             escape_snob: self.escape_snob,
             escape_dot: self.escape_dot,
             escape_plus: self.escape_plus,
@@ -186,7 +190,9 @@ impl MarkdownWriter {
         if !self.unicode_snob {
             text = normalize_unicode_snob_text(&text);
         }
-        text = escape_markdown_text_backslashes(&text);
+        if self.escape_backslash {
+            text = escape_markdown_text_backslashes(&text);
+        }
         if self.escape_snob {
             text = escape_markdown_snob_text(&text);
         }
