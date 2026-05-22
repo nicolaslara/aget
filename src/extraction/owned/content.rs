@@ -114,6 +114,7 @@ fn extract_single_owned_element(
             owned_options.single_line_break,
             owned_options.body_width,
             owned_options.wrap_links,
+            owned_options.wrap_list_items,
         ),
         text: element_to_text(element),
     }
@@ -183,6 +184,7 @@ fn extract_target_owned_elements(
                     owned_options.single_line_break,
                     owned_options.body_width,
                     owned_options.wrap_links,
+                    owned_options.wrap_list_items,
                 )
             })
             .filter(|markdown| !markdown.is_empty())

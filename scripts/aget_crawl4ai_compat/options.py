@@ -52,6 +52,7 @@ EXTRACTOR_OPTION_TYPES = {
     "unicode_snob": ("markdown", "bool"),
     "use_automatic_links": ("markdown", "bool"),
     "wrap_links": ("markdown", "bool"),
+    "wrap_list_items": ("markdown", "bool"),
 }
 
 JS_WAIT_MARKERS = ("=>", "function(", "return ", ";")

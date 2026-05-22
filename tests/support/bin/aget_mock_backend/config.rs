@@ -109,6 +109,7 @@ fn validate_crawl4ai_options(args: &Args) -> Result<(), String> {
         "unicode_snob",
         "use_automatic_links",
         "wrap_links",
+        "wrap_list_items",
     ];
     for option in &args.extractor_options {
         let Some((key, _value)) = option.split_once('=') else {

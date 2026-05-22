@@ -117,6 +117,32 @@ pub(super) fn assert_inline_blocks(aget_home: &Path, site: &MockSite) {
         )
     );
 
+    let markdown_wrap_list_items = markdown_content(
+        aget_home,
+        site,
+        "/markdown-body-width",
+        &[
+            ("crawl4ai.body_width", "24"),
+            ("crawl4ai.wrap_list_items", "true"),
+        ],
+    );
+    assert_eq!(
+        markdown_wrap_list_items,
+        concat!(
+            "# Body Width\n\n",
+            "Alpha beta gamma delta\n",
+            "epsilon zeta eta theta\n",
+            "iota kappa lambda.\n\n",
+            "* List item should stay\n",
+            "on one rendered line\n",
+            "even when the width is\n",
+            "narrow.\n\n",
+            "```\n",
+            "code line should not wrap when body width is narrow\n",
+            "```"
+        )
+    );
+
     let markdown_wrap_links_default = markdown_content(
         aget_home,
         site,

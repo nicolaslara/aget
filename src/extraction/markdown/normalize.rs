@@ -51,6 +51,7 @@ pub(in crate::extraction) fn apply_markdown_body_width(
     markdown: &str,
     body_width: usize,
     wrap_links: bool,
+    wrap_list_items: bool,
 ) -> String {
     if body_width == 0 || markdown.is_empty() {
         return markdown.to_string();
@@ -64,7 +65,7 @@ pub(in crate::extraction) fn apply_markdown_body_width(
             in_code_fence = !in_code_fence;
             continue;
         }
-        if in_code_fence || should_preserve_markdown_line(line, wrap_links) {
+        if in_code_fence || should_preserve_markdown_line(line, wrap_links, wrap_list_items) {
             push_wrapped_line(&mut output, line);
             continue;
         }
@@ -107,7 +108,7 @@ fn is_code_fence_line(line: &str) -> bool {
     line.trim_start().starts_with("```")
 }
 
-fn should_preserve_markdown_line(line: &str, wrap_links: bool) -> bool {
+fn should_preserve_markdown_line(line: &str, wrap_links: bool, wrap_list_items: bool) -> bool {
     let trimmed = line.trim_start();
     line.trim().is_empty()
         || line.ends_with("  ")
@@ -117,12 +118,16 @@ fn should_preserve_markdown_line(line: &str, wrap_links: bool) -> bool {
         || trimmed.starts_with('>')
         || trimmed.starts_with("![")
         || trimmed.starts_with("*[")
-        || trimmed.starts_with("* ")
+        || trimmed == "* * *"
+        || (!wrap_list_items && is_markdown_list_item_line(trimmed))
+        || (!wrap_links && contains_inline_markdown_link(line))
+}
+
+fn is_markdown_list_item_line(trimmed: &str) -> bool {
+    trimmed.starts_with("* ")
         || trimmed.starts_with("- ")
         || trimmed.starts_with("+ ")
-        || trimmed == "* * *"
         || starts_with_ordered_list_marker(trimmed)
-        || (!wrap_links && contains_inline_markdown_link(line))
 }
 
 fn contains_inline_markdown_link(line: &str) -> bool {
