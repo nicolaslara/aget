@@ -3141,6 +3141,20 @@ Status note:
 
 - Completed with D346. Source inspection found agent-browser accepts both text and UTF-8 binary WebSocket CDP response frames before parsing JSON, skipping invalid binary frames. Owned CDP transport already accepted UTF-8 binary frames, and deterministic mock WebSocket coverage now proves the normal `CdpClient::send` path accepts a binary `Browser.getVersion` response. `workpads/research/tasks.md` was not compacted. Focused browser CDP coverage passed; the standard gate passed before commit.
 
+### ✅ Task I19fx: Split dense current decision index routing
+
+Acceptance criteria:
+
+- Preserve `workpads/research/tasks.md` as the planned-task source of truth; do not compact or summarize completed tasks out of it.
+- Keep `workpads/research/archive/knowledge/current-decision-index.md` as a compact router for active decision lookup.
+- Move dense historical per-decision routing rows into smaller referenced index files.
+- Preserve links to recent decisions and current open migration gaps.
+- Validate Markdown/link readability and record the support-file split in `knowledge.md`.
+
+Status note:
+
+- Completed with D347. `current-decision-index.md` now stays as a compact router, dense D168-D346 per-decision routing moved into `archive/knowledge/decision-index/`, and current open migration gaps remain visible in the top-level router. `workpads/research/tasks.md` was not compacted.
+
 ### ✅ Task I20: Design OAuth-safe browser login and profile import flow
 
 Acceptance criteria:
