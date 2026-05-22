@@ -117,4 +117,26 @@ pub(super) fn assert_public_session_and_formats(aget_home: &Path, site: &MockSit
         fallback_metadata.page_metadata["twitter:title"],
         "Fallback Twitter Title"
     );
+
+    let twitter_fallback_metadata = Aget::new(aget_home)
+        .with_extractor_backend(AgetExtractorBackend::default())
+        .get(site.url("/metadata-twitter-title-fallback"))
+        .content_format(OutputFormat::Text)
+        .run()
+        .unwrap();
+    assert_eq!(
+        twitter_fallback_metadata.content,
+        "Twitter Metadata Body\nTwitter metadata body text."
+    );
+    assert_eq!(
+        twitter_fallback_metadata.page_metadata["title"],
+        "Fallback Twitter Only Title"
+    );
+    assert!(!twitter_fallback_metadata
+        .page_metadata
+        .contains_key("og:title"));
+    assert_eq!(
+        twitter_fallback_metadata.page_metadata["twitter:title"],
+        "Fallback Twitter Only Title"
+    );
 }
