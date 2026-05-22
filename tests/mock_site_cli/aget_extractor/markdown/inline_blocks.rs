@@ -79,4 +79,24 @@ pub(super) fn assert_inline_blocks(aget_home: &Path, site: &MockSite) {
             "```"
         )
     );
+
+    let markdown_body_width = markdown_content(
+        aget_home,
+        site,
+        "/markdown-body-width",
+        &[("crawl4ai.body_width", "24")],
+    );
+    assert_eq!(
+        markdown_body_width,
+        concat!(
+            "# Body Width\n\n",
+            "Alpha beta gamma delta\n",
+            "epsilon zeta eta theta\n",
+            "iota kappa lambda.\n\n",
+            "* List item should stay on one rendered line even when the width is narrow.\n\n",
+            "```\n",
+            "code line should not wrap when body width is narrow\n",
+            "```"
+        )
+    );
 }

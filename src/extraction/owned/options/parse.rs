@@ -119,6 +119,14 @@ pub(super) fn parse_owned_word_count_threshold(value: &str) -> Result<usize, Age
     })
 }
 
+pub(super) fn parse_owned_body_width(value: &str) -> Result<usize, AgetError> {
+    value.trim().parse::<usize>().map_err(|_| {
+        extraction_failed(format!(
+            "crawl4ai.body_width expects a non-negative integer value, got '{value}'"
+        ))
+    })
+}
+
 pub(super) fn parse_owned_max_scroll_steps(value: &str) -> Result<usize, AgetError> {
     value.trim().parse::<usize>().map_err(|_| {
         extraction_failed(format!(

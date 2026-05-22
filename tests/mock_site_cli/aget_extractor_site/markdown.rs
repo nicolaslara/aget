@@ -96,6 +96,23 @@ pub(crate) fn routes(builder: MockSiteBuilder) -> MockSiteBuilder {
             ),
         )
         .route(
+            "/markdown-body-width",
+            MockResponse::html(
+                r#"
+<html>
+  <body>
+    <main class="article">
+      <h1>Body Width</h1>
+      <p>Alpha beta gamma delta epsilon zeta eta theta iota kappa lambda.</p>
+      <ul><li>List item should stay on one rendered line even when the width is narrow.</li></ul>
+      <pre><code>code line should not wrap when body width is narrow</code></pre>
+    </main>
+  </body>
+</html>
+"#,
+            ),
+        )
+        .route(
             "/markdown-nested-lists",
             MockResponse::html(
                 r#"

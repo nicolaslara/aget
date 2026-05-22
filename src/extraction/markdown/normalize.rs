@@ -47,6 +47,82 @@ pub(in crate::extraction) fn normalize_markdown(markdown: &str) -> String {
     output.trim().to_string()
 }
 
+pub(in crate::extraction) fn apply_markdown_body_width(
+    markdown: &str,
+    body_width: usize,
+) -> String {
+    if body_width == 0 || markdown.is_empty() {
+        return markdown.to_string();
+    }
+
+    let mut output = String::new();
+    let mut in_code_fence = false;
+    for line in markdown.lines() {
+        if is_code_fence_line(line) {
+            push_wrapped_line(&mut output, line);
+            in_code_fence = !in_code_fence;
+            continue;
+        }
+        if in_code_fence || should_preserve_markdown_line(line) {
+            push_wrapped_line(&mut output, line);
+            continue;
+        }
+        for wrapped_line in wrap_markdown_line(line, body_width) {
+            push_wrapped_line(&mut output, &wrapped_line);
+        }
+    }
+    output.trim_end().to_string()
+}
+
+fn is_code_fence_line(line: &str) -> bool {
+    line.trim_start().starts_with("```")
+}
+
+fn should_preserve_markdown_line(line: &str) -> bool {
+    let trimmed = line.trim_start();
+    line.trim().is_empty()
+        || line.ends_with("  ")
+        || line.starts_with(char::is_whitespace)
+        || trimmed.starts_with('#')
+        || trimmed.starts_with('|')
+        || trimmed.starts_with('>')
+        || trimmed.starts_with("![")
+        || trimmed.starts_with("*[")
+        || trimmed.starts_with("* ")
+        || trimmed.starts_with("- ")
+        || trimmed.starts_with("+ ")
+        || trimmed == "* * *"
+        || starts_with_ordered_list_marker(trimmed)
+}
+
+fn wrap_markdown_line(line: &str, body_width: usize) -> Vec<String> {
+    let mut wrapped = Vec::new();
+    let mut current = String::new();
+    for word in line.split_whitespace() {
+        let word_len = word.chars().count();
+        let current_len = current.chars().count();
+        let separator_len = usize::from(!current.is_empty());
+        if !current.is_empty() && current_len + separator_len + word_len > body_width {
+            wrapped.push(std::mem::take(&mut current));
+        }
+        if !current.is_empty() {
+            current.push(' ');
+        }
+        current.push_str(word);
+    }
+    if !current.is_empty() {
+        wrapped.push(current);
+    }
+    wrapped
+}
+
+fn push_wrapped_line(output: &mut String, line: &str) {
+    if !output.is_empty() {
+        output.push('\n');
+    }
+    output.push_str(line);
+}
+
 fn normalize_markdown_line_end(line: &str) -> String {
     let without_tabs = line.trim_end_matches('\t');
     if without_tabs.ends_with("  ") {

@@ -2,14 +2,14 @@ use crate::error::AgetError;
 use crate::extraction::extraction_failed;
 
 use super::parse::{
-    parse_owned_base_url, parse_owned_bool, parse_owned_excluded_tags, parse_owned_list,
-    parse_owned_max_scroll_steps, parse_owned_milliseconds, parse_owned_render_delay,
-    parse_owned_seconds, parse_owned_target_elements, parse_owned_wait_until,
-    parse_owned_word_count_threshold,
+    parse_owned_base_url, parse_owned_body_width, parse_owned_bool, parse_owned_excluded_tags,
+    parse_owned_list, parse_owned_max_scroll_steps, parse_owned_milliseconds,
+    parse_owned_render_delay, parse_owned_seconds, parse_owned_target_elements,
+    parse_owned_wait_until, parse_owned_word_count_threshold,
 };
 use super::OwnedExtractorOptions;
 
-const SUPPORTED_OPTIONS: &str = "crawl4ai.base_url, crawl4ai.bypass_tables, crawl4ai.close_quote, crawl4ai.default_image_alt, crawl4ai.delay_before_return_html, crawl4ai.emphasis_mark, crawl4ai.escape_snob, crawl4ai.exclude_all_images, crawl4ai.exclude_domains, crawl4ai.exclude_external_images, crawl4ai.exclude_external_links, crawl4ai.exclude_internal_links, crawl4ai.exclude_social_media_domains, crawl4ai.exclude_social_media_links, crawl4ai.excluded_tags, crawl4ai.flatten_shadow_dom, crawl4ai.ignore_emphasis, crawl4ai.ignore_images, crawl4ai.ignore_links, crawl4ai.ignore_mailto_links, crawl4ai.ignore_tables, crawl4ai.images_as_html, crawl4ai.images_to_alt, crawl4ai.images_with_size, crawl4ai.include_sup_sub, crawl4ai.keep_data_attributes, crawl4ai.max_scroll_steps, crawl4ai.only_text, crawl4ai.open_quote, crawl4ai.page_timeout, crawl4ai.process_iframes, crawl4ai.protect_links, crawl4ai.remove_forms, crawl4ai.remove_overlay_elements, crawl4ai.scan_full_page, crawl4ai.scroll_delay, crawl4ai.skip_internal_links, crawl4ai.strong_mark, crawl4ai.target_elements, crawl4ai.ul_item_mark, crawl4ai.use_automatic_links, crawl4ai.wait_for_images, crawl4ai.wait_for_timeout, crawl4ai.wait_until, crawl4ai.word_count_threshold";
+const SUPPORTED_OPTIONS: &str = "crawl4ai.base_url, crawl4ai.body_width, crawl4ai.bypass_tables, crawl4ai.close_quote, crawl4ai.default_image_alt, crawl4ai.delay_before_return_html, crawl4ai.emphasis_mark, crawl4ai.escape_snob, crawl4ai.exclude_all_images, crawl4ai.exclude_domains, crawl4ai.exclude_external_images, crawl4ai.exclude_external_links, crawl4ai.exclude_internal_links, crawl4ai.exclude_social_media_domains, crawl4ai.exclude_social_media_links, crawl4ai.excluded_tags, crawl4ai.flatten_shadow_dom, crawl4ai.ignore_emphasis, crawl4ai.ignore_images, crawl4ai.ignore_links, crawl4ai.ignore_mailto_links, crawl4ai.ignore_tables, crawl4ai.images_as_html, crawl4ai.images_to_alt, crawl4ai.images_with_size, crawl4ai.include_sup_sub, crawl4ai.keep_data_attributes, crawl4ai.max_scroll_steps, crawl4ai.only_text, crawl4ai.open_quote, crawl4ai.page_timeout, crawl4ai.process_iframes, crawl4ai.protect_links, crawl4ai.remove_forms, crawl4ai.remove_overlay_elements, crawl4ai.scan_full_page, crawl4ai.scroll_delay, crawl4ai.skip_internal_links, crawl4ai.strong_mark, crawl4ai.target_elements, crawl4ai.ul_item_mark, crawl4ai.use_automatic_links, crawl4ai.wait_for_images, crawl4ai.wait_for_timeout, crawl4ai.wait_until, crawl4ai.word_count_threshold";
 
 pub(super) fn apply_owned_extractor_option(
     owned_options: &mut OwnedExtractorOptions,
@@ -72,6 +72,9 @@ pub(super) fn apply_owned_extractor_option(
         }
         "default_image_alt" => {
             owned_options.default_image_alt = value.to_string();
+        }
+        "body_width" => {
+            owned_options.body_width = parse_owned_body_width(value)?;
         }
         "open_quote" => {
             owned_options.open_quote = value.to_string();

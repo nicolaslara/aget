@@ -110,6 +110,7 @@ fn extract_single_owned_element(
             owned_options.use_automatic_links,
             owned_options.escape_snob,
             owned_options.include_sup_sub,
+            owned_options.body_width,
         ),
         text: element_to_text(element),
     }
@@ -175,6 +176,7 @@ fn extract_target_owned_elements(
                     owned_options.use_automatic_links,
                     owned_options.escape_snob,
                     owned_options.include_sup_sub,
+                    owned_options.body_width,
                 )
             })
             .filter(|markdown| !markdown.is_empty())

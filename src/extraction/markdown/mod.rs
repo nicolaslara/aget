@@ -15,7 +15,9 @@ use self::inline::{
     inline_markdown_from_children, inline_text_from_node, raw_text_from_node, render_abbreviation,
     render_image, render_link,
 };
-pub(super) use self::normalize::{normalize_markdown, resolve_markdown_url};
+pub(super) use self::normalize::{
+    apply_markdown_body_width, normalize_markdown, resolve_markdown_url,
+};
 use self::table::render_table;
 use self::writer::MarkdownWriter;
 
@@ -43,6 +45,7 @@ pub(super) fn element_to_markdown(
     use_automatic_links: bool,
     escape_snob: bool,
     include_sup_sub: bool,
+    body_width: usize,
 ) -> String {
     let mut writer = MarkdownWriter::new(
         base_url,
@@ -70,7 +73,7 @@ pub(super) fn element_to_markdown(
     );
     render_node(*element, &mut writer);
     writer.append_abbreviation_definitions();
-    normalize_markdown(&writer.output)
+    apply_markdown_body_width(&normalize_markdown(&writer.output), body_width)
 }
 
 fn render_node(node: NodeRef<'_, Node>, writer: &mut MarkdownWriter) {
