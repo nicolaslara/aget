@@ -48,6 +48,27 @@ fn parses_get_output_path() {
 }
 
 #[test]
+fn parses_get_local_content_input() {
+    let cli = Cli::try_parse_from(["aget", "get", "raw:<main>Local</main>"]).unwrap();
+
+    assert_eq!(
+        cli.command,
+        Command::Get(GetCommand {
+            url: "raw:<main>Local</main>".to_string(),
+            session: Vec::new(),
+            output: None,
+            content_format: OutputFormat::Markdown,
+            inline_content: InlineContent::Auto,
+            selector: None,
+            exclude_selector: None,
+            wait_for_selector: None,
+            max_chars: None,
+            backend_options: Vec::new(),
+        })
+    );
+}
+
+#[test]
 fn parses_repeated_get_sessions() {
     let cli = Cli::try_parse_from([
         "aget",

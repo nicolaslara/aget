@@ -2,6 +2,8 @@
 mod basic_formats;
 #[path = "aget_extractor/cleanup.rs"]
 mod cleanup;
+#[path = "aget_extractor/local_content.rs"]
+mod local_content;
 #[path = "aget_extractor/main_content.rs"]
 mod main_content;
 #[path = "aget_extractor/markdown.rs"]
@@ -24,6 +26,7 @@ fn aget_extractor_backend_covers_static_http_parity_slice() {
     basic_formats::assert_public_session_and_formats(&aget_home, &site);
     markdown::assert_markdown_rendering(&aget_home, &site);
     cleanup::assert_cleanup_outputs(&aget_home, &site);
+    local_content::assert_local_content_urls(&aget_home);
     main_content::assert_main_content_scoring(&aget_home, &site);
     selectors::assert_selector_and_target_options(&aget_home, &site);
     options_waits::assert_backend_options_redirects_and_waits(&aget_home, &site);

@@ -1,3 +1,4 @@
+use std::fs;
 use std::time::Duration;
 
 use ureq::ResponseExt;
@@ -11,6 +12,7 @@ use super::{domain_matches_host, extraction_failed};
 pub(super) struct OwnedHttpResponse {
     pub(super) final_url: String,
     pub(super) body: String,
+    pub(super) can_auto_render: bool,
 }
 
 pub(super) fn owned_fetch(
@@ -18,7 +20,10 @@ pub(super) fn owned_fetch(
     state: &PlaywrightState,
     timeout: Duration,
 ) -> Result<OwnedHttpResponse, AgetError> {
-    let parsed = ParsedRequestUrl::parse(url)?;
+    let source = ParsedRequestSource::parse(url)?;
+    let ParsedRequestSource::Http(parsed) = source else {
+        return source.into_local_response();
+    };
     let config = ureq::Agent::config_builder()
         .timeout_global(Some(timeout))
         .http_status_as_error(false)
@@ -36,7 +41,54 @@ pub(super) fn owned_fetch(
         .body_mut()
         .read_to_string()
         .map_err(map_ureq_error)?;
-    Ok(OwnedHttpResponse { final_url, body })
+    Ok(OwnedHttpResponse {
+        final_url,
+        body,
+        can_auto_render: true,
+    })
+}
+
+#[derive(Debug, Clone)]
+enum ParsedRequestSource<'a> {
+    Http(ParsedRequestUrl),
+    File { url: &'a str, path: &'a str },
+    Raw { url: &'a str, html: &'a str },
+}
+
+impl<'a> ParsedRequestSource<'a> {
+    fn parse(url: &'a str) -> Result<Self, AgetError> {
+        if let Some(path) = url.strip_prefix("file://") {
+            return Ok(Self::File { url, path });
+        }
+        if let Some(html) = url.strip_prefix("raw://") {
+            return Ok(Self::Raw { url, html });
+        }
+        if let Some(html) = url.strip_prefix("raw:") {
+            return Ok(Self::Raw { url, html });
+        }
+        Ok(Self::Http(ParsedRequestUrl::parse(url)?))
+    }
+
+    fn into_local_response(self) -> Result<OwnedHttpResponse, AgetError> {
+        match self {
+            Self::Http(_) => unreachable!("HTTP requests are handled by owned_fetch"),
+            Self::File { url, path } => {
+                let body = fs::read_to_string(path).map_err(|error| {
+                    extraction_failed(format!("local file '{path}' could not be read: {error}"))
+                })?;
+                Ok(OwnedHttpResponse {
+                    final_url: url.to_string(),
+                    body,
+                    can_auto_render: false,
+                })
+            }
+            Self::Raw { url, html } => Ok(OwnedHttpResponse {
+                final_url: url.to_string(),
+                body: html.to_string(),
+                can_auto_render: false,
+            }),
+        }
+    }
 }
 
 #[derive(Debug, Clone)]
@@ -107,5 +159,68 @@ fn map_ureq_error(error: ureq::Error) -> AgetError {
             message: error.to_string(),
         },
         other => extraction_failed(other.to_string()),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use std::time::Duration;
+
+    use crate::session::PlaywrightState;
+
+    use super::owned_fetch;
+
+    fn empty_state() -> PlaywrightState {
+        PlaywrightState {
+            cookies: Vec::new(),
+            origins: Vec::new(),
+        }
+    }
+
+    #[test]
+    fn owned_fetch_accepts_raw_colon_html_without_url_parsing() {
+        let response = owned_fetch(
+            "raw:<html><body><main>Raw</main></body></html>",
+            &empty_state(),
+            Duration::from_secs(1),
+        )
+        .unwrap();
+
+        assert_eq!(
+            response.final_url,
+            "raw:<html><body><main>Raw</main></body></html>"
+        );
+        assert_eq!(response.body, "<html><body><main>Raw</main></body></html>");
+        assert!(!response.can_auto_render);
+    }
+
+    #[test]
+    fn owned_fetch_accepts_raw_slash_html_without_url_parsing() {
+        let response = owned_fetch(
+            "raw://<html><body><main>Raw slash</main></body></html>",
+            &empty_state(),
+            Duration::from_secs(1),
+        )
+        .unwrap();
+
+        assert_eq!(
+            response.body,
+            "<html><body><main>Raw slash</main></body></html>"
+        );
+        assert!(!response.can_auto_render);
+    }
+
+    #[test]
+    fn owned_fetch_reads_explicit_file_url() {
+        let temp = tempfile::tempdir().unwrap();
+        let path = temp.path().join("page.html");
+        std::fs::write(&path, "<html><body><main>File</main></body></html>").unwrap();
+        let url = format!("file://{}", path.display());
+
+        let response = owned_fetch(&url, &empty_state(), Duration::from_secs(1)).unwrap();
+
+        assert_eq!(response.final_url, url);
+        assert_eq!(response.body, "<html><body><main>File</main></body></html>");
+        assert!(!response.can_auto_render);
     }
 }

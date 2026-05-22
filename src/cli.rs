@@ -66,7 +66,7 @@ pub struct GlobalOptions {
 
 #[derive(Debug, Subcommand, PartialEq, Eq)]
 pub enum Command {
-    /// Extract one HTTP(S) URL into agent-ready content.
+    /// Extract one URL or explicit local-content input into agent-ready content.
     Get(GetCommand),
     /// Extract the selected tab from an existing local browser CDP port.
     CurrentTab(CurrentTabCommand),

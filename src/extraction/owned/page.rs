@@ -58,7 +58,8 @@ pub(super) fn extract_owned_static_or_rendered(
     }
 
     let response = owned_fetch(url, state, timeout)?;
-    if should_render_scripted_response(&response.body) {
+    let can_auto_render = response.can_auto_render;
+    if can_auto_render && should_render_scripted_response(&response.body) {
         return extract_owned_rendered_page(
             tmp_dir,
             url,
@@ -72,7 +73,7 @@ pub(super) fn extract_owned_static_or_rendered(
 
     match extract_owned_page_response(response, options, fallback_selector, &owned_options) {
         Ok(extraction) => Ok(extraction),
-        Err(error) if should_retry_with_rendered_wait(&error, options) => {
+        Err(error) if can_auto_render && should_retry_with_rendered_wait(&error, options) => {
             extract_owned_rendered_page(
                 tmp_dir,
                 url,

@@ -2048,6 +2048,20 @@ Status note:
 
 - Completed with D276. `src/browser_cdp/page_scripts.rs` was replaced by `src/browser_cdp/page_scripts/` modules for storage, readiness/scroll, overlay cleanup, iframe processing, and shadow DOM scripts, with `mod.rs` preserving the existing helper route and visibility for browser/CDP callers and tests. `workpads/research/tasks.md` was not compacted. Focused page-script/CDP tests passed.
 
+### ✅ Task I19dh: Support Crawl4AI local-content URLs in owned static extraction
+
+Acceptance criteria:
+
+- Inspect Crawl4AI source for `raw:`, `raw://`, and `file://` URL handling before changing owned extraction.
+- Add owned static extraction support for explicit `raw:`, `raw://`, and `file://` inputs without applying cookie/session state to local content.
+- Preserve existing HTTP(S) fetch, cookie matching, and rendered-page behavior.
+- Record the local-content compatibility and privacy boundary in `knowledge.md`.
+- Verify with focused owned-extractor local-content coverage plus the standard check set.
+
+Status note:
+
+- Completed with D277. Source inspection found Crawl4AI accepts explicit `raw:`, `raw://`, and `file://` inputs, strips raw prefixes directly to preserve characters like `#`, reads local files for `file://`, and only routes local content through the browser path when browser-only options require it. Owned static extraction now accepts the same local-content prefixes before HTTP URL parsing, keeps local responses on the static non-network path, documents the CLI input shape, and preserves the privacy boundary by composing cookies only for HTTP(S) and rejecting named-session replay for local-content inputs. Focused owned-fetch, CLI parser, replay-scope, and mock-site extractor coverage passed.
+
 ### ✅ Task I20: Design OAuth-safe browser login and profile import flow
 
 Acceptance criteria:

@@ -134,4 +134,22 @@ mod tests {
 
         assert!(error.contains("provider.example.com"));
     }
+
+    #[test]
+    fn replay_scope_rejects_session_state_for_local_content_inputs() {
+        let mut session = Session::new("docs");
+        session
+            .allowed_cookie_domains
+            .push("example.com".to_string());
+
+        let error = enforce_replay_scope("raw:<main>Local</main>", &[session]).unwrap_err();
+
+        assert!(matches!(
+            error,
+            AgetError::Stable {
+                code: ErrorCode::UsageError,
+                ..
+            }
+        ));
+    }
 }

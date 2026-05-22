@@ -6,7 +6,7 @@ use super::{parse_backend_option, ExtractorOption, InlineContent, OutputFormat};
 
 #[derive(Debug, Args, PartialEq, Eq)]
 pub struct GetCommand {
-    /// HTTP(S) URL to extract.
+    /// HTTP(S), raw:, raw://, or file:// input to extract.
     pub url: String,
 
     /// Local session name to replay. Repeat to compose sessions for this request.
