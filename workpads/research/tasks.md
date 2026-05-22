@@ -1933,6 +1933,20 @@ Status note:
 
 - Completed with D268. `workpads/research/archive/knowledge/r12-mvp-architecture-proposal.md` is now a 9-line routing index, with historical architecture/boundary/CLI detail, config/session/output detail, and privacy/integration/implementation detail moved into three smaller section files under `archive/knowledge/r12-mvp-architecture-proposal/`. `workpads/research/tasks.md` was not compacted. Line-count checks and `git diff --check` passed.
 
+### ✅ Task I19cz: Split D92-D108 markdown/browser archive support file
+
+Acceptance criteria:
+
+- Preserve `workpads/research/tasks.md` as the full planned-task source of truth; do not compact or remove planned tasks.
+- Convert `workpads/research/archive/knowledge/d092-d108-markdown-browser-slices.md` into a compact routing index.
+- Move the dense historical D92-D108 markdown/browser decision content into smaller referenced files.
+- Update current knowledge routing and decision index so the split is discoverable.
+- Verify the split with line-count checks and `git diff --check`.
+
+Status note:
+
+- Completed with D269. `workpads/research/archive/knowledge/d092-d108-markdown-browser-slices.md` is now a 9-line routing index, with historical D92-D97 markdown/startup detail, D98-D103 inline-markdown/CDP-discovery detail, and D104-D108 list/blockquote/link-escaping detail moved into three smaller section files under `archive/knowledge/d092-d108-markdown-browser-slices/`. `workpads/research/tasks.md` was not compacted. Line-count checks and `git diff --check` passed.
+
 ### ✅ Task I20: Design OAuth-safe browser login and profile import flow
 
 Acceptance criteria:
