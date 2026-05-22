@@ -131,13 +131,13 @@ impl CdpClient {
         match self.socket.read() {
             Ok(Message::Text(text)) => {
                 let text: &str = text.as_ref();
-                Ok(serde_json::from_str(text).ok())
+                self.parse_cdp_message(text)
             }
             Ok(Message::Binary(bytes)) => {
                 let Ok(text) = String::from_utf8(bytes.to_vec()) else {
                     return Ok(None);
                 };
-                Ok(serde_json::from_str(&text).ok())
+                self.parse_cdp_message(&text)
             }
             Ok(Message::Ping(bytes)) => {
                 self.socket
@@ -160,6 +160,37 @@ impl CdpClient {
             }
             Err(error) => Err(cdp_io_error(error)),
         }
+    }
+
+    fn parse_cdp_message(&mut self, text: &str) -> Result<Option<Value>, AgetError> {
+        let Ok(message) = serde_json::from_str::<Value>(text) else {
+            return Ok(None);
+        };
+        if self.auto_handle_dialog_if_needed(&message)? {
+            return Ok(None);
+        }
+        Ok(Some(message))
+    }
+
+    fn auto_handle_dialog_if_needed(&mut self, message: &Value) -> Result<bool, AgetError> {
+        if message.get("method").and_then(Value::as_str) != Some("Page.javascriptDialogOpening") {
+            return Ok(false);
+        }
+        let dialog_type = message
+            .get("params")
+            .and_then(|params| params.get("type"))
+            .and_then(Value::as_str)
+            .unwrap_or_default();
+        if !matches!(dialog_type, "alert" | "beforeunload") {
+            return Ok(false);
+        }
+        let session_id = message.get("sessionId").and_then(Value::as_str);
+        self.send_no_wait(
+            "Page.handleJavaScriptDialog",
+            Some(json!({ "accept": true })),
+            session_id,
+        )?;
+        Ok(true)
     }
 
     fn send_keepalive_if_due(&mut self) -> Result<(), AgetError> {
