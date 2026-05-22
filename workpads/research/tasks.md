@@ -2687,6 +2687,22 @@ Status note:
 
 - Completed with D317. `scripts/crawl4ai_extract.py` remains the executable compatibility adapter route and delegates option parsing/signature checks, private file writes, and content selection/text extraction to `scripts/aget_crawl4ai_compat/` helper modules. The split is mechanical; command-line arguments, JSON response shape, metadata writes, validation messages, and Crawl4AI invocation behavior are intended unchanged, and `workpads/research/tasks.md` was not compacted. The executable route is 132 lines and all helper modules are 122 lines or less. Python syntax, pre-Crawl4AI-import validation paths, focused get CLI validation coverage, and the standard gate passed.
 
+### ✅ Task I19ew: Split CLI session parser unit tests
+
+Acceptance criteria:
+
+- Preserve current `aget session` parser unit-test coverage.
+- Keep `src/cli/tests/session.rs` as the session parser test route.
+- Move cohesive session parser test groups into smaller child modules by command surface.
+- Keep the split mechanical with no intentional CLI parser behavior changes.
+- Do not compact `workpads/research/tasks.md`.
+- Record the resulting test boundary in `knowledge.md`.
+- Verify with focused CLI session parser tests plus the standard check set.
+
+Status note:
+
+- Completed with D318. `src/cli/tests/session.rs` remains the CLI session parser test route and delegates inspect/compose, authorize, import, and login parser assertions to command-surface child modules. The split is mechanical; CLI parser behavior and public command names are unchanged, and `workpads/research/tasks.md` was not compacted. The parent route is 4 lines and all child modules are 137 lines or less. Focused `cli::tests::session` coverage and the standard gate passed.
+
 ### ✅ Task I20: Design OAuth-safe browser login and profile import flow
 
 Acceptance criteria:
