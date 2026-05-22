@@ -2624,6 +2624,22 @@ Status note:
 
 - Completed with D313. `src/extraction/markdown/mod.rs` remains the caller-facing markdown route and keeps `element_to_markdown`, node dispatch, inline-tag decisions, and the `only_text` eligibility table, while `src/extraction/markdown/block.rs` now owns heading, block, horizontal-rule, list, definition-list, code-block, blockquote, and structural-block helpers. The split is mechanical, extraction runtime behavior is unchanged, and `workpads/research/tasks.md` was not compacted. The markdown route dropped from 345 lines to 188 lines, with a 168-line block helper. Focused mock-site extractor coverage and the standard gate passed.
 
+### ✅ Task I19es: Split owned extractor option application helpers
+
+Acceptance criteria:
+
+- Preserve current owned extractor backend-option validation behavior and error messages.
+- Keep `src/extraction/owned/options.rs` as the caller-facing options route.
+- Move the long backend-option application match into a smaller child module.
+- Keep the split mechanical with no intentional extraction behavior changes.
+- Do not compact `workpads/research/tasks.md`.
+- Record the resulting options module boundary in `knowledge.md`.
+- Verify with focused backend-option validation coverage plus the standard check set.
+
+Status note:
+
+- Completed with D314. `src/extraction/owned/options.rs` remains the caller-facing options route and owns `OwnedExtractorOptions`, defaults, CSS-wait precheck, Crawl4AI namespace checks, and the validator entrypoint, while `src/extraction/owned/options/apply.rs` now owns per-key option application, typed parsing calls, field assignment, and supported-option error text. The split is mechanical, extraction runtime behavior and unsupported-option messages are unchanged, and `workpads/research/tasks.md` was not compacted. The options route dropped from 325 lines to 135 lines, with a 189-line apply helper. Focused backend-option validation coverage and the standard gate passed.
+
 ### ✅ Task I20: Design OAuth-safe browser login and profile import flow
 
 Acceptance criteria:
