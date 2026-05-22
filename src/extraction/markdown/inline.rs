@@ -55,6 +55,14 @@ pub(super) fn render_link(node: NodeRef<'_, Node>, writer: &mut MarkdownWriter) 
 
     if let Some(image_node) = single_image_child(node) {
         if let Some(image) = image_markdown(image_node, writer) {
+            if writer.images_to_alt
+                && writer.use_automatic_links
+                && image == href
+                && is_absolute_http_url(href)
+            {
+                writer.push_inline(&format!("<{}>", href));
+                return;
+            }
             writer.push_inline(&format!(
                 "[{}]({}{})",
                 image,
@@ -164,6 +172,9 @@ fn image_markdown(node: NodeRef<'_, Node>, writer: &MarkdownWriter) -> Option<St
         return None;
     }
     let alt = element.attr("alt").unwrap_or("");
+    if writer.images_to_alt {
+        return Some(escape_markdown_link_target(alt));
+    }
     Some(format!(
         "![{}]({})",
         escape_markdown_link_target(alt),
