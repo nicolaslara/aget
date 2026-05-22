@@ -290,6 +290,44 @@ pub(super) fn assert_markdown_rendering(aget_home: &Path, site: &MockSite) {
         .content
         .contains("A \\[diagram\\] \\(v1\\)."));
 
+    let markdown_images_with_size = Aget::new(aget_home)
+        .with_extractor_backend(AgetExtractorBackend::default())
+        .get(site.url("/markdown-links"))
+        .content_format(OutputFormat::Markdown)
+        .selector("main.article")
+        .backend_option("crawl4ai.images_with_size", "true")
+        .backend_option("crawl4ai.images_to_alt", "true")
+        .run()
+        .unwrap();
+    assert!(markdown_images_with_size.content.contains(
+        "and <img src='/assets/diagram(1).png' width='640' height='360' alt='A [diagram] (v1)' />."
+    ));
+    assert!(markdown_images_with_size.content.contains(&format!(
+        "Icon [<img src='/icons/app(1).svg' width='32' alt='Download [app]' />]({}).",
+        site.url("/download")
+    )));
+    assert!(!markdown_images_with_size
+        .content
+        .contains("![A \\[diagram\\]"));
+    assert!(!markdown_images_with_size
+        .content
+        .contains("A \\[diagram\\] \\(v1\\)."));
+
+    let markdown_images_with_size_keeps_unsized_images = Aget::new(aget_home)
+        .with_extractor_backend(AgetExtractorBackend::default())
+        .get(site.url("/markdown-inline-blocks"))
+        .content_format(OutputFormat::Markdown)
+        .selector("main.article")
+        .backend_option("crawl4ai.images_with_size", "true")
+        .run()
+        .unwrap();
+    assert!(markdown_images_with_size_keeps_unsized_images
+        .content
+        .contains(&format!("![Figure alt]({})", site.url("/figure.png"))));
+    assert!(!markdown_images_with_size_keeps_unsized_images
+        .content
+        .contains("<img src='/figure.png'"));
+
     let markdown_ignore_links = Aget::new(aget_home)
         .with_extractor_backend(AgetExtractorBackend::default())
         .get(site.url("/markdown-links"))

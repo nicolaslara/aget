@@ -172,7 +172,7 @@ fn image_markdown(node: NodeRef<'_, Node>, writer: &MarkdownWriter) -> Option<St
         return None;
     }
     let alt = element.attr("alt").unwrap_or("");
-    if writer.images_as_html {
+    if writer.images_as_html || (writer.images_with_size && image_has_size(element)) {
         return Some(image_html(element, src, alt));
     }
     if writer.images_to_alt {
@@ -183,6 +183,10 @@ fn image_markdown(node: NodeRef<'_, Node>, writer: &MarkdownWriter) -> Option<St
         escape_markdown_link_target(alt),
         escape_markdown_link_target(&writer.resolve_url(src))
     ))
+}
+
+fn image_has_size(element: ElementRef<'_>) -> bool {
+    element.attr("width").is_some() || element.attr("height").is_some()
 }
 
 fn image_html(element: ElementRef<'_>, src: &str, alt: &str) -> String {

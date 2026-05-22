@@ -131,6 +131,7 @@ EXTRACTOR_OPTION_TYPES = {
     "ignore_images": ("markdown", "bool"),
     "images_as_html": ("markdown", "bool"),
     "images_to_alt": ("markdown", "bool"),
+    "images_with_size": ("markdown", "bool"),
     "ignore_links": ("markdown", "bool"),
     "ignore_mailto_links": ("markdown", "bool"),
     "ignore_tables": ("markdown", "bool"),
