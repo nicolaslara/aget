@@ -2783,6 +2783,22 @@ Status note:
 
 - Completed with D323. `src/session/playwright/compose.rs` remains the composition route and re-exports the stable `compose_playwright_state` and `compose_session` functions while cookie normalization/conflict helpers, storage merge helpers, Playwright-state composition, and persisted composed-session construction live in focused child modules. The split is mechanical; session composition behavior is unchanged, and `workpads/research/tasks.md` was not compacted. Focused `session::playwright` coverage and the standard gate passed.
 
+### ✅ Task I19fc: Split Chrome command import CLI tests
+
+Acceptance criteria:
+
+- Preserve current command-backed Chrome import CLI test coverage and assertions.
+- Keep `tests/session_cli/imports/chrome_command.rs` as the Chrome command import test route.
+- Move successful import, missing backend, profile-lock, and malformed-state scenarios into smaller child modules.
+- Keep the split mechanical with no intentional session import behavior changes.
+- Do not compact `workpads/research/tasks.md`.
+- Record the resulting test boundary in `knowledge.md`.
+- Verify with focused Chrome command import tests plus the standard check set.
+
+Status note:
+
+- Completed with D324. `tests/session_cli/imports/chrome_command.rs` remains the command-backed Chrome import test route and delegates successful import, success assertions, missing-backend classification, profile-lock user action classification, and malformed-state cleanup scenarios to child modules. The split is mechanical; session import behavior is unchanged, and `workpads/research/tasks.md` was not compacted. The parent route is 10 lines and all child modules are 133 lines or less. Focused Chrome command import coverage and the standard gate passed.
+
 ### ✅ Task I20: Design OAuth-safe browser login and profile import flow
 
 Acceptance criteria:
