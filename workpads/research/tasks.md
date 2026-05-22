@@ -2092,6 +2092,20 @@ Status note:
 
 - Completed with D279. Source inspection found Crawl4AI's relevant-content candidate path excludes elements whose class/id text matches generic navigation, footer/header/sidebar, ads, comments, promo, advert, social, or share labels, while its pruning filter also uses the same labels as scoring input. Owned default main-content selection now rejects candidates whose own class/id contains those labels, preserving existing page-chrome ancestor tag exclusion and explicit word-threshold behavior. Focused mock-site coverage verifies that a long noisy comments-labeled article no longer beats the real content candidate.
 
+### ✅ Task I19dk: Split D55-D63 owned-extractor foundation archive
+
+Acceptance criteria:
+
+- Keep `workpads/research/archive/knowledge/d055-d063-owned-extractor-foundation.md` as the stable routing entrypoint.
+- Move dense D55-D63 decision detail into smaller referenced files.
+- Update current knowledge routing and decision index so the split is discoverable.
+- Do not compact `workpads/research/tasks.md`.
+- Validate that concatenating the split files reconstructs the prior archive content and `git diff --check` passes.
+
+Status note:
+
+- Completed with D280. `workpads/research/archive/knowledge/d055-d063-owned-extractor-foundation.md` is now a compact routing index, with historical D55-D57 static extractor/markdown detail, D58-D60 fallback/CDP detail, and D61-D63 render-retry/table detail moved into three smaller section files under `archive/knowledge/d055-d063-owned-extractor-foundation/`. `workpads/research/tasks.md` was not compacted. Concatenating the split files reconstructs the previous archive content, line-count checks show the routed entrypoint is 9 lines, and `git diff --check` passed.
+
 ### ✅ Task I20: Design OAuth-safe browser login and profile import flow
 
 Acceptance criteria:
