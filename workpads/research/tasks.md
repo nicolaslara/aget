@@ -2703,6 +2703,22 @@ Status note:
 
 - Completed with D318. `src/cli/tests/session.rs` remains the CLI session parser test route and delegates inspect/compose, authorize, import, and login parser assertions to command-surface child modules. The split is mechanical; CLI parser behavior and public command names are unchanged, and `workpads/research/tasks.md` was not compacted. The parent route is 4 lines and all child modules are 137 lines or less. Focused `cli::tests::session` coverage and the standard gate passed.
 
+### ✅ Task I19ex: Split attached-page CDP client tests
+
+Acceptance criteria:
+
+- Preserve current attached-page CDP client test coverage.
+- Keep `src/browser_cdp/tests/chrome/cdp_client/attached_page.rs` as the attached-page test route.
+- Move cohesive attached-page CDP scenarios into smaller child modules by behavior.
+- Keep the split mechanical with no intentional browser/CDP behavior changes.
+- Do not compact `workpads/research/tasks.md`.
+- Record the resulting test boundary in `knowledge.md`.
+- Verify with focused attached-page CDP tests plus the standard check set.
+
+Status note:
+
+- Completed with D319. `src/browser_cdp/tests/chrome/cdp_client/attached_page.rs` remains the attached-page CDP test route and delegates current-page capture, full-page scan, and no-page-target error coverage to behavior-owned child modules. The split is mechanical; browser/CDP runtime behavior is unchanged, and `workpads/research/tasks.md` was not compacted. The parent route is 3 lines and all child modules are 136 lines or less. Focused attached-page CDP coverage and the standard gate passed.
+
 ### ✅ Task I20: Design OAuth-safe browser login and profile import flow
 
 Acceptance criteria:
