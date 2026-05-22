@@ -1814,6 +1814,21 @@ Status note:
 
 - Completed with D260. `src/browser_cdp/client/navigation.rs` now keeps page navigation, blank-response navigation, lifecycle-event waits, network-idle tracking, navigation response/error handling, session message matching, and network request id extraction, while `src/browser_cdp/client/navigation/readiness.rs` owns runtime readiness/evaluation helpers for selector waits, image completeness polling, full-page scan evaluation, rendered overlay cleanup evaluation, and string evaluation. Existing render/current-tab callers continue to use the same `CdpClient` methods, and `workpads/research/tasks.md` remains un-compacted.
 
+### ✅ Task I19cr: Split Chrome profile discovery helpers
+
+Acceptance criteria:
+
+- Preserve current owned Chrome import profile behavior, including explicit path handling, Chrome user-data-dir discovery, Local State parsing, directory/display-name matching, ambiguous-name errors, available-profile errors, and copied-profile import setup.
+- Move Chrome profile discovery and name resolution helpers out of `src/session/chrome/profile.rs` into a focused submodule.
+- Keep current `session::chrome::profile` internal function access compatible for owned Chrome import callers and tests.
+- Do not compact or remove planned tasks from `workpads/research/tasks.md`.
+- Record the resulting Chrome profile boundary in `knowledge.md`.
+- Verify with focused session Chrome profile coverage plus the standard check set.
+
+Status note:
+
+- Completed with D261. `src/session/chrome/profile.rs` now keeps owned Chrome profile preparation, explicit profile path validation, copied-profile lifetime, profile snapshot copying, copy exclusions, and private-directory helpers, while `src/session/chrome/profile/discovery.rs` owns Chrome user-data-dir discovery, `Local State` profile parsing, directory/display-name/case-insensitive matching, ambiguous-name reporting, and available-profile error formatting. Existing owned Chrome import callers and `session::chrome` tests continue to route through `session::chrome::profile`, and `workpads/research/tasks.md` remains un-compacted.
+
 ### ✅ Task I20: Design OAuth-safe browser login and profile import flow
 
 Acceptance criteria:

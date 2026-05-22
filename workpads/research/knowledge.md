@@ -20,7 +20,7 @@ Safety boundary remains unchanged: `aget` is a generic fetcher for content the u
 - Completed migration phases include source clones/inventory, backend abstraction audit, parity tests, default owned runtime switch, PoC command-default demotion, engine naming cleanup, module/test/support decomposition, and follow-up cleanup-module splitting.
 - Still open: I19d, I19e, and I19h.
 - I19d remains open for full Crawl4AI-quality readability/markdown and still-richer rendered-page readiness after D258 split owned content main-content scoring helpers.
-- I19e remains open for broader rendered JavaScript parity, manual real logged-in profile/keychain smoke execution, and still-fuller startup/error classification after D260 split browser CDP readiness/evaluation helpers.
+- I19e remains open for broader rendered JavaScript parity, manual real logged-in profile/keychain smoke execution, and still-fuller startup/error classification after D261 split Chrome profile discovery helpers.
 - I19h remains open because final migration review requires review subagents for test adequacy, architecture cohesion, and security/privacy.
 - Current support-file rule: do not compact `workpads/research/tasks.md`; compact supporting files by moving dense detail to referenced archive files. The largest historical knowledge bundles now route through split archive indexes after D232, and the historical session-wrapper PoC spec routes through smaller support slices after D243.
 
@@ -35,7 +35,7 @@ Safety boundary remains unchanged: `aget` is a generic fetcher for content the u
 | Original module-decomposition sequence | `archive/knowledge/d123-d150-module-decomposition.md` index to `d123-d150-module-decomposition/d123-d132-core-production-splits.md`, `d123-d150-module-decomposition/d133-d141-orchestration-and-test-target-splits.md`, and `d123-d150-module-decomposition/d142-d150-integration-test-splits.md` |
 | Auth/browser import and browser-choice design | `archive/knowledge/d151-d157-auth-and-browser-import.md` |
 | Recent migration follow-ups and source-backed extraction improvements | `archive/knowledge/d158-d167-recent-migration-followups.md` |
-| Latest individual decisions | `archive/knowledge/d168-workpad-knowledge-compaction.md` through `archive/knowledge/d260-browser-cdp-readiness-split.md` |
+| Latest individual decisions | `archive/knowledge/d168-workpad-knowledge-compaction.md` through `archive/knowledge/d261-chrome-profile-discovery-split.md` |
 
 ## Historical Support Docs
 
