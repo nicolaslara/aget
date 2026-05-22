@@ -1,9 +1,11 @@
 use std::collections::BTreeMap;
+use std::fs;
 use std::path::Path;
 use std::time::Duration;
 
 use scraper::Html;
 use serde_json::Value;
+use url::Url;
 
 use crate::cli::OutputFormat;
 use crate::error::AgetError;
@@ -25,7 +27,10 @@ mod readiness;
 mod rendered;
 
 use readiness::should_render_scripted_response;
-use rendered::{extract_owned_rendered_page, should_retry_with_rendered_wait};
+use rendered::{
+    extract_owned_rendered_page, extract_owned_rendered_page_with_url,
+    should_retry_with_rendered_wait,
+};
 
 pub(crate) struct OwnedPageExtraction {
     pub(crate) final_url: String,
@@ -43,6 +48,20 @@ pub(super) fn extract_owned_static_or_rendered(
     fallback_selector: Option<&str>,
 ) -> Result<OwnedPageExtraction, AgetError> {
     let owned_options = validate_owned_extraction_options(options)?;
+    if should_route_local_input_through_browser(options, &owned_options) {
+        if let Some(local_input) = local_browser_render_input(tmp_dir, url)? {
+            return extract_owned_rendered_page_with_url(
+                tmp_dir,
+                &local_input.render_url,
+                Some(local_input.final_url),
+                state,
+                options,
+                timeout,
+                fallback_selector,
+                &owned_options,
+            );
+        }
+    }
     if owned_options.wait_for_images || owned_options.process_iframes {
         return extract_owned_rendered_page(
             tmp_dir,
@@ -254,4 +273,107 @@ fn fast_format_owned_html(html: &str) -> String {
         }
     }
     formatted.join("\n")
+}
+
+struct LocalBrowserRenderInput {
+    render_url: String,
+    final_url: String,
+}
+
+fn should_route_local_input_through_browser(
+    options: &GetOptions,
+    owned_options: &OwnedExtractorOptions,
+) -> bool {
+    owned_options.process_in_browser
+        || owned_options.wait_for_images
+        || owned_options.process_iframes
+        || owned_options.scan_full_page
+        || options.wait_for_selector.is_some()
+}
+
+fn local_browser_render_input(
+    tmp_dir: &Path,
+    url: &str,
+) -> Result<Option<LocalBrowserRenderInput>, AgetError> {
+    if let Some(path) = url.strip_prefix("file://") {
+        let render_url = Url::from_file_path(path).map_err(|_| {
+            extraction_failed(format!(
+                "could not convert local file path '{path}' to file URL"
+            ))
+        })?;
+        return Ok(Some(LocalBrowserRenderInput {
+            render_url: render_url.to_string(),
+            final_url: url.to_string(),
+        }));
+    }
+    let html = if let Some(html) = url.strip_prefix("raw://") {
+        html
+    } else if let Some(html) = url.strip_prefix("raw:") {
+        html
+    } else {
+        return Ok(None);
+    };
+    let path = tmp_dir.join("raw-browser-input.html");
+    fs::write(&path, html)
+        .map_err(|error| extraction_failed(format!("write raw browser input: {error}")))?;
+    let render_url = Url::from_file_path(&path).map_err(|_| {
+        extraction_failed(format!(
+            "could not convert raw browser input path '{}' to file URL",
+            path.display()
+        ))
+    })?;
+    Ok(Some(LocalBrowserRenderInput {
+        render_url: render_url.to_string(),
+        final_url: url.to_string(),
+    }))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{local_browser_render_input, should_route_local_input_through_browser};
+    use crate::cli::OutputFormat;
+    use crate::extraction::GetOptions;
+
+    use super::super::options::OwnedExtractorOptions;
+
+    #[test]
+    fn local_browser_render_input_writes_raw_html_to_temp_file_url() {
+        let temp = tempfile::tempdir().unwrap();
+        let input =
+            local_browser_render_input(temp.path(), "raw:<html><body>Raw</body></html>").unwrap();
+        let input = input.unwrap();
+        assert_eq!(input.final_url, "raw:<html><body>Raw</body></html>");
+        assert!(input.render_url.starts_with("file://"));
+        assert_eq!(
+            std::fs::read_to_string(temp.path().join("raw-browser-input.html")).unwrap(),
+            "<html><body>Raw</body></html>"
+        );
+    }
+
+    #[test]
+    fn local_browser_routing_stays_off_without_browser_options() {
+        let options = GetOptions {
+            url: "raw:<main>Local</main>".to_string(),
+            sessions: Vec::new(),
+            output: None,
+            home: None,
+            timeout: None,
+            content_format: OutputFormat::Markdown,
+            selector: None,
+            exclude_selector: None,
+            wait_for_selector: None,
+            max_chars: None,
+            backend_options: Vec::new(),
+        };
+        assert!(!should_route_local_input_through_browser(
+            &options,
+            &OwnedExtractorOptions::default()
+        ));
+        let mut owned_options = OwnedExtractorOptions::default();
+        owned_options.process_in_browser = true;
+        assert!(should_route_local_input_through_browser(
+            &options,
+            &owned_options
+        ));
+    }
 }

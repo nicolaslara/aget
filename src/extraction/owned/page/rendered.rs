@@ -18,9 +18,31 @@ pub(super) fn extract_owned_rendered_page(
     fallback_selector: Option<&str>,
     owned_options: &OwnedExtractorOptions,
 ) -> Result<OwnedPageExtraction, AgetError> {
-    let rendered = crate::browser_cdp::render_page(BrowserRenderRequest {
+    extract_owned_rendered_page_with_url(
         tmp_dir,
         url,
+        None,
+        state,
+        options,
+        timeout,
+        fallback_selector,
+        owned_options,
+    )
+}
+
+pub(super) fn extract_owned_rendered_page_with_url(
+    tmp_dir: &Path,
+    render_url: &str,
+    final_url_override: Option<String>,
+    state: &PlaywrightState,
+    options: &GetOptions,
+    timeout: Duration,
+    fallback_selector: Option<&str>,
+    owned_options: &OwnedExtractorOptions,
+) -> Result<OwnedPageExtraction, AgetError> {
+    let rendered = crate::browser_cdp::render_page(BrowserRenderRequest {
+        tmp_dir,
+        url: render_url,
         state,
         wait_for_selector: options.wait_for_selector.as_deref(),
         wait_until: owned_options.wait_until,
@@ -36,7 +58,7 @@ pub(super) fn extract_owned_rendered_page(
         timeout,
     })?;
     let mut extraction = extract_owned_html(
-        rendered.final_url,
+        final_url_override.unwrap_or(rendered.final_url),
         rendered.html,
         options,
         fallback_selector,

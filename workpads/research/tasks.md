@@ -3537,6 +3537,24 @@ Status note:
 
 - Completed with D371. Source inspection found `CrawlerRunConfig.prettiify` defaults to `false`, and `AsyncWebCrawler` applies `fast_format_html(cleaned_html)` after scraping/extraction but before returning `CrawlResult.cleaned_html`. Owned extraction now accepts `crawl4ai.prettiify` and applies Crawl4AI-style two-space fast formatting only to owned HTML output; markdown, text, and JSON output stay unchanged. The optional Crawl4AI compatibility helper, command mock validation, README, OpenCode tool text, and compact knowledge routing were updated. `workpads/research/tasks.md` was not compacted. Focused owned HTML coverage, command-backend option validation, Python helper syntax and parsing checks, `cargo fmt --check`, `git diff --check`, and full `cargo test` passed.
 
+### ✅ Task I19gw: Support Crawl4AI `process_in_browser` local-content routing
+
+Acceptance criteria:
+
+- Inspect Crawl4AI source before changing owned raw/file input routing.
+- Accept `crawl4ai.process_in_browser` as a backend option for owned extraction.
+- Route raw/file inputs through owned CDP rendering when `process_in_browser` or safe browser-only local options require the browser pipeline.
+- Preserve current fast static raw/file behavior when browser routing is not requested.
+- Preserve the authenticated safety rule: do not enable arbitrary user-supplied JavaScript execution.
+- Keep the optional Crawl4AI command compatibility helper able to pass `process_in_browser` to real Crawl4AI.
+- Do not compact `workpads/research/tasks.md`.
+- Record the source-backed boundary in `knowledge.md`.
+- Verify with focused local-routing/option coverage, helper syntax checks, and the standard check set.
+
+Status note:
+
+- Completed with D372. Source inspection found Crawl4AI's `CrawlerRunConfig.process_in_browser` defaults to `false`, and `AsyncCrawlerStrategy.crawl` routes `raw:`, `raw://`, and `file://` inputs through the browser pipeline when `process_in_browser` or other browser-only options are present; otherwise local content returns through the fast HTML path. Owned extraction now accepts `crawl4ai.process_in_browser`, materializes raw HTML into a temporary run-local file URL for CDP rendering when browser routing is requested, preserves the original raw/file final URL in extraction output, and also routes safe browser-only local options such as CSS waits, image readiness, iframe processing, and full-page scanning through the same path. Arbitrary user-supplied JavaScript remains unsupported. The optional Crawl4AI compatibility helper, command mock validation, README, OpenCode tool text, compact knowledge routing, and ignored local Chrome raw-browser smoke coverage were updated. `workpads/research/tasks.md` was not compacted. Focused local-routing unit coverage, command-backend option validation, Python helper syntax and parsing checks, `cargo fmt --check`, `git diff --check`, and full `cargo test` passed; the ignored local Chrome smoke was added but not run in the deterministic gate.
+
 ### ✅ Task I20: Design OAuth-safe browser login and profile import flow
 
 Acceptance criteria:
