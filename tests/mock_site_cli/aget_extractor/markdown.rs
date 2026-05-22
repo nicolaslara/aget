@@ -130,6 +130,26 @@ pub(super) fn assert_markdown_rendering(aget_home: &Path, site: &MockSite) {
         )
     );
 
+    let markdown_ignore_images = Aget::new(aget_home)
+        .with_extractor_backend(AgetExtractorBackend::default())
+        .get(site.url("/markdown-links"))
+        .content_format(OutputFormat::Markdown)
+        .selector("main.article")
+        .backend_option("crawl4ai.ignore_images", "true")
+        .run()
+        .unwrap();
+    assert!(markdown_ignore_images
+        .content
+        .contains("Asset [release notes]("));
+    assert!(markdown_ignore_images
+        .content
+        .contains(&format!("Icon []({}).", site.url("/download"))));
+    assert!(!markdown_ignore_images.content.contains("![A \\[diagram\\]"));
+    assert!(!markdown_ignore_images.content.contains("/assets/diagram"));
+    assert!(!markdown_ignore_images
+        .content
+        .contains("![Download \\[app\\]]"));
+
     let markdown_ignore_links = Aget::new(aget_home)
         .with_extractor_backend(AgetExtractorBackend::default())
         .get(site.url("/markdown-links"))

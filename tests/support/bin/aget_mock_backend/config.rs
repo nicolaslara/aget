@@ -84,6 +84,7 @@ fn validate_crawl4ai_options(args: &Args) -> Result<(), String> {
         "scroll_delay",
         "max_scroll_steps",
         "flatten_shadow_dom",
+        "ignore_images",
         "ignore_links",
         "include_sup_sub",
         "skip_internal_links",

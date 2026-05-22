@@ -142,6 +142,9 @@ pub(super) fn render_image(node: NodeRef<'_, Node>, writer: &mut MarkdownWriter)
 }
 
 fn image_markdown(node: NodeRef<'_, Node>, writer: &MarkdownWriter) -> Option<String> {
+    if writer.ignore_images {
+        return None;
+    }
     let element = ElementRef::wrap(node)?;
     let src = element.attr("src")?;
     if src.trim().is_empty() {

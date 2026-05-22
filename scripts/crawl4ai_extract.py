@@ -125,6 +125,7 @@ EXTRACTOR_OPTION_TYPES = {
     "scroll_delay": ("crawler", "float"),
     "max_scroll_steps": ("crawler", "int"),
     "flatten_shadow_dom": ("crawler", "bool"),
+    "ignore_images": ("markdown", "bool"),
     "ignore_links": ("markdown", "bool"),
     "include_sup_sub": ("markdown", "bool"),
     "skip_internal_links": ("markdown", "bool"),
