@@ -2608,6 +2608,22 @@ Status note:
 
 - Completed with D312. `tests/mock_site_cli/aget_extractor/markdown.rs` remains the module route for the existing parent integration test and now delegates to behavior-owned child modules for table/base-link coverage, inline/block constructs, lists/code blocks, and link/image options. The split is mechanical, extraction runtime behavior is unchanged, and `workpads/research/tasks.md` was not compacted. The markdown test route dropped from 511 lines to a 38-line parent plus smaller child modules, with the largest child at 230 lines. Focused mock-site extractor coverage and the standard gate passed.
 
+### ✅ Task I19er: Split markdown block rendering helpers
+
+Acceptance criteria:
+
+- Preserve current owned markdown output behavior.
+- Keep `src/extraction/markdown/mod.rs` as the caller-facing markdown route.
+- Move cohesive block-level helpers out of the markdown route into a smaller child module.
+- Keep the split mechanical with no intentional extraction behavior changes.
+- Do not compact `workpads/research/tasks.md`.
+- Record the resulting markdown module boundary in `knowledge.md`.
+- Verify with focused owned markdown coverage plus the standard check set.
+
+Status note:
+
+- Completed with D313. `src/extraction/markdown/mod.rs` remains the caller-facing markdown route and keeps `element_to_markdown`, node dispatch, inline-tag decisions, and the `only_text` eligibility table, while `src/extraction/markdown/block.rs` now owns heading, block, horizontal-rule, list, definition-list, code-block, blockquote, and structural-block helpers. The split is mechanical, extraction runtime behavior is unchanged, and `workpads/research/tasks.md` was not compacted. The markdown route dropped from 345 lines to 188 lines, with a 168-line block helper. Focused mock-site extractor coverage and the standard gate passed.
+
 ### ✅ Task I20: Design OAuth-safe browser login and profile import flow
 
 Acceptance criteria:

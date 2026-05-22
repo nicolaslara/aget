@@ -37,7 +37,7 @@ Authenticated state and content stay local by default; site-specific paywall/log
 | Original module-decomposition sequence | `archive/knowledge/d123-d150-module-decomposition.md` |
 | Auth/browser import and browser-choice design | `archive/knowledge/d151-d157-auth-and-browser-import.md` |
 | Recent migration follow-ups and source-backed extraction improvements | `archive/knowledge/d158-d167-recent-migration-followups.md` |
-| Latest individual decisions | `archive/knowledge/d168-workpad-knowledge-compaction.md` through `archive/knowledge/d312-mock-site-markdown-test-split.md` |
+| Latest individual decisions | `archive/knowledge/d168-workpad-knowledge-compaction.md` through `archive/knowledge/d313-markdown-block-renderer-split.md` |
 
 ## Historical Support Docs
 
