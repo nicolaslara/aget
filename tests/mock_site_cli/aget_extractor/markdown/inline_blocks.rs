@@ -132,6 +132,33 @@ pub(super) fn assert_inline_blocks(aget_home: &Path, site: &MockSite) {
         "# Unicode Snob\n\n(C) -- \"quote\" -> <- * oeuvre cafe."
     );
 
+    let markdown_google_doc_default =
+        markdown_content(aget_home, site, "/markdown-google-doc", &[]);
+    assert!(markdown_google_doc_default.contains("Bold Italic Code Gone"));
+    assert!(!markdown_google_doc_default.contains("**Bold**"));
+    assert!(!markdown_google_doc_default.contains("_Italic_"));
+    assert!(!markdown_google_doc_default.contains("`Code`"));
+
+    let markdown_google_doc = markdown_content(
+        aget_home,
+        site,
+        "/markdown-google-doc",
+        &[("crawl4ai.google_doc", "true")],
+    );
+    assert!(markdown_google_doc.contains("**Bold** _Italic_ `Code` Gone"));
+
+    let markdown_google_doc_hide_strike = markdown_content(
+        aget_home,
+        site,
+        "/markdown-google-doc",
+        &[
+            ("crawl4ai.google_doc", "true"),
+            ("crawl4ai.hide_strikethrough", "true"),
+        ],
+    );
+    assert!(markdown_google_doc_hide_strike.contains("**Bold** _Italic_ `Code`"));
+    assert!(!markdown_google_doc_hide_strike.contains("Gone"));
+
     let markdown_body_width = markdown_content(
         aget_home,
         site,

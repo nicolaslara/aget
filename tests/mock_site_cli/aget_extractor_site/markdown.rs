@@ -112,6 +112,21 @@ pub(crate) fn routes(builder: MockSiteBuilder) -> MockSiteBuilder {
             ),
         )
         .route(
+            "/markdown-google-doc",
+            MockResponse::html(
+                r#"
+<html>
+  <body>
+    <main class="article">
+      <h1>Google Doc</h1>
+      <p><span style="font-weight:700">Bold</span> <span style="font-style:italic">Italic</span> <span style="font-family:Consolas">Code</span> <span style="text-decoration:line-through">Gone</span></p>
+    </main>
+  </body>
+</html>
+"#,
+            ),
+        )
+        .route(
             "/markdown-wrap-links",
             MockResponse::html(
                 r#"

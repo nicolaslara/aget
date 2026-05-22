@@ -37,6 +37,7 @@ EXTRACTOR_OPTION_TYPES = {
     "escape_dot": ("markdown", "bool"),
     "escape_plus": ("markdown", "bool"),
     "escape_snob": ("markdown", "bool"),
+    "google_doc": ("markdown", "bool"),
     "hide_strikethrough": ("markdown", "bool"),
     "ignore_emphasis": ("markdown", "bool"),
     "ignore_images": ("markdown", "bool"),

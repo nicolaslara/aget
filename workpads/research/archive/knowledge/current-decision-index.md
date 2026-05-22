@@ -161,6 +161,7 @@ This archive file keeps the denser decision routing that used to live in top-lev
 | D342 | `d342-cdp-storage-evaluate-exceptions.md` | CDP storage load/export `Runtime.evaluate` exception details surfaced consistently. |
 | D343 | `d343-blank-navigation-error-text.md` | CDP blank-response storage navigation surfaces `Page.navigate` `errorText`. |
 | D344 | `d344-image-readiness-timeout-boundary.md` | Crawl4AI image readiness keeps its own short timeout boundary separate from `wait_for_timeout`. |
+| D345 | `d345-google-doc-markdown-option.md` | Crawl4AI `google_doc` markdown option for source-compatible styled inline emphasis. |
 
 ## Full Archive Routing
 
@@ -180,7 +181,7 @@ This archive file keeps the denser decision routing that used to live in top-lev
 | D151-D157 | `d151-d157-auth-and-browser-import.md` | OAuth-safe authorization API/CLI and conservative browser-neutral Chrome import surface. |
 | D158-D167 | `d158-d167-recent-migration-followups.md` | Recent source-backed extraction improvements and follow-up decomposition slices. |
 | D168-D176 | Per-decision files | Knowledge/reference compaction, engine-refactor planning, wrapper introduction, naming cleanup, and direct engine coverage. |
-| D177-D344 | Per-decision files | Module/test/support decomposition plus the latest owned extractor/browser parity improvements, agent-facing option docs, support-file routing refreshes, login-session injection, body-width markdown wrapping, mark-code compatibility, single-line-break spacing, Chrome profile-lock diagnostics, unicode-snob compatibility, wrap-links compatibility, wrap-list-items compatibility, wrap-tables compatibility, pad-tables compatibility, hide-strikethrough compatibility, inline-links compatibility, links-each-paragraph compatibility, line-start escape option compatibility, backslash escape option compatibility, CDP evaluation exception reporting, blank-response navigation error reporting, and image readiness timeout boundary coverage. |
+| D177-D345 | Per-decision files | Module/test/support decomposition plus the latest owned extractor/browser parity improvements, agent-facing option docs, support-file routing refreshes, login-session injection, body-width markdown wrapping, mark-code compatibility, single-line-break spacing, Chrome profile-lock diagnostics, unicode-snob compatibility, wrap-links compatibility, wrap-list-items compatibility, wrap-tables compatibility, pad-tables compatibility, hide-strikethrough compatibility, inline-links compatibility, links-each-paragraph compatibility, line-start escape option compatibility, backslash escape option compatibility, Google Docs style markdown compatibility, CDP evaluation exception reporting, blank-response navigation error reporting, and image readiness timeout boundary coverage. |
 
 ## Current Open Migration Gaps
 

@@ -45,6 +45,7 @@ pub(super) fn element_to_markdown(
     ignore_tables: bool,
     bypass_tables: bool,
     hide_strikethrough: bool,
+    google_doc: bool,
     pad_tables: bool,
     protect_links: bool,
     use_automatic_links: bool,
@@ -83,6 +84,7 @@ pub(super) fn element_to_markdown(
         ignore_tables,
         bypass_tables,
         hide_strikethrough,
+        google_doc,
         protect_links,
         use_automatic_links,
         unicode_snob,
@@ -166,6 +168,9 @@ fn render_element(node: NodeRef<'_, Node>, tag: &str, writer: &mut MarkdownWrite
             let inner = inline_markdown_from_children(node, writer);
             writer.push_inline(&format!("~~{inner}~~"));
         }
+        _ if writer.google_doc && has_google_doc_text_style(node) => {
+            render_google_doc_styled_inline(node, writer);
+        }
         "q" => {
             let inner = inline_markdown_from_children(node, writer);
             writer.push_inline(&format!(
@@ -196,6 +201,56 @@ fn has_line_through_style(node: NodeRef<'_, Node>) -> bool {
     ElementRef::wrap(node)
         .and_then(|element| element.value().attr("style"))
         .is_some_and(|style| style.to_ascii_lowercase().contains("line-through"))
+}
+
+fn has_google_doc_text_style(node: NodeRef<'_, Node>) -> bool {
+    ElementRef::wrap(node)
+        .and_then(|element| element.value().attr("style"))
+        .is_some_and(|style| {
+            let style = style.to_ascii_lowercase();
+            google_doc_style_is_bold(&style)
+                || style.contains("font-style:italic")
+                || google_doc_style_is_fixed_width(&style)
+        })
+}
+
+fn render_google_doc_styled_inline(node: NodeRef<'_, Node>, writer: &mut MarkdownWriter) {
+    let Some(style) = ElementRef::wrap(node)
+        .and_then(|element| element.value().attr("style"))
+        .map(|style| style.to_ascii_lowercase())
+    else {
+        render_children(node, writer);
+        return;
+    };
+    let inner = inline_markdown_from_children(node, writer);
+    if inner.is_empty() {
+        return;
+    }
+    let mut rendered = inner;
+    if google_doc_style_is_fixed_width(&style) {
+        rendered = format!("`{rendered}`");
+    }
+    if google_doc_style_is_bold(&style) {
+        rendered = format!("{}{rendered}{}", writer.strong_mark, writer.strong_mark);
+    }
+    if style.contains("font-style:italic") {
+        rendered = format!("{}{rendered}{}", writer.emphasis_mark, writer.emphasis_mark);
+    }
+    writer.push_inline(&rendered);
+}
+
+fn google_doc_style_is_bold(style: &str) -> bool {
+    style.contains("font-weight:bold")
+        || style.contains("font-weight: bold")
+        || style.contains("font-weight:700")
+        || style.contains("font-weight: 700")
+}
+
+fn google_doc_style_is_fixed_width(style: &str) -> bool {
+    style.contains("font-family:consolas")
+        || style.contains("font-family: consolas")
+        || style.contains("font-family:courier new")
+        || style.contains("font-family: courier new")
 }
 
 fn is_only_text_eligible_tag(tag: &str) -> bool {

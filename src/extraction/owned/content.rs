@@ -72,7 +72,11 @@ pub(super) fn extract_owned_content(
     }
     document = clean_owned_base64_image_sources(document);
     document = remove_owned_empty_elements(document, &root_ids, &target_ids);
-    document = prune_owned_unwanted_attributes(document, owned_options.keep_data_attributes);
+    document = prune_owned_unwanted_attributes(
+        document,
+        owned_options.keep_data_attributes,
+        owned_options.google_doc,
+    );
 
     if owned_options.target_elements.is_empty() {
         if let [root_id] = root_ids.as_slice() {
@@ -147,6 +151,7 @@ fn extract_single_owned_element(
             owned_options.ignore_tables,
             owned_options.bypass_tables,
             owned_options.hide_strikethrough,
+            owned_options.google_doc,
             owned_options.pad_tables,
             owned_options.protect_links,
             owned_options.use_automatic_links,
@@ -226,6 +231,7 @@ fn extract_target_owned_elements(
                     owned_options.ignore_tables,
                     owned_options.bypass_tables,
                     owned_options.hide_strikethrough,
+                    owned_options.google_doc,
                     owned_options.pad_tables,
                     owned_options.protect_links,
                     owned_options.use_automatic_links,
