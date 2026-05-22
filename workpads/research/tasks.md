@@ -3298,6 +3298,21 @@ Status note:
 
 - Completed with D356. Source inspection found Crawl4AI's `PruningContentFilter` removes generic unwanted tags, including `nav`, `footer`, `header`, `aside`, `form`, `iframe`, and `noscript`, before pruning remaining content blocks. Owned extraction now removes those page-chrome tags only when automatic main-content selection falls back to `body` or document root, leaving explicit selectors, explicit HTML output, and already-selected `main`/`article`/container candidates unchanged. Deterministic mock-site coverage proves a bare body page keeps the title and useful paragraph while dropping header/nav/footer. `workpads/research/tasks.md` was not compacted. Focused main-content coverage passed; the standard gate passed before commit.
 
+### ✅ Task I19gh: Split oversized archived knowledge bundle without compacting tasks
+
+Acceptance criteria:
+
+- Keep `workpads/research/tasks.md` as the full executable backlog; do not compact existing task content.
+- Split the oversized archived D21-D34 knowledge bundle into smaller referenced section files.
+- Keep the original archive path as a compact router so existing links continue to work.
+- Update current support-file routing so the split is discoverable.
+- Record the support-file boundary in `knowledge.md`.
+- Verify route targets, size reduction, and diff hygiene.
+
+Status note:
+
+- Completed with D357. `workpads/research/tasks.md` was not compacted. The oversized historical D21-D34 knowledge bundle is now a compact router at its original path, with detailed content split into three referenced section files for D21-D24, D25-D28, and D29-D34. Concatenating the three new section files matches the previous archive content byte-for-byte, the original route remains discoverable through the current decision index, and size checks plus diff hygiene passed.
+
 ### ✅ Task I20: Design OAuth-safe browser login and profile import flow
 
 Acceptance criteria:

@@ -33,6 +33,7 @@ Open the referenced child indexes for older per-decision rows, then open the per
 | D354 | `d354-cdp-transport-test-split.md` | Mechanical split of CDP WebSocket transport tests out of setup/attach-domain tests. |
 | D355 | `d355-unlabeled-density-main-content.md` | Crawl4AI-style density scoring lets strong unlabeled content containers win main-content extraction. |
 | D356 | `d356-body-fallback-page-chrome-cleanup.md` | Crawl4AI-style page-chrome tag removal when automatic main-content extraction falls back to body/root. |
+| D357 | `d357-d021-d034-archive-split.md` | Support-file split that keeps D21-D34 as a compact router to smaller archive sections. |
 
 ## Full Archive Routing
 
@@ -40,7 +41,7 @@ Open the referenced child indexes for older per-decision rows, then open the per
 | --- | --- | --- |
 | D1-D20 | `d001-d020-foundation-research.md` | Product premise, prior art, auth/session research, benchmark findings, and first PoC direction. |
 | R12 | `r12-mvp-architecture-proposal.md` index to section files | MVP architecture proposal, CLI/API boundary, session model, security notes, implementation plan, and review recommendations. |
-| D21-D34 | `d021-d034-poc-session-api.md` | Early implementation, session replay/import, output shaping, auth ownership, login bootstrap, and response API decisions. |
+| D21-D34 | `d021-d034-poc-session-api.md` index to section files | Early implementation, session replay/import, output shaping, auth ownership, login bootstrap, and response API decisions. |
 | D35-D48 | `d035-d048-poc-hardening-backends.md` | Generic extraction follow-up, agent integration, hardening, mocked tests, facade, and backend-pluggability decisions. |
 | D49-D54 | `d049-d054-migration-setup-and-parity.md` | OAuth workflow assessment, API cleanup, dependency migration setup, backend abstractions, and parity matrix. |
 | D55-D63 | `d055-d063-owned-extractor-foundation.md` index to section files | First owned extractor, transport, selector, markdown, CDP, and table-rendering slices. |
@@ -51,7 +52,7 @@ Open the referenced child indexes for older per-decision rows, then open the per
 | D123-D150 | `d123-d150-module-decomposition.md` index to section files | Original extraction/CDP/test module decomposition through I19i completion. |
 | D151-D157 | `d151-d157-auth-and-browser-import.md` | OAuth-safe authorization API/CLI and conservative browser-neutral Chrome import surface. |
 | D158-D167 | `d158-d167-recent-migration-followups.md` | Recent source-backed extraction improvements and follow-up decomposition slices. |
-| D168-D356 | `decision-index/` plus per-decision files | Module/test/support decomposition plus owned extractor/browser parity improvements, agent-facing option docs, support-file routing refreshes, login-session injection, markdown options, CDP diagnostics, and transport/readiness coverage. |
+| D168-D357 | `decision-index/` plus per-decision files | Module/test/support decomposition plus owned extractor/browser parity improvements, agent-facing option docs, support-file routing refreshes, login-session injection, markdown options, CDP diagnostics, transport/readiness coverage, and support-file archive splits. |
 
 ## Current Open Migration Gaps
 
