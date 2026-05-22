@@ -188,6 +188,20 @@ fn assert_link_options(aget_home: &Path, site: &MockSite, icon_url: &str) {
     assert!(!markdown_ignore_links.contains("Guide \\\"title\\\""));
     assert!(!markdown_ignore_links.contains(&site.url("/download")));
 
+    let markdown_ignore_anchors = markdown_content(
+        aget_home,
+        site,
+        "/markdown-links",
+        &[("crawl4ai.ignore_anchors", "true")],
+    );
+    assert!(markdown_ignore_anchors.contains("## Linked Heading"));
+    assert!(markdown_ignore_anchors.contains("Read the guide or email support."));
+    assert!(markdown_ignore_anchors.contains("Icon ![Download \\[app\\]]("));
+    assert!(!markdown_ignore_anchors.contains("[the guide]("));
+    assert!(!markdown_ignore_anchors.contains("[Linked Heading]("));
+    assert!(!markdown_ignore_anchors.contains("Guide \\\"title\\\""));
+    assert!(!markdown_ignore_anchors.contains(&site.url("/download")));
+
     let markdown_include_mailto_links = markdown_content(
         aget_home,
         site,

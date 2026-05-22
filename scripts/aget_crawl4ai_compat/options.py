@@ -41,6 +41,7 @@ EXTRACTOR_OPTION_TYPES = {
     "google_list_indent": ("markdown", "int"),
     "handle_code_in_pre": ("markdown", "bool"),
     "hide_strikethrough": ("markdown", "bool"),
+    "ignore_anchors": ("markdown", "bool"),
     "ignore_emphasis": ("markdown", "bool"),
     "ignore_images": ("markdown", "bool"),
     "images_as_html": ("markdown", "bool"),
@@ -69,6 +70,11 @@ EXTRACTOR_OPTION_TYPES = {
 }
 
 JS_WAIT_MARKERS = ("=>", "function(", "return ", ";")
+EXTRACTOR_OPTION_ALIASES = {
+    # html2text names the default config flag IGNORE_ANCHORS while the runtime
+    # option consumed by CustomHTML2Text is ignore_links.
+    "ignore_anchors": "ignore_links",
+}
 
 
 def parse_extractor_options(values: list[str]) -> dict[str, dict[str, object]]:
@@ -85,7 +91,8 @@ def parse_extractor_options(values: list[str]) -> dict[str, dict[str, object]]:
             allowed = ", ".join(sorted(EXTRACTOR_OPTION_TYPES))
             raise ValueError(f"unsupported extractor option '{key}'; supported keys: {allowed}")
         target, value_type = EXTRACTOR_OPTION_TYPES[key]
-        parsed[target][key] = parse_extractor_value(key, raw_value, value_type)
+        option_key = EXTRACTOR_OPTION_ALIASES.get(key, key)
+        parsed[target][option_key] = parse_extractor_value(key, raw_value, value_type)
     return parsed
 
 

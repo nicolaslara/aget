@@ -39,6 +39,7 @@ Open the referenced child indexes for older per-decision rows, then open the per
 | D360 | `d360-refresh-local-chrome-smokes.md` | Local Chrome ignored smoke expectations refreshed to match owned text block-boundary output. |
 | D361 | `d361-metadata-title-fallback-parity.md` | Crawl4AI-compatible metadata title fallback coverage for missing `<title>` pages. |
 | D362 | `d362-twitter-title-fallback-parity.md` | Crawl4AI-compatible metadata title fallback coverage for Twitter-only title pages. |
+| D363 | `d363-ignore-anchors-alias.md` | Crawl4AI/html2text `ignore_anchors` compatibility alias for owned `ignore_links` markdown behavior. |
 
 ## Full Archive Routing
 
@@ -57,7 +58,7 @@ Open the referenced child indexes for older per-decision rows, then open the per
 | D123-D150 | `d123-d150-module-decomposition.md` index to section files | Original extraction/CDP/test module decomposition through I19i completion. |
 | D151-D157 | `d151-d157-auth-and-browser-import.md` | OAuth-safe authorization API/CLI and conservative browser-neutral Chrome import surface. |
 | D158-D167 | `d158-d167-recent-migration-followups.md` | Recent source-backed extraction improvements and follow-up decomposition slices. |
-| D168-D362 | `decision-index/` plus per-decision files | Module/test/support decomposition plus owned extractor/browser parity improvements, agent-facing option docs, support-file routing refreshes, login-session injection, markdown options, metadata coverage, CDP diagnostics, transport/readiness coverage, ignored local Chrome smoke refreshes, and support-file archive splits. |
+| D168-D363 | `decision-index/` plus per-decision files | Module/test/support decomposition plus owned extractor/browser parity improvements, agent-facing option docs, support-file routing refreshes, login-session injection, markdown options, metadata coverage, CDP diagnostics, transport/readiness coverage, ignored local Chrome smoke refreshes, and support-file archive splits. |
 
 ## Current Open Migration Gaps
 

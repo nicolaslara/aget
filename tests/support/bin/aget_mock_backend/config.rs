@@ -98,6 +98,7 @@ fn validate_crawl4ai_options(args: &Args) -> Result<(), String> {
         "google_list_indent",
         "handle_code_in_pre",
         "hide_strikethrough",
+        "ignore_anchors",
         "ignore_emphasis",
         "ignore_images",
         "images_as_html",
