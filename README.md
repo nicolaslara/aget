@@ -176,6 +176,10 @@ Success example:
     "content_format": "markdown",
     "extractor": "aget-owned-extractor",
     "content": "# Example\n...",
+    "page_metadata": {
+      "title": "Example",
+      "description": "Example page"
+    },
     "artifacts": {
       "content": "/Users/me/.aget/runs/abc123/output.md",
       "metadata": "/Users/me/.aget/runs/abc123/metadata.json"

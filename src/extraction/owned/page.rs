@@ -1,7 +1,9 @@
+use std::collections::BTreeMap;
 use std::path::Path;
 use std::time::Duration;
 
 use scraper::Html;
+use serde_json::Value;
 
 use crate::browser_cdp::BrowserRenderRequest;
 use crate::cli::OutputFormat;
@@ -17,11 +19,13 @@ use super::super::html_clean::{
 use super::super::http::{owned_fetch, OwnedHttpResponse};
 use super::super::{extraction_failed, GetOptions};
 use super::content::{extract_owned_content, markdown_base_url};
+use super::metadata::extract_page_metadata;
 use super::options::{validate_owned_extraction_options, OwnedExtractorOptions};
 
 pub(crate) struct OwnedPageExtraction {
     pub(crate) final_url: String,
     pub(crate) content: String,
+    pub(crate) page_metadata: BTreeMap<String, Value>,
     pub(crate) warnings: Vec<String>,
 }
 
@@ -204,6 +208,7 @@ fn extract_owned_html(
     owned_options: &OwnedExtractorOptions,
 ) -> Result<OwnedPageExtraction, AgetError> {
     let mut document = Html::parse_document(&body);
+    let page_metadata = extract_page_metadata(&document)?;
     document = remove_owned_comments(document);
     document = remove_selected_elements(document, "script,style,link,meta,noscript")?;
 
@@ -289,6 +294,7 @@ fn extract_owned_html(
     Ok(OwnedPageExtraction {
         final_url,
         content,
+        page_metadata,
         warnings: Vec::new(),
     })
 }

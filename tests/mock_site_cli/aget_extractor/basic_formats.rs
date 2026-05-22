@@ -1,4 +1,4 @@
-use std::path::Path;
+use std::{fs, path::Path};
 
 use aget::{Aget, AgetExtractorBackend, OutputFormat};
 
@@ -63,4 +63,35 @@ pub(super) fn assert_public_session_and_formats(aget_home: &Path, site: &MockSit
     let parsed: serde_json::Value = serde_json::from_str(&json.content).unwrap();
     assert_eq!(parsed["url"], site.url("/formats"));
     assert_eq!(parsed["content"], "Format Heading\nFormat body text.");
+
+    let metadata = Aget::new(aget_home)
+        .with_extractor_backend(AgetExtractorBackend::default())
+        .get(site.url("/metadata"))
+        .content_format(OutputFormat::Text)
+        .run()
+        .unwrap();
+    assert_eq!(metadata.content, "Metadata Body\nMetadata body text.");
+    assert_eq!(metadata.page_metadata["title"], "Metadata Title");
+    assert_eq!(
+        metadata.page_metadata["description"],
+        "Metadata description"
+    );
+    assert_eq!(metadata.page_metadata["keywords"], "agent,context,local");
+    assert_eq!(metadata.page_metadata["author"], "Aget Docs");
+    assert_eq!(metadata.page_metadata["og:title"], "Open Graph Title");
+    assert_eq!(
+        metadata.page_metadata["og:description"],
+        "Open Graph description"
+    );
+    assert_eq!(metadata.page_metadata["twitter:title"], "Twitter Title");
+    assert_eq!(
+        metadata.page_metadata["article:published_time"],
+        "2026-05-22T10:00:00Z"
+    );
+    let artifact_metadata: serde_json::Value =
+        serde_json::from_str(&fs::read_to_string(&metadata.artifacts.metadata).unwrap()).unwrap();
+    assert_eq!(
+        artifact_metadata["page_metadata"]["description"],
+        "Metadata description"
+    );
 }

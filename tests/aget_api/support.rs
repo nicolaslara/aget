@@ -104,6 +104,7 @@ impl ExtractorBackend for InspectingExtractor {
             ok: true,
             final_url: Some(format!("{}/final", request.url)),
             content: Some("typed extractor content".to_string()),
+            page_metadata: Default::default(),
             warnings: vec!["custom extractor".to_string()],
             error: None,
         })
@@ -167,6 +168,7 @@ impl ExtractorBackend for AuthorizationExtractor {
             ok: true,
             final_url: Some(request.url.to_string()),
             content: Some(content.clone()),
+            page_metadata: Default::default(),
             warnings: Vec::new(),
             error: None,
         })

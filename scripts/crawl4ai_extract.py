@@ -84,6 +84,7 @@ async def run() -> int:
         "ok": bool(result.success),
         "final_url": final_url,
         "content": content if result.success else None,
+        "page_metadata": getattr(result, "metadata", None) or {},
         "warnings": [],
         "error": None if result.success else (result.error_message or "Crawl4AI extraction failed"),
     }
@@ -132,6 +133,7 @@ def fail(metadata_path: Path, message: str) -> int:
         "ok": False,
         "final_url": None,
         "content": None,
+        "page_metadata": {},
         "warnings": [],
         "error": message,
     }

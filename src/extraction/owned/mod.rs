@@ -7,6 +7,7 @@ use super::{
 };
 
 mod content;
+mod metadata;
 mod options;
 mod page;
 mod text;
@@ -46,6 +47,7 @@ pub(crate) fn run_owned_extractor_backend(
         ok: true,
         final_url: Some(extraction.final_url),
         content: Some(extraction.content.clone()),
+        page_metadata: extraction.page_metadata,
         warnings: extraction.warnings,
         error: None,
     };

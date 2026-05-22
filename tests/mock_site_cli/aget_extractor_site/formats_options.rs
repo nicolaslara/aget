@@ -19,6 +19,31 @@ pub(crate) fn routes(builder: MockSiteBuilder) -> MockSiteBuilder {
             ),
         )
         .route(
+            "/metadata",
+            MockResponse::html(
+                r#"
+<html>
+  <head>
+    <title>Metadata Title</title>
+    <meta name="description" content="Metadata description">
+    <meta name="keywords" content="agent,context,local">
+    <meta name="author" content="Aget Docs">
+    <meta property="og:title" content="Open Graph Title">
+    <meta property="og:description" content="Open Graph description">
+    <meta name="twitter:title" content="Twitter Title">
+    <meta property="article:published_time" content="2026-05-22T10:00:00Z">
+  </head>
+  <body>
+    <main class="article">
+      <h1>Metadata Body</h1>
+      <p>Metadata body text.</p>
+    </main>
+  </body>
+</html>
+"#,
+            ),
+        )
+        .route(
             "/word-threshold",
             MockResponse::html(
                 r#"

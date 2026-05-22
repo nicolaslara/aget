@@ -114,6 +114,55 @@ fn default_cli_fetch_uses_local_backend_without_command_dependencies() {
 }
 
 #[test]
+fn default_cli_fetch_includes_page_metadata_in_json_envelope() {
+    let temp = tempfile::tempdir().unwrap();
+    let aget_home = temp.path().join("aget-home");
+    let site = MockSite::builder()
+        .route(
+            "/metadata",
+            MockResponse::html(
+                r#"
+<html>
+  <head>
+    <title>Envelope Metadata</title>
+    <meta name="description" content="Envelope description">
+    <meta property="og:title" content="Envelope OG">
+  </head>
+  <body><main><h1>Envelope Body</h1></main></body>
+</html>
+"#,
+            ),
+        )
+        .start();
+
+    let output = Command::cargo_bin("aget")
+        .unwrap()
+        .env("AGET_HOME", &aget_home)
+        .env_remove("AGET_CRAWL4AI_COMMAND")
+        .env_remove("AGET_AGENT_BROWSER_COMMAND")
+        .args([
+            "--envelope",
+            "json",
+            "get",
+            "--inline-content",
+            "always",
+            &site.url("/metadata"),
+            "--content-format",
+            "text",
+        ])
+        .assert()
+        .success()
+        .get_output()
+        .stdout
+        .clone();
+
+    let json = success_data(&output, "get");
+    assert_eq!(json["page_metadata"]["title"], "Envelope Metadata");
+    assert_eq!(json["page_metadata"]["description"], "Envelope description");
+    assert_eq!(json["page_metadata"]["og:title"], "Envelope OG");
+}
+
+#[test]
 fn backend_parity_covers_extractor_content_formats() {
     let temp = tempfile::tempdir().unwrap();
     let aget_home = temp.path().join("aget-home");

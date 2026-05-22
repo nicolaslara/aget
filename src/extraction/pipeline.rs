@@ -1,6 +1,9 @@
+use std::collections::BTreeMap;
 use std::fs;
 use std::path::Path;
 use std::time::Instant;
+
+use serde_json::Value;
 
 use crate::error::{AgetError, ErrorCode};
 use crate::session::{PlaywrightState, Session, SessionStore};
@@ -16,6 +19,7 @@ use super::{
 pub(super) struct SuccessfulExtraction {
     final_url: String,
     content: String,
+    page_metadata: BTreeMap<String, Value>,
     warnings: Vec<String>,
     extractor: String,
 }
@@ -58,6 +62,7 @@ pub(crate) fn finish_direct_extraction(
         SuccessfulExtraction {
             final_url,
             content,
+            page_metadata: BTreeMap::new(),
             warnings,
             extractor: extractor.into(),
         },
@@ -105,6 +110,7 @@ pub(super) fn run_primary_extractor(
     Ok(SuccessfulExtraction {
         final_url: backend.final_url.unwrap_or_else(|| options.url.clone()),
         content,
+        page_metadata: backend.page_metadata,
         warnings: backend.warnings,
         extractor: extractor_backend.name().to_string(),
     })
@@ -138,6 +144,7 @@ pub(super) fn try_session_fallback(
         .map(|fallback| SuccessfulExtraction {
             final_url: fallback.final_url,
             content: fallback.content,
+            page_metadata: BTreeMap::new(),
             warnings: fallback.warnings,
             extractor: fallback.extractor,
         })
@@ -193,6 +200,7 @@ pub(super) fn finalize_success(
         content_format: options.content_format.to_string(),
         extractor: extraction.extractor,
         content,
+        page_metadata: extraction.page_metadata,
         artifacts: Artifacts {
             content: content_path.to_string_lossy().into_owned(),
             metadata: metadata_path.to_string_lossy().into_owned(),

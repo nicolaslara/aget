@@ -168,6 +168,7 @@ pub(super) fn write_metadata(path: &Path, success: &GetSuccess) -> Result<(), Ag
     metadata.insert("final_url", serde_json::json!(success.final_url));
     metadata.insert("content_format", serde_json::json!(success.content_format));
     metadata.insert("extractor", serde_json::json!(success.extractor));
+    metadata.insert("page_metadata", serde_json::json!(success.page_metadata));
     metadata.insert("artifacts", serde_json::json!(success.artifacts));
     metadata.insert("sessions", serde_json::json!(success.sessions));
     metadata.insert("sensitive", serde_json::json!(success.sensitive));

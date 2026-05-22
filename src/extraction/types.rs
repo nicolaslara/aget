@@ -1,8 +1,10 @@
+use std::collections::BTreeMap;
 use std::io;
 use std::path::{Path, PathBuf};
 use std::time::Duration;
 
 use serde::{Deserialize, Serialize};
+use serde_json::Value;
 
 use super::output::OutputOptions;
 use crate::cli::{ExtractorOption, OutputFormat};
@@ -32,6 +34,7 @@ pub struct GetSuccess {
     pub content_format: String,
     pub extractor: String,
     pub content: String,
+    pub page_metadata: BTreeMap<String, Value>,
     pub artifacts: Artifacts,
     pub sessions: Vec<String>,
     pub sensitive: bool,
@@ -80,6 +83,8 @@ pub struct ExtractorBackendResult {
     pub final_url: Option<String>,
     #[serde(default)]
     pub content: Option<String>,
+    #[serde(default)]
+    pub page_metadata: BTreeMap<String, Value>,
     #[serde(default)]
     pub warnings: Vec<String>,
     #[serde(default)]
