@@ -2526,6 +2526,20 @@ Status note:
 
 - Completed with D307. Source inspection found Crawl4AI defaults `default_image_alt` to an empty string and computes `alt = attrs.get("alt") or self.default_image_alt`, so the effective alt is reused by normal image markdown, `images_to_alt`, and raw image HTML modes. Owned extraction now supports `crawl4ai.default_image_alt` with the empty default, preserves existing empty alt output by default, applies the configured fallback to missing or empty image `alt` attributes, and preserves non-empty source alt text as stronger than the configured default. The Crawl4AI command compatibility helper routes the option through `DefaultMarkdownGenerator(options=...)`, and mock-backend validation, README, OpenCode tool text, and unsupported-option error text are aligned. `workpads/research/tasks.md` was not compacted. Focused owned markdown, command-option validation, helper syntax checks, and the standard gate passed.
 
+### ✅ Task I19em: Compact current workpad support routing without compacting tasks
+
+Acceptance criteria:
+
+- Keep `workpads/research/tasks.md` as the full executable backlog; do not compact existing task content.
+- Move dense current support-file routing and completed-history detail from top-level support files into referenced archive files.
+- Keep top-level `knowledge.md` and `references.md` focused on current direction, open work, routing, and verification expectations.
+- Record the compaction decision in `archive/knowledge/` and update the current decision index.
+- Verify archive links and diff hygiene.
+
+Status note:
+
+- Completed with D308. `tasks.md` was not compacted. Dense current migration/support routing moved from top-level `knowledge.md` into `archive/knowledge/d308-workpad-support-routing.md`; the current decision index routes through D308. Support-file line-length checks, route checks, and diff hygiene passed.
+
 ### ✅ Task I20: Design OAuth-safe browser login and profile import flow
 
 Acceptance criteria:

@@ -1,6 +1,7 @@
 # Research References
 
-This compact file records current source routing. Detailed reference rows are archived under `workpads/research/archive/references/`; open those files when exact benchmark output paths, source URLs, license notes, or historical architecture evidence are needed.
+This compact file records current source routing.
+Detailed reference rows are archived under `workpads/research/archive/references/`; open those files when exact benchmark output paths, source URLs, license notes, or historical architecture evidence are needed.
 
 ## Current Routing
 
@@ -17,7 +18,7 @@ This compact file records current source routing. Detailed reference rows are ar
 | Project | Local / Source | Use |
 | --- | --- | --- |
 | Crawl4AI | `references/repos/crawl4ai`, commit `1debe5f5fcc118ced10826a1040a81f9b77e9255` | Inspect before porting extraction, markdown, readiness, session, or option behavior. License: Apache-2.0. |
-| Crawl4AI content pruning | `references/repos/crawl4ai/crawl4ai/content_filter_strategy.py` (`PruningContentFilter`) | Source for owned readability scoring signals: text density, link density, tag weights, class/id noise, and text length. |
+| Crawl4AI content pruning | `references/repos/crawl4ai/crawl4ai/content_filter_strategy.py` | Source for owned readability scoring signals. |
 | agent-browser | `references/repos/agent-browser`, commit `3bb1d43f8bb16444596365496f78395da8f1e6b7` | Inspect before porting browser/CDP/session/profile behavior. License: Apache-2.0. |
 | cmux | Source review at commit `7142e31d3a749c241843655cac2771927505860c` | `browser cookies get` returns broad cookie data; `aget` must post-filter by explicit allowlist. |
 | agent-fetch | `references/repos/agent-fetch` | Extraction-strategy inspiration for Readability/text-density/JSON-LD/Next.js/RSC/WordPress/selectors. License: MIT. |
@@ -30,14 +31,14 @@ This compact file records current source routing. Detailed reference rows are ar
 | Product intent and workflow | `project.md`, `WORKING.md`, `workpads/WORKPADS.md`, `workpads/research/tasks.md`, `workpads/research/knowledge.md` | Load before task work. |
 | Aget facade/orchestration | `src/aget/` | Public API and dependency wiring across extractor, browser automation/fallback, and session store backends. |
 | Aget facade/backend API coverage | `tests/aget_api.rs`, `tests/aget_api/` | Direct API coverage for extractor/session-store wiring, browser fallback, authorization, session import/login, and default AgetBrowser backend behavior. |
-| AgetExtractor boundary | `src/aget_extractor.rs`, `src/extraction/` | Local Crawl4AI-like extraction engine and backend wrapper. Extraction public DTOs/traits live in `src/extraction/types.rs`; backend adapter structs live in `src/extraction/backends.rs`; markdown renderer state/inline/table/normalization helpers live under `src/extraction/markdown/`. Historical implementation detail is archived in `architecture-inputs.md`. |
-| AgetBrowser boundary | `src/aget_browser.rs`, `src/aget_browser/current_tab.rs`, `src/browser_cdp/`, `src/session/chrome/`, `src/session/login/` | Local browser/CDP/profile/session engine and backend wrapper. Current-tab endpoint/render composition is split under `src/aget_browser/`; Browser CDP tests are split under `src/browser_cdp/tests/` by state conversion, Chrome/profile lifecycle, page scripts, and discovery behavior. Historical implementation detail is archived in `architecture-inputs.md`. |
-| Session model/store/import | `src/session/model.rs`, `src/session/store/`, `src/session/playwright/`, `src/session/chrome/`, `src/session/login/`, `src/session/cmux.rs`, `src/session/agent_browser/` | Keep auth state local, scoped, and explicitly imported. |
+| AgetExtractor boundary | `src/aget_extractor.rs`, `src/extraction/` | Local Crawl4AI-like extraction engine and backend wrapper. Details: `architecture-inputs.md`. |
+| AgetBrowser boundary | `src/aget_browser.rs`, `src/browser_cdp/`, `src/session/chrome/`, `src/session/login/` | Local browser/CDP/profile/session engine. Details: `architecture-inputs.md`. |
+| Session model/store/import | `src/session/` | Keep auth state local, scoped, and explicitly imported. |
 | Binary session CLI execution | `src/main_session/` | Dispatches `aget session` commands and keeps command names, profile argument normalization, JSON envelope shaping, and inspect/redaction views split from `src/main.rs`. |
 | Agent-facing usage | `.cursor/skills/aget/SKILL.md`, `.opencode/tools/aget.ts`, `README.md` | Keep command/default-backend wording aligned with current runtime behavior. |
-| Mock-site integration coverage | `tests/support/mock_site.rs`, `tests/mock_site_cli/`, `tests/mock_site_browser.rs`, `tests/mock_site_sessions.rs`, `tests/mock_site_docs_contract.rs` | Local deterministic public/auth/session/rendering behavior. |
-| Get CLI coverage | `tests/get_cli.rs`, `tests/get_cli/`, `tests/support/get_cli.rs` | Public get command artifacts, output shaping, backend validation/failures, and session-backed replay/fallback coverage. Session-backed get coverage is split under `tests/get_cli/session/`. |
-| Session CLI coverage | `tests/session_cli/`, `tests/support/session_cli.rs` | Session import, authorize, login lifecycle, and backend compatibility coverage. Import coverage is split under `tests/session_cli/imports/`; login coverage is split under `tests/session_cli/login/`. |
+| Mock-site integration coverage | `tests/support/mock_site.rs`, `tests/mock_site_*` | Local deterministic public/auth/session/rendering behavior. |
+| Get CLI coverage | `tests/get_cli.rs`, `tests/get_cli/`, `tests/support/get_cli.rs` | Get artifacts, output shaping, validation/failures, and session replay/fallback. |
+| Session CLI coverage | `tests/session_cli/`, `tests/support/session_cli.rs` | Session import, authorize, login lifecycle, and backend compatibility. |
 | Mock backend test tools | `tests/support/bin/aget_mock_backend.rs`, `tests/support/bin/aget_mock_backend/`, `tests/fixtures/mock-tools/` | Checked-in local mock binaries used by CLI/integration tests. |
 
 ## External Primary Sources
