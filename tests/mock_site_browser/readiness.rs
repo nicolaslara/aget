@@ -96,7 +96,7 @@ fn aget_extractor_backend_honors_wait_for_images_option_with_chrome() {
         .unwrap();
 
     assert_eq!(extraction.extractor, "aget-owned-extractor");
-    assert_eq!(extraction.content, "Image Shell Image Loaded");
+    assert_eq!(extraction.content, "Image Shell\nImage Loaded");
     assert!(extraction.warnings.is_empty());
 }
 
@@ -145,5 +145,5 @@ fn aget_extractor_backend_honors_networkidle_wait_until_with_chrome() {
         .unwrap();
 
     assert_eq!(extraction.extractor, "aget-owned-extractor");
-    assert_eq!(extraction.content, "Network Shell Network Settled");
+    assert_eq!(extraction.content, "Network Shell\nNetwork Settled");
 }

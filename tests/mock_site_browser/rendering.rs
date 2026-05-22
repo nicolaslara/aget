@@ -106,7 +106,7 @@ fn aget_extractor_backend_flattens_shadow_dom_with_chrome() {
     assert_eq!(extraction.extractor, "aget-owned-extractor");
     assert_eq!(
         extraction.content,
-        "Shadow Shell Shadow Title Projected Detail"
+        "Shadow Shell\nShadow Title\nProjected Detail"
     );
     assert!(extraction.warnings.is_empty());
 }
@@ -210,5 +210,8 @@ fn aget_extractor_backend_honors_render_delay_option_with_chrome() {
         .unwrap();
 
     assert_eq!(extraction.extractor, "aget-owned-extractor");
-    assert_eq!(extraction.content, "Slow Client Shell Slow Client Rendered");
+    assert_eq!(
+        extraction.content,
+        "Slow Client Shell\nSlow Client Rendered"
+    );
 }
