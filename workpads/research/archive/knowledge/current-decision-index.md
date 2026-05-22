@@ -40,6 +40,7 @@ Open the referenced child indexes for older per-decision rows, then open the per
 | D361 | `d361-metadata-title-fallback-parity.md` | Crawl4AI-compatible metadata title fallback coverage for missing `<title>` pages. |
 | D362 | `d362-twitter-title-fallback-parity.md` | Crawl4AI-compatible metadata title fallback coverage for Twitter-only title pages. |
 | D363 | `d363-ignore-anchors-alias.md` | Crawl4AI/html2text `ignore_anchors` compatibility alias for owned `ignore_links` markdown behavior. |
+| D364 | `d364-large-file-ergonomics-audit.md` | Current tracked size audit: no new split needed and `tasks.md` stays uncompacted. |
 
 ## Full Archive Routing
 
@@ -58,7 +59,7 @@ Open the referenced child indexes for older per-decision rows, then open the per
 | D123-D150 | `d123-d150-module-decomposition.md` index to section files | Original extraction/CDP/test module decomposition through I19i completion. |
 | D151-D157 | `d151-d157-auth-and-browser-import.md` | OAuth-safe authorization API/CLI and conservative browser-neutral Chrome import surface. |
 | D158-D167 | `d158-d167-recent-migration-followups.md` | Recent source-backed extraction improvements and follow-up decomposition slices. |
-| D168-D363 | `decision-index/` plus per-decision files | Module/test/support decomposition plus owned extractor/browser parity improvements, agent-facing option docs, support-file routing refreshes, login-session injection, markdown options, metadata coverage, CDP diagnostics, transport/readiness coverage, ignored local Chrome smoke refreshes, and support-file archive splits. |
+| D168-D364 | `decision-index/` plus per-decision files | Module/test/support decomposition plus owned extractor/browser parity improvements, agent-facing option docs, support-file routing refreshes, login-session injection, markdown options, metadata coverage, CDP diagnostics, transport/readiness coverage, ignored local Chrome smoke refreshes, support-file archive splits, and the current no-task-compaction size audit. |
 
 ## Current Open Migration Gaps
 

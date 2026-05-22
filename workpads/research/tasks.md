@@ -3406,6 +3406,20 @@ Status note:
 
 - Completed with D363. Source inspection found Crawl4AI/html2text names the default anchor-suppression config `IGNORE_ANCHORS`, while runtime markdown rendering consumes `ignore_links` and the CLI exposes `--ignore-links` from that config default. Owned extraction now accepts `crawl4ai.ignore_anchors` as a compatibility alias for existing `crawl4ai.ignore_links` behavior, and the Crawl4AI compatibility helper forwards the alias as runtime `ignore_links`. Mock backend validation, unsupported-option diagnostics, README, and OpenCode option text are aligned. `workpads/research/tasks.md` was not compacted. Focused owned markdown/option validation and Python helper syntax checks passed.
 
+### ✅ Task I19go: Audit current large-file ergonomics without compacting tasks
+
+Acceptance criteria:
+
+- Audit the current tracked file size profile using git-tracked files rather than broad filesystem scans.
+- Confirm whether any source, test, or support workpad files still need immediate splitting after the recent decomposition work.
+- Preserve `workpads/research/tasks.md` as the full executable backlog; do not compact it.
+- Record the result in compact support routing/decision files so future agents do not re-open task compaction.
+- Verify with line-count checks and diff hygiene.
+
+Status note:
+
+- Completed with D364. Git-tracked line-count audit shows no source, test, or support-workpad file currently needs another split: aside from intentional exceptions `workpads/research/tasks.md` and `Cargo.lock`, the largest tracked source/test file is 382 lines, while top-level support routers remain compact (`knowledge.md` 66 lines, `references.md` 75 lines). `workpads/research/tasks.md` remains the full executable backlog and was not compacted. Validation passed with tracked line-count checks and `git diff --check`.
+
 ### ✅ Task I20: Design OAuth-safe browser login and profile import flow
 
 Acceptance criteria:
