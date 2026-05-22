@@ -99,6 +99,7 @@ This archive file keeps the denser decision routing that used to live in top-lev
 | D280 | `d280-d055-d063-archive-split.md` | Support-file split of the historical D55-D63 owned-extractor foundation bundle without compacting tasks. |
 | D281 | `d281-page-metadata.md` | Crawl4AI-style generic page metadata propagation from owned and compatibility extraction. |
 | D282 | `d282-fallback-page-metadata.md` | Owned browser fallback preserves extraction page metadata while command fallback stays empty. |
+| D283 | `d283-cdp-networkidle-reset-timeout.md` | agent-browser-style owned CDP networkidle reset and timeout coverage. |
 
 ## Full Archive Routing
 
@@ -118,7 +119,7 @@ This archive file keeps the denser decision routing that used to live in top-lev
 | D151-D157 | `d151-d157-auth-and-browser-import.md` | OAuth-safe authorization API/CLI and conservative browser-neutral Chrome import surface. |
 | D158-D167 | `d158-d167-recent-migration-followups.md` | Recent source-backed extraction improvements and follow-up decomposition slices. |
 | D168-D176 | Per-decision files | Knowledge/reference compaction, engine-refactor planning, wrapper introduction, naming cleanup, and direct engine coverage. |
-| D177-D282 | Per-decision files | Module/test/support decomposition plus the latest owned extractor/browser parity improvements. |
+| D177-D283 | Per-decision files | Module/test/support decomposition plus the latest owned extractor/browser parity improvements. |
 
 ## Current Open Migration Gaps
 
