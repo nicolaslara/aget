@@ -127,6 +127,27 @@ pub(crate) fn routes(builder: MockSiteBuilder) -> MockSiteBuilder {
             ),
         )
         .route(
+            "/markdown-google-doc-lists",
+            MockResponse::html(
+                r#"
+<html>
+  <body>
+    <main class="article">
+      <h1>Google Doc Lists</h1>
+      <ul style="list-style-type:decimal">
+        <li style="margin-left:0px">First step</li>
+        <li style="margin-left:72px">Nested step</li>
+      </ul>
+      <ul style="list-style-type:disc">
+        <li style="margin-left:36px">Nested bullet</li>
+      </ul>
+    </main>
+  </body>
+</html>
+"#,
+            ),
+        )
+        .route(
             "/markdown-wrap-links",
             MockResponse::html(
                 r#"

@@ -22,6 +22,38 @@ pub(super) fn assert_lists_and_code_blocks(aget_home: &Path, site: &MockSite) {
         "# Nested Steps\n\n1. Install\n  - Open settings\n  - Confirm access\n2. Run fetch"
     );
 
+    let markdown_google_doc_lists_default =
+        markdown_content(aget_home, site, "/markdown-google-doc-lists", &[]);
+    assert_eq!(
+        markdown_google_doc_lists_default,
+        "# Google Doc Lists\n\n* First step\n* Nested step\n\n* Nested bullet"
+    );
+
+    let markdown_google_doc_lists = markdown_content(
+        aget_home,
+        site,
+        "/markdown-google-doc-lists",
+        &[("crawl4ai.google_doc", "true")],
+    );
+    assert_eq!(
+        markdown_google_doc_lists,
+        "# Google Doc Lists\n\n1. First step\n    2. Nested step\n\n  * Nested bullet"
+    );
+
+    let markdown_google_doc_custom_indent = markdown_content(
+        aget_home,
+        site,
+        "/markdown-google-doc-lists",
+        &[
+            ("crawl4ai.google_doc", "true"),
+            ("crawl4ai.google_list_indent", "72"),
+        ],
+    );
+    assert_eq!(
+        markdown_google_doc_custom_indent,
+        "# Google Doc Lists\n\n1. First step\n  2. Nested step\n\n* Nested bullet"
+    );
+
     let markdown_code_whitespace =
         markdown_content(aget_home, site, "/markdown-code-whitespace", &[]);
     assert_eq!(

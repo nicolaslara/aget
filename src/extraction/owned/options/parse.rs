@@ -127,6 +127,20 @@ pub(super) fn parse_owned_body_width(value: &str) -> Result<usize, AgetError> {
     })
 }
 
+pub(super) fn parse_owned_google_list_indent(value: &str) -> Result<usize, AgetError> {
+    let indent = value.trim().parse::<usize>().map_err(|_| {
+        extraction_failed(format!(
+            "crawl4ai.google_list_indent expects a positive integer pixel value, got '{value}'"
+        ))
+    })?;
+    if indent == 0 {
+        return Err(extraction_failed(
+            "crawl4ai.google_list_indent expects a positive integer pixel value",
+        ));
+    }
+    Ok(indent)
+}
+
 pub(super) fn parse_owned_max_scroll_steps(value: &str) -> Result<usize, AgetError> {
     value.trim().parse::<usize>().map_err(|_| {
         extraction_failed(format!(

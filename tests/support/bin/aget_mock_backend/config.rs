@@ -95,6 +95,7 @@ fn validate_crawl4ai_options(args: &Args) -> Result<(), String> {
         "escape_plus",
         "escape_snob",
         "google_doc",
+        "google_list_indent",
         "hide_strikethrough",
         "ignore_emphasis",
         "ignore_images",

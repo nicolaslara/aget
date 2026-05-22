@@ -46,6 +46,7 @@ pub(super) fn element_to_markdown(
     bypass_tables: bool,
     hide_strikethrough: bool,
     google_doc: bool,
+    google_list_indent: usize,
     pad_tables: bool,
     protect_links: bool,
     use_automatic_links: bool,
@@ -85,6 +86,7 @@ pub(super) fn element_to_markdown(
         bypass_tables,
         hide_strikethrough,
         google_doc,
+        google_list_indent,
         protect_links,
         use_automatic_links,
         unicode_snob,
@@ -137,6 +139,9 @@ fn render_element(node: NodeRef<'_, Node>, tag: &str, writer: &mut MarkdownWrite
         "p" => render_block(node, writer),
         "br" => writer.output.push_str("  \n"),
         "hr" => render_horizontal_rule(writer),
+        "ul" | "ol" if writer.google_doc => {
+            render_list(node, google_doc_list_is_ordered(node, tag == "ol"), writer);
+        }
         "ul" => render_list(node, false, writer),
         "ol" => render_list(node, true, writer),
         "li" => render_block(node, writer),
@@ -251,6 +256,31 @@ fn google_doc_style_is_fixed_width(style: &str) -> bool {
         || style.contains("font-family: consolas")
         || style.contains("font-family:courier new")
         || style.contains("font-family: courier new")
+}
+
+fn google_doc_list_is_ordered(node: NodeRef<'_, Node>, fallback: bool) -> bool {
+    let Some(list_style_type) = ElementRef::wrap(node)
+        .and_then(|element| element.value().attr("style"))
+        .and_then(google_doc_list_style_type)
+    else {
+        return fallback;
+    };
+    !matches!(
+        list_style_type.as_str(),
+        "disc" | "circle" | "square" | "none"
+    )
+}
+
+fn google_doc_list_style_type(style: &str) -> Option<String> {
+    style
+        .split(';')
+        .filter_map(|declaration| declaration.split_once(':'))
+        .find_map(|(name, value)| {
+            name.trim()
+                .eq_ignore_ascii_case("list-style-type")
+                .then(|| value.trim().to_ascii_lowercase())
+        })
+        .filter(|value| !value.is_empty())
 }
 
 fn is_only_text_eligible_tag(tag: &str) -> bool {

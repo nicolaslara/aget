@@ -58,7 +58,12 @@ pub(super) fn render_list(node: NodeRef<'_, Node>, ordered: bool, writer: &mut M
                 if !writer.output.is_empty() && !writer.output.ends_with('\n') {
                     writer.output.push('\n');
                 }
-                writer.output.push_str(&list_item_indent(item_depth));
+                writer.output.push_str(&list_item_indent(
+                    current,
+                    item_depth,
+                    writer.google_doc,
+                    writer.google_list_indent,
+                ));
                 if ordered {
                     writer.output.push_str(&format!("{index}. "));
                 } else {
@@ -90,8 +95,38 @@ pub(super) fn render_list(node: NodeRef<'_, Node>, ordered: bool, writer: &mut M
     }
 }
 
-fn list_item_indent(depth: usize) -> String {
+fn list_item_indent(
+    node: NodeRef<'_, Node>,
+    depth: usize,
+    google_doc: bool,
+    google_list_indent: usize,
+) -> String {
+    if google_doc {
+        return "  ".repeat(google_doc_list_nest_count(node, google_list_indent));
+    }
     "  ".repeat(depth.saturating_sub(1))
+}
+
+fn google_doc_list_nest_count(node: NodeRef<'_, Node>, google_list_indent: usize) -> usize {
+    let Some(style) = ElementRef::wrap(node).and_then(|element| element.value().attr("style"))
+    else {
+        return 0;
+    };
+    style
+        .split(';')
+        .filter_map(|declaration| declaration.split_once(':'))
+        .find_map(|(name, value)| {
+            (name.trim().eq_ignore_ascii_case("margin-left"))
+                .then(|| parse_google_doc_margin_left(value.trim(), google_list_indent))
+                .flatten()
+        })
+        .unwrap_or(0)
+}
+
+fn parse_google_doc_margin_left(value: &str, google_list_indent: usize) -> Option<usize> {
+    let raw_pixels = value.trim().strip_suffix("px")?.trim();
+    let pixels = raw_pixels.parse::<usize>().ok()?;
+    Some(pixels / google_list_indent.max(1))
 }
 
 pub(super) fn render_definition_list(node: NodeRef<'_, Node>, writer: &mut MarkdownWriter) {
