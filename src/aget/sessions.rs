@@ -4,10 +4,10 @@ use crate::cli::OutputFormat;
 use crate::error::{AgetError, ErrorCode};
 use crate::extraction::{BrowserFallbackBackend, ExtractorBackend};
 use crate::session::{
-    complete_login_session, compose_session, import_cmux_session as import_cmux_state,
-    merge_login_session, ChromeImportOptions, CmuxImportOptions, LoginCancelOptions,
-    LoginCancelResult, LoginCompleteOptions, LoginFinishOptions, LoginStartOptions,
-    LoginStartResult, Session,
+    complete_login_session, compose_playwright_state, compose_session,
+    import_cmux_session as import_cmux_state, merge_login_session, ChromeImportOptions,
+    CmuxImportOptions, LoginCancelOptions, LoginCancelResult, LoginCompleteOptions,
+    LoginFinishOptions, LoginStartOptions, LoginStartResult, Session,
 };
 
 use super::authorize::evaluate_authorization_predicates;
@@ -137,12 +137,19 @@ where
         name: impl Into<String>,
         profile: Option<String>,
         url: impl Into<String>,
+        source_names: Vec<String>,
     ) -> Result<LoginStartResult, AgetError> {
+        let injected_sessions = source_names
+            .iter()
+            .map(|source| self.session_store.load(source).map_err(io_aget_error))
+            .collect::<Result<Vec<_>, _>>()?;
+        compose_playwright_state(&injected_sessions)?;
         self.browser_backend.start_login(LoginStartOptions {
             name: name.into(),
             profile,
             url: url.into(),
             tmp_dir: self.tmp_dir(),
+            injected_sessions,
         })
     }
 

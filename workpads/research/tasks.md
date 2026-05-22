@@ -2858,6 +2858,39 @@ Status note:
 
 - Completed after D157. D156 added browser-choice terminology without broadening auth claims: legacy `session import chrome` remains, new `session import browser --browser chrome` maps to the proven Chrome path, unsupported browser families parse but return `usage_error` before backend access, and `workpads/research/browser-choice-session-import-design.md` records the current support matrix and fallback guidance. I22 intentionally stops at the Chrome-only browser-neutral import surface because broader Chromium, Firefox, and Safari import support lacks source-specific discovery, lock-handling, state-export, and manual smoke evidence.
 
+### ✅ Task I23: Support provider-session injection for login flows
+
+Priority: high.
+
+Acceptance criteria:
+
+- Add first-class support for launching a user-driven login flow with one or more existing local sessions available in the login browser profile, e.g. `aget session login start target --url <url> --session oauth`.
+- Preserve the credential boundary: the user still completes provider prompts, passwords, passkeys, and one-time-code steps; the agent only supplies named local session state that the user already authorized.
+- Support the intended OAuth-provider model:
+  - Users can keep a reusable provider bucket such as `oauth`, or provider-specific buckets such as `google`, `github`, or `okta`.
+  - Login attempts for relying-party sites can reuse provider cookies/storage so the user does not need to perform duplicate provider login when local provider state is already available.
+  - The target relying-party session saved by `login finish` remains a separate explicit session unless the user asks to compose sessions.
+- Define and implement conflict behavior for injected sessions before the login profile is created:
+  - Reuse the existing session composition conflict rules where possible.
+  - Reject ambiguous cookie/localStorage conflicts instead of silently choosing one session's secrets.
+  - Report actionable `requires_user_action` or usage errors when injection cannot be performed.
+- Keep session scope enforcement intact:
+  - Only inject explicitly named sessions.
+  - Preserve replay-time origin/domain checks for later fetches.
+  - Do not broaden allowed domains implicitly because a provider session was supplied.
+- Update CLI/API/help text and the root `skills/aget/SKILL.md` guidance once the behavior exists.
+- Add deterministic tests covering:
+  - `login start --session oauth` seeds the pending login profile with provider cookies/storage.
+  - multiple injected sessions compose deterministically when disjoint.
+  - conflicts fail before opening or saving a login profile.
+  - `login finish` saves only the intended target login bucket and does not merge provider state unless explicitly requested.
+  - JSON/plain output makes the injected-session behavior and privacy boundary clear.
+- Add or update a manual OAuth smoke recipe that validates the intended no-double-login flow without recording credentials or private content.
+
+Status note:
+
+- Completed with D325. `aget session login start` now accepts repeated `--session` flags, loads explicitly named local sessions through the facade, reuses the existing Playwright composition rules to reject conflicts before browser startup, seeds the owned login Chrome profile with the composed state, records injected session names in pending/JSON/plain output, and keeps `login finish` scoped to the target login bucket unless the user later composes sessions. The command-backed compatibility login path reports a usage error for injection because the behavior is owned-backend only. Validation passed with focused parser/API/session-login tests, full `cargo test`, `cargo fmt --check`, and `git diff --check`.
+
 ### ✅ Task I17: Redesign public CLI/API and README around coherent concepts
 
 Acceptance criteria:

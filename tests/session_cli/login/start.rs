@@ -1,10 +1,13 @@
 use std::fs;
 use std::path::PathBuf;
 
+use aget::session::SessionStore;
 use assert_cmd::Command;
 use serde_json::json;
 
-use crate::support::session_cli::{agent_browser_tool, success_data, success_envelope};
+use crate::support::session_cli::{
+    agent_browser_tool, named_session, success_data, success_envelope,
+};
 
 #[test]
 fn session_login_start_opens_aget_browser_profile_and_records_pending_flow() {
@@ -50,6 +53,7 @@ fn session_login_start_opens_aget_browser_profile_and_records_pending_flow() {
         expected_profile
     );
     assert_eq!(json["url"], target_url);
+    assert_eq!(json["injected_sessions"], serde_json::json!([]));
     assert_eq!(
         json["allowed_domains"],
         serde_json::json!(["nytimes.com", "www.nytimes.com"])
@@ -142,6 +146,62 @@ fn session_login_start_uses_exact_non_www_url_host_scope() {
         serde_json::json!(["docs.example.com"])
     );
     assert!(aget_home.join("tmp/login-docs.json").exists());
+}
+
+#[test]
+fn session_login_start_rejects_conflicting_injected_sessions_before_agent_browser() {
+    let temp = tempfile::tempdir().unwrap();
+    let aget_home = temp.path().join("aget-home");
+    let log_path = temp.path().join("agent-browser.log");
+    let fake_agent_browser = agent_browser_tool(temp.path(), &log_path, json!({}));
+    let store = SessionStore::new(&aget_home).unwrap();
+    store
+        .save(&named_session(
+            "oauth-a",
+            "sid",
+            "first-secret",
+            "accounts.example.com",
+        ))
+        .unwrap();
+    store
+        .save(&named_session(
+            "oauth-b",
+            "sid",
+            "second-secret",
+            "accounts.example.com",
+        ))
+        .unwrap();
+
+    let mut cmd = Command::cargo_bin("aget").unwrap();
+    let output = cmd
+        .env("AGET_HOME", &aget_home)
+        .env("AGET_AGENT_BROWSER_COMMAND", &fake_agent_browser)
+        .env("AGET_FAKE_AGENT_BROWSER_LOG", &log_path)
+        .args([
+            "--envelope",
+            "json",
+            "session",
+            "login",
+            "start",
+            "target",
+            "--url",
+            "https://example.com/login",
+            "--session",
+            "oauth-a",
+            "--session",
+            "oauth-b",
+        ])
+        .assert()
+        .failure()
+        .get_output()
+        .stderr
+        .clone();
+
+    let json: serde_json::Value = serde_json::from_slice(&output).unwrap();
+    assert_eq!(json["command"], "session.login.start");
+    assert_eq!(json["error"]["code"], "session_conflict");
+    assert!(!log_path.exists() || fs::read_to_string(&log_path).unwrap().is_empty());
+    assert!(!aget_home.join("tmp/login-target.json").exists());
 }
 
 #[test]

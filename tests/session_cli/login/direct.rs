@@ -30,6 +30,7 @@ fn finish_login_session_leaves_pending_until_complete_login_session_runs() {
         profile: None,
         url: "https://www.nytimes.com/article".to_string(),
         tmp_dir: tmp_dir.clone(),
+        injected_sessions: Vec::new(),
     })
     .unwrap();
     assert!(tmp_dir.join("login-hi.json").exists());

@@ -85,7 +85,16 @@ Use only an account and site the user is authorized to access. Do not paste pass
    ```
 
 7. If verification still appears gated, ask the user to sign in through their normal browser, then repeat import and verification.
-8. Inspect and clean up as needed:
+8. To validate provider-session injection without recording credentials, keep a provider session such as `oauth` or `github`, then start the target login with that provider state explicitly injected:
+
+   ```bash
+   cargo run --quiet -- --envelope json session login start "$TARGET_SESSION" --url "$URL" --session "$PROVIDER_SESSION"
+   cargo run --quiet -- --envelope json session login finish "$TARGET_SESSION"
+   cargo run --quiet -- --envelope json get "$URL" --session "$TARGET_SESSION" --content-format markdown --inline-content never --output /tmp/aget-oauth-target.md
+   ```
+
+   Expected evidence is limited to command result codes, `injected_sessions` names in the start envelope, whether the user saw fewer provider prompts, and whether the target session later verifies. Do not record screenshots, prompts, raw state, cookies, or private content.
+9. Inspect and clean up as needed:
 
    ```bash
    cargo run --quiet -- session inspect "$SESSION"

@@ -26,7 +26,7 @@ Existing CLI names remain valid for the current implementation:
 
 ```bash
 aget session import chrome --chrome-profile <profile-or-path> --name <session> --allow-domain <domain>...
-aget session login start <session> --url <login-or-target-url> [--profile <aget-profile-path>]
+aget session login start <session> --url <login-or-target-url> [--profile <aget-profile-path>] [--session <provider-session>]...
 aget session login finish <session>
 aget session login cancel <session>
 ```
@@ -78,7 +78,8 @@ Current I21 CLI behavior:
    - Re-run verification before using the session.
 5. Use `aget session login start` only as fallback.
    - It opens an `aget`-owned Chrome profile and is useful for controlled, non-OAuth, or test flows.
-   - It must not be the default OAuth path because automated/fresh profiles can be rejected by providers and prior manual testing showed a fresh Chrome `--user-data-dir` did not persist the expected OAuth auth state.
+   - It can inject explicitly named local provider sessions with repeated `--session`, which helps avoid duplicate provider login when the provider state was already user-authorized.
+   - It must not become the default OAuth path because automated/fresh profiles can still be rejected by providers and prior manual testing showed a fresh Chrome `--user-data-dir` did not persist the expected OAuth auth state.
 
 ## Dedicated Profile Decision
 

@@ -10,6 +10,7 @@ pub struct LoginStartOptions {
     pub profile: Option<String>,
     pub url: String,
     pub tmp_dir: PathBuf,
+    pub injected_sessions: Vec<Session>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -31,6 +32,8 @@ pub struct PendingLogin {
     pub agent_session: String,
     pub url: String,
     pub allowed_domains: Vec<String>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub injected_sessions: Vec<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub browser_pid: Option<u32>,
 }

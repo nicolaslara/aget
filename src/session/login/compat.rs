@@ -20,6 +20,12 @@ use super::types::{
 };
 
 pub fn start_login_session(options: LoginStartOptions) -> Result<LoginStartResult, AgetError> {
+    if !options.injected_sessions.is_empty() {
+        return Err(AgetError::Stable {
+            code: ErrorCode::UsageError,
+            message: "session login start --session is supported only by the owned browser backend; unset AGET_AGENT_BROWSER_COMMAND to use provider-session injection".to_string(),
+        });
+    }
     validate_login_name(&options.name)?;
     let allowed_domains = allowed_domains_from_url(&options.url)?;
     let profile = options
@@ -29,6 +35,7 @@ pub fn start_login_session(options: LoginStartOptions) -> Result<LoginStartResul
     prepare_login_profile_path(&profile)?;
     let pending = PendingLogin {
         agent_session: format!("aget-login-{}", options.name),
+        injected_sessions: Vec::new(),
         name: options.name,
         profile: profile.to_string_lossy().into_owned(),
         url: options.url,

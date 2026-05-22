@@ -43,6 +43,7 @@ fn aget_browser_backend_cancels_pending_login_without_agent_browser() {
             "docs".to_string(),
             profile.to_string_lossy().into_owned(),
             "https://example.com/login".to_string(),
+            Vec::new(),
         ))
         .unwrap(),
     )

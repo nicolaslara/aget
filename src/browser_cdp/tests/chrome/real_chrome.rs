@@ -3,6 +3,8 @@ use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
 use serde_json::json;
 
+use crate::session::PlaywrightState;
+
 use super::super::super::chrome_process::ChromeProcess;
 use super::super::super::client::CdpClient;
 use super::super::super::discovery::connect_existing_profile_browser;
@@ -132,6 +134,10 @@ fn owned_login_browser_exports_state_from_headed_profile_and_closes() {
     let started = start_login_browser(BrowserLoginStartRequest {
         profile_dir: &profile,
         url: "https://example.com/",
+        state: &PlaywrightState {
+            cookies: Vec::new(),
+            origins: Vec::new(),
+        },
         timeout,
     })
     .expect("Chrome should launch for headed login test");

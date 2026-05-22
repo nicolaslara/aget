@@ -14,6 +14,10 @@ fn parses_session_login_start() {
         "https://www.nytimes.com/article",
         "--profile",
         "aget-news",
+        "--session",
+        "oauth",
+        "--session",
+        "okta",
     ])
     .unwrap();
 
@@ -25,6 +29,7 @@ fn parses_session_login_start() {
                     name: "news".to_string(),
                     url: "https://www.nytimes.com/article".to_string(),
                     profile: Some("aget-news".to_string()),
+                    session: vec!["oauth".to_string(), "okta".to_string()],
                 })
             })
         })

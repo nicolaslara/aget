@@ -5,14 +5,17 @@ use crate::error::AgetError;
 use crate::session::PlaywrightState;
 
 use super::chrome_process::ChromeProcess;
+use super::client::CdpClient;
 use super::discovery::{connect_existing_profile_browser, wait_for_profile_browser_shutdown};
 use super::process::ensure_login_browser_exited;
+use super::render::PageWaitUntil;
 use super::state::{export_browser_state, BrowserStateExportRequest};
 use super::{create_private_dir, io_aget_error};
 
 pub(crate) struct BrowserLoginStartRequest<'a> {
     pub(crate) profile_dir: &'a Path,
     pub(crate) url: &'a str,
+    pub(crate) state: &'a PlaywrightState,
     pub(crate) timeout: Duration,
 }
 
@@ -37,15 +40,42 @@ pub(crate) fn start_login_browser(
     request: BrowserLoginStartRequest<'_>,
 ) -> Result<StartedLoginBrowser, AgetError> {
     create_private_dir(request.profile_dir).map_err(io_aget_error)?;
+    let startup_url = if request.state.cookies.is_empty() && request.state.origins.is_empty() {
+        request.url
+    } else {
+        "about:blank"
+    };
     let chrome = ChromeProcess::launch_login(
         request.profile_dir,
-        request.url,
+        startup_url,
         request.timeout,
         "owned login start",
     )?;
+    if !request.state.cookies.is_empty() || !request.state.origins.is_empty() {
+        seed_login_browser_state(&chrome, request)?;
+    }
     let pid = chrome.id();
     chrome.detach();
     Ok(StartedLoginBrowser { pid })
+}
+
+fn seed_login_browser_state(
+    chrome: &ChromeProcess,
+    request: BrowserLoginStartRequest<'_>,
+) -> Result<(), AgetError> {
+    let mut client = CdpClient::connect(&chrome.ws_url, request.timeout)?;
+    let page = match client.attach_existing_page(request.timeout)? {
+        Some(page) => page,
+        None => client.create_page(request.timeout)?,
+    };
+    client.enable_page_domains(&page.session_id, request.timeout)?;
+    client.load_state(&page.session_id, request.state, request.timeout)?;
+    client.navigate_and_wait(
+        &page.session_id,
+        request.url,
+        PageWaitUntil::Load,
+        request.timeout,
+    )
 }
 
 pub(crate) fn export_login_browser_state(

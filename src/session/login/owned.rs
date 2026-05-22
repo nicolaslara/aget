@@ -4,6 +4,7 @@ use std::path::{Path, PathBuf};
 use crate::error::{AgetError, ErrorCode};
 use crate::process::DEFAULT_SUBPROCESS_TIMEOUT;
 use crate::session::agent_browser::{filter_playwright_state, AgentBrowserSessionFilter};
+use crate::session::compose_playwright_state;
 use crate::session::SessionSource;
 
 use super::io_aget_error;
@@ -29,12 +30,18 @@ pub(crate) fn start_owned_login_session(
     prepare_login_profile_path(&profile)?;
     let mut pending = PendingLogin {
         agent_session: format!("aget-login-{}", options.name),
+        injected_sessions: options
+            .injected_sessions
+            .iter()
+            .map(|session| session.name.clone())
+            .collect(),
         name: options.name,
         profile: profile.to_string_lossy().into_owned(),
         url: options.url,
         allowed_domains,
         browser_pid: None,
     };
+    let injected_state = compose_playwright_state(&options.injected_sessions)?;
 
     fs::create_dir_all(&options.tmp_dir).map_err(io_aget_error)?;
     write_pending_login(&options.tmp_dir, &pending)?;
@@ -42,6 +49,7 @@ pub(crate) fn start_owned_login_session(
         crate::browser_cdp::start_login_browser(crate::browser_cdp::BrowserLoginStartRequest {
             profile_dir: &profile,
             url: &pending.url,
+            state: &injected_state,
             timeout: DEFAULT_SUBPROCESS_TIMEOUT,
         });
     let started = match started {

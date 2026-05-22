@@ -18,6 +18,7 @@ fn cancels_pending_login_without_aget_facade_or_command_backend() {
             agent_session: "aget-login-docs".to_string(),
             url: "https://example.com/login".to_string(),
             allowed_domains: vec!["example.com".to_string()],
+            injected_sessions: Vec::new(),
             browser_pid: None,
         })
         .unwrap(),

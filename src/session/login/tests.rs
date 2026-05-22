@@ -14,6 +14,7 @@ fn pending(name: &str, profile: PathBuf) -> PendingLogin {
         agent_session: format!("aget-login-{name}"),
         url: "https://example.com/login".to_string(),
         allowed_domains: vec!["example.com".to_string()],
+        injected_sessions: Vec::new(),
         browser_pid: None,
     }
 }
@@ -88,6 +89,7 @@ fn start_owned_login_session_rejects_non_https_before_launching_browser() {
         profile: None,
         url: "http://example.com/login".to_string(),
         tmp_dir: tmp_dir.clone(),
+        injected_sessions: Vec::new(),
     })
     .unwrap_err();
 

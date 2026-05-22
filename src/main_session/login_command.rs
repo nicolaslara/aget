@@ -4,7 +4,7 @@ use aget::{Aget, ErrorResponse, LoginSessionCommand, LoginSessionSubcommand};
 
 use super::elapsed_timing;
 
-const OAUTH_LOGIN_WARNING: &str = "OAuth providers may reject automation-controlled login browsers. If this site uses OAuth, prefer signing in with your real browser and importing a scoped session, for example: aget session import browser --browser chrome --browser-profile <profile> --name <name> --allow-domain <domain>.";
+const OAUTH_LOGIN_WARNING: &str = "OAuth providers may reject automation-controlled login browsers. If this site uses OAuth and you already have a provider session, pass it with --session <provider>; otherwise prefer signing in with your real browser and importing a scoped session, for example: aget session import browser --browser chrome --browser-profile <profile> --name <name> --allow-domain <domain>.";
 
 pub(super) fn run_login(
     aget: &Aget,
@@ -15,10 +15,17 @@ pub(super) fn run_login(
 ) -> Result<(), ErrorResponse> {
     match login.command {
         LoginSessionSubcommand::Start(start) => {
+            let requested_sessions = start.session;
             let result = aget
-                .start_login_session(start.name, start.profile, start.url)
+                .start_login_session(start.name, start.profile, start.url, requested_sessions)
                 .map_err(super::super::error_response)?;
-            let warnings = vec![OAUTH_LOGIN_WARNING.to_string()];
+            let mut warnings = vec![OAUTH_LOGIN_WARNING.to_string()];
+            if !result.pending.injected_sessions.is_empty() {
+                warnings.push(format!(
+                    "Injected {} existing local session(s) into the login browser profile. Credentials remain user-controlled; login finish saves only the target session.",
+                    result.pending.injected_sessions.len()
+                ));
+            }
             if json {
                 super::super::print_success_envelope(
                     command_name,
@@ -29,6 +36,7 @@ pub(super) fn run_login(
                         "agent_session": result.pending.agent_session,
                         "url": result.pending.url,
                         "allowed_domains": result.pending.allowed_domains,
+                        "injected_sessions": result.pending.injected_sessions,
                         "next_command": [
                             "aget",
                             "session",
@@ -48,6 +56,12 @@ pub(super) fn run_login(
                     result.pending.profile,
                     result.pending.name,
                 );
+                if !result.pending.injected_sessions.is_empty() {
+                    println!(
+                        "Injected existing local sessions: {}. Finish saves only the target session unless you later compose sessions explicitly.",
+                        result.pending.injected_sessions.join(", ")
+                    );
+                }
             }
             Ok(())
         }

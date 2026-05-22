@@ -117,6 +117,10 @@ pub struct LoginStartCommand {
     /// Agent-browser profile name for this experimental login flow.
     #[arg(long)]
     pub profile: Option<String>,
+
+    /// Existing local session to inject into the login browser profile. Repeat to inject several.
+    #[arg(long = "session")]
+    pub session: Vec<String>,
 }
 
 #[derive(Debug, Args, PartialEq, Eq)]
