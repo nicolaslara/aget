@@ -214,6 +214,7 @@ fn extract_owned_html(
         owned_options,
     )?;
     let content = match options.content_format {
+        OutputFormat::Html if owned_options.prettiify => fast_format_owned_html(&extracted.html),
         OutputFormat::Html => extracted.html,
         OutputFormat::Json => serde_json::json!({
             "url": final_url,
@@ -230,4 +231,27 @@ fn extract_owned_html(
         page_metadata,
         warnings: Vec::new(),
     })
+}
+
+fn fast_format_owned_html(html: &str) -> String {
+    let mut indent = 0usize;
+    let mut formatted = Vec::new();
+    for part in html.replace('>', ">\n").replace('<', "\n<").split('\n') {
+        let part = part.trim();
+        if part.is_empty() {
+            continue;
+        }
+        if part.starts_with("</") {
+            indent = indent.saturating_sub(1);
+            formatted.push(format!("{}{}", "  ".repeat(indent), part));
+        } else if part.starts_with('<') && part.ends_with("/>") {
+            formatted.push(format!("{}{}", "  ".repeat(indent), part));
+        } else if part.starts_with('<') {
+            formatted.push(format!("{}{}", "  ".repeat(indent), part));
+            indent += 1;
+        } else {
+            formatted.push(format!("{}{}", "  ".repeat(indent), part));
+        }
+    }
+    formatted.join("\n")
 }

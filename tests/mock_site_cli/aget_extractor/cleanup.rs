@@ -109,6 +109,18 @@ pub(super) fn assert_cleanup_outputs(aget_home: &Path, site: &MockSite) {
     assert!(!kept_attrs.content.contains("style="));
     assert!(!kept_attrs.content.contains("onclick="));
 
+    let prettified_html = Aget::new(aget_home)
+        .with_extractor_backend(AgetExtractorBackend::default())
+        .get(site.url("/html-cleanup"))
+        .content_format(OutputFormat::Html)
+        .backend_option("crawl4ai.prettiify", "true")
+        .run()
+        .unwrap();
+    assert!(prettified_html
+        .content
+        .contains("<h1>\n      Cleanup Main\n    </h1>"));
+    assert!(prettified_html.content.contains("\n    <a class=\"cta\""));
+
     let no_images = Aget::new(aget_home)
         .with_extractor_backend(AgetExtractorBackend::default())
         .get(site.url("/html-cleanup"))

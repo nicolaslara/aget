@@ -23,6 +23,7 @@ EXTRACTOR_OPTION_TYPES = {
     "remove_overlay_elements": ("crawler", "bool"),
     "keep_attrs": ("crawler", "list"),
     "keep_data_attributes": ("crawler", "bool"),
+    "prettiify": ("crawler", "bool"),
     "word_count_threshold": ("crawler", "int"),
     "wait_until": ("crawler", "str"),
     "page_timeout": ("crawler", "int"),

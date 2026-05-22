@@ -80,6 +80,7 @@ fn validate_crawl4ai_options(args: &Args) -> Result<(), String> {
         "remove_overlay_elements",
         "keep_attrs",
         "keep_data_attributes",
+        "prettiify",
         "word_count_threshold",
         "wait_until",
         "page_timeout",

@@ -3520,6 +3520,23 @@ Status note:
 
 - Completed with D370. Source inspection found `CrawlerRunConfig.keep_attrs` is documented and serialized as a list of attributes to keep, while the current static scraper snapshot only threads the fixed important-attribute allowlist plus `keep_data_attributes` into `remove_unwanted_attributes_fast`. Owned extraction now accepts `crawl4ai.keep_attrs`, preserves explicitly named attributes during owned cleaned-HTML serialization, keeps selectors running before attribute pruning, and leaves `crawl4ai.keep_data_attributes` unchanged. The optional Crawl4AI compatibility helper, command mock validation, README, OpenCode tool text, and compact knowledge routing were updated. `workpads/research/tasks.md` was not compacted. Focused owned cleanup coverage, command-backend option validation, Python helper syntax and parsing checks, `cargo fmt --check`, `git diff --check`, and full `cargo test` passed.
 
+### ✅ Task I19gv: Support Crawl4AI `prettiify` cleaned-HTML option
+
+Acceptance criteria:
+
+- Inspect Crawl4AI source before changing owned HTML output formatting.
+- Accept `crawl4ai.prettiify` as a backend option for owned extraction.
+- Apply formatting only to owned HTML output, matching Crawl4AI's `cleaned_html` post-processing boundary.
+- Keep markdown, text, and JSON output unchanged.
+- Keep the optional Crawl4AI command compatibility helper able to pass `prettiify` to real Crawl4AI.
+- Do not compact `workpads/research/tasks.md`.
+- Record the source-backed boundary in `knowledge.md`.
+- Verify with focused owned HTML coverage, command-backend option validation, helper syntax checks, and the standard check set.
+
+Status note:
+
+- Completed with D371. Source inspection found `CrawlerRunConfig.prettiify` defaults to `false`, and `AsyncWebCrawler` applies `fast_format_html(cleaned_html)` after scraping/extraction but before returning `CrawlResult.cleaned_html`. Owned extraction now accepts `crawl4ai.prettiify` and applies Crawl4AI-style two-space fast formatting only to owned HTML output; markdown, text, and JSON output stay unchanged. The optional Crawl4AI compatibility helper, command mock validation, README, OpenCode tool text, and compact knowledge routing were updated. `workpads/research/tasks.md` was not compacted. Focused owned HTML coverage, command-backend option validation, Python helper syntax and parsing checks, `cargo fmt --check`, `git diff --check`, and full `cargo test` passed.
+
 ### ✅ Task I20: Design OAuth-safe browser login and profile import flow
 
 Acceptance criteria:
