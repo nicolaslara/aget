@@ -42,6 +42,7 @@ pub(super) fn element_to_markdown(
     ignore_mailto_links: bool,
     ignore_tables: bool,
     bypass_tables: bool,
+    hide_strikethrough: bool,
     pad_tables: bool,
     protect_links: bool,
     use_automatic_links: bool,
@@ -73,6 +74,7 @@ pub(super) fn element_to_markdown(
         ignore_mailto_links,
         ignore_tables,
         bypass_tables,
+        hide_strikethrough,
         protect_links,
         use_automatic_links,
         unicode_snob,
@@ -106,6 +108,10 @@ fn render_node(node: NodeRef<'_, Node>, writer: &mut MarkdownWriter) {
 }
 
 fn render_element(node: NodeRef<'_, Node>, tag: &str, writer: &mut MarkdownWriter) {
+    if writer.hide_strikethrough && has_line_through_style(node) {
+        return;
+    }
+
     if writer.only_text && is_only_text_eligible_tag(tag) {
         writer.push_text(&raw_text_from_node(node));
         return;
@@ -171,6 +177,12 @@ fn render_element(node: NodeRef<'_, Node>, tag: &str, writer: &mut MarkdownWrite
         }
         _ => render_children(node, writer),
     }
+}
+
+fn has_line_through_style(node: NodeRef<'_, Node>) -> bool {
+    ElementRef::wrap(node)
+        .and_then(|element| element.value().attr("style"))
+        .is_some_and(|style| style.to_ascii_lowercase().contains("line-through"))
 }
 
 fn is_only_text_eligible_tag(tag: &str) -> bool {

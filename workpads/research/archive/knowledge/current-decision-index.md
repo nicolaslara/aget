@@ -151,6 +151,7 @@ This archive file keeps the denser decision routing that used to live in top-lev
 | D332 | `d332-wrap-list-items-option.md` | Crawl4AI `wrap_list_items` markdown option for body-width list-item wrapping compatibility. |
 | D333 | `d333-wrap-tables-option.md` | Crawl4AI `wrap_tables` markdown option for body-width table-line wrapping compatibility. |
 | D334 | `d334-pad-tables-option.md` | Crawl4AI `pad_tables` markdown option for opt-in owned markdown table column padding. |
+| D335 | `d335-hide-strikethrough-option.md` | Crawl4AI `hide_strikethrough` markdown option for opt-in styled line-through suppression. |
 
 ## Full Archive Routing
 
@@ -170,7 +171,7 @@ This archive file keeps the denser decision routing that used to live in top-lev
 | D151-D157 | `d151-d157-auth-and-browser-import.md` | OAuth-safe authorization API/CLI and conservative browser-neutral Chrome import surface. |
 | D158-D167 | `d158-d167-recent-migration-followups.md` | Recent source-backed extraction improvements and follow-up decomposition slices. |
 | D168-D176 | Per-decision files | Knowledge/reference compaction, engine-refactor planning, wrapper introduction, naming cleanup, and direct engine coverage. |
-| D177-D334 | Per-decision files | Module/test/support decomposition plus the latest owned extractor/browser parity improvements, agent-facing option docs, support-file routing refreshes, login-session injection, body-width markdown wrapping, mark-code compatibility, single-line-break spacing, Chrome profile-lock diagnostics, unicode-snob compatibility, wrap-links compatibility, wrap-list-items compatibility, wrap-tables compatibility, and pad-tables compatibility. |
+| D177-D335 | Per-decision files | Module/test/support decomposition plus the latest owned extractor/browser parity improvements, agent-facing option docs, support-file routing refreshes, login-session injection, body-width markdown wrapping, mark-code compatibility, single-line-break spacing, Chrome profile-lock diagnostics, unicode-snob compatibility, wrap-links compatibility, wrap-list-items compatibility, wrap-tables compatibility, pad-tables compatibility, and hide-strikethrough compatibility. |
 
 ## Current Open Migration Gaps
 

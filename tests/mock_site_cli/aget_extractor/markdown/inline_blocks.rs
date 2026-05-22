@@ -9,7 +9,7 @@ pub(super) fn assert_inline_blocks(aget_home: &Path, site: &MockSite) {
     assert_eq!(
         markdown_inline_blocks,
         format!(
-            "# Reference Bits\n\nStatus: ~~removed~~, _soft_, _under_, `Cmd K`, `TTY`, \"quoted\", HTML, power 2, and water 2.\n\n1\\. Not a generated list.\n\n\\- Not a generated bullet.\n\n\\+ Not a generated plus bullet.\n\nLiteral \\\\*stars\\\\* and \\\\[brackets\\\\].\n\n* * *\n\n> Quoted **block**.\n>\n> Second line.\n\n![Figure alt]({})\n\nFigure caption with source.\n\nExpandable Summary\n\nHidden detail text.\n\nContact the docs team.\n\nTerm\n    Definition with **detail**.\n\n  *[HTML]: HyperText Markup Language",
+            "# Reference Bits\n\nStatus: ~~removed~~, _soft_, _under_, `Cmd K`, `TTY`, \"quoted\", HTML, power 2, and water 2.\n\nStyled removed text.\n\n1\\. Not a generated list.\n\n\\- Not a generated bullet.\n\n\\+ Not a generated plus bullet.\n\nLiteral \\\\*stars\\\\* and \\\\[brackets\\\\].\n\n* * *\n\n> Quoted **block**.\n>\n> Second line.\n\n![Figure alt]({})\n\nFigure caption with source.\n\nExpandable Summary\n\nHidden detail text.\n\nContact the docs team.\n\nTerm\n    Definition with **detail**.\n\n  *[HTML]: HyperText Markup Language",
             site.url("/figure.png")
         )
     );
@@ -35,6 +35,15 @@ pub(super) fn assert_inline_blocks(aget_home: &Path, site: &MockSite) {
     assert!(!markdown_ignore_emphasis.contains("_under_"));
     assert!(!markdown_ignore_emphasis.contains("**detail**"));
     assert!(markdown_ignore_emphasis.contains("~~removed~~"));
+
+    let markdown_hide_strikethrough = markdown_content(
+        aget_home,
+        site,
+        "/markdown-inline-blocks",
+        &[("crawl4ai.hide_strikethrough", "true")],
+    );
+    assert!(markdown_hide_strikethrough.contains("Status: ~~removed~~, _soft_, _under_"));
+    assert!(!markdown_hide_strikethrough.contains("Styled removed text."));
 
     let markdown_emphasis_markers = markdown_content(
         aget_home,

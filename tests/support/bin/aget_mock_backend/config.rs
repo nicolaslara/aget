@@ -90,6 +90,7 @@ fn validate_crawl4ai_options(args: &Args) -> Result<(), String> {
         "default_image_alt",
         "emphasis_mark",
         "escape_snob",
+        "hide_strikethrough",
         "ignore_emphasis",
         "ignore_images",
         "images_as_html",

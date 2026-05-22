@@ -33,6 +33,7 @@ EXTRACTOR_OPTION_TYPES = {
     "default_image_alt": ("markdown", "str"),
     "emphasis_mark": ("markdown", "str"),
     "escape_snob": ("markdown", "bool"),
+    "hide_strikethrough": ("markdown", "bool"),
     "ignore_emphasis": ("markdown", "bool"),
     "ignore_images": ("markdown", "bool"),
     "images_as_html": ("markdown", "bool"),

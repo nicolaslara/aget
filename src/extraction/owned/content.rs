@@ -1,7 +1,8 @@
 mod main_content;
 
 use ego_tree::NodeId;
-use scraper::{ElementRef, Html};
+use html5ever::tree_builder::TreeSink;
+use scraper::{ElementRef, Html, HtmlTreeSink};
 
 use main_content::default_main_content_element_id;
 
@@ -60,6 +61,10 @@ pub(super) fn extract_owned_content(
         collect_target_owned_element_ids(&document, &root_ids, &owned_options.target_elements)?
     };
 
+    if owned_options.hide_strikethrough {
+        document = remove_owned_line_through_elements(document, &root_ids, &target_ids);
+    }
+
     // Match Crawl4AI's cleanup order: selectors see original attributes, but
     // serialized cleaned HTML keeps only its small important-attribute allowlist.
     if owned_options.only_text {
@@ -77,6 +82,39 @@ pub(super) fn extract_owned_content(
         return extract_target_owned_elements(&document, &root_ids, base_url, owned_options);
     }
     extract_target_owned_elements(&document, &target_ids, base_url, owned_options)
+}
+
+fn remove_owned_line_through_elements(
+    document: Html,
+    root_ids: &[NodeId],
+    target_ids: &[NodeId],
+) -> Html {
+    let node_ids = document
+        .tree
+        .nodes()
+        .filter_map(ElementRef::wrap)
+        .filter(|element| should_remove_owned_line_through_element(*element, root_ids, target_ids))
+        .map(|element| element.id())
+        .collect::<Vec<_>>();
+    let sink = HtmlTreeSink::new(document);
+    for id in node_ids {
+        sink.remove_from_parent(&id);
+    }
+    sink.finish()
+}
+
+fn should_remove_owned_line_through_element(
+    element: ElementRef<'_>,
+    root_ids: &[NodeId],
+    target_ids: &[NodeId],
+) -> bool {
+    let id = element.id();
+    !root_ids.contains(&id)
+        && !target_ids.contains(&id)
+        && element
+            .value()
+            .attr("style")
+            .is_some_and(|style| style.to_ascii_lowercase().contains("line-through"))
 }
 
 fn extract_single_owned_element(
@@ -106,6 +144,7 @@ fn extract_single_owned_element(
             owned_options.ignore_mailto_links,
             owned_options.ignore_tables,
             owned_options.bypass_tables,
+            owned_options.hide_strikethrough,
             owned_options.pad_tables,
             owned_options.protect_links,
             owned_options.use_automatic_links,
@@ -178,6 +217,7 @@ fn extract_target_owned_elements(
                     owned_options.ignore_mailto_links,
                     owned_options.ignore_tables,
                     owned_options.bypass_tables,
+                    owned_options.hide_strikethrough,
                     owned_options.pad_tables,
                     owned_options.protect_links,
                     owned_options.use_automatic_links,
