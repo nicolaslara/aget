@@ -19,8 +19,9 @@ pub(super) fn element_to_markdown(
     element: ElementRef<'_>,
     base_url: &str,
     only_text: bool,
+    skip_internal_links: bool,
 ) -> String {
-    let mut writer = MarkdownWriter::new(base_url, only_text);
+    let mut writer = MarkdownWriter::new(base_url, only_text, skip_internal_links);
     render_node(*element, &mut writer);
     writer.append_abbreviation_definitions();
     normalize_markdown(&writer.output)

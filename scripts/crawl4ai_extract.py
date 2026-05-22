@@ -40,7 +40,7 @@ async def run() -> int:
         return fail(metadata_path, str(error))
 
     try:
-        from crawl4ai import AsyncWebCrawler, BrowserConfig, CacheMode, CrawlerRunConfig
+        from crawl4ai import AsyncWebCrawler, BrowserConfig, CacheMode, CrawlerRunConfig, DefaultMarkdownGenerator
     except Exception as error:
         return fail(metadata_path, f"Crawl4AI import failed: {error}")
 
@@ -72,6 +72,8 @@ async def run() -> int:
         apply_compatible_options(crawler_kwargs, browser_kwargs, extractor_options["crawler"], CrawlerRunConfig)
     except ValueError as error:
         return fail(metadata_path, str(error))
+    if extractor_options["markdown"]:
+        crawler_kwargs["markdown_generator"] = DefaultMarkdownGenerator(options=extractor_options["markdown"])
     crawler_config = CrawlerRunConfig(**crawler_kwargs)
 
     with contextlib.redirect_stdout(sys.stderr):
@@ -123,6 +125,7 @@ EXTRACTOR_OPTION_TYPES = {
     "scroll_delay": ("crawler", "float"),
     "max_scroll_steps": ("crawler", "int"),
     "flatten_shadow_dom": ("crawler", "bool"),
+    "skip_internal_links": ("markdown", "bool"),
 }
 
 JS_WAIT_MARKERS = ("=>", "function(", "return ", ";")
@@ -143,7 +146,7 @@ def fail(metadata_path: Path, message: str) -> int:
 
 
 def parse_extractor_options(values: list[str]) -> dict[str, dict[str, object]]:
-    parsed = {"browser": {}, "crawler": {}}
+    parsed = {"browser": {}, "crawler": {}, "markdown": {}}
     for value in values:
         if "=" not in value:
             raise ValueError(f"extractor option must use key=value form: {value}")

@@ -86,7 +86,12 @@ fn extract_single_owned_element(
 ) -> ExtractedOwnedContent {
     ExtractedOwnedContent {
         html: element.inner_html(),
-        markdown: element_to_markdown(element, base_url, owned_options.only_text),
+        markdown: element_to_markdown(
+            element,
+            base_url,
+            owned_options.only_text,
+            owned_options.skip_internal_links,
+        ),
         text: element_to_text(element),
     }
 }
@@ -126,7 +131,14 @@ fn extract_target_owned_elements(
     let markdown = normalize_markdown(
         &elements
             .iter()
-            .map(|element| element_to_markdown(*element, base_url, owned_options.only_text))
+            .map(|element| {
+                element_to_markdown(
+                    *element,
+                    base_url,
+                    owned_options.only_text,
+                    owned_options.skip_internal_links,
+                )
+            })
             .filter(|markdown| !markdown.is_empty())
             .collect::<Vec<_>>()
             .join("\n\n"),

@@ -30,7 +30,8 @@ fn get_command_backend_accepts_scan_full_page_options() {
                 "crawl4ai.exclude_internal_links=true",
                 "crawl4ai.exclude_social_media_domains=social.example,community.example",
                 "crawl4ai.exclude_social_media_links=true",
-                "crawl4ai.remove_overlay_elements=false"
+                "crawl4ai.remove_overlay_elements=false",
+                "crawl4ai.skip_internal_links=true"
             ]
         }),
     );
@@ -75,6 +76,8 @@ fn get_command_backend_accepts_scan_full_page_options() {
             "crawl4ai.exclude_social_media_links=true",
             "--backend-option",
             "crawl4ai.remove_overlay_elements=false",
+            "--backend-option",
+            "crawl4ai.skip_internal_links=true",
         ])
         .assert()
         .success();

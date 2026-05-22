@@ -118,6 +118,21 @@ pub(super) fn assert_markdown_rendering(aget_home: &Path, site: &MockSite) {
         )
     );
 
+    let markdown_skip_internal_links = Aget::new(aget_home)
+        .with_extractor_backend(AgetExtractorBackend::default())
+        .get(site.url("/markdown-links"))
+        .content_format(OutputFormat::Markdown)
+        .selector("main.article")
+        .backend_option("crawl4ai.skip_internal_links", "true")
+        .run()
+        .unwrap();
+    assert!(markdown_skip_internal_links
+        .content
+        .contains("Jump within page."));
+    assert!(!markdown_skip_internal_links
+        .content
+        .contains("/markdown-links#details"));
+
     let markdown_ordered_start = Aget::new(aget_home)
         .with_extractor_backend(AgetExtractorBackend::default())
         .get(site.url("/markdown-ordered-start"))

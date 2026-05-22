@@ -17,6 +17,10 @@ pub(super) fn render_link(node: NodeRef<'_, Node>, writer: &mut MarkdownWriter) 
         render_children(node, writer);
         return;
     };
+    if writer.skip_internal_links && href.starts_with('#') {
+        render_children(node, writer);
+        return;
+    }
     if href.starts_with("mailto:") {
         render_children(node, writer);
         return;
