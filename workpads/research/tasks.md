@@ -1709,6 +1709,21 @@ Status note:
 
 - Completed with D253. `tests/session_cli.rs` is now a small integration-target router, while remaining list/delete, compose, and inspect scenarios live in behavior-focused modules under `tests/session_cli/`. Test names, assertions, command arguments, existing authorize/import/login routing, and ignored real-smoke annotations remain stable, and `workpads/research/tasks.md` remains un-compacted.
 
+### ✅ Task I19ck: Split shared mock-site support server helpers
+
+Acceptance criteria:
+
+- Preserve current `MockSite`, `MockSiteBuilder`, `MockResponse`, default routes, request recording, and header/cookie assertion behavior.
+- Move request parsing/HTTP response helpers and default route dispatch out of `tests/support/mock_site.rs` into focused support submodules.
+- Keep existing `support::mock_site::{MockResponse, MockSite, MockSiteBuilder}` imports compatible.
+- Do not compact or remove planned tasks from `workpads/research/tasks.md`.
+- Record the resulting support boundary in `knowledge.md`.
+- Verify with focused mock-site targets plus the standard check set.
+
+Status note:
+
+- Completed with D254. `tests/support/mock_site.rs` now keeps the public mock-site support API and server lifecycle, while `tests/support/mock_site/protocol.rs` owns raw HTTP parsing/formatting and cookie matching, and `tests/support/mock_site/routes.rs` owns the default public/auth/storage/login/logout route dispatch. Existing support imports, custom route behavior, default route responses, request recording, and header/cookie assertions remain stable, and `workpads/research/tasks.md` remains un-compacted.
+
 ### ✅ Task I20: Design OAuth-safe browser login and profile import flow
 
 Acceptance criteria:
