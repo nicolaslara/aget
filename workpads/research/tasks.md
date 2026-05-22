@@ -2735,6 +2735,22 @@ Status note:
 
 - Completed with D320. `tests/session_cli/login/finish.rs` remains the login-finish integration-test route and delegates successful scoped-save cleanup, existing-bucket merge, and finish failure scenarios to scenario-owned child modules. The split is mechanical; session login CLI behavior is unchanged, and `workpads/research/tasks.md` was not compacted. The parent route is 6 lines and all child modules are 116 lines or less. Focused login-finish coverage and the standard gate passed.
 
+### ✅ Task I19ez: Split browser CDP navigation client tests
+
+Acceptance criteria:
+
+- Preserve current browser CDP navigation/wait test coverage.
+- Keep `src/browser_cdp/tests/chrome/cdp_client/navigation.rs` as the navigation test route.
+- Move cohesive navigation CDP scenarios into smaller child modules by behavior.
+- Keep the split mechanical with no intentional browser/CDP behavior changes.
+- Do not compact `workpads/research/tasks.md`.
+- Record the resulting test boundary in `knowledge.md`.
+- Verify with focused navigation CDP tests plus the standard check set.
+
+Status note:
+
+- Completed with D321. `src/browser_cdp/tests/chrome/cdp_client/navigation.rs` remains the navigation client test route and delegates same-document navigation, `Page.navigate` error text, lifecycle timeout, and network-idle readiness scenarios to behavior-owned child modules. The split is mechanical; browser/CDP runtime behavior is unchanged, and `workpads/research/tasks.md` was not compacted. The parent route is 4 lines and all child modules are 86 lines or less. Focused navigation CDP coverage and the standard gate passed.
+
 ### ✅ Task I20: Design OAuth-safe browser login and profile import flow
 
 Acceptance criteria:
