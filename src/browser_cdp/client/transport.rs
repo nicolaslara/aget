@@ -124,27 +124,13 @@ impl CdpClient {
         match self.socket.read() {
             Ok(Message::Text(text)) => {
                 let text: &str = text.as_ref();
-                serde_json::from_str(text)
-                    .map(Some)
-                    .map_err(|error| AgetError::Stable {
-                        code: ErrorCode::ExtractionFailed,
-                        message: format!(
-                            "owned browser fallback received malformed CDP JSON: {error}"
-                        ),
-                    })
+                Ok(serde_json::from_str(text).ok())
             }
             Ok(Message::Binary(bytes)) => {
                 let Ok(text) = String::from_utf8(bytes.to_vec()) else {
                     return Ok(None);
                 };
-                serde_json::from_str(&text)
-                    .map(Some)
-                    .map_err(|error| AgetError::Stable {
-                        code: ErrorCode::ExtractionFailed,
-                        message: format!(
-                            "owned browser fallback received malformed CDP JSON: {error}"
-                        ),
-                    })
+                Ok(serde_json::from_str(&text).ok())
             }
             Ok(Message::Ping(bytes)) => {
                 self.socket
