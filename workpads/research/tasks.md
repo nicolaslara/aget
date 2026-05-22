@@ -2672,6 +2672,21 @@ Status note:
 
 - Completed with D316. `tests/mock_site_sessions.rs` remains the integration-test route and delegates to child modules for replay, unauthenticated/expired/logout states, Chrome import, and login bootstrap scenarios. The split is mechanical; CLI, session, mock-site, and backend behavior are unchanged, and `workpads/research/tasks.md` was not compacted. The parent route is 10 lines and all child modules are 104 lines or less. Focused `mock_site_sessions` coverage and the standard gate passed.
 
+### ✅ Task I19ev: Split Crawl4AI compatibility adapter script
+
+Acceptance criteria:
+
+- Preserve the current `scripts/crawl4ai_extract.py` executable entrypoint and command-line contract.
+- Move cohesive helper groups into smaller Python modules by behavior.
+- Keep the split mechanical with no intentional Crawl4AI adapter behavior changes.
+- Do not compact `workpads/research/tasks.md`.
+- Record the resulting adapter boundary in `knowledge.md`.
+- Verify Python syntax/imports, pre-import validation paths, and the standard Rust check set.
+
+Status note:
+
+- Completed with D317. `scripts/crawl4ai_extract.py` remains the executable compatibility adapter route and delegates option parsing/signature checks, private file writes, and content selection/text extraction to `scripts/aget_crawl4ai_compat/` helper modules. The split is mechanical; command-line arguments, JSON response shape, metadata writes, validation messages, and Crawl4AI invocation behavior are intended unchanged, and `workpads/research/tasks.md` was not compacted. The executable route is 132 lines and all helper modules are 122 lines or less. Python syntax, pre-Crawl4AI-import validation paths, focused get CLI validation coverage, and the standard gate passed.
+
 ### ✅ Task I20: Design OAuth-safe browser login and profile import flow
 
 Acceptance criteria:
