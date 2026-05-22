@@ -1947,6 +1947,20 @@ Status note:
 
 - Completed with D269. `workpads/research/archive/knowledge/d092-d108-markdown-browser-slices.md` is now a 9-line routing index, with historical D92-D97 markdown/startup detail, D98-D103 inline-markdown/CDP-discovery detail, and D104-D108 list/blockquote/link-escaping detail moved into three smaller section files under `archive/knowledge/d092-d108-markdown-browser-slices/`. `workpads/research/tasks.md` was not compacted. Line-count checks and `git diff --check` passed.
 
+### ✅ Task I19da: Split D64-D76 browser/default-switch archive support file
+
+Acceptance criteria:
+
+- Preserve `workpads/research/tasks.md` as the full planned-task source of truth; do not compact or remove planned tasks.
+- Convert `workpads/research/archive/knowledge/d064-d076-browser-default-switch.md` into a compact routing index.
+- Move the dense historical D64-D76 browser/default-switch decision content into smaller referenced files.
+- Update current knowledge routing and decision index so the split is discoverable.
+- Verify the split with line-count checks and `git diff --check`.
+
+Status note:
+
+- Completed with D270. `workpads/research/archive/knowledge/d064-d076-browser-default-switch.md` is now a 9-line routing index, with historical D64-D68 Chrome import/login detail, D69-D73 extraction/rendering option detail, and D74-D76 owned-default/audit detail moved into three smaller section files under `archive/knowledge/d064-d076-browser-default-switch/`. `workpads/research/tasks.md` was not compacted. Line-count checks and `git diff --check` passed.
+
 ### ✅ Task I20: Design OAuth-safe browser login and profile import flow
 
 Acceptance criteria:
