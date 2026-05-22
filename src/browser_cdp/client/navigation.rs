@@ -1,14 +1,11 @@
+mod readiness;
+
 use std::collections::BTreeSet;
-use std::thread;
 use std::time::{Duration, Instant};
 
 use serde_json::{json, Value};
 
-use super::transport::remaining;
 use super::CdpClient;
-use crate::browser_cdp::page_scripts::{
-    full_page_scan_expression, rendered_overlay_cleanup_expression, selector_exists_expression,
-};
 use crate::browser_cdp::PageWaitUntil;
 use crate::error::{AgetError, ErrorCode};
 
@@ -206,138 +203,6 @@ impl CdpClient {
             return Ok(NavigationOutcome::SameDocument);
         }
         Ok(NavigationOutcome::NewDocument)
-    }
-
-    pub(in crate::browser_cdp) fn wait_for_selector(
-        &mut self,
-        session_id: &str,
-        selector: &str,
-        timeout: Duration,
-    ) -> Result<(), AgetError> {
-        let expression = selector_exists_expression(selector)?;
-        let deadline = Instant::now() + timeout;
-        loop {
-            let result = self.send(
-                "Runtime.evaluate",
-                Some(json!({
-                    "expression": expression,
-                    "returnByValue": true,
-                    "awaitPromise": false,
-                })),
-                self.session_param(session_id),
-                remaining(deadline),
-            )?;
-            if result
-                .get("result")
-                .and_then(|result| result.get("value"))
-                .and_then(Value::as_bool)
-                .unwrap_or(false)
-            {
-                return Ok(());
-            }
-            if Instant::now() >= deadline {
-                return Err(AgetError::Stable {
-                    code: ErrorCode::Timeout,
-                    message: format!(
-                        "owned browser fallback timed out waiting for selector '{selector}'"
-                    ),
-                });
-            }
-            thread::sleep(Duration::from_millis(100));
-        }
-    }
-
-    pub(in crate::browser_cdp) fn wait_for_images_complete(
-        &mut self,
-        session_id: &str,
-    ) -> Result<bool, AgetError> {
-        let deadline = Instant::now() + Duration::from_secs(1);
-        loop {
-            if Instant::now() >= deadline {
-                return Ok(false);
-            }
-            let result = self.send(
-                "Runtime.evaluate",
-                Some(json!({
-                    "expression": "Array.from(document.images).every((img) => img.complete)",
-                    "returnByValue": true,
-                    "awaitPromise": false,
-                })),
-                self.session_param(session_id),
-                remaining(deadline),
-            )?;
-            if result
-                .get("result")
-                .and_then(|result| result.get("value"))
-                .and_then(Value::as_bool)
-                .unwrap_or(false)
-            {
-                return Ok(true);
-            }
-            thread::sleep(Duration::from_millis(100));
-        }
-    }
-
-    pub(in crate::browser_cdp) fn scan_full_page(
-        &mut self,
-        session_id: &str,
-        scroll_delay: Duration,
-        max_scroll_steps: usize,
-        timeout: Duration,
-    ) -> Result<(), AgetError> {
-        self.send(
-            "Runtime.evaluate",
-            Some(json!({
-                "expression": full_page_scan_expression(scroll_delay, max_scroll_steps),
-                "returnByValue": true,
-                "awaitPromise": true,
-            })),
-            self.session_param(session_id),
-            timeout,
-        )?;
-        Ok(())
-    }
-
-    pub(in crate::browser_cdp) fn remove_rendered_overlay_elements(
-        &mut self,
-        session_id: &str,
-        timeout: Duration,
-    ) -> Result<(), AgetError> {
-        self.send(
-            "Runtime.evaluate",
-            Some(json!({
-                "expression": rendered_overlay_cleanup_expression(),
-                "returnByValue": true,
-                "awaitPromise": true,
-            })),
-            self.session_param(session_id),
-            timeout,
-        )?;
-        Ok(())
-    }
-
-    pub(in crate::browser_cdp) fn evaluate_string(
-        &mut self,
-        session_id: &str,
-        expression: &str,
-        timeout: Duration,
-    ) -> Result<String, AgetError> {
-        let result = self.send(
-            "Runtime.evaluate",
-            Some(json!({
-                "expression": expression,
-                "returnByValue": true,
-                "awaitPromise": false,
-            })),
-            self.session_param(session_id),
-            timeout,
-        )?;
-        Ok(result
-            .get("result")
-            .and_then(|result| result.get("value"))
-            .and_then(Value::as_str)
-            .unwrap_or_default()
-            .to_string())
     }
 }
 

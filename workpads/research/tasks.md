@@ -1799,6 +1799,21 @@ Status note:
 
 - Completed with D259. `src/extraction/fallback_command.rs` now keeps command-compat browser fallback orchestration for state load, open, content extraction, close handling, warnings, and result shaping, while `src/extraction/fallback_command/command.rs` owns `AGET_AGENT_BROWSER_COMMAND` subprocess execution and failure classification, `src/extraction/fallback_command/temp.rs` owns private temporary fallback profile/output files and cleanup, and `src/extraction/fallback_command/text.rs` owns the compatibility HTML-to-text conversion used for fallback markdown/text/json content. `CommandBrowserFallbackBackend` and `run_agent_browser_fallback` remain extraction-internal entrypoints, and `workpads/research/tasks.md` remains un-compacted.
 
+### ✅ Task I19cq: Split browser CDP readiness/evaluation helpers
+
+Acceptance criteria:
+
+- Preserve current CDP navigation, network-idle, selector wait, image wait, full-page scan, overlay cleanup, and string evaluation behavior.
+- Move runtime readiness/evaluation helpers out of `src/browser_cdp/client/navigation.rs` into a focused submodule.
+- Keep current `browser_cdp` internal method access compatible for render/current-tab callers and tests.
+- Do not compact or remove planned tasks from `workpads/research/tasks.md`.
+- Record the resulting CDP client boundary in `knowledge.md`.
+- Verify with focused browser CDP navigation/readiness coverage plus the standard check set.
+
+Status note:
+
+- Completed with D260. `src/browser_cdp/client/navigation.rs` now keeps page navigation, blank-response navigation, lifecycle-event waits, network-idle tracking, navigation response/error handling, session message matching, and network request id extraction, while `src/browser_cdp/client/navigation/readiness.rs` owns runtime readiness/evaluation helpers for selector waits, image completeness polling, full-page scan evaluation, rendered overlay cleanup evaluation, and string evaluation. Existing render/current-tab callers continue to use the same `CdpClient` methods, and `workpads/research/tasks.md` remains un-compacted.
+
 ### ✅ Task I20: Design OAuth-safe browser login and profile import flow
 
 Acceptance criteria:
