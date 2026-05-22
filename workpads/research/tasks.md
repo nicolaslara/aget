@@ -1975,6 +1975,20 @@ Status note:
 
 - Completed with D271. `workpads/research/aget-engine-refactor-plan.md` is now an 8-line routing index, with historical engine goal/boundary/naming detail and migration/testing/guardrail detail moved into two smaller section files under `workpads/research/aget-engine-refactor-plan/`. `workpads/research/tasks.md` was not compacted. Line-count checks and `git diff --check` passed.
 
+### ✅ Task I19dc: Split D77-D91 owned-extractor archive support file
+
+Acceptance criteria:
+
+- Preserve `workpads/research/tasks.md` as the full planned-task source of truth; do not compact or remove planned tasks.
+- Convert `workpads/research/archive/knowledge/d077-d091-owned-extractor-options-cleanup.md` into a compact routing index.
+- Move the dense historical D77-D91 owned extractor/browser decision content into smaller referenced files.
+- Update current knowledge routing and decision index so the split is discoverable.
+- Verify the split with line-count checks and `git diff --check`.
+
+Status note:
+
+- Completed with D272. `workpads/research/archive/knowledge/d077-d091-owned-extractor-options-cleanup.md` is now a 9-line routing index, with historical D77-D82 option/readiness detail, D83-D85 browser state/fallback detail, and D86-D91 cleanup/markdown detail moved into three smaller section files under `archive/knowledge/d077-d091-owned-extractor-options-cleanup/`. `workpads/research/tasks.md` was not compacted. Line-count checks and `git diff --check` passed.
+
 ### ✅ Task I20: Design OAuth-safe browser login and profile import flow
 
 Acceptance criteria:
