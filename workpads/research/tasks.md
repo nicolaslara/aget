@@ -2207,6 +2207,20 @@ Status note:
 
 - Completed with D287. Source inspection found `agent-browser` reports early Chrome startup exits as `Chrome exited early (exit code: X) without writing DevToolsActivePort`. Owned startup now reports the explicit exit code and missing-`DevToolsActivePort` condition while preserving the existing `backend_unavailable` code, retry behavior, stderr classification, and stderr/port-file discovery fallbacks. Validation passed with focused browser CDP discovery coverage, `cargo fmt --check`, `cargo test`, and `git diff --check`.
 
+### ✅ Task I19ds: Split Browser CDP discovery tests by behavior
+
+Acceptance criteria:
+
+- Split `src/browser_cdp/tests/discovery.rs` into smaller behavior-focused modules without changing production code.
+- Preserve all existing discovery, diagnostics, active-port, stale-port, and direct-WebSocket fallback assertions.
+- Keep test names and behavior discoverable by the existing `browser_cdp::tests::discovery` module path.
+- Record the decomposition boundary in `knowledge.md`.
+- Verify with focused browser CDP discovery coverage plus the standard check set.
+
+Status note:
+
+- Completed with D288. `src/browser_cdp/tests/discovery.rs` is now a small module index, with Chrome stderr/startup diagnostics coverage in `discovery/diagnostics.rs`, `DevToolsActivePort` and stale-port cleanup coverage in `discovery/port_file.rs`, and `/json/version`/`json/list`/direct-WebSocket endpoint fallback coverage in `discovery/endpoint.rs`. Production code and assertions are unchanged, and `workpads/research/tasks.md` was not compacted. Validation passed with focused browser CDP discovery coverage plus the standard check set.
+
 ### ✅ Task I20: Design OAuth-safe browser login and profile import flow
 
 Acceptance criteria:
