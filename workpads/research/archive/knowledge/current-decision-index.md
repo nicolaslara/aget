@@ -89,6 +89,7 @@ This archive file keeps the denser decision routing that used to live in top-lev
 | D270 | `d270-d064-d076-archive-split.md` | Support-file split of the historical D64-D76 browser/default-switch decision bundle into smaller routed archive files without compacting tasks. |
 | D271 | `d271-engine-refactor-plan-split.md` | Support-file split of the historical Aget engine refactor plan into smaller routed files without compacting tasks. |
 | D272 | `d272-d077-d091-archive-split.md` | Support-file split of the historical D77-D91 owned extractor/browser decision bundle into smaller routed files without compacting tasks. |
+| D273 | `d273-d109-d122-archive-split.md` | Support-file split of the historical D109-D122 selector/overlay/shadow decision bundle into smaller routed files without compacting tasks. |
 
 ## Full Archive Routing
 
@@ -103,12 +104,12 @@ This archive file keeps the denser decision routing that used to live in top-lev
 | D64-D76 | `d064-d076-browser-default-switch.md` index to section files | Browser/profile import, login lifecycle, main-content selection, owned default switch, command-adapter demotion, and first final-audit evidence. |
 | D77-D91 | `d077-d091-owned-extractor-options-cleanup.md` index to section files | Owned extractor options, CDP rendering controls, cleaned-HTML cleanup, and early markdown tags. |
 | D92-D108 | `d092-d108-markdown-browser-slices.md` index to section files | Markdown fidelity improvements plus Chrome/CDP discovery and startup fallback slices. |
-| D109-D122 | `d109-d122-selector-overlay-shadow.md` | Hard breaks, selector behavior, Chrome retry diagnostics, overlay cleanup, linked images, and shadow DOM flattening. |
+| D109-D122 | `d109-d122-selector-overlay-shadow.md` index to section files | Hard breaks, selector behavior, Chrome retry diagnostics, overlay cleanup, linked images, and shadow DOM flattening. |
 | D123-D150 | `d123-d150-module-decomposition.md` index to section files | Original extraction/CDP/test module decomposition through I19i completion. |
 | D151-D157 | `d151-d157-auth-and-browser-import.md` | OAuth-safe authorization API/CLI and conservative browser-neutral Chrome import surface. |
 | D158-D167 | `d158-d167-recent-migration-followups.md` | Recent source-backed extraction improvements and follow-up decomposition slices. |
 | D168-D176 | Per-decision files | Knowledge/reference compaction, engine-refactor planning, wrapper introduction, naming cleanup, and direct engine coverage. |
-| D177-D272 | Per-decision files | Module/test/support decomposition plus the latest owned extractor/browser parity improvements. |
+| D177-D273 | Per-decision files | Module/test/support decomposition plus the latest owned extractor/browser parity improvements. |
 
 ## Current Open Migration Gaps
 
