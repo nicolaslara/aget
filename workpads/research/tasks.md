@@ -2656,6 +2656,22 @@ Status note:
 
 - Completed with D315. `src/session/playwright/tests.rs` remains the route and delegates to child modules for Playwright state composition, composed-session behavior, temp state files, and shared fixtures. The split is mechanical; session runtime behavior is unchanged, and `workpads/research/tasks.md` was not compacted. The parent route is 4 lines and the largest child is 143 lines. Focused `session::playwright` coverage and the standard gate passed.
 
+### ✅ Task I19eu: Split mock-site session integration tests
+
+Acceptance criteria:
+
+- Preserve current mock-site session replay, auth-state, Chrome import, and login bootstrap coverage.
+- Keep `tests/mock_site_sessions.rs` as the integration-test route.
+- Move cohesive mock-site session scenarios into smaller child modules by behavior.
+- Keep the split mechanical with no intentional CLI, session, or mock-site behavior changes.
+- Do not compact `workpads/research/tasks.md`.
+- Record the resulting test boundary in `knowledge.md`.
+- Verify with the focused mock-site session integration test plus the standard check set.
+
+Status note:
+
+- Completed with D316. `tests/mock_site_sessions.rs` remains the integration-test route and delegates to child modules for replay, unauthenticated/expired/logout states, Chrome import, and login bootstrap scenarios. The split is mechanical; CLI, session, mock-site, and backend behavior are unchanged, and `workpads/research/tasks.md` was not compacted. The parent route is 10 lines and all child modules are 104 lines or less. Focused `mock_site_sessions` coverage and the standard gate passed.
+
 ### ✅ Task I20: Design OAuth-safe browser login and profile import flow
 
 Acceptance criteria:

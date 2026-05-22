@@ -132,6 +132,7 @@ This archive file keeps the denser decision routing that used to live in top-lev
 | D313 | `d313-markdown-block-renderer-split.md` | Mechanical split of markdown block/list/code/quote rendering helpers into a child module. |
 | D314 | `d314-owned-option-apply-split.md` | Mechanical split of owned extractor backend-option application into a child module. |
 | D315 | `d315-playwright-tests-split.md` | Mechanical split of Playwright session composition tests into behavior-owned child modules. |
+| D316 | `d316-mock-site-session-test-split.md` | Mechanical split of mock-site session integration tests into behavior-owned child modules. |
 
 ## Full Archive Routing
 
@@ -151,7 +152,7 @@ This archive file keeps the denser decision routing that used to live in top-lev
 | D151-D157 | `d151-d157-auth-and-browser-import.md` | OAuth-safe authorization API/CLI and conservative browser-neutral Chrome import surface. |
 | D158-D167 | `d158-d167-recent-migration-followups.md` | Recent source-backed extraction improvements and follow-up decomposition slices. |
 | D168-D176 | Per-decision files | Knowledge/reference compaction, engine-refactor planning, wrapper introduction, naming cleanup, and direct engine coverage. |
-| D177-D315 | Per-decision files | Module/test/support decomposition plus the latest owned extractor/browser parity improvements, agent-facing option docs, and support-file routing refreshes. |
+| D177-D316 | Per-decision files | Module/test/support decomposition plus the latest owned extractor/browser parity improvements, agent-facing option docs, and support-file routing refreshes. |
 
 ## Current Open Migration Gaps
 
