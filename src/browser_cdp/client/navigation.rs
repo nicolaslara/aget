@@ -28,15 +28,8 @@ impl CdpClient {
         loop {
             let message = self.read_message(deadline)?;
             if message.get("id").and_then(Value::as_u64) == Some(navigate_id) {
-                if let Some(error) = message.get("error") {
-                    let text = error
-                        .get("message")
-                        .and_then(Value::as_str)
-                        .unwrap_or("CDP command failed");
-                    return Err(AgetError::Stable {
-                        code: ErrorCode::ExtractionFailed,
-                        message: format!("owned browser fallback CDP Page.navigate failed: {text}"),
-                    });
+                if self.handle_navigate_response(&message)? == NavigationOutcome::SameDocument {
+                    return Ok(());
                 }
                 continue;
             }

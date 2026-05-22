@@ -94,3 +94,44 @@ fn browser_cdp_wait_for_selector_reports_runtime_evaluation_exception() {
         .contains("Runtime.evaluate failed: Error: selector script failed"));
     handle.join().unwrap();
 }
+
+#[test]
+fn browser_cdp_blank_response_navigation_reports_error_text() {
+    let listener = TcpListener::bind(("127.0.0.1", 0)).unwrap();
+    let port = listener.local_addr().unwrap().port();
+    let handle = thread::spawn(move || {
+        let (stream, _) = listener.accept().unwrap();
+        let mut websocket = tungstenite::accept(stream).unwrap();
+        let request = read_cdp_request(&mut websocket);
+        assert_eq!(request["method"], "Page.navigate");
+        assert_eq!(request["sessionId"], "session-1");
+        assert_eq!(request["params"]["url"], "https://blocked.example/");
+        reply_ok(
+            &mut websocket,
+            &request,
+            json!({
+                "frameId": "frame-1",
+                "loaderId": "loader-1",
+                "errorText": "net::ERR_NAME_NOT_RESOLVED"
+            }),
+        );
+        let _ = websocket.close(None);
+    });
+
+    let mut client = CdpClient::connect(
+        &format!("ws://127.0.0.1:{port}/devtools/browser/mock"),
+        Duration::from_secs(2),
+    )
+    .unwrap();
+    let error = client
+        .navigate_with_blank_response(
+            "session-1",
+            "https://blocked.example/",
+            Duration::from_secs(2),
+        )
+        .unwrap_err();
+    assert!(error
+        .to_string()
+        .contains("Page.navigate failed: net::ERR_NAME_NOT_RESOLVED"));
+    handle.join().unwrap();
+}
