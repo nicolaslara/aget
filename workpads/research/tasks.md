@@ -2033,6 +2033,21 @@ Status note:
 
 - Completed with D275. Source inspection found Crawl4AI `AsyncCrawlerStrategy.process_iframes` assigns iframe IDs, waits for content frames, extracts `document.body.innerHTML`, and replaces accessible iframes with `div.extracted-iframe-content-*` before capture while continuing past inaccessible frames. Owned extraction now supports `crawl4ai.process_iframes=false` by default, forces the CDP-rendered path when enabled, warns instead of failing on inaccessible iframe processing, and keeps the Crawl4AI command helper, mock backend validation, README option list, and unsupported-option text aligned. Focused script/option coverage, the ignored local-Chrome iframe smoke, and the standard `cargo fmt --check && cargo test && git diff --check` gate passed.
 
+### ✅ Task I19dg: Split browser CDP page scripts by behavior
+
+Acceptance criteria:
+
+- Move the mixed CDP page-script helpers out of `src/browser_cdp/page_scripts.rs` into behavior-focused modules.
+- Preserve all existing helper names and visibility through the `page_scripts` module route.
+- Keep storage, readiness/scroll, overlay cleanup, iframe processing, and shadow DOM scripts separated for future agent work.
+- Do not compact `workpads/research/tasks.md`.
+- Record the mechanical split in `knowledge.md`.
+- Verify with focused page-script/CDP tests plus the standard check set.
+
+Status note:
+
+- Completed with D276. `src/browser_cdp/page_scripts.rs` was replaced by `src/browser_cdp/page_scripts/` modules for storage, readiness/scroll, overlay cleanup, iframe processing, and shadow DOM scripts, with `mod.rs` preserving the existing helper route and visibility for browser/CDP callers and tests. `workpads/research/tasks.md` was not compacted. Focused page-script/CDP tests passed.
+
 ### ✅ Task I20: Design OAuth-safe browser login and profile import flow
 
 Acceptance criteria:
