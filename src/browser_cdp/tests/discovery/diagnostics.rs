@@ -93,3 +93,48 @@ fn chrome_startup_error_includes_labeled_generic_stderr() {
     assert!(message.contains("startup line five"));
     assert!(message.contains("startup line six"));
 }
+
+#[test]
+fn chrome_startup_error_classifies_process_singleton_profile_lock() {
+    let temp = tempfile::tempdir().unwrap();
+    let stderr_capture = TempOutputFile::new(temp.path(), "chrome-stderr").unwrap();
+    fs::write(
+        stderr_capture.path(),
+        "Failed to create a Process Singleton for your profile directory. Aborting now to avoid profile corruption.\n",
+    )
+    .unwrap();
+    let error = AgetError::Stable {
+        code: ErrorCode::BackendUnavailable,
+        message: "owned browser fallback timed out waiting for Chrome CDP startup".to_string(),
+    };
+
+    let classified = classify_chrome_startup_error("owned Chrome test", error, &stderr_capture);
+
+    assert_eq!(classified.code(), ErrorCode::RequiresUserAction);
+    let message = classified.to_string();
+    assert!(message.contains("owned Chrome test requires user action"));
+    assert!(message.contains("Process Singleton"));
+    assert!(message.contains("profile directory"));
+}
+
+#[test]
+fn chrome_startup_error_classifies_user_data_dir_in_use() {
+    let temp = tempfile::tempdir().unwrap();
+    let stderr_capture = TempOutputFile::new(temp.path(), "chrome-stderr").unwrap();
+    fs::write(
+        stderr_capture.path(),
+        "The user data directory is already in use by another browser process.\n",
+    )
+    .unwrap();
+    let error = AgetError::Stable {
+        code: ErrorCode::BackendUnavailable,
+        message: "owned browser fallback timed out waiting for Chrome CDP startup".to_string(),
+    };
+
+    let classified = classify_chrome_startup_error("owned Chrome test", error, &stderr_capture);
+
+    assert_eq!(classified.code(), ErrorCode::RequiresUserAction);
+    let message = classified.to_string();
+    assert!(message.contains("owned Chrome test requires user action"));
+    assert!(message.contains("user data directory is already in use"));
+}

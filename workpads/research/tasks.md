@@ -2834,6 +2834,22 @@ Status note:
 
 - Completed with D328. Source inspection found Crawl4AI `DefaultMarkdownGenerator` defaults `single_line_break` to `true`, and direct `CustomHTML2Text` source-snapshot execution showed that true collapses paragraph gaps while false preserves blank paragraph gaps. Owned extraction now validates and accepts `crawl4ai.single_line_break`; when true, it collapses non-code blank lines after markdown normalization while preserving fenced-code internals. Existing owned default markdown spacing is preserved unless the option is supplied explicitly, leaving the default-output parity question recorded for final I19d/I19h review instead of silently changing broad markdown output in this small slice. The Crawl4AI command helper, mock-backend validation, README, OpenCode tool text, and unsupported-option error text are aligned. `workpads/research/tasks.md` was not compacted. Focused owned markdown and command-option validation passed.
 
+### ✅ Task I19ff: Broaden Chrome profile-lock startup classification
+
+Acceptance criteria:
+
+- Re-inspect agent-browser profile/startup docs before changing owned startup diagnostics.
+- Classify common Chrome profile/user-data-dir lock variants as `requires_user_action`.
+- Preserve relevant Chrome stderr details in the surfaced error message.
+- Keep sandbox and backend-unavailable startup classifications unchanged.
+- Do not compact `workpads/research/tasks.md`.
+- Record the source-backed boundary in `knowledge.md`.
+- Verify with focused browser-CDP diagnostics tests plus the standard check set.
+
+Status note:
+
+- Completed with D329. Source inspection confirmed agent-browser's Chrome profile reuse boundary is copied local profile state, with documented locked-file/profile-close handling and direct startup error reporting. Owned Chrome/CDP startup now maps common local Chrome profile-lock variants, including `Process Singleton`, `Singleton Lock`, another Chrome process, and `user data directory is already in use`, to `requires_user_action` while preserving the relevant stderr detail. Sandbox hints, generic backend-unavailable startup errors, silent-exit hints, launch retries, and CDP discovery behavior are unchanged. `workpads/research/tasks.md` was not compacted. Focused browser-CDP diagnostics and the standard gate passed.
+
 ### ✅ Task I20: Design OAuth-safe browser login and profile import flow
 
 Acceptance criteria:
