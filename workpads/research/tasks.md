@@ -2235,6 +2235,20 @@ Status note:
 
 - Completed with D289. `tests/mock_site_docs_contract.rs` is now a small module index, with public get contract coverage in `mock_site_docs_contract/public_get.rs`, output/warning/limit coverage in `output.rs`, custom fixture coverage in `custom_site.rs`, session compose/replay/scope coverage in `session_replay.rs`, and session lifecycle coverage in `session_lifecycle.rs`. Production code and assertions are unchanged, and `workpads/research/tasks.md` was not compacted. Validation passed with focused docs-contract coverage plus the standard check set.
 
+### ✅ Task I19du: Split owned extractor option parsing helpers
+
+Acceptance criteria:
+
+- Split private parser/helper functions out of `src/extraction/owned/options.rs` without changing owned extractor behavior.
+- Preserve `validate_owned_extraction_options`, `OwnedExtractorOptions`, supported option names, default values, and error text.
+- Keep the JavaScript-wait safety boundary unchanged.
+- Record the mechanical split boundary in `knowledge.md`.
+- Verify with focused owned extractor option coverage plus the standard check set.
+
+Status note:
+
+- Completed with D290. `src/extraction/owned/options.rs` still owns `OwnedExtractorOptions`, defaults, supported option dispatch, and `validate_owned_extraction_options`, while private URL/list/bool/duration/wait/selector parsing plus CSS-only wait validation now lives in `src/extraction/owned/options/parse.rs`. Supported `crawl4ai.*` option names, defaults, and error text are unchanged; JavaScript waits remain rejected before backend execution. `workpads/research/tasks.md` was not compacted. Validation passed with focused owned extractor option coverage plus the standard check set.
+
 ### ✅ Task I20: Design OAuth-safe browser login and profile import flow
 
 Acceptance criteria:
