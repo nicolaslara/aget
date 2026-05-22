@@ -97,6 +97,7 @@ async def run() -> int:
 
 
 EXTRACTOR_OPTION_TYPES = {
+    "base_url": ("crawler", "str"),
     "target_elements": ("crawler", "list"),
     "excluded_tags": ("crawler", "list"),
     "exclude_all_images": ("crawler", "bool"),

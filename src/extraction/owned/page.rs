@@ -237,7 +237,8 @@ fn extract_owned_html(
     }
 
     let selector = options.selector.as_deref().or(fallback_selector);
-    let base_url = markdown_base_url(&document, &final_url)?;
+    let configured_base_url = owned_options.base_url.as_deref().unwrap_or(&final_url);
+    let base_url = markdown_base_url(&document, configured_base_url)?;
 
     if !owned_options.exclude_domains.is_empty() {
         document =

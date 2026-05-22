@@ -5,6 +5,7 @@ use crate::error::AgetError;
 
 use crate::extraction::html_clean::parse_css_selector;
 use crate::extraction::{extraction_failed, GetOptions};
+use url::Url;
 
 const DEFAULT_RENDER_SETTLE_DELAY: Duration = Duration::from_millis(100);
 const DEFAULT_FULL_PAGE_SCROLL_DELAY: Duration = Duration::from_millis(200);
@@ -12,6 +13,7 @@ const DEFAULT_FULL_PAGE_MAX_SCROLL_STEPS: usize = 10;
 
 #[derive(Debug)]
 pub(crate) struct OwnedExtractorOptions {
+    pub(crate) base_url: Option<String>,
     pub(crate) excluded_tags: Vec<String>,
     pub(crate) target_elements: Vec<String>,
     pub(crate) only_text: bool,
@@ -41,6 +43,7 @@ pub(crate) struct OwnedExtractorOptions {
 impl Default for OwnedExtractorOptions {
     fn default() -> Self {
         Self {
+            base_url: None,
             excluded_tags: Vec::new(),
             target_elements: Vec::new(),
             only_text: false,
@@ -84,6 +87,9 @@ pub(crate) fn validate_owned_extraction_options(
             ))
         })?;
         match option_name {
+            "base_url" => {
+                owned_options.base_url = Some(parse_owned_base_url(&option.value)?);
+            }
             "excluded_tags" => {
                 owned_options
                     .excluded_tags
@@ -189,13 +195,28 @@ pub(crate) fn validate_owned_extraction_options(
             }
             _ => {
                 return Err(extraction_failed(format!(
-                    "owned extractor does not support backend option '{}'; supported options: crawl4ai.delay_before_return_html, crawl4ai.exclude_all_images, crawl4ai.exclude_domains, crawl4ai.exclude_external_images, crawl4ai.exclude_external_links, crawl4ai.exclude_internal_links, crawl4ai.exclude_social_media_domains, crawl4ai.exclude_social_media_links, crawl4ai.excluded_tags, crawl4ai.flatten_shadow_dom, crawl4ai.keep_data_attributes, crawl4ai.max_scroll_steps, crawl4ai.only_text, crawl4ai.page_timeout, crawl4ai.process_iframes, crawl4ai.remove_forms, crawl4ai.remove_overlay_elements, crawl4ai.scan_full_page, crawl4ai.scroll_delay, crawl4ai.target_elements, crawl4ai.wait_for_images, crawl4ai.wait_for_timeout, crawl4ai.wait_until, crawl4ai.word_count_threshold",
+                    "owned extractor does not support backend option '{}'; supported options: crawl4ai.base_url, crawl4ai.delay_before_return_html, crawl4ai.exclude_all_images, crawl4ai.exclude_domains, crawl4ai.exclude_external_images, crawl4ai.exclude_external_links, crawl4ai.exclude_internal_links, crawl4ai.exclude_social_media_domains, crawl4ai.exclude_social_media_links, crawl4ai.excluded_tags, crawl4ai.flatten_shadow_dom, crawl4ai.keep_data_attributes, crawl4ai.max_scroll_steps, crawl4ai.only_text, crawl4ai.page_timeout, crawl4ai.process_iframes, crawl4ai.remove_forms, crawl4ai.remove_overlay_elements, crawl4ai.scan_full_page, crawl4ai.scroll_delay, crawl4ai.target_elements, crawl4ai.wait_for_images, crawl4ai.wait_for_timeout, crawl4ai.wait_until, crawl4ai.word_count_threshold",
                     option.key
                 )));
             }
         }
     }
     Ok(owned_options)
+}
+
+fn parse_owned_base_url(value: &str) -> Result<String, AgetError> {
+    let value = value.trim();
+    if value.is_empty() {
+        return Err(extraction_failed(
+            "crawl4ai.base_url expects a non-empty URL",
+        ));
+    }
+    Url::parse(value).map_err(|error| {
+        extraction_failed(format!(
+            "crawl4ai.base_url expects an absolute URL, got '{value}': {error}"
+        ))
+    })?;
+    Ok(value.to_string())
 }
 
 fn parse_owned_excluded_tags(value: &str) -> Result<Vec<String>, AgetError> {

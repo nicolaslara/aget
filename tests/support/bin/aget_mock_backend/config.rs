@@ -59,6 +59,7 @@ pub(crate) fn assert_expected_args(args: &Args, config: &Value) -> Result<(), St
 
 fn validate_crawl4ai_options(args: &Args) -> Result<(), String> {
     const ALLOWED: &[&str] = &[
+        "base_url",
         "target_elements",
         "excluded_tags",
         "exclude_all_images",
@@ -82,6 +83,7 @@ fn validate_crawl4ai_options(args: &Args) -> Result<(), String> {
         "scan_full_page",
         "scroll_delay",
         "max_scroll_steps",
+        "flatten_shadow_dom",
     ];
     for option in &args.extractor_options {
         let Some((key, _value)) = option.split_once('=') else {
