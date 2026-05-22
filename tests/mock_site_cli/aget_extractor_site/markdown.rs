@@ -127,6 +127,22 @@ pub(crate) fn routes(builder: MockSiteBuilder) -> MockSiteBuilder {
             ),
         )
         .route(
+            "/markdown-reference-paragraphs",
+            MockResponse::html(
+                r#"
+<html>
+  <body>
+    <main class="article">
+      <h1>Reference Paragraphs</h1>
+      <p>First <a href="/alpha">alpha</a> and <a href="/beta">beta</a>.</p>
+      <p>Second <a href="/alpha">alpha again</a>.</p>
+    </main>
+  </body>
+</html>
+"#,
+            ),
+        )
+        .route(
             "/markdown-wrap-tables",
             MockResponse::html(
                 r#"

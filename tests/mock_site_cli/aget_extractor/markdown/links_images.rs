@@ -40,6 +40,7 @@ pub(super) fn assert_links_and_images(aget_home: &Path, site: &MockSite) {
     assert_image_options(aget_home, site, &release_url);
     assert_link_options(aget_home, site, &icon_url);
     assert_reference_link_option(aget_home, site);
+    assert_paragraph_reference_link_option(aget_home, site);
 }
 
 fn assert_automatic_links_option(aget_home: &Path, site: &MockSite) {
@@ -257,4 +258,25 @@ fn assert_reference_link_option(aget_home: &Path, site: &MockSite) {
         .contains(&format!("   [3]: {}", site.url("/markdown-links#details"))));
     assert!(markdown_reference_links.contains(&format!("   [9]: {}", site.url("/download"))));
     assert!(!markdown_reference_links.contains("[the guide]("));
+}
+
+fn assert_paragraph_reference_link_option(aget_home: &Path, site: &MockSite) {
+    let markdown_reference_paragraphs = markdown_content(
+        aget_home,
+        site,
+        "/markdown-reference-paragraphs",
+        &[
+            ("crawl4ai.inline_links", "false"),
+            ("crawl4ai.links_each_paragraph", "true"),
+        ],
+    );
+    assert_eq!(
+        markdown_reference_paragraphs,
+        format!(
+            "# Reference Paragraphs\n\nFirst [alpha][1] and [beta][2].\n\n   [1]: {}\n   [2]: {}\n\nSecond [alpha again][3].\n\n   [3]: {}",
+            site.url("/alpha"),
+            site.url("/beta"),
+            site.url("/alpha")
+        )
+    );
 }

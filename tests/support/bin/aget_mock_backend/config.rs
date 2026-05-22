@@ -99,6 +99,7 @@ fn validate_crawl4ai_options(args: &Args) -> Result<(), String> {
         "ignore_links",
         "inline_links",
         "ignore_mailto_links",
+        "links_each_paragraph",
         "ignore_tables",
         "include_sup_sub",
         "mark_code",

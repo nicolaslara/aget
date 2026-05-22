@@ -28,6 +28,7 @@ pub(super) struct MarkdownWriter {
     pub(super) ignore_emphasis: bool,
     pub(super) ignore_links: bool,
     pub(super) inline_links: bool,
+    pub(super) links_each_paragraph: bool,
     pub(super) ignore_mailto_links: bool,
     pub(super) ignore_tables: bool,
     pub(super) bypass_tables: bool,
@@ -47,6 +48,7 @@ pub(super) struct MarkdownWriter {
 struct ReferenceLink {
     href: String,
     title: String,
+    emitted: bool,
 }
 
 impl MarkdownWriter {
@@ -67,6 +69,7 @@ impl MarkdownWriter {
         ignore_emphasis: bool,
         ignore_links: bool,
         inline_links: bool,
+        links_each_paragraph: bool,
         ignore_mailto_links: bool,
         ignore_tables: bool,
         bypass_tables: bool,
@@ -95,6 +98,7 @@ impl MarkdownWriter {
             ignore_emphasis,
             ignore_links,
             inline_links,
+            links_each_paragraph,
             ignore_mailto_links,
             ignore_tables,
             bypass_tables,
@@ -130,6 +134,7 @@ impl MarkdownWriter {
             ignore_emphasis: self.ignore_emphasis,
             ignore_links: self.ignore_links,
             inline_links: self.inline_links,
+            links_each_paragraph: self.links_each_paragraph,
             ignore_mailto_links: self.ignore_mailto_links,
             ignore_tables: self.ignore_tables,
             bypass_tables: self.bypass_tables,
@@ -221,34 +226,61 @@ impl MarkdownWriter {
         let href = self.resolve_url(href);
         let title = title.trim().to_string();
         let mut reference_links = self.reference_links.borrow_mut();
-        if let Some((index, _)) = reference_links
-            .iter()
-            .enumerate()
-            .find(|(_, link)| link.href == href && link.title == title)
-        {
+        if let Some((index, _)) = reference_links.iter().enumerate().find(|(_, link)| {
+            link.href == href
+                && link.title == title
+                && (!self.links_each_paragraph || !link.emitted)
+        }) {
             return index + 1;
         }
-        reference_links.push(ReferenceLink { href, title });
+        reference_links.push(ReferenceLink {
+            href,
+            title,
+            emitted: false,
+        });
         reference_links.len()
     }
 
     pub(super) fn append_reference_link_definitions(&mut self) {
-        let reference_links = self.reference_links.borrow().clone();
-        if reference_links.is_empty() {
+        self.append_pending_reference_link_definitions();
+    }
+
+    pub(super) fn append_paragraph_reference_link_definitions(&mut self) {
+        if !self.links_each_paragraph {
+            return;
+        }
+        self.append_pending_reference_link_definitions();
+    }
+
+    fn append_pending_reference_link_definitions(&mut self) {
+        let pending = {
+            let reference_links = self.reference_links.borrow();
+            reference_links
+                .iter()
+                .enumerate()
+                .filter(|(_, link)| !link.emitted)
+                .map(|(index, link)| (index + 1, link.href.clone(), link.title.clone()))
+                .collect::<Vec<_>>()
+        };
+        if pending.is_empty() {
             return;
         }
         self.ensure_blank_line();
-        for (index, link) in reference_links.iter().enumerate() {
+        for (index, href, title) in pending {
             self.output.push_str("   [");
-            self.output.push_str(&(index + 1).to_string());
+            self.output.push_str(&index.to_string());
             self.output.push_str("]: ");
-            self.output.push_str(&link.href);
-            if !link.title.is_empty() {
+            self.output.push_str(&href);
+            if !title.is_empty() {
                 self.output.push_str(" (");
-                self.output.push_str(&link.title);
+                self.output.push_str(&title);
                 self.output.push(')');
             }
             self.output.push('\n');
+        }
+        let mut reference_links = self.reference_links.borrow_mut();
+        for link in reference_links.iter_mut() {
+            link.emitted = true;
         }
     }
 

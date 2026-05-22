@@ -27,6 +27,7 @@ pub(super) fn render_block(node: NodeRef<'_, Node>, writer: &mut MarkdownWriter)
     writer.ensure_blank_line();
     render_children(node, writer);
     writer.ensure_blank_line();
+    writer.append_paragraph_reference_link_definitions();
 }
 
 pub(super) fn render_horizontal_rule(writer: &mut MarkdownWriter) {
