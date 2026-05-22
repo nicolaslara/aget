@@ -83,6 +83,7 @@ This archive file keeps the denser decision routing that used to live in top-lev
 | D264 | `d264-session-wrapper-plan-split.md` | Support-file split of the historical session-wrapper implementation plan into smaller routed archive files without compacting tasks. |
 | D265 | `d265-session-wrapper-product-spec-split.md` | Support-file split of the historical session-wrapper product spec into smaller routed archive files without compacting tasks. |
 | D266 | `d266-internal-link-cleanup.md` | Crawl4AI `exclude_internal_links` compatibility option for owned cleanup and command helper forwarding. |
+| D267 | `d267-linked-heading-markdown.md` | Crawl4AI `CustomHTML2Text` linked-heading markdown behavior for anchors wrapping heading elements. |
 
 ## Full Archive Routing
 
@@ -102,7 +103,7 @@ This archive file keeps the denser decision routing that used to live in top-lev
 | D151-D157 | `d151-d157-auth-and-browser-import.md` | OAuth-safe authorization API/CLI and conservative browser-neutral Chrome import surface. |
 | D158-D167 | `d158-d167-recent-migration-followups.md` | Recent source-backed extraction improvements and follow-up decomposition slices. |
 | D168-D176 | Per-decision files | Knowledge/reference compaction, engine-refactor planning, wrapper introduction, naming cleanup, and direct engine coverage. |
-| D177-D266 | Per-decision files | Module/test/support decomposition plus the latest owned extractor/browser parity improvements. |
+| D177-D267 | Per-decision files | Module/test/support decomposition plus the latest owned extractor/browser parity improvements. |
 
 ## Current Open Migration Gaps
 

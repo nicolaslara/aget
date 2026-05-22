@@ -28,6 +28,23 @@ pub(super) fn render_link(node: NodeRef<'_, Node>, writer: &mut MarkdownWriter) 
         format!(" \"{}\"", escape_link_title(title))
     };
 
+    if let Some((level, heading_node)) = single_heading_child(node) {
+        let label = link_label_markdown_from_children(heading_node, writer);
+        if !label.is_empty() {
+            writer.ensure_blank_line();
+            writer.output.push_str(&"#".repeat(level));
+            writer.output.push(' ');
+            writer.output.push_str(&format!(
+                "[{}]({}{})",
+                escape_link_text(&label),
+                escape_markdown_link_target(&writer.resolve_url(href)),
+                title
+            ));
+            writer.ensure_blank_line();
+            return;
+        }
+    }
+
     if let Some(image_node) = single_image_child(node) {
         if let Some(image) = image_markdown(image_node, writer) {
             writer.push_inline(&format!(
@@ -68,6 +85,32 @@ fn single_image_child(node: NodeRef<'_, Node>) -> Option<NodeRef<'_, Node>> {
         child = next;
     }
     image
+}
+
+fn single_heading_child(node: NodeRef<'_, Node>) -> Option<(usize, NodeRef<'_, Node>)> {
+    let mut heading = None;
+    let mut child = node.first_child();
+    while let Some(current) = child {
+        let next = current.next_sibling();
+        match current.value() {
+            Node::Text(text) if text.trim().is_empty() => {}
+            Node::Element(element) if heading.is_none() => {
+                let Some(level) = heading_level(element.name()) else {
+                    return None;
+                };
+                heading = Some((level, current));
+            }
+            _ => return None,
+        }
+        child = next;
+    }
+    heading
+}
+
+fn heading_level(tag: &str) -> Option<usize> {
+    tag.strip_prefix('h')
+        .and_then(|value| value.parse::<usize>().ok())
+        .filter(|level| (1..=6).contains(level))
 }
 
 pub(super) fn render_abbreviation(node: NodeRef<'_, Node>, writer: &mut MarkdownWriter) {

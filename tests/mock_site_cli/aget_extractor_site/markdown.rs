@@ -109,6 +109,7 @@ pub(crate) fn routes(builder: MockSiteBuilder) -> MockSiteBuilder {
   <body>
     <main class="article">
       <h1>Link Defaults</h1>
+      <a href="/linked-heading" title="Heading title"><h2>Linked Heading</h2></a>
       <p>Read <a href="/guide" title="Guide &quot;title&quot; [v1] (draft)">the guide</a> or <a href="mailto:help@example.com">email support</a>.</p>
       <p>Canonical <a href="https://example.com/docs" title="Docs title">https://example.com/docs</a>.</p>
       <p>Jump <a href="#details">within page</a>.</p>
