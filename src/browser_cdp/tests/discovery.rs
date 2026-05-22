@@ -103,6 +103,46 @@ fn chrome_startup_error_includes_labeled_generic_stderr() {
     assert!(message.contains("startup line six"));
 }
 
+#[test]
+fn wait_for_devtools_active_port_reports_agent_browser_style_early_exit_code() {
+    let temp = tempfile::tempdir().unwrap();
+    let stderr_capture = TempOutputFile::new(temp.path(), "chrome-stderr").unwrap();
+    let stderr = create_private_file(stderr_capture.path()).unwrap();
+    let mut child = early_exit_command(7)
+        .stdin(Stdio::null())
+        .stdout(Stdio::null())
+        .stderr(Stdio::from(stderr))
+        .spawn()
+        .unwrap();
+
+    let error = wait_for_devtools_active_port(
+        &mut child,
+        temp.path(),
+        &stderr_capture,
+        Duration::from_secs(2),
+    )
+    .unwrap_err();
+
+    assert_eq!(error.code(), ErrorCode::BackendUnavailable);
+    assert!(error
+        .to_string()
+        .contains("Chrome exited early (exit code: 7) without writing DevToolsActivePort"));
+}
+
+#[cfg(unix)]
+fn early_exit_command(code: i32) -> Command {
+    let mut command = Command::new("sh");
+    command.arg("-c").arg(format!("exit {code}"));
+    command
+}
+
+#[cfg(windows)]
+fn early_exit_command(code: i32) -> Command {
+    let mut command = Command::new("cmd");
+    command.arg("/C").arg(format!("exit /B {code}"));
+    command
+}
+
 #[cfg(unix)]
 #[test]
 fn wait_for_devtools_active_port_uses_stderr_fallback() {

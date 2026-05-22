@@ -28,10 +28,14 @@ pub(super) fn wait_for_devtools_active_port(
     let deadline = Instant::now() + timeout;
     while Instant::now() < deadline {
         if let Ok(Some(status)) = child.try_wait() {
+            let exit_code = status
+                .code()
+                .map(|code| code.to_string())
+                .unwrap_or_else(|| "unknown".to_string());
             return Err(AgetError::Stable {
                 code: ErrorCode::BackendUnavailable,
                 message: format!(
-                    "owned browser fallback Chrome exited before CDP startup with {status}"
+                    "owned browser fallback Chrome exited early (exit code: {exit_code}) without writing DevToolsActivePort"
                 ),
             });
         }
