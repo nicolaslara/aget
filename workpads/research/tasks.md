@@ -1859,6 +1859,21 @@ Status note:
 
 - Completed with D263. `workpads/research/archive/support/session-wrapper-poc-spec/v1-implementation-spec.md` is now a compact routing index, with historical V1 architecture/storage detail in `v1-architecture-storage.md`, command-surface detail in `v1-command-surface.md`, and adapter/composition/output metadata detail in `v1-adapters-composition-output.md`. `workpads/research/tasks.md` was not compacted; it only records this completed support-file split. Routing checks, line-count checks, and `git diff --check` passed.
 
+### ✅ Task I19cu: Split dense session-wrapper implementation-plan archive
+
+Acceptance criteria:
+
+- Do not compact or remove planned tasks from `workpads/research/tasks.md`.
+- Preserve the historical session-wrapper implementation plan content under `workpads/research/archive/support/session-wrapper-implementation-plan/`.
+- Convert `session-wrapper-implementation-plan.md` into a compact routing index and move dense objective/stack/repository, milestone, testing/first-slice, and pre-coding decision detail into smaller referenced files.
+- Keep existing archive entrypoints usable for agents that need historical session-wrapper planning context.
+- Record the support-file boundary in `knowledge.md`.
+- Verify with markdown routing checks, line-count checks, and `git diff --check`.
+
+Status note:
+
+- Completed with D264. `workpads/research/archive/support/session-wrapper-implementation-plan.md` is now a compact routing index, with historical objective/stack/repository detail in `objective-stack-repo.md`, milestones in `milestones.md`, testing/first-slice detail in `testing-and-first-slice.md`, and pre-coding decisions in `decisions-before-coding.md`. `workpads/research/tasks.md` was not compacted; it only records this completed support-file split. Routing checks, line-count checks, and `git diff --check` passed.
+
 ### ✅ Task I20: Design OAuth-safe browser login and profile import flow
 
 Acceptance criteria:
