@@ -3573,6 +3573,20 @@ Status note:
 
 - Completed with D373. Source inspection found Crawl4AI `CrawlerRunConfig.user_agent` defaults to `None`, is applied before crawl execution, and is pushed into Playwright context/request user-agent behavior for non-persistent browser contexts. Owned extraction now accepts `crawl4ai.user_agent`, applies it to owned static HTTP requests, and sends `Network.setUserAgentOverride` before owned CDP state-loading or target navigation. This slice intentionally does not implement random user-agent generation, `user_agent_mode`, client hints synthesis, or arbitrary custom headers. The optional Crawl4AI compatibility helper, command mock validation, README, OpenCode tool text, compact knowledge routing, static request assertions, and CDP protocol coverage were updated. `workpads/research/tasks.md` was not compacted. Focused static/CDP/command-option coverage, Python helper syntax and parsing checks, `cargo fmt --check`, `git diff --check`, and full `cargo test` passed.
 
+### ✅ Task I19gy: Split AgetExtractor options/waits parity helper
+
+Acceptance criteria:
+
+- Split oversized `tests/mock_site_cli/aget_extractor/options_waits.rs` into behavior-focused child modules.
+- Preserve the public integration test route and all existing assertions.
+- Do not compact `workpads/research/tasks.md`.
+- Record the split in compact knowledge routing.
+- Verify with focused AgetExtractor parity coverage, line-count checks, and the standard check set.
+
+Status note:
+
+- Completed with D374. `tests/mock_site_cli/aget_extractor/options_waits.rs` is now a 16-line router, with positive option behavior in `options_waits/content.rs`, backend option validation and unsupported-option diagnostics in `options_waits/validation.rs`, and redirect/wait behavior in `options_waits/waits.rs`. Existing integration test routing and assertions were preserved; no production code or fixture behavior changed. `workpads/research/tasks.md` was not compacted. Focused AgetExtractor parity coverage, line-count checks, `cargo fmt --check`, `git diff --check`, and full `cargo test` passed.
+
 ### ✅ Task I20: Design OAuth-safe browser login and profile import flow
 
 Acceptance criteria:
