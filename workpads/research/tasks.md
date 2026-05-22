@@ -2264,6 +2264,21 @@ Status note:
 
 - Completed with D291. `src/extraction/owned/page.rs` still owns the owned page extraction entrypoints, HTTP/static handoff, HTML cleanup sequencing, selector/fallback selection, base-URL handling, output-format shaping, and metadata propagation, while `src/extraction/owned/page/rendered.rs` owns CDP render request composition and rendered-wait retry matching, and `src/extraction/owned/page/readiness.rs` owns script/readiness detection and its assertions. Behavior is unchanged, the JavaScript-wait safety boundary is unchanged, and `workpads/research/tasks.md` was not compacted. Validation passed with focused owned page/readiness and mock-site rendering coverage plus the standard check set.
 
+### ✅ Task I19dw: Split Aget facade session orchestration helpers
+
+Acceptance criteria:
+
+- Split session list/load/delete, import, authorization, compose, and login orchestration methods out of `src/aget/mod.rs` without changing the public `AgetWith` API.
+- Keep `src/aget/mod.rs` focused on type wiring, constructors, backend replacement helpers, timeout/home access, get-request creation, and shared facade helpers.
+- Preserve default owned backend wiring and all session/import/login behavior.
+- Do not compact `workpads/research/tasks.md`.
+- Record the mechanical split boundary in `knowledge.md`.
+- Verify with focused Aget facade/API and session CLI coverage plus the standard check set.
+
+Status note:
+
+- Completed with D292. `src/aget/mod.rs` remains focused on facade module routing, public re-exports, default owned backend constructors, backend replacement helpers, timeout/home access, get-request creation, and shared facade helpers, while `src/aget/sessions.rs` owns session list/load/delete, cmux/Chrome import, authorization verification, session composition, and login start/finish/cancel orchestration methods on `AgetWith`. The public API and behavior are unchanged, default owned backend wiring is unchanged, and `workpads/research/tasks.md` was not compacted. Validation passed with focused Aget API and session CLI coverage plus the standard check set.
+
 ### ✅ Task I20: Design OAuth-safe browser login and profile import flow
 
 Acceptance criteria:
