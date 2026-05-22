@@ -78,6 +78,7 @@ This archive file keeps the denser decision routing that used to live in top-lev
 | D259 | `d259-agent-browser-fallback-command-split.md` | Mechanical split of agent-browser fallback command adapter helpers from fallback orchestration. |
 | D260 | `d260-browser-cdp-readiness-split.md` | Mechanical split of browser CDP runtime readiness/evaluation helpers from navigation. |
 | D261 | `d261-chrome-profile-discovery-split.md` | Mechanical split of Chrome profile discovery/name-resolution helpers from profile preparation/copying. |
+| D262 | `d262-chrome-process-launch-split.md` | Mechanical split of Chrome process launch command helpers from process lifecycle/retry orchestration. |
 
 ## Full Archive Routing
 
@@ -97,7 +98,7 @@ This archive file keeps the denser decision routing that used to live in top-lev
 | D151-D157 | `d151-d157-auth-and-browser-import.md` | OAuth-safe authorization API/CLI and conservative browser-neutral Chrome import surface. |
 | D158-D167 | `d158-d167-recent-migration-followups.md` | Recent source-backed extraction improvements and follow-up decomposition slices. |
 | D168-D176 | Per-decision files | Knowledge/reference compaction, engine-refactor planning, wrapper introduction, naming cleanup, and direct engine coverage. |
-| D177-D261 | Per-decision files | Module/test/support decomposition plus the latest owned extractor/browser parity improvements. |
+| D177-D262 | Per-decision files | Module/test/support decomposition plus the latest owned extractor/browser parity improvements. |
 
 ## Current Open Migration Gaps
 

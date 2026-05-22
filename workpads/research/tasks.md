@@ -1829,6 +1829,21 @@ Status note:
 
 - Completed with D261. `src/session/chrome/profile.rs` now keeps owned Chrome profile preparation, explicit profile path validation, copied-profile lifetime, profile snapshot copying, copy exclusions, and private-directory helpers, while `src/session/chrome/profile/discovery.rs` owns Chrome user-data-dir discovery, `Local State` profile parsing, directory/display-name/case-insensitive matching, ambiguous-name reporting, and available-profile error formatting. Existing owned Chrome import callers and `session::chrome` tests continue to route through `session::chrome::profile`, and `workpads/research/tasks.md` remains un-compacted.
 
+### ✅ Task I19cs: Split Chrome process launch command helpers
+
+Acceptance criteria:
+
+- Preserve current owned Chrome launch behavior, including temp/profile/login launch entrypoints, launch retries, startup diagnostics, process cleanup, launch arguments, binary discovery, platform candidates, process-group configuration, and temp profile directory creation.
+- Move Chrome launch command construction, Chrome binary discovery, platform candidate lookup, PATH lookup, and temp profile directory creation out of `src/browser_cdp/chrome_process.rs` into a focused submodule.
+- Keep current `browser_cdp::chrome_process` internal function/test access compatible for render/import/login callers and launch-argument tests.
+- Do not compact or remove planned tasks from `workpads/research/tasks.md`.
+- Record the resulting Chrome process launch boundary in `knowledge.md`.
+- Verify with focused Chrome process coverage plus the standard check set.
+
+Status note:
+
+- Completed with D262. `src/browser_cdp/chrome_process.rs` now keeps `ChromeProcess` temp/profile/login launch entrypoints, launch retry orchestration, startup diagnostics classification, child process lifecycle, detach/wait-or-kill behavior, and owned temp profile cleanup, while `src/browser_cdp/chrome_process/launch.rs` owns Chrome launch command construction, launch flags, process-group configuration, Chrome binary discovery, platform candidate lookup, PATH lookup, and temp owned-profile directory creation. Existing render/import/login callers and Chrome process launch tests continue to route through `chrome_process`, and `workpads/research/tasks.md` remains un-compacted.
+
 ### ✅ Task I20: Design OAuth-safe browser login and profile import flow
 
 Acceptance criteria:
