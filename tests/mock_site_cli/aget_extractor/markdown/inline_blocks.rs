@@ -179,6 +179,32 @@ pub(super) fn assert_inline_blocks(aget_home: &Path, site: &MockSite) {
         )
     );
 
+    let markdown_preserve_default =
+        markdown_content(aget_home, site, "/markdown-preserve-tags", &[]);
+    assert_eq!(
+        markdown_preserve_default,
+        "# Preserve Tags\n\nBefore **Raw** HTML after.\n\nSecond _Equation_ done."
+    );
+
+    let markdown_preserve_tags = markdown_content(
+        aget_home,
+        site,
+        "/markdown-preserve-tags",
+        &[("crawl4ai.preserve_tags", "custom-card,math-box")],
+    );
+    assert_eq!(
+        markdown_preserve_tags,
+        concat!(
+            "# Preserve Tags\n\n",
+            "Before\n\n",
+            "<custom-card><strong>Raw</strong><span> HTML</span></custom-card>\n\n",
+            "after.\n\n",
+            "Second\n\n",
+            "<math-box><em>Equation</em></math-box>\n\n",
+            "done."
+        )
+    );
+
     let markdown_wrap_list_items = markdown_content(
         aget_home,
         site,

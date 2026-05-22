@@ -37,6 +37,7 @@ pub(super) fn element_to_markdown(
     images_as_html: bool,
     images_to_alt: bool,
     images_with_size: bool,
+    preserve_tags: &[String],
     ignore_emphasis: bool,
     ignore_links: bool,
     inline_links: bool,
@@ -77,6 +78,7 @@ pub(super) fn element_to_markdown(
         images_as_html,
         images_to_alt,
         images_with_size,
+        preserve_tags,
         ignore_emphasis,
         ignore_links,
         inline_links,
@@ -125,6 +127,11 @@ fn render_node(node: NodeRef<'_, Node>, writer: &mut MarkdownWriter) {
 }
 
 fn render_element(node: NodeRef<'_, Node>, tag: &str, writer: &mut MarkdownWriter) {
+    if writer.should_preserve_tag(tag) {
+        render_preserved_html(node, writer);
+        return;
+    }
+
     if writer.hide_strikethrough && has_line_through_style(node) {
         return;
     }
@@ -200,6 +207,16 @@ fn render_element(node: NodeRef<'_, Node>, tag: &str, writer: &mut MarkdownWrite
         }
         _ => render_children(node, writer),
     }
+}
+
+fn render_preserved_html(node: NodeRef<'_, Node>, writer: &mut MarkdownWriter) {
+    let Some(element) = ElementRef::wrap(node) else {
+        render_children(node, writer);
+        return;
+    };
+    writer.ensure_blank_line();
+    writer.output.push_str(&element.html());
+    writer.ensure_blank_line();
 }
 
 fn has_line_through_style(node: NodeRef<'_, Node>) -> bool {

@@ -233,6 +233,22 @@ second</code></pre>
             ),
         )
         .route(
+            "/markdown-preserve-tags",
+            MockResponse::html(
+                r#"
+<html>
+  <body>
+    <main class="article">
+      <h1>Preserve Tags</h1>
+      <p>Before <custom-card><strong>Raw</strong><span> HTML</span></custom-card> after.</p>
+      <p>Second <math-box><em>Equation</em></math-box> done.</p>
+    </main>
+  </body>
+</html>
+"#,
+            ),
+        )
+        .route(
             "/markdown-nested-lists",
             MockResponse::html(
                 r#"

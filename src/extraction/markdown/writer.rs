@@ -25,6 +25,7 @@ pub(super) struct MarkdownWriter {
     pub(super) images_as_html: bool,
     pub(super) images_to_alt: bool,
     pub(super) images_with_size: bool,
+    preserve_tags: Vec<String>,
     pub(super) ignore_emphasis: bool,
     pub(super) ignore_links: bool,
     pub(super) inline_links: bool,
@@ -72,6 +73,7 @@ impl MarkdownWriter {
         images_as_html: bool,
         images_to_alt: bool,
         images_with_size: bool,
+        preserve_tags: &[String],
         ignore_emphasis: bool,
         ignore_links: bool,
         inline_links: bool,
@@ -107,6 +109,7 @@ impl MarkdownWriter {
             images_as_html,
             images_to_alt,
             images_with_size,
+            preserve_tags: preserve_tags.to_vec(),
             ignore_emphasis,
             ignore_links,
             inline_links,
@@ -149,6 +152,7 @@ impl MarkdownWriter {
             images_as_html: self.images_as_html,
             images_to_alt: self.images_to_alt,
             images_with_size: self.images_with_size,
+            preserve_tags: self.preserve_tags.clone(),
             ignore_emphasis: self.ignore_emphasis,
             ignore_links: self.ignore_links,
             inline_links: self.inline_links,
@@ -179,6 +183,12 @@ impl MarkdownWriter {
         let mut child = self.child();
         child.inside_link = true;
         child
+    }
+
+    pub(super) fn should_preserve_tag(&self, tag: &str) -> bool {
+        self.preserve_tags
+            .iter()
+            .any(|preserve_tag| preserve_tag.eq_ignore_ascii_case(tag))
     }
 
     pub(super) fn resolve_url(&self, raw: &str) -> String {
