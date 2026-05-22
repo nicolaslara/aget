@@ -1874,6 +1874,21 @@ Status note:
 
 - Completed with D264. `workpads/research/archive/support/session-wrapper-implementation-plan.md` is now a compact routing index, with historical objective/stack/repository detail in `objective-stack-repo.md`, milestones in `milestones.md`, testing/first-slice detail in `testing-and-first-slice.md`, and pre-coding decisions in `decisions-before-coding.md`. `workpads/research/tasks.md` was not compacted; it only records this completed support-file split. Routing checks, line-count checks, and `git diff --check` passed.
 
+### ✅ Task I19cv: Split dense session-wrapper product-spec archive
+
+Acceptance criteria:
+
+- Do not compact or remove planned tasks from `workpads/research/tasks.md`.
+- Preserve the historical session-wrapper product spec content under `workpads/research/archive/support/session-wrapper-poc-spec/`.
+- Convert `product-spec.md` into a compact routing index and move dense overview, core-concept, journey, UX, and security detail into smaller referenced files.
+- Keep existing archive entrypoints usable for agents that need historical session-wrapper product context.
+- Record the support-file boundary in `knowledge.md`.
+- Verify with markdown routing checks, line-count checks, and `git diff --check`.
+
+Status note:
+
+- Completed with D265. `workpads/research/archive/support/session-wrapper-poc-spec/product-spec.md` is now a compact routing index, with historical overview/non-goal detail in `product-spec/overview.md`, core concepts in `product-spec/core-concepts.md`, user journeys in `product-spec/user-journeys.md`, and UX/security requirements in `product-spec/ux-security.md`. `workpads/research/tasks.md` was not compacted; it only records this completed support-file split. Routing checks, line-count checks, and `git diff --check` passed.
+
 ### ✅ Task I20: Design OAuth-safe browser login and profile import flow
 
 Acceptance criteria:

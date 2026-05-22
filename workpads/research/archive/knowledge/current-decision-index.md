@@ -81,6 +81,7 @@ This archive file keeps the denser decision routing that used to live in top-lev
 | D262 | `d262-chrome-process-launch-split.md` | Mechanical split of Chrome process launch command helpers from process lifecycle/retry orchestration. |
 | D263 | `d263-session-wrapper-v1-slice-split.md` | Support-file split of the historical V1 thin-wrapper implementation spec into smaller routed archive files without compacting tasks. |
 | D264 | `d264-session-wrapper-plan-split.md` | Support-file split of the historical session-wrapper implementation plan into smaller routed archive files without compacting tasks. |
+| D265 | `d265-session-wrapper-product-spec-split.md` | Support-file split of the historical session-wrapper product spec into smaller routed archive files without compacting tasks. |
 
 ## Full Archive Routing
 
@@ -100,7 +101,7 @@ This archive file keeps the denser decision routing that used to live in top-lev
 | D151-D157 | `d151-d157-auth-and-browser-import.md` | OAuth-safe authorization API/CLI and conservative browser-neutral Chrome import surface. |
 | D158-D167 | `d158-d167-recent-migration-followups.md` | Recent source-backed extraction improvements and follow-up decomposition slices. |
 | D168-D176 | Per-decision files | Knowledge/reference compaction, engine-refactor planning, wrapper introduction, naming cleanup, and direct engine coverage. |
-| D177-D264 | Per-decision files | Module/test/support decomposition plus the latest owned extractor/browser parity improvements. |
+| D177-D265 | Per-decision files | Module/test/support decomposition plus the latest owned extractor/browser parity improvements. |
 
 ## Current Open Migration Gaps
 
