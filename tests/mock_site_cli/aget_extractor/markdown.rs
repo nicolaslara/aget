@@ -193,6 +193,35 @@ pub(super) fn assert_markdown_rendering(aget_home: &Path, site: &MockSite) {
         .content
         .contains(&site.url("/download")));
 
+    let markdown_protect_links = Aget::new(aget_home)
+        .with_extractor_backend(AgetExtractorBackend::default())
+        .get(site.url("/markdown-links"))
+        .content_format(OutputFormat::Markdown)
+        .selector("main.article")
+        .backend_option("crawl4ai.protect_links", "true")
+        .run()
+        .unwrap();
+    assert!(markdown_protect_links.content.contains(&format!(
+        "## [Linked Heading](<{}> \"Heading title\")",
+        site.url("/linked-heading")
+    )));
+    assert!(markdown_protect_links.content.contains(&format!(
+        "[the guide](<{}> \"Guide \\\"title\\\" \\[v1\\] \\(draft\\)\")",
+        site.url("/guide")
+    )));
+    assert!(markdown_protect_links.content.contains(&format!(
+        "[release notes](<{}>)",
+        site.url("/release(2026)")
+    )));
+    assert!(markdown_protect_links
+        .content
+        .contains("<https://example.com/docs>"));
+    assert!(markdown_protect_links.content.contains(&format!(
+        "[![Download \\[app\\]]({})](<{}>)",
+        icon_url,
+        site.url("/download")
+    )));
+
     let markdown_skip_internal_links = Aget::new(aget_home)
         .with_extractor_backend(AgetExtractorBackend::default())
         .get(site.url("/markdown-links"))

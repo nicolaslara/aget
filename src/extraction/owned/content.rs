@@ -94,6 +94,7 @@ fn extract_single_owned_element(
             owned_options.ignore_images,
             owned_options.ignore_emphasis,
             owned_options.ignore_links,
+            owned_options.protect_links,
             owned_options.include_sup_sub,
         ),
         text: element_to_text(element),
@@ -144,6 +145,7 @@ fn extract_target_owned_elements(
                     owned_options.ignore_images,
                     owned_options.ignore_emphasis,
                     owned_options.ignore_links,
+                    owned_options.protect_links,
                     owned_options.include_sup_sub,
                 )
             })

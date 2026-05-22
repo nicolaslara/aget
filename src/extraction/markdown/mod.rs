@@ -23,6 +23,7 @@ pub(super) fn element_to_markdown(
     ignore_images: bool,
     ignore_emphasis: bool,
     ignore_links: bool,
+    protect_links: bool,
     include_sup_sub: bool,
 ) -> String {
     let mut writer = MarkdownWriter::new(
@@ -32,6 +33,7 @@ pub(super) fn element_to_markdown(
         ignore_images,
         ignore_emphasis,
         ignore_links,
+        protect_links,
         include_sup_sub,
     );
     render_node(*element, &mut writer);

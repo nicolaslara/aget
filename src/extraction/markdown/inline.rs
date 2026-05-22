@@ -45,7 +45,7 @@ pub(super) fn render_link(node: NodeRef<'_, Node>, writer: &mut MarkdownWriter) 
             writer.output.push_str(&format!(
                 "[{}]({}{})",
                 escape_link_text(&label),
-                escape_markdown_link_target(&writer.resolve_url(href)),
+                markdown_link_target(writer, href),
                 title
             ));
             writer.ensure_blank_line();
@@ -58,7 +58,7 @@ pub(super) fn render_link(node: NodeRef<'_, Node>, writer: &mut MarkdownWriter) 
             writer.push_inline(&format!(
                 "[{}]({}{})",
                 image,
-                escape_markdown_link_target(&writer.resolve_url(href)),
+                markdown_link_target(writer, href),
                 title
             ));
             return;
@@ -73,9 +73,18 @@ pub(super) fn render_link(node: NodeRef<'_, Node>, writer: &mut MarkdownWriter) 
     writer.push_inline(&format!(
         "[{}]({}{})",
         escape_link_text(&label),
-        escape_markdown_link_target(&writer.resolve_url(href)),
+        markdown_link_target(writer, href),
         title
     ));
+}
+
+fn markdown_link_target(writer: &MarkdownWriter, href: &str) -> String {
+    let resolved = writer.resolve_url(href);
+    if writer.protect_links {
+        format!("<{}>", resolved.replace('[', "\\[").replace(']', "\\]"))
+    } else {
+        escape_markdown_link_target(&resolved)
+    }
 }
 
 fn single_image_child(node: NodeRef<'_, Node>) -> Option<NodeRef<'_, Node>> {

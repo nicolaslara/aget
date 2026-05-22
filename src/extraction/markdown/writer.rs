@@ -17,6 +17,7 @@ pub(super) struct MarkdownWriter {
     pub(super) ignore_images: bool,
     pub(super) ignore_emphasis: bool,
     pub(super) ignore_links: bool,
+    pub(super) protect_links: bool,
     pub(super) include_sup_sub: bool,
     pub(super) inside_link: bool,
     pub(super) list_depth: usize,
@@ -31,6 +32,7 @@ impl MarkdownWriter {
         ignore_images: bool,
         ignore_emphasis: bool,
         ignore_links: bool,
+        protect_links: bool,
         include_sup_sub: bool,
     ) -> Self {
         Self {
@@ -41,6 +43,7 @@ impl MarkdownWriter {
             ignore_images,
             ignore_emphasis,
             ignore_links,
+            protect_links,
             include_sup_sub,
             inside_link: false,
             list_depth: 0,
@@ -57,6 +60,7 @@ impl MarkdownWriter {
             ignore_images: self.ignore_images,
             ignore_emphasis: self.ignore_emphasis,
             ignore_links: self.ignore_links,
+            protect_links: self.protect_links,
             include_sup_sub: self.include_sup_sub,
             inside_link: self.inside_link,
             list_depth: self.list_depth,
