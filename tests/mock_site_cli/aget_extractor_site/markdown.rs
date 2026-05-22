@@ -132,8 +132,8 @@ pub(crate) fn routes(builder: MockSiteBuilder) -> MockSiteBuilder {
       <p>Jump <a href="#details">within page</a>.</p>
       <p>Link label <a href="/api"><code>API v1</code></a> and standalone <code>inline_code</code>.</p>
       <p>Empty <a href="/empty"></a> marker.</p>
-      <p>Asset <a href="/release(2026)">release notes</a> and <img src="/assets/diagram(1).png" alt="A [diagram] (v1)">.</p>
-      <p>Icon <a href="/download"><img src="/icons/app(1).svg" alt="Download [app]"></a>.</p>
+      <p>Asset <a href="/release(2026)">release notes</a> and <img src="/assets/diagram(1).png" alt="A [diagram] (v1)" width="640" height="360">.</p>
+      <p>Icon <a href="/download"><img src="/icons/app(1).svg" alt="Download [app]" width="32"></a>.</p>
     </main>
   </body>
 </html>

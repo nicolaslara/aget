@@ -264,6 +264,32 @@ pub(super) fn assert_markdown_rendering(aget_home: &Path, site: &MockSite) {
         .content
         .contains("![Download \\[app\\]]"));
 
+    let markdown_images_as_html = Aget::new(aget_home)
+        .with_extractor_backend(AgetExtractorBackend::default())
+        .get(site.url("/markdown-links"))
+        .content_format(OutputFormat::Markdown)
+        .selector("main.article")
+        .backend_option("crawl4ai.images_as_html", "true")
+        .backend_option("crawl4ai.images_to_alt", "true")
+        .run()
+        .unwrap();
+    assert!(markdown_images_as_html
+        .content
+        .contains("Asset [release notes]("));
+    assert!(markdown_images_as_html.content.contains(
+        "and <img src='/assets/diagram(1).png' width='640' height='360' alt='A [diagram] (v1)' />."
+    ));
+    assert!(markdown_images_as_html.content.contains(&format!(
+        "Icon [<img src='/icons/app(1).svg' width='32' alt='Download [app]' />]({}).",
+        site.url("/download")
+    )));
+    assert!(!markdown_images_as_html
+        .content
+        .contains("![A \\[diagram\\]"));
+    assert!(!markdown_images_as_html
+        .content
+        .contains("A \\[diagram\\] \\(v1\\)."));
+
     let markdown_ignore_links = Aget::new(aget_home)
         .with_extractor_backend(AgetExtractorBackend::default())
         .get(site.url("/markdown-links"))

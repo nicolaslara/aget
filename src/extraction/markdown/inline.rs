@@ -172,6 +172,9 @@ fn image_markdown(node: NodeRef<'_, Node>, writer: &MarkdownWriter) -> Option<St
         return None;
     }
     let alt = element.attr("alt").unwrap_or("");
+    if writer.images_as_html {
+        return Some(image_html(element, src, alt));
+    }
     if writer.images_to_alt {
         return Some(escape_markdown_link_target(alt));
     }
@@ -180,6 +183,21 @@ fn image_markdown(node: NodeRef<'_, Node>, writer: &MarkdownWriter) -> Option<St
         escape_markdown_link_target(alt),
         escape_markdown_link_target(&writer.resolve_url(src))
     ))
+}
+
+fn image_html(element: ElementRef<'_>, src: &str, alt: &str) -> String {
+    let mut output = format!("<img src='{src}' ");
+    if let Some(width) = element.attr("width").filter(|value| !value.is_empty()) {
+        output.push_str(&format!("width='{width}' "));
+    }
+    if let Some(height) = element.attr("height").filter(|value| !value.is_empty()) {
+        output.push_str(&format!("height='{height}' "));
+    }
+    if !alt.is_empty() {
+        output.push_str(&format!("alt='{alt}' "));
+    }
+    output.push_str("/>");
+    output
 }
 
 pub(super) fn inline_markdown_from_children(

@@ -88,6 +88,7 @@ fn validate_crawl4ai_options(args: &Args) -> Result<(), String> {
         "escape_snob",
         "ignore_emphasis",
         "ignore_images",
+        "images_as_html",
         "images_to_alt",
         "ignore_links",
         "ignore_mailto_links",
