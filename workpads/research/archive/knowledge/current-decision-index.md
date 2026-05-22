@@ -49,6 +49,7 @@ Open the referenced child indexes for older per-decision rows, then open the per
 | D370 | `d370-keep-attrs-option.md` | Crawl4AI `keep_attrs` cleanup option for preserving explicitly named attributes in owned cleaned HTML. |
 | D371 | `d371-prettiify-option.md` | Crawl4AI `prettiify` cleanup option for formatting owned cleaned HTML output only. |
 | D372 | `d372-process-in-browser-local-content.md` | Crawl4AI `process_in_browser` local-content routing through owned CDP rendering. |
+| D373 | `d373-user-agent-option.md` | Crawl4AI explicit `user_agent` option for owned static HTTP and CDP-rendered page requests. |
 
 ## Full Archive Routing
 
@@ -67,7 +68,7 @@ Open the referenced child indexes for older per-decision rows, then open the per
 | D123-D150 | `d123-d150-module-decomposition.md` index to section files | Original extraction/CDP/test module decomposition through I19i completion. |
 | D151-D157 | `d151-d157-auth-and-browser-import.md` | OAuth-safe authorization API/CLI and conservative browser-neutral Chrome import surface. |
 | D158-D167 | `d158-d167-recent-migration-followups.md` | Recent source-backed extraction improvements and follow-up decomposition slices. |
-| D168-D372 | `decision-index/` plus per-decision files | Module/test/support decomposition plus owned extractor/browser parity improvements, agent-facing option docs, support-file routing refreshes, login-session injection, markdown options, metadata coverage, CDP diagnostics, transport/readiness coverage, ignored local Chrome smoke refreshes, support-file archive splits, the current no-task-compaction size audit, frame-tree storage export, excluded selector cleanup, consent-popup cleanup, CSS selector option support, cache-mode compatibility options, `keep_attrs` cleanup support, `prettiify` cleaned-HTML formatting, and `process_in_browser` local-content routing. |
+| D168-D373 | `decision-index/` plus per-decision files | Module/test/support decomposition plus owned extractor/browser parity improvements, agent-facing option docs, support-file routing refreshes, login-session injection, markdown options, metadata coverage, CDP diagnostics, transport/readiness coverage, ignored local Chrome smoke refreshes, support-file archive splits, the current no-task-compaction size audit, frame-tree storage export, excluded selector cleanup, consent-popup cleanup, CSS selector option support, cache-mode compatibility options, `keep_attrs` cleanup support, `prettiify` cleaned-HTML formatting, `process_in_browser` local-content routing, and explicit `user_agent` request identity. |
 
 ## Current Open Migration Gaps
 

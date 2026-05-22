@@ -85,7 +85,7 @@ pub(super) fn extract_owned_static_or_rendered(
         );
     }
 
-    let response = owned_fetch(url, state, timeout)?;
+    let response = owned_fetch(url, state, timeout, owned_options.user_agent.as_deref())?;
     let can_auto_render = response.can_auto_render;
     if can_auto_render && should_render_scripted_response(&response.body) {
         return extract_owned_rendered_page(

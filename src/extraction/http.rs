@@ -19,6 +19,7 @@ pub(super) fn owned_fetch(
     url: &str,
     state: &PlaywrightState,
     timeout: Duration,
+    user_agent: Option<&str>,
 ) -> Result<OwnedHttpResponse, AgetError> {
     let source = ParsedRequestSource::parse(url)?;
     let ParsedRequestSource::Http(parsed) = source else {
@@ -30,7 +31,9 @@ pub(super) fn owned_fetch(
         .max_redirects(5)
         .build();
     let agent: ureq::Agent = config.into();
-    let mut request = agent.get(url).header("User-Agent", "aget/0.1");
+    let mut request = agent
+        .get(url)
+        .header("User-Agent", user_agent.unwrap_or("aget/0.1"));
     if let Some(cookie_header) = cookie_header_for_state(state, &parsed) {
         request = request.header("Cookie", cookie_header);
     }
@@ -183,6 +186,7 @@ mod tests {
             "raw:<html><body><main>Raw</main></body></html>",
             &empty_state(),
             Duration::from_secs(1),
+            None,
         )
         .unwrap();
 
@@ -200,6 +204,7 @@ mod tests {
             "raw://<html><body><main>Raw slash</main></body></html>",
             &empty_state(),
             Duration::from_secs(1),
+            None,
         )
         .unwrap();
 
@@ -217,7 +222,7 @@ mod tests {
         std::fs::write(&path, "<html><body><main>File</main></body></html>").unwrap();
         let url = format!("file://{}", path.display());
 
-        let response = owned_fetch(&url, &empty_state(), Duration::from_secs(1)).unwrap();
+        let response = owned_fetch(&url, &empty_state(), Duration::from_secs(1), None).unwrap();
 
         assert_eq!(response.final_url, url);
         assert_eq!(response.body, "<html><body><main>File</main></body></html>");

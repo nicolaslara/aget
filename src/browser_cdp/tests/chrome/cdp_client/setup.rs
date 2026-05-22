@@ -142,3 +142,29 @@ fn browser_cdp_enable_page_domains_auto_attaches_subtargets() {
         .unwrap();
     handle.join().unwrap();
 }
+
+#[test]
+fn browser_cdp_sets_user_agent_override_for_page_session() {
+    let listener = TcpListener::bind(("127.0.0.1", 0)).unwrap();
+    let port = listener.local_addr().unwrap().port();
+    let handle = thread::spawn(move || {
+        let (stream, _) = listener.accept().unwrap();
+        let mut websocket = tungstenite::accept(stream).unwrap();
+        let request = read_cdp_request(&mut websocket);
+        assert_eq!(request["method"], "Network.setUserAgentOverride");
+        assert_eq!(request["sessionId"], "session-1");
+        assert_eq!(request["params"]["userAgent"], "aget-test/2.0");
+        reply_ok(&mut websocket, &request, json!({}));
+        let _ = websocket.close(None);
+    });
+
+    let mut client = CdpClient::connect(
+        &format!("ws://127.0.0.1:{port}/devtools/browser/mock"),
+        Duration::from_secs(2),
+    )
+    .unwrap();
+    client
+        .set_user_agent_override("session-1", "aget-test/2.0", Duration::from_secs(2))
+        .unwrap();
+    handle.join().unwrap();
+}

@@ -3555,6 +3555,24 @@ Status note:
 
 - Completed with D372. Source inspection found Crawl4AI's `CrawlerRunConfig.process_in_browser` defaults to `false`, and `AsyncCrawlerStrategy.crawl` routes `raw:`, `raw://`, and `file://` inputs through the browser pipeline when `process_in_browser` or other browser-only options are present; otherwise local content returns through the fast HTML path. Owned extraction now accepts `crawl4ai.process_in_browser`, materializes raw HTML into a temporary run-local file URL for CDP rendering when browser routing is requested, preserves the original raw/file final URL in extraction output, and also routes safe browser-only local options such as CSS waits, image readiness, iframe processing, and full-page scanning through the same path. Arbitrary user-supplied JavaScript remains unsupported. The optional Crawl4AI compatibility helper, command mock validation, README, OpenCode tool text, compact knowledge routing, and ignored local Chrome raw-browser smoke coverage were updated. `workpads/research/tasks.md` was not compacted. Focused local-routing unit coverage, command-backend option validation, Python helper syntax and parsing checks, `cargo fmt --check`, `git diff --check`, and full `cargo test` passed; the ignored local Chrome smoke was added but not run in the deterministic gate.
 
+### ✅ Task I19gx: Support Crawl4AI explicit `user_agent` option
+
+Acceptance criteria:
+
+- Inspect Crawl4AI source before changing owned request identity behavior.
+- Accept `crawl4ai.user_agent` as an owned backend option for explicit user-agent strings.
+- Apply the configured user agent to owned static HTTP requests.
+- Apply the configured user agent to owned CDP-rendered page requests before navigation.
+- Do not implement random user-agent generation, `user_agent_mode`, or arbitrary header injection in this slice.
+- Keep the optional Crawl4AI command compatibility helper able to pass `user_agent` to real Crawl4AI.
+- Do not compact `workpads/research/tasks.md`.
+- Record the source-backed boundary in `knowledge.md`.
+- Verify with focused static/CDP option coverage, helper syntax checks, and the standard check set.
+
+Status note:
+
+- Completed with D373. Source inspection found Crawl4AI `CrawlerRunConfig.user_agent` defaults to `None`, is applied before crawl execution, and is pushed into Playwright context/request user-agent behavior for non-persistent browser contexts. Owned extraction now accepts `crawl4ai.user_agent`, applies it to owned static HTTP requests, and sends `Network.setUserAgentOverride` before owned CDP state-loading or target navigation. This slice intentionally does not implement random user-agent generation, `user_agent_mode`, client hints synthesis, or arbitrary custom headers. The optional Crawl4AI compatibility helper, command mock validation, README, OpenCode tool text, compact knowledge routing, static request assertions, and CDP protocol coverage were updated. `workpads/research/tasks.md` was not compacted. Focused static/CDP/command-option coverage, Python helper syntax and parsing checks, `cargo fmt --check`, `git diff --check`, and full `cargo test` passed.
+
 ### ✅ Task I20: Design OAuth-safe browser login and profile import flow
 
 Acceptance criteria:

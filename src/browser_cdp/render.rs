@@ -14,6 +14,7 @@ pub(crate) struct BrowserRenderRequest<'a> {
     pub(crate) tmp_dir: &'a Path,
     pub(crate) url: &'a str,
     pub(crate) state: &'a PlaywrightState,
+    pub(crate) user_agent: Option<&'a str>,
     pub(crate) wait_for_selector: Option<&'a str>,
     pub(crate) wait_until: PageWaitUntil,
     pub(crate) wait_for_images: bool,
@@ -76,6 +77,9 @@ pub(crate) fn render_page(request: BrowserRenderRequest<'_>) -> Result<RenderedP
     let mut client = CdpClient::connect(&chrome.ws_url, request.timeout)?;
     let page = client.create_page(request.page_timeout)?;
     client.enable_page_domains(&page.session_id, request.page_timeout)?;
+    if let Some(user_agent) = request.user_agent {
+        client.set_user_agent_override(&page.session_id, user_agent, request.page_timeout)?;
+    }
     if request.flatten_shadow_dom {
         client.force_open_shadow_roots(&page.session_id, request.page_timeout)?;
     }

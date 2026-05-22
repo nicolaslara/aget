@@ -25,6 +25,7 @@ EXTRACTOR_OPTION_TYPES = {
     "keep_data_attributes": ("crawler", "bool"),
     "prettiify": ("crawler", "bool"),
     "process_in_browser": ("crawler", "bool"),
+    "user_agent": ("crawler", "str"),
     "word_count_threshold": ("crawler", "int"),
     "wait_until": ("crawler", "str"),
     "page_timeout": ("crawler", "int"),

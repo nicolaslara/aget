@@ -148,6 +148,21 @@ impl CdpClient {
         Ok(())
     }
 
+    pub(in crate::browser_cdp) fn set_user_agent_override(
+        &mut self,
+        session_id: &str,
+        user_agent: &str,
+        timeout: Duration,
+    ) -> Result<(), AgetError> {
+        self.send(
+            "Network.setUserAgentOverride",
+            Some(json!({ "userAgent": user_agent })),
+            self.session_param(session_id),
+            timeout,
+        )?;
+        Ok(())
+    }
+
     pub(super) fn close_browser(&mut self, timeout: Duration) -> Result<(), AgetError> {
         if self.direct_page_connection {
             return Ok(());
