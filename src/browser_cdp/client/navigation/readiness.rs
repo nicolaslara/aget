@@ -3,6 +3,7 @@ use std::time::{Duration, Instant};
 
 use serde_json::{json, Value};
 
+use super::super::fail_on_runtime_evaluation_exception;
 use super::super::transport::remaining;
 use super::super::CdpClient;
 use crate::browser_cdp::page_scripts::{
@@ -193,25 +194,4 @@ impl CdpClient {
             .unwrap_or_default()
             .to_string())
     }
-}
-
-fn fail_on_runtime_evaluation_exception(result: &Value) -> Result<(), AgetError> {
-    if let Some(message) = runtime_evaluation_exception(result) {
-        return Err(AgetError::Stable {
-            code: ErrorCode::ExtractionFailed,
-            message: format!("owned browser fallback Runtime.evaluate failed: {message}"),
-        });
-    }
-    Ok(())
-}
-
-fn runtime_evaluation_exception(result: &Value) -> Option<String> {
-    let details = result.get("exceptionDetails")?;
-    let message = details
-        .get("exception")
-        .and_then(|exception| exception.get("description"))
-        .and_then(Value::as_str)
-        .or_else(|| details.get("text").and_then(Value::as_str))
-        .unwrap_or("unknown Runtime.evaluate exception");
-    Some(message.to_string())
 }

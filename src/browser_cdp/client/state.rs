@@ -3,8 +3,8 @@ use std::time::Duration;
 use serde_json::json;
 
 use super::{
-    cdp_cookies, origin_storage_from_runtime_result, playwright_cookies_from_cdp,
-    storage_candidate_origins, CdpClient,
+    cdp_cookies, fail_on_runtime_evaluation_exception, origin_storage_from_runtime_result,
+    playwright_cookies_from_cdp, storage_candidate_origins, CdpClient,
 };
 use crate::browser_cdp::page_scripts::{
     local_storage_set_expression, origin_storage_expression, session_storage_set_expression,
@@ -38,7 +38,7 @@ impl CdpClient {
             self.navigate_and_wait(session_id, &navigate_url, PageWaitUntil::Load, timeout)?;
             for entry in &origin.local_storage {
                 let expression = local_storage_set_expression(&entry.name, &entry.value)?;
-                self.send(
+                let result = self.send(
                     "Runtime.evaluate",
                     Some(json!({
                         "expression": expression,
@@ -48,10 +48,11 @@ impl CdpClient {
                     self.session_param(session_id),
                     timeout,
                 )?;
+                fail_on_runtime_evaluation_exception(&result)?;
             }
             for entry in &origin.session_storage {
                 let expression = session_storage_set_expression(&entry.name, &entry.value)?;
-                self.send(
+                let result = self.send(
                     "Runtime.evaluate",
                     Some(json!({
                         "expression": expression,
@@ -61,6 +62,7 @@ impl CdpClient {
                     self.session_param(session_id),
                     timeout,
                 )?;
+                fail_on_runtime_evaluation_exception(&result)?;
             }
         }
         Ok(())
@@ -150,6 +152,7 @@ impl CdpClient {
                 self.session_param(session_id),
                 timeout,
             )?;
+            fail_on_runtime_evaluation_exception(&result)?;
             let Some(origin) = origin_storage_from_runtime_result(&result) else {
                 continue;
             };
