@@ -32,6 +32,7 @@ Open the referenced child indexes for older per-decision rows, then open the per
 | D353 | `d353-cdp-dialog-auto-handling.md` | agent-browser-style automatic `alert`/`beforeunload` dialog acceptance while leaving `confirm`/`prompt` explicit. |
 | D354 | `d354-cdp-transport-test-split.md` | Mechanical split of CDP WebSocket transport tests out of setup/attach-domain tests. |
 | D355 | `d355-unlabeled-density-main-content.md` | Crawl4AI-style density scoring lets strong unlabeled content containers win main-content extraction. |
+| D356 | `d356-body-fallback-page-chrome-cleanup.md` | Crawl4AI-style page-chrome tag removal when automatic main-content extraction falls back to body/root. |
 
 ## Full Archive Routing
 
@@ -50,7 +51,7 @@ Open the referenced child indexes for older per-decision rows, then open the per
 | D123-D150 | `d123-d150-module-decomposition.md` index to section files | Original extraction/CDP/test module decomposition through I19i completion. |
 | D151-D157 | `d151-d157-auth-and-browser-import.md` | OAuth-safe authorization API/CLI and conservative browser-neutral Chrome import surface. |
 | D158-D167 | `d158-d167-recent-migration-followups.md` | Recent source-backed extraction improvements and follow-up decomposition slices. |
-| D168-D355 | `decision-index/` plus per-decision files | Module/test/support decomposition plus owned extractor/browser parity improvements, agent-facing option docs, support-file routing refreshes, login-session injection, markdown options, CDP diagnostics, and transport/readiness coverage. |
+| D168-D356 | `decision-index/` plus per-decision files | Module/test/support decomposition plus owned extractor/browser parity improvements, agent-facing option docs, support-file routing refreshes, login-session injection, markdown options, CDP diagnostics, and transport/readiness coverage. |
 
 ## Current Open Migration Gaps
 

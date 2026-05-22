@@ -13,7 +13,7 @@ use crate::error::AgetError;
 use crate::extraction::extraction_failed;
 use crate::extraction::html_clean::{
     clean_owned_base64_image_sources, parse_css_selector, prune_owned_unwanted_attributes,
-    remove_owned_empty_elements, replace_owned_only_text_elements,
+    remove_owned_empty_elements, remove_selected_elements, replace_owned_only_text_elements,
 };
 use crate::extraction::markdown::{element_to_markdown, normalize_markdown, resolve_markdown_url};
 
@@ -55,6 +55,9 @@ pub(super) fn extract_owned_content(
     } else {
         vec![document.root_element().id()]
     };
+    let should_remove_page_chrome_fallback = prefer_main_content
+        && selector.is_none()
+        && is_body_or_document_root(&document, &root_ids)?;
     let target_ids = if owned_options.target_elements.is_empty() {
         Vec::new()
     } else {
@@ -71,6 +74,10 @@ pub(super) fn extract_owned_content(
         document = replace_owned_only_text_elements(document, &root_ids, &target_ids);
     }
     document = clean_owned_base64_image_sources(document);
+    if should_remove_page_chrome_fallback {
+        document =
+            remove_selected_elements(document, "nav,footer,header,aside,form,iframe,noscript")?;
+    }
     document = remove_owned_empty_elements(document, &root_ids, &target_ids);
     document = prune_owned_unwanted_attributes(
         document,
@@ -86,6 +93,14 @@ pub(super) fn extract_owned_content(
         return extract_target_owned_elements(&document, &root_ids, base_url, owned_options);
     }
     extract_target_owned_elements(&document, &target_ids, base_url, owned_options)
+}
+
+fn is_body_or_document_root(document: &Html, root_ids: &[NodeId]) -> Result<bool, AgetError> {
+    let [root_id] = root_ids else {
+        return Ok(false);
+    };
+    let root = element_by_id(document, *root_id)?;
+    Ok(matches!(root.value().name(), "body" | "html"))
 }
 
 fn remove_owned_line_through_elements(

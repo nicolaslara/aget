@@ -151,6 +151,25 @@ pub(crate) fn routes(builder: MockSiteBuilder) -> MockSiteBuilder {
             ),
         )
         .route(
+            "/main-content-body-fallback-chrome",
+            MockResponse::html(
+                r#"
+<html>
+  <body>
+    <header>Global Header</header>
+    <nav>
+      <a href="/docs">Docs</a>
+      <a href="/pricing">Pricing</a>
+    </nav>
+    <h1>Bare Body Story</h1>
+    <p>The useful article paragraph has no wrapper, so body fallback should keep it without page chrome.</p>
+    <footer>Footer links and legal navigation</footer>
+  </body>
+</html>
+"#,
+            ),
+        )
+        .route(
             "/main-content-class-id-noise",
             MockResponse::html(
                 r#"

@@ -76,6 +76,17 @@ pub(super) fn assert_main_content_scoring(aget_home: &Path, site: &MockSite) {
         "# Unlabeled Report\n\nThis unlabeled report carries the main body text even though it has no helpful class, id, role, or aria label.\n\nThe content block should win because it has strong prose density and very few links."
     );
 
+    let body_fallback_markdown = Aget::new(aget_home)
+        .with_extractor_backend(AgetExtractorBackend::default())
+        .get(site.url("/main-content-body-fallback-chrome"))
+        .content_format(OutputFormat::Markdown)
+        .run()
+        .unwrap();
+    assert_eq!(
+        body_fallback_markdown.content,
+        "# Bare Body Story\n\nThe useful article paragraph has no wrapper, so body fallback should keep it without page chrome."
+    );
+
     let class_id_noise_markdown = Aget::new(aget_home)
         .with_extractor_backend(AgetExtractorBackend::default())
         .get(site.url("/main-content-class-id-noise"))
