@@ -63,6 +63,25 @@ pub(super) fn assert_markdown_rendering(aget_home: &Path, site: &MockSite) {
         .content
         .contains("power <sup>2</sup>, and water <sub>2</sub>."));
 
+    let markdown_ignore_emphasis = Aget::new(aget_home)
+        .with_extractor_backend(AgetExtractorBackend::default())
+        .get(site.url("/markdown-inline-blocks"))
+        .content_format(OutputFormat::Markdown)
+        .selector("main.article")
+        .backend_option("crawl4ai.ignore_emphasis", "true")
+        .run()
+        .unwrap();
+    assert!(markdown_ignore_emphasis
+        .content
+        .contains("Status: ~~removed~~, soft, under, `Cmd K`, `TTY`, \"quoted\""));
+    assert!(markdown_ignore_emphasis
+        .content
+        .contains("Definition with detail."));
+    assert!(!markdown_ignore_emphasis.content.contains("_soft_"));
+    assert!(!markdown_ignore_emphasis.content.contains("_under_"));
+    assert!(!markdown_ignore_emphasis.content.contains("**detail**"));
+    assert!(markdown_ignore_emphasis.content.contains("~~removed~~"));
+
     let markdown_nested_lists = Aget::new(aget_home)
         .with_extractor_backend(AgetExtractorBackend::default())
         .get(site.url("/markdown-nested-lists"))

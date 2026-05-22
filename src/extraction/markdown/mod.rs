@@ -21,6 +21,7 @@ pub(super) fn element_to_markdown(
     only_text: bool,
     skip_internal_links: bool,
     ignore_images: bool,
+    ignore_emphasis: bool,
     ignore_links: bool,
     include_sup_sub: bool,
 ) -> String {
@@ -29,6 +30,7 @@ pub(super) fn element_to_markdown(
         only_text,
         skip_internal_links,
         ignore_images,
+        ignore_emphasis,
         ignore_links,
         include_sup_sub,
     );
@@ -67,10 +69,12 @@ fn render_element(node: NodeRef<'_, Node>, tag: &str, writer: &mut MarkdownWrite
         }
         "code" | "kbd" | "tt" => writer.push_inline(&format!("`{}`", inline_text_from_node(node))),
         "address" | "details" | "figcaption" | "figure" | "summary" => render_block(node, writer),
+        "strong" | "b" if writer.ignore_emphasis => render_children(node, writer),
         "strong" | "b" => {
             let inner = inline_markdown_from_children(node, writer);
             writer.push_inline(&format!("**{inner}**"));
         }
+        "em" | "i" | "u" if writer.ignore_emphasis => render_children(node, writer),
         "em" | "i" | "u" => {
             let inner = inline_markdown_from_children(node, writer);
             writer.push_inline(&format!("_{inner}_"));
