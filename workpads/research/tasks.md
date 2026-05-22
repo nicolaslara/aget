@@ -2640,6 +2640,22 @@ Status note:
 
 - Completed with D314. `src/extraction/owned/options.rs` remains the caller-facing options route and owns `OwnedExtractorOptions`, defaults, CSS-wait precheck, Crawl4AI namespace checks, and the validator entrypoint, while `src/extraction/owned/options/apply.rs` now owns per-key option application, typed parsing calls, field assignment, and supported-option error text. The split is mechanical, extraction runtime behavior and unsupported-option messages are unchanged, and `workpads/research/tasks.md` was not compacted. The options route dropped from 325 lines to 135 lines, with a 189-line apply helper. Focused backend-option validation coverage and the standard gate passed.
 
+### ✅ Task I19et: Split Playwright session composition tests
+
+Acceptance criteria:
+
+- Preserve current Playwright session composition and temp-state test coverage.
+- Keep `src/session/playwright/tests.rs` as the test module route.
+- Move cohesive Playwright test groups into smaller child modules by behavior.
+- Keep the split mechanical with no intentional session behavior changes.
+- Do not compact `workpads/research/tasks.md`.
+- Record the resulting test boundary in `knowledge.md`.
+- Verify with focused `session::playwright` tests plus the standard check set.
+
+Status note:
+
+- Completed with D315. `src/session/playwright/tests.rs` remains the route and delegates to child modules for Playwright state composition, composed-session behavior, temp state files, and shared fixtures. The split is mechanical; session runtime behavior is unchanged, and `workpads/research/tasks.md` was not compacted. The parent route is 4 lines and the largest child is 143 lines. Focused `session::playwright` coverage and the standard gate passed.
+
 ### ✅ Task I20: Design OAuth-safe browser login and profile import flow
 
 Acceptance criteria:
