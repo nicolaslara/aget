@@ -1754,6 +1754,21 @@ Status note:
 
 - Completed with D256. `src/main_session/mod.rs` remains the `run_session` dispatcher and keeps list/authorize/inspect/delete/compose routing, while `src/main_session/import_command.rs` owns cmux/browser/Chrome import output and dispatch, and `src/main_session/login_command.rs` owns login start/finish/cancel output, envelope shaping, and OAuth warning text. Command names, JSON fields, plain output, unsupported-browser usage errors, and error-response wrapping remain stable, and `workpads/research/tasks.md` remains un-compacted.
 
+### ✅ Task I19cn: Split browser CDP startup diagnostics helpers
+
+Acceptance criteria:
+
+- Preserve current Chrome startup stderr parsing, error classification, sandbox/no-stderr hints, and DevTools stderr URL fallback behavior.
+- Move startup diagnostics helpers out of `src/browser_cdp/discovery.rs` into a focused submodule.
+- Keep current `browser_cdp` internal function access compatible for Chrome process and discovery callers.
+- Do not compact or remove planned tasks from `workpads/research/tasks.md`.
+- Record the resulting browser CDP diagnostics boundary in `knowledge.md`.
+- Verify with focused browser CDP discovery diagnostics coverage plus the standard check set.
+
+Status note:
+
+- Completed with D257. `src/browser_cdp/discovery.rs` now keeps DevToolsActivePort polling, existing-profile attach, `/json/version`, `/json/list`, direct `/devtools/browser` discovery, WebSocket host rewriting, and profile-browser shutdown polling, while `src/browser_cdp/discovery/diagnostics.rs` owns Chrome stderr DevTools URL fallback parsing, startup error classification, requires-user-action matching, relevant stderr filtering, sandbox/no-stderr hints, and generic stderr tails. Existing Chrome process and browser CDP test access stays routed through `discovery`, and `workpads/research/tasks.md` remains un-compacted.
+
 ### ✅ Task I20: Design OAuth-safe browser login and profile import flow
 
 Acceptance criteria:

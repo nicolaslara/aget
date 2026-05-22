@@ -73,6 +73,7 @@ This archive file keeps the denser decision routing that used to live in top-lev
 | D254 | `d254-mock-site-support-split.md` | Mechanical split of shared mock-site support server helpers into protocol and routes modules. |
 | D255 | `d255-owned-extraction-page-pipeline-split.md` | Mechanical split of owned extraction page pipeline helpers from backend adapter entrypoints. |
 | D256 | `d256-main-session-import-login-split.md` | Mechanical split of binary session import and login command handlers from the session dispatcher. |
+| D257 | `d257-browser-cdp-diagnostics-split.md` | Mechanical split of browser CDP startup diagnostics helpers from endpoint discovery. |
 
 ## Full Archive Routing
 
@@ -92,7 +93,7 @@ This archive file keeps the denser decision routing that used to live in top-lev
 | D151-D157 | `d151-d157-auth-and-browser-import.md` | OAuth-safe authorization API/CLI and conservative browser-neutral Chrome import surface. |
 | D158-D167 | `d158-d167-recent-migration-followups.md` | Recent source-backed extraction improvements and follow-up decomposition slices. |
 | D168-D176 | Per-decision files | Knowledge/reference compaction, engine-refactor planning, wrapper introduction, naming cleanup, and direct engine coverage. |
-| D177-D256 | Per-decision files | Module/test/support decomposition plus the latest owned extractor/browser parity improvements. |
+| D177-D257 | Per-decision files | Module/test/support decomposition plus the latest owned extractor/browser parity improvements. |
 
 ## Current Open Migration Gaps
 
