@@ -1650,6 +1650,21 @@ Status note:
 
 - Completed with D249. `tests/session_cli/authorize.rs` now routes focused authorization scenarios for verified import, verification failure, `requires_user_action`, unsupported browser rejection, and re-import-after-login behavior under `tests/session_cli/authorize/`. The parent `tests/session_cli.rs` route remains stable, assertions and command arguments are preserved, and `workpads/research/tasks.md` remains un-compacted.
 
+### ✅ Task I19cg: Split mock-site browser integration tests by behavior
+
+Acceptance criteria:
+
+- Preserve current mock-site browser fallback and Chrome-rendered extractor test behavior.
+- Move browser fallback, storage-backed rendering, rendered extraction, and readiness/overlay/image/network tests out of `tests/mock_site_browser.rs` into behavior-focused modules.
+- Keep the `tests/mock_site_browser.rs` integration target and ignored real-Chrome annotations stable.
+- Do not compact or remove planned tasks from `workpads/research/tasks.md`.
+- Record the resulting test boundary in `knowledge.md`.
+- Verify with focused mock-site browser coverage plus the standard check set.
+
+Status note:
+
+- Completed with D250. `tests/mock_site_browser.rs` now routes behavior-focused modules for browser fallback replay/rendering, storage-backed rendering, rendered extraction, and readiness/overlay/image/network waits under `tests/mock_site_browser/`. The integration target, test names, assertions, and ignored real-Chrome annotations remain stable, and `workpads/research/tasks.md` remains un-compacted.
+
 ### ✅ Task I20: Design OAuth-safe browser login and profile import flow
 
 Acceptance criteria:
