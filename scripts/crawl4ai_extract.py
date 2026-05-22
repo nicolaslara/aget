@@ -135,6 +135,7 @@ EXTRACTOR_OPTION_TYPES = {
     "include_sup_sub": ("markdown", "bool"),
     "protect_links": ("markdown", "bool"),
     "skip_internal_links": ("markdown", "bool"),
+    "use_automatic_links": ("markdown", "bool"),
 }
 
 JS_WAIT_MARKERS = ("=>", "function(", "return ", ";")

@@ -98,6 +98,7 @@ fn extract_single_owned_element(
             owned_options.ignore_tables,
             owned_options.bypass_tables,
             owned_options.protect_links,
+            owned_options.use_automatic_links,
             owned_options.escape_snob,
             owned_options.include_sup_sub,
         ),
@@ -153,6 +154,7 @@ fn extract_target_owned_elements(
                     owned_options.ignore_tables,
                     owned_options.bypass_tables,
                     owned_options.protect_links,
+                    owned_options.use_automatic_links,
                     owned_options.escape_snob,
                     owned_options.include_sup_sub,
                 )

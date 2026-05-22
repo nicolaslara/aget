@@ -204,6 +204,21 @@ pub(super) fn assert_markdown_rendering(aget_home: &Path, site: &MockSite) {
         )
     );
 
+    let markdown_disable_automatic_links = Aget::new(aget_home)
+        .with_extractor_backend(AgetExtractorBackend::default())
+        .get(site.url("/markdown-links"))
+        .content_format(OutputFormat::Markdown)
+        .selector("main.article")
+        .backend_option("crawl4ai.use_automatic_links", "false")
+        .run()
+        .unwrap();
+    assert!(markdown_disable_automatic_links.content.contains(
+        "Canonical [https://example.com/docs](https://example.com/docs \"Docs title\")."
+    ));
+    assert!(!markdown_disable_automatic_links
+        .content
+        .contains("Canonical <https://example.com/docs>."));
+
     let markdown_ignore_images = Aget::new(aget_home)
         .with_extractor_backend(AgetExtractorBackend::default())
         .get(site.url("/markdown-links"))

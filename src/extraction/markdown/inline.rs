@@ -66,7 +66,11 @@ pub(super) fn render_link(node: NodeRef<'_, Node>, writer: &mut MarkdownWriter) 
     }
 
     let label = link_label_markdown_from_children(node, writer);
-    if !label.is_empty() && label == href && is_absolute_http_url(href) {
+    if writer.use_automatic_links
+        && !label.is_empty()
+        && label == href
+        && is_absolute_http_url(href)
+    {
         writer.push_inline(&format!("<{}>", href));
         return;
     }

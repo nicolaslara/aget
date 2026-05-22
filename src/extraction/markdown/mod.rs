@@ -27,6 +27,7 @@ pub(super) fn element_to_markdown(
     ignore_tables: bool,
     bypass_tables: bool,
     protect_links: bool,
+    use_automatic_links: bool,
     escape_snob: bool,
     include_sup_sub: bool,
 ) -> String {
@@ -41,6 +42,7 @@ pub(super) fn element_to_markdown(
         ignore_tables,
         bypass_tables,
         protect_links,
+        use_automatic_links,
         escape_snob,
         include_sup_sub,
     );
