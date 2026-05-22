@@ -134,13 +134,9 @@ impl CdpClient {
                     })
             }
             Ok(Message::Binary(bytes)) => {
-                let text =
-                    String::from_utf8(bytes.to_vec()).map_err(|error| AgetError::Stable {
-                        code: ErrorCode::ExtractionFailed,
-                        message: format!(
-                            "owned browser fallback received non-UTF8 CDP JSON: {error}"
-                        ),
-                    })?;
+                let Ok(text) = String::from_utf8(bytes.to_vec()) else {
+                    return Ok(None);
+                };
                 serde_json::from_str(&text)
                     .map(Some)
                     .map_err(|error| AgetError::Stable {

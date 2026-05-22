@@ -25,6 +25,7 @@ Open the referenced child indexes for older per-decision rows, then open the per
 | D346 | `d346-binary-cdp-response-frames.md` | agent-browser-style binary CDP WebSocket response frames accepted by owned transport. |
 | D347 | `d347-current-decision-index-split.md` | Support-file split that keeps the current decision index as a compact router. |
 | D348 | `d348-google-list-indent-option.md` | Crawl4AI `google_list_indent` markdown option for Google Docs-style list indentation. |
+| D349 | `d349-invalid-binary-cdp-frames.md` | agent-browser-style invalid binary CDP WebSocket response frames skipped by owned transport. |
 
 ## Full Archive Routing
 
@@ -43,7 +44,7 @@ Open the referenced child indexes for older per-decision rows, then open the per
 | D123-D150 | `d123-d150-module-decomposition.md` index to section files | Original extraction/CDP/test module decomposition through I19i completion. |
 | D151-D157 | `d151-d157-auth-and-browser-import.md` | OAuth-safe authorization API/CLI and conservative browser-neutral Chrome import surface. |
 | D158-D167 | `d158-d167-recent-migration-followups.md` | Recent source-backed extraction improvements and follow-up decomposition slices. |
-| D168-D348 | `decision-index/` plus per-decision files | Module/test/support decomposition plus owned extractor/browser parity improvements, agent-facing option docs, support-file routing refreshes, login-session injection, markdown options, CDP diagnostics, and transport/readiness coverage. |
+| D168-D349 | `decision-index/` plus per-decision files | Module/test/support decomposition plus owned extractor/browser parity improvements, agent-facing option docs, support-file routing refreshes, login-session injection, markdown options, CDP diagnostics, and transport/readiness coverage. |
 
 ## Current Open Migration Gaps
 
