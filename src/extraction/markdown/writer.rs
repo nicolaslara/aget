@@ -4,9 +4,10 @@ use std::rc::Rc;
 use url::Url;
 
 use super::normalize::{
-    escape_markdown_line_start, escape_markdown_text_backslashes, is_markdown_line_start,
-    needs_space_before_inline, normalize_inline_markdown, resolve_markdown_url,
-    starts_with_closing_punctuation, trailing_newline_count, trim_trailing_horizontal_space,
+    escape_markdown_line_start, escape_markdown_snob_text, escape_markdown_text_backslashes,
+    is_markdown_line_start, needs_space_before_inline, normalize_inline_markdown,
+    resolve_markdown_url, starts_with_closing_punctuation, trailing_newline_count,
+    trim_trailing_horizontal_space,
 };
 
 pub(super) struct MarkdownWriter {
@@ -18,6 +19,7 @@ pub(super) struct MarkdownWriter {
     pub(super) ignore_emphasis: bool,
     pub(super) ignore_links: bool,
     pub(super) protect_links: bool,
+    escape_snob: bool,
     pub(super) include_sup_sub: bool,
     pub(super) inside_link: bool,
     pub(super) list_depth: usize,
@@ -33,6 +35,7 @@ impl MarkdownWriter {
         ignore_emphasis: bool,
         ignore_links: bool,
         protect_links: bool,
+        escape_snob: bool,
         include_sup_sub: bool,
     ) -> Self {
         Self {
@@ -44,6 +47,7 @@ impl MarkdownWriter {
             ignore_emphasis,
             ignore_links,
             protect_links,
+            escape_snob,
             include_sup_sub,
             inside_link: false,
             list_depth: 0,
@@ -61,6 +65,7 @@ impl MarkdownWriter {
             ignore_emphasis: self.ignore_emphasis,
             ignore_links: self.ignore_links,
             protect_links: self.protect_links,
+            escape_snob: self.escape_snob,
             include_sup_sub: self.include_sup_sub,
             inside_link: self.inside_link,
             list_depth: self.list_depth,
@@ -84,6 +89,9 @@ impl MarkdownWriter {
     pub(super) fn push_text(&mut self, text: &str) {
         let mut text = normalize_inline_markdown(text);
         text = escape_markdown_text_backslashes(&text);
+        if self.escape_snob {
+            text = escape_markdown_snob_text(&text);
+        }
         if is_markdown_line_start(&self.output) {
             text = escape_markdown_line_start(&text);
         }

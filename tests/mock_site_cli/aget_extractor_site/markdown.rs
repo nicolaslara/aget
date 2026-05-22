@@ -79,6 +79,23 @@ pub(crate) fn routes(builder: MockSiteBuilder) -> MockSiteBuilder {
             ),
         )
         .route(
+            "/markdown-escape-snob",
+            MockResponse::html(
+                r#"
+<html>
+  <body>
+    <main class="article">
+      <h1>Escape Snob</h1>
+      <p>Escapes `tick`, *star*, _under_, {brace}, [bracket], (paren), #hash, and bang!.</p>
+      <p><code>*code*</code> stays code.</p>
+      <pre><code># raw *code*</code></pre>
+    </main>
+  </body>
+</html>
+"#,
+            ),
+        )
+        .route(
             "/markdown-nested-lists",
             MockResponse::html(
                 r#"

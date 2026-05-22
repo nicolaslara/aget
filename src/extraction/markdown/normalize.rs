@@ -98,6 +98,20 @@ pub(super) fn escape_markdown_text_backslashes(text: &str) -> String {
     output
 }
 
+pub(super) fn escape_markdown_snob_text(text: &str) -> String {
+    let mut output = String::with_capacity(text.len());
+    for character in text.chars() {
+        if matches!(
+            character,
+            '`' | '*' | '_' | '{' | '}' | '[' | ']' | '(' | ')' | '#' | '!'
+        ) {
+            output.push('\\');
+        }
+        output.push(character);
+    }
+    output
+}
+
 fn is_markdown_backslash_sensitive(character: char) -> bool {
     matches!(
         character,
