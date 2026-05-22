@@ -4,9 +4,17 @@ use std::time::Duration;
 
 use serde_json::json;
 
-use crate::browser_cdp::client::CdpClient;
+use crate::browser_cdp::client::{cdp_websocket_config, CdpClient};
 
 use super::super::{read_cdp_request, reply_ok, reply_ok_binary};
+
+#[test]
+fn browser_cdp_websocket_config_allows_large_frames() {
+    let config = cdp_websocket_config();
+
+    assert_eq!(config.max_message_size, None);
+    assert_eq!(config.max_frame_size, None);
+}
 
 #[test]
 fn browser_cdp_accepts_binary_response_frames() {

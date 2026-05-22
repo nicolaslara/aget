@@ -16,6 +16,8 @@ pub(super) use super::session_data::{
 mod navigation;
 mod state;
 mod transport;
+#[cfg(test)]
+pub(in crate::browser_cdp) use transport::cdp_websocket_config;
 
 pub(super) struct PageSession {
     /// Empty for direct page WebSocket connections, where CDP commands already

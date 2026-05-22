@@ -2,8 +2,10 @@ use std::io;
 use std::time::{Duration, Instant};
 
 use serde_json::{json, Value};
+use tungstenite::client::connect_with_config;
+use tungstenite::protocol::WebSocketConfig;
 use tungstenite::stream::MaybeTlsStream;
-use tungstenite::{connect, Message};
+use tungstenite::Message;
 
 use super::CdpClient;
 use crate::browser_cdp::io_aget_error;
@@ -16,10 +18,11 @@ impl CdpClient {
         ws_url: &str,
         timeout: Duration,
     ) -> Result<Self, AgetError> {
-        let (mut socket, _) = connect(ws_url).map_err(|error| AgetError::Stable {
-            code: ErrorCode::BackendUnavailable,
-            message: format!("owned browser fallback could not connect to Chrome CDP: {error}"),
-        })?;
+        let (mut socket, _) = connect_with_config(ws_url, Some(cdp_websocket_config()), 3)
+            .map_err(|error| AgetError::Stable {
+                code: ErrorCode::BackendUnavailable,
+                message: format!("owned browser fallback could not connect to Chrome CDP: {error}"),
+            })?;
         configure_socket_timeout(&mut socket, timeout)?;
         Ok(Self {
             socket,
@@ -154,6 +157,12 @@ impl CdpClient {
             Err(error) => Err(cdp_io_error(error)),
         }
     }
+}
+
+pub(in crate::browser_cdp) fn cdp_websocket_config() -> WebSocketConfig {
+    WebSocketConfig::default()
+        .max_message_size(None)
+        .max_frame_size(None)
 }
 
 fn configure_socket_timeout(
