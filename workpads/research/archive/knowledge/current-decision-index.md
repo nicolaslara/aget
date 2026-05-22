@@ -107,6 +107,7 @@ This archive file keeps the denser decision routing that used to live in top-lev
 | D288 | `d288-browser-cdp-discovery-test-split.md` | Mechanical split of browser CDP discovery tests into diagnostics, port-file, and endpoint behavior modules. |
 | D289 | `d289-mock-site-docs-contract-split.md` | Mechanical split of mock-site docs-contract tests into behavior-focused modules. |
 | D290 | `d290-owned-extractor-options-parse-split.md` | Mechanical split of owned extractor option parsing helpers into a child module. |
+| D291 | `d291-owned-page-rendering-split.md` | Mechanical split of owned page rendering request and script/readiness helpers into child modules. |
 
 ## Full Archive Routing
 
@@ -126,7 +127,7 @@ This archive file keeps the denser decision routing that used to live in top-lev
 | D151-D157 | `d151-d157-auth-and-browser-import.md` | OAuth-safe authorization API/CLI and conservative browser-neutral Chrome import surface. |
 | D158-D167 | `d158-d167-recent-migration-followups.md` | Recent source-backed extraction improvements and follow-up decomposition slices. |
 | D168-D176 | Per-decision files | Knowledge/reference compaction, engine-refactor planning, wrapper introduction, naming cleanup, and direct engine coverage. |
-| D177-D290 | Per-decision files | Module/test/support decomposition plus the latest owned extractor/browser parity improvements and agent-facing option docs. |
+| D177-D291 | Per-decision files | Module/test/support decomposition plus the latest owned extractor/browser parity improvements and agent-facing option docs. |
 
 ## Current Open Migration Gaps
 

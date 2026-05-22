@@ -2249,6 +2249,21 @@ Status note:
 
 - Completed with D290. `src/extraction/owned/options.rs` still owns `OwnedExtractorOptions`, defaults, supported option dispatch, and `validate_owned_extraction_options`, while private URL/list/bool/duration/wait/selector parsing plus CSS-only wait validation now lives in `src/extraction/owned/options/parse.rs`. Supported `crawl4ai.*` option names, defaults, and error text are unchanged; JavaScript waits remain rejected before backend execution. `workpads/research/tasks.md` was not compacted. Validation passed with focused owned extractor option coverage plus the standard check set.
 
+### ✅ Task I19dv: Split owned extraction page rendering helpers
+
+Acceptance criteria:
+
+- Split rendered-page request composition and script/readiness detection helpers out of `src/extraction/owned/page.rs` without changing owned extraction behavior.
+- Preserve static-versus-rendered routing, browser render request fields, rendered wait retry behavior, and script type detection assertions.
+- Keep `extract_owned_static_or_rendered` and `extract_owned_rendered_html` as the owned page extraction entrypoints.
+- Do not compact `workpads/research/tasks.md`.
+- Record the mechanical split boundary in `knowledge.md`.
+- Verify with focused owned extraction/rendering coverage plus the standard check set.
+
+Status note:
+
+- Completed with D291. `src/extraction/owned/page.rs` still owns the owned page extraction entrypoints, HTTP/static handoff, HTML cleanup sequencing, selector/fallback selection, base-URL handling, output-format shaping, and metadata propagation, while `src/extraction/owned/page/rendered.rs` owns CDP render request composition and rendered-wait retry matching, and `src/extraction/owned/page/readiness.rs` owns script/readiness detection and its assertions. Behavior is unchanged, the JavaScript-wait safety boundary is unchanged, and `workpads/research/tasks.md` was not compacted. Validation passed with focused owned page/readiness and mock-site rendering coverage plus the standard check set.
+
 ### ✅ Task I20: Design OAuth-safe browser login and profile import flow
 
 Acceptance criteria:

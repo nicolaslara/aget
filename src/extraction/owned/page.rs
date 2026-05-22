@@ -5,9 +5,8 @@ use std::time::Duration;
 use scraper::Html;
 use serde_json::Value;
 
-use crate::browser_cdp::BrowserRenderRequest;
 use crate::cli::OutputFormat;
-use crate::error::{AgetError, ErrorCode};
+use crate::error::AgetError;
 use crate::session::PlaywrightState;
 
 use super::super::html_clean::{
@@ -21,6 +20,12 @@ use super::super::{extraction_failed, GetOptions};
 use super::content::{extract_owned_content, markdown_base_url};
 use super::metadata::extract_page_metadata;
 use super::options::{validate_owned_extraction_options, OwnedExtractorOptions};
+
+mod readiness;
+mod rendered;
+
+use readiness::should_render_scripted_response;
+use rendered::{extract_owned_rendered_page, should_retry_with_rendered_wait};
 
 pub(crate) struct OwnedPageExtraction {
     pub(crate) final_url: String,
@@ -92,56 +97,6 @@ pub(super) fn extract_owned_static_or_rendered(
     }
 }
 
-fn extract_owned_rendered_page(
-    tmp_dir: &Path,
-    url: &str,
-    state: &PlaywrightState,
-    options: &GetOptions,
-    timeout: Duration,
-    fallback_selector: Option<&str>,
-    owned_options: &OwnedExtractorOptions,
-) -> Result<OwnedPageExtraction, AgetError> {
-    let rendered = crate::browser_cdp::render_page(BrowserRenderRequest {
-        tmp_dir,
-        url,
-        state,
-        wait_for_selector: options.wait_for_selector.as_deref(),
-        wait_until: owned_options.wait_until,
-        wait_for_images: owned_options.wait_for_images,
-        scan_full_page: owned_options.scan_full_page,
-        scroll_delay: owned_options.scroll_delay,
-        max_scroll_steps: owned_options.max_scroll_steps,
-        flatten_shadow_dom: owned_options.flatten_shadow_dom,
-        process_iframes: owned_options.process_iframes,
-        settle_delay: owned_options.render_settle_delay,
-        page_timeout: owned_options.page_timeout.unwrap_or(timeout),
-        wait_for_timeout: owned_options.wait_for_timeout,
-        timeout,
-    })?;
-    let mut extraction = extract_owned_html(
-        rendered.final_url,
-        rendered.html,
-        options,
-        fallback_selector,
-        owned_options,
-    )?;
-    extraction.warnings.extend(rendered.warnings);
-    Ok(extraction)
-}
-
-fn should_retry_with_rendered_wait(error: &AgetError, options: &GetOptions) -> bool {
-    if options.wait_for_selector.is_none() {
-        return false;
-    }
-    matches!(
-        error,
-        AgetError::Stable {
-            code: ErrorCode::ExtractionFailed,
-            message,
-        } if message.starts_with("wait selector ") && message.ends_with(" was not found by owned extractor")
-    )
-}
-
 pub(crate) fn extract_owned_rendered_html(
     final_url: String,
     html: String,
@@ -163,40 +118,6 @@ fn extract_owned_page_response(
         options,
         fallback_selector,
         owned_options,
-    )
-}
-
-fn should_render_scripted_response(body: &str) -> bool {
-    let document = Html::parse_document(body);
-    let Ok(selector) = parse_css_selector("script") else {
-        return false;
-    };
-    document
-        .select(&selector)
-        .any(|script| is_executable_script_type(script.attr("type")))
-}
-
-fn is_executable_script_type(script_type: Option<&str>) -> bool {
-    let Some(script_type) = script_type else {
-        return true;
-    };
-    let script_type = script_type
-        .split(';')
-        .next()
-        .unwrap_or(script_type)
-        .trim()
-        .to_ascii_lowercase();
-    if script_type.is_empty() {
-        return true;
-    }
-    matches!(
-        script_type.as_str(),
-        "module"
-            | "text/javascript"
-            | "application/javascript"
-            | "text/ecmascript"
-            | "application/ecmascript"
-            | "text/jscript"
     )
 }
 
@@ -297,45 +218,4 @@ fn extract_owned_html(
         page_metadata,
         warnings: Vec::new(),
     })
-}
-
-#[cfg(test)]
-mod tests {
-    use super::should_render_scripted_response;
-
-    #[test]
-    fn script_detection_covers_common_executable_javascript_types() {
-        for script in [
-            r#"<script>window.ready = true</script>"#,
-            r#"<script src="/app.js"></script>"#,
-            r#"<script type="">window.ready = true</script>"#,
-            r#"<script type="module">window.ready = true</script>"#,
-            r#"<script type="text/javascript">window.ready = true</script>"#,
-            r#"<script type="text/javascript; charset=utf-8">window.ready = true</script>"#,
-            r#"<script type="application/javascript">window.ready = true</script>"#,
-            r#"<script type="text/ecmascript">window.ready = true</script>"#,
-            r#"<script type="application/ecmascript">window.ready = true</script>"#,
-        ] {
-            assert!(
-                should_render_scripted_response(&format!("<html><body>{script}</body></html>")),
-                "expected executable script detection for {script}"
-            );
-        }
-    }
-
-    #[test]
-    fn script_detection_ignores_non_executable_data_script_types() {
-        for script in [
-            r#"<script type="application/ld+json">{"name":"Docs"}</script>"#,
-            r#"<script type="application/json">{"name":"Docs"}</script>"#,
-            r#"<script type="application/json" src="/data.json"></script>"#,
-            r#"<script type="importmap">{"imports":{}}</script>"#,
-            r#"<script type="speculationrules">{"prerender":[]}</script>"#,
-        ] {
-            assert!(
-                !should_render_scripted_response(&format!("<html><body>{script}</body></html>")),
-                "expected static extraction for {script}"
-            );
-        }
-    }
 }
