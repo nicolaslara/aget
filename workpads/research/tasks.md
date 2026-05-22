@@ -2221,6 +2221,20 @@ Status note:
 
 - Completed with D288. `src/browser_cdp/tests/discovery.rs` is now a small module index, with Chrome stderr/startup diagnostics coverage in `discovery/diagnostics.rs`, `DevToolsActivePort` and stale-port cleanup coverage in `discovery/port_file.rs`, and `/json/version`/`json/list`/direct-WebSocket endpoint fallback coverage in `discovery/endpoint.rs`. Production code and assertions are unchanged, and `workpads/research/tasks.md` was not compacted. Validation passed with focused browser CDP discovery coverage plus the standard check set.
 
+### ✅ Task I19dt: Split mock-site docs contract tests by behavior
+
+Acceptance criteria:
+
+- Split `tests/mock_site_docs_contract.rs` into smaller behavior-focused modules without changing production code.
+- Preserve the public get, output/artifact, custom-route, session replay/scope, and session lifecycle contract assertions.
+- Keep the mock-site docs contract test target discoverable as `mock_site_docs_contract`.
+- Record the decomposition boundary in `knowledge.md`.
+- Verify with focused docs-contract coverage plus the standard check set.
+
+Status note:
+
+- Completed with D289. `tests/mock_site_docs_contract.rs` is now a small module index, with public get contract coverage in `mock_site_docs_contract/public_get.rs`, output/warning/limit coverage in `output.rs`, custom fixture coverage in `custom_site.rs`, session compose/replay/scope coverage in `session_replay.rs`, and session lifecycle coverage in `session_lifecycle.rs`. Production code and assertions are unchanged, and `workpads/research/tasks.md` was not compacted. Validation passed with focused docs-contract coverage plus the standard check set.
+
 ### ✅ Task I20: Design OAuth-safe browser login and profile import flow
 
 Acceptance criteria:
