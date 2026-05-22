@@ -56,7 +56,8 @@ fn get_command_backend_accepts_scan_full_page_options() {
                 "crawl4ai.unicode_snob=false",
                 "crawl4ai.use_automatic_links=false",
                 "crawl4ai.wrap_links=false",
-                "crawl4ai.wrap_list_items=true"
+                "crawl4ai.wrap_list_items=true",
+                "crawl4ai.wrap_tables=true"
             ]
         }),
     );
@@ -153,6 +154,8 @@ fn get_command_backend_accepts_scan_full_page_options() {
             "crawl4ai.wrap_links=false",
             "--backend-option",
             "crawl4ai.wrap_list_items=true",
+            "--backend-option",
+            "crawl4ai.wrap_tables=true",
         ])
         .assert()
         .success();

@@ -149,6 +149,7 @@ This archive file keeps the denser decision routing that used to live in top-lev
 | D330 | `d330-unicode-snob-option.md` | Crawl4AI `unicode_snob` markdown option for explicit Unicode/entity replacement behavior. |
 | D331 | `d331-wrap-links-option.md` | Crawl4AI `wrap_links` markdown option for body-width link paragraph wrapping compatibility. |
 | D332 | `d332-wrap-list-items-option.md` | Crawl4AI `wrap_list_items` markdown option for body-width list-item wrapping compatibility. |
+| D333 | `d333-wrap-tables-option.md` | Crawl4AI `wrap_tables` markdown option for body-width table-line wrapping compatibility. |
 
 ## Full Archive Routing
 
@@ -168,7 +169,7 @@ This archive file keeps the denser decision routing that used to live in top-lev
 | D151-D157 | `d151-d157-auth-and-browser-import.md` | OAuth-safe authorization API/CLI and conservative browser-neutral Chrome import surface. |
 | D158-D167 | `d158-d167-recent-migration-followups.md` | Recent source-backed extraction improvements and follow-up decomposition slices. |
 | D168-D176 | Per-decision files | Knowledge/reference compaction, engine-refactor planning, wrapper introduction, naming cleanup, and direct engine coverage. |
-| D177-D332 | Per-decision files | Module/test/support decomposition plus the latest owned extractor/browser parity improvements, agent-facing option docs, support-file routing refreshes, login-session injection, body-width markdown wrapping, mark-code compatibility, single-line-break spacing, Chrome profile-lock diagnostics, unicode-snob compatibility, wrap-links compatibility, and wrap-list-items compatibility. |
+| D177-D333 | Per-decision files | Module/test/support decomposition plus the latest owned extractor/browser parity improvements, agent-facing option docs, support-file routing refreshes, login-session injection, body-width markdown wrapping, mark-code compatibility, single-line-break spacing, Chrome profile-lock diagnostics, unicode-snob compatibility, wrap-links compatibility, wrap-list-items compatibility, and wrap-tables compatibility. |
 
 ## Current Open Migration Gaps
 

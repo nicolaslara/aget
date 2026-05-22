@@ -126,6 +126,24 @@ pub(crate) fn routes(builder: MockSiteBuilder) -> MockSiteBuilder {
             ),
         )
         .route(
+            "/markdown-wrap-tables",
+            MockResponse::html(
+                r#"
+<html>
+  <body>
+    <main class="article">
+      <h1>Wrap Tables</h1>
+      <table>
+        <thead><tr><th>Name</th><th>Value</th></tr></thead>
+        <tbody><tr><td>Alpha</td><td>one two three four five six seven eight</td></tr></tbody>
+      </table>
+    </main>
+  </body>
+</html>
+"#,
+            ),
+        )
+        .route(
             "/markdown-body-width",
             MockResponse::html(
                 r#"

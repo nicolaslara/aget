@@ -53,6 +53,7 @@ EXTRACTOR_OPTION_TYPES = {
     "use_automatic_links": ("markdown", "bool"),
     "wrap_links": ("markdown", "bool"),
     "wrap_list_items": ("markdown", "bool"),
+    "wrap_tables": ("markdown", "bool"),
 }
 
 JS_WAIT_MARKERS = ("=>", "function(", "return ", ";")

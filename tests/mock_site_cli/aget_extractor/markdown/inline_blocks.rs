@@ -143,6 +143,43 @@ pub(super) fn assert_inline_blocks(aget_home: &Path, site: &MockSite) {
         )
     );
 
+    let markdown_wrap_tables_default = markdown_content(
+        aget_home,
+        site,
+        "/markdown-wrap-tables",
+        &[("crawl4ai.body_width", "24")],
+    );
+    assert_eq!(
+        markdown_wrap_tables_default,
+        concat!(
+            "# Wrap Tables\n\n",
+            "| Name | Value |\n",
+            "| --- | --- |\n",
+            "| Alpha | one two three four five six seven eight |"
+        )
+    );
+
+    let markdown_wrap_tables_true = markdown_content(
+        aget_home,
+        site,
+        "/markdown-wrap-tables",
+        &[
+            ("crawl4ai.body_width", "24"),
+            ("crawl4ai.wrap_tables", "true"),
+        ],
+    );
+    assert_eq!(
+        markdown_wrap_tables_true,
+        concat!(
+            "# Wrap Tables\n\n",
+            "| Name | Value |\n",
+            "| --- | --- |\n",
+            "| Alpha | one two three\n",
+            "four five six seven\n",
+            "eight |"
+        )
+    );
+
     let markdown_wrap_links_default = markdown_content(
         aget_home,
         site,

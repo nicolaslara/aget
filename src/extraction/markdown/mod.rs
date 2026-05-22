@@ -51,6 +51,7 @@ pub(super) fn element_to_markdown(
     body_width: usize,
     wrap_links: bool,
     wrap_list_items: bool,
+    wrap_tables: bool,
 ) -> String {
     let mut writer = MarkdownWriter::new(
         base_url,
@@ -81,7 +82,13 @@ pub(super) fn element_to_markdown(
     writer.append_abbreviation_definitions();
     let markdown = normalize_markdown(&writer.output);
     let markdown = apply_markdown_single_line_break(&markdown, single_line_break);
-    apply_markdown_body_width(&markdown, body_width, wrap_links, wrap_list_items)
+    apply_markdown_body_width(
+        &markdown,
+        body_width,
+        wrap_links,
+        wrap_list_items,
+        wrap_tables,
+    )
 }
 
 fn render_node(node: NodeRef<'_, Node>, writer: &mut MarkdownWriter) {
