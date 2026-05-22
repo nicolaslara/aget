@@ -1724,6 +1724,21 @@ Status note:
 
 - Completed with D254. `tests/support/mock_site.rs` now keeps the public mock-site support API and server lifecycle, while `tests/support/mock_site/protocol.rs` owns raw HTTP parsing/formatting and cookie matching, and `tests/support/mock_site/routes.rs` owns the default public/auth/storage/login/logout route dispatch. Existing support imports, custom route behavior, default route responses, request recording, and header/cookie assertions remain stable, and `workpads/research/tasks.md` remains un-compacted.
 
+### ✅ Task I19cl: Split owned extraction page pipeline helpers
+
+Acceptance criteria:
+
+- Preserve current owned extractor and browser fallback behavior, including static-vs-rendered routing, rendered waits, script detection, cleanup, selectors, and output formats.
+- Move owned page extraction/routing helpers out of `src/extraction/owned/mod.rs` into a focused submodule.
+- Keep `run_owned_extractor_backend`, `run_owned_browser_fallback`, `extract_owned_rendered_html`, `validate_owned_extraction_options`, and `OWNED_EXTRACTOR` internal access compatible for callers.
+- Do not compact or remove planned tasks from `workpads/research/tasks.md`.
+- Record the module boundary in `knowledge.md`.
+- Verify with focused owned extraction coverage plus the standard check set.
+
+Status note:
+
+- Completed with D255. `src/extraction/owned/mod.rs` now keeps backend adapter entrypoints, compatibility labels, artifact writes, and public owned extractor exports, while `src/extraction/owned/page.rs` owns static-versus-rendered routing, rendered waits, direct rendered-HTML extraction, script detection, HTML cleanup sequencing, selector/fallback selection, and output-format shaping. Internal access to `run_owned_extractor_backend`, `run_owned_browser_fallback`, `extract_owned_rendered_html`, `validate_owned_extraction_options`, and `OWNED_EXTRACTOR` remains stable, and `workpads/research/tasks.md` remains un-compacted.
+
 ### ✅ Task I20: Design OAuth-safe browser login and profile import flow
 
 Acceptance criteria:
