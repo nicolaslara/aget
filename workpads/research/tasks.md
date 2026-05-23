@@ -3605,6 +3605,21 @@ Status note:
 
 - Completed with D375. Crawl4AI source inspection showed `CrawlerRunConfig.locale` and `timezone_id` are explicit browser-context settings, and owned `AgetExtractor` now accepts `crawl4ai.locale` plus `crawl4ai.timezone_id`, routes requests requiring those context settings through owned CDP rendering, applies CDP locale/timezone emulation before page capture, and forwards both options through the compatibility Crawl4AI helper. This slice did not add geolocation, proxy, arbitrary-header, or random-user-agent behavior. `workpads/research/tasks.md` was not compacted. Focused CDP/context-routing/command-option/helper parse checks, `cargo fmt --check`, `git diff --check`, and full `cargo test` passed.
 
+### ✅ Task I19gza: Split owned page extraction module
+
+Acceptance criteria:
+
+- Preserve owned extraction behavior while reducing `src/extraction/owned/page.rs` into smaller behavior-owned modules.
+- Keep static/rendered orchestration, cleaned HTML extraction, and local-input browser routing as separate readable boundaries.
+- Preserve current public/internal module paths used by callers.
+- Do not compact `workpads/research/tasks.md`.
+- Record the split in compact knowledge routing.
+- Verify with focused owned page coverage, line-count checks, and the standard check set.
+
+Status note:
+
+- Completed with D376. `src/extraction/owned/page.rs` became `src/extraction/owned/page/mod.rs`, with cleaned HTML extraction and output shaping in `page/html.rs`, local raw/file browser-routing helpers plus their tests in `page/local_input.rs`, and existing readiness/rendered helpers kept as sibling modules. The orchestration route is now 123 lines, with child modules at 176, 157, 85, and 78 lines. Behavior and internal caller paths are preserved, and `workpads/research/tasks.md` was not compacted. Focused local-input tests, line-count checks, `cargo fmt --check`, `git diff --check`, and full `cargo test` passed.
+
 ### ✅ Task I20: Design OAuth-safe browser login and profile import flow
 
 Acceptance criteria:
