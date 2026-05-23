@@ -2,7 +2,7 @@
 mod fallback;
 #[path = "mock_site_browser/readiness.rs"]
 mod readiness;
-#[path = "mock_site_browser/rendering.rs"]
+#[path = "mock_site_browser/rendering/mod.rs"]
 mod rendering;
 #[path = "mock_site_browser/storage.rs"]
 mod storage;

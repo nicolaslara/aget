@@ -4466,6 +4466,38 @@ Status note:
   compacted. Focused owned HTTP coverage, line-count checks,
   `cargo fmt --check`, `git diff --check`, and full `cargo test` passed.
 
+### ✅ Task I19gzzm: Split mock-site browser rendering tests
+
+Acceptance criteria:
+
+- Preserve ignored local Chrome/Chromium rendering coverage for waited
+  JavaScript pages, scripted pages without explicit waits, raw content processed
+  in browser, shadow DOM flattening, accessible iframe processing, and render
+  delay behavior.
+- Split `tests/mock_site_browser/rendering.rs` into a compact route module plus
+  focused rendering scenario modules without changing test names, ignore
+  annotations, or assertions.
+- Preserve the `tests/mock_site_browser.rs` module route.
+- Do not compact `workpads/research/tasks.md`.
+- Record the split in compact knowledge routing.
+- Verify with mock-site browser test compilation/listing, focused mock-site
+  browser tests, line-count checks, and the standard check set.
+
+Status note:
+
+- Completed with D414. `tests/mock_site_browser/rendering.rs` became a compact
+  `tests/mock_site_browser/rendering/mod.rs` route. Waited/scripted rendering
+  coverage now lives in `rendering/basic.rs`, raw local browser input in
+  `rendering/local_input.rs`, shadow DOM and iframe coverage in
+  `rendering/shadow_iframe.rs`, and render-delay coverage in
+  `rendering/delay.rs`. `workpads/research/tasks.md` was not compacted. The
+  ignored Chrome rendering tests kept their names, ignore annotations, and
+  assertions. Mock-site browser test listing, focused mock-site browser tests,
+  line-count checks, `cargo fmt --check`, `git diff --check`, and full
+  `cargo test` passed; an initial full-suite run hit a transient
+  `Connection reset by peer` in an unrelated `session_cli` authorization test,
+  and the isolated rerun plus second full-suite run passed.
+
 ### ✅ Task I20: Design OAuth-safe browser login and profile import flow
 
 Acceptance criteria:
