@@ -4359,6 +4359,33 @@ Status note:
   `cargo test --test cli`, line-count checks, `cargo fmt --check`,
   `git diff --check`, and full `cargo test` passed.
 
+### ✅ Task I19gzzi: Split extraction artifact helpers
+
+Acceptance criteria:
+
+- Preserve run artifact behavior for content files, metadata files, backend
+  stdout/stderr redaction, session-backed error sanitization, and private
+  directory/file permissions.
+- Split `src/extraction/artifacts.rs` into a compact route module plus focused
+  helpers for redaction, metadata serialization, and private file operations.
+- Preserve existing extraction module imports and tests that exercise redaction
+  and artifact writing.
+- Do not compact `workpads/research/tasks.md`.
+- Record the split in compact knowledge routing.
+- Verify with focused extraction/get coverage, line-count checks, and the
+  standard check set.
+
+Status note:
+
+- Completed with D410. `src/extraction/artifacts.rs` became a compact
+  `src/extraction/artifacts/mod.rs` route. Focused modules now own
+  session-backed redaction/error sanitization, success/error metadata
+  serialization, and private artifact directory/file operations. Existing
+  `src/extraction` imports and tests that exercise redaction and artifact
+  writing are preserved. `workpads/research/tasks.md` was not compacted.
+  Focused redaction and session fallback artifact coverage, line-count checks,
+  `cargo fmt --check`, `git diff --check`, and full `cargo test` passed.
+
 ### ✅ Task I20: Design OAuth-safe browser login and profile import flow
 
 Acceptance criteria:
