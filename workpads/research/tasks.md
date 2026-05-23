@@ -3886,6 +3886,29 @@ Status note:
   line-count checks, `cargo fmt --check`, `git diff --check`, and full
   `cargo test` passed.
 
+### ✅ Task I19gzq: Split get CLI failure tests
+
+Acceptance criteria:
+
+- Preserve current get CLI failure coverage and assertion behavior.
+- Split `tests/get_cli/failure.rs` into smaller behavior-focused test modules.
+- Keep `failure` as the call path used by `tests/get_cli.rs`.
+- Do not compact `workpads/research/tasks.md`.
+- Record the split in compact knowledge routing.
+- Verify with focused get CLI failure coverage, line-count checks, and the
+  standard check set.
+
+Status note:
+
+- Completed with D392. `tests/get_cli/failure.rs` now keeps only the compact
+  `failure` route used by `tests/get_cli.rs`. Focused modules under
+  `failure/` own timeout/descendant termination, noisy/stdout-log output,
+  nonzero/malformed/structured backend failures, and missing-backend
+  classification. Existing get CLI failure coverage and assertions are
+  preserved. `workpads/research/tasks.md` was not compacted. Focused
+  `cargo test --test get_cli`, line-count checks, `cargo fmt --check`,
+  `git diff --check`, and full `cargo test` passed.
+
 ### ✅ Task I20: Design OAuth-safe browser login and profile import flow
 
 Acceptance criteria:
