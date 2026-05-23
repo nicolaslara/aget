@@ -3725,6 +3725,21 @@ Status note:
 
 - Completed with D383. `src/extraction/owned/content.rs` moved to `src/extraction/owned/content/mod.rs`, which keeps `extract_owned_content`, cleanup ordering, and `markdown_base_url`. `content/selection.rs` owns root/target selection and selected-element lookup, `content/cleanup.rs` owns line-through removal, and `content/render.rs` owns single/multi-target HTML/markdown/text output construction. Existing owned content extraction and markdown base-URL call paths are preserved. The split reduces the route to 111 lines, with child helper modules at 36, 41, and 110 lines; `main_content.rs` remains 261 lines. `workpads/research/tasks.md` was not compacted. Focused owned extractor/content coverage, line-count checks, `cargo fmt --check`, `git diff --check`, and full `cargo test` passed.
 
+### ✅ Task I19gzi: Split inline markdown assertion helpers
+
+Acceptance criteria:
+
+- Preserve current inline markdown parity assertions and test behavior.
+- Split `tests/mock_site_cli/aget_extractor/markdown/inline_blocks.rs` into smaller behavior-focused assertion helpers.
+- Preserve the existing `inline_blocks::assert_inline_blocks` call path used by mock-site extractor coverage.
+- Do not compact `workpads/research/tasks.md`.
+- Record the split in compact knowledge routing.
+- Verify with focused markdown coverage, line-count checks, and the standard check set.
+
+Status note:
+
+- Completed with D384. `tests/mock_site_cli/aget_extractor/markdown/inline_blocks.rs` now keeps only the `assert_inline_blocks` route and dispatches to focused assertion helpers: `inline_blocks/semantics.rs` for semantic inline/block assertions, `inline_blocks/escape_unicode.rs` for escaping and Unicode options, `inline_blocks/google_preserve.rs` for Google Docs and preserved-tag behavior, and `inline_blocks/wrapping.rs` for wrapping and single-line-break behavior. Existing `inline_blocks::assert_inline_blocks` coverage is preserved. The route is now 19 lines, with helper files at 72, 69, 60, and 157 lines. `workpads/research/tasks.md` was not compacted. Focused markdown coverage, line-count checks, `cargo fmt --check`, `git diff --check`, and full `cargo test` passed.
+
 ### ✅ Task I20: Design OAuth-safe browser login and profile import flow
 
 Acceptance criteria:
