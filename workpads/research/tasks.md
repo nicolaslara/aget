@@ -3909,6 +3909,34 @@ Status note:
   `cargo test --test get_cli`, line-count checks, `cargo fmt --check`,
   `git diff --check`, and full `cargo test` passed.
 
+### ✅ Task I19gzr: Split Aget backend facade helpers
+
+Acceptance criteria:
+
+- Preserve current public `aget` facade backend exports and behavior.
+- Split `src/aget/backends.rs` into smaller behavior-focused modules for
+  extractor default selection, browser automation/current-tab request types,
+  and owned/command browser backend adapters.
+- Keep `AgetBrowserBackend`, `BrowserAutomationBackend`,
+  `BrowserCurrentTabBackend`, `BrowserCurrentTabRequest`,
+  `CommandBrowserAutomationBackend`, `DefaultBrowserAutomationBackend`, and
+  `DefaultExtractorBackend` available through the current public paths.
+- Do not compact `workpads/research/tasks.md`.
+- Record the split in compact knowledge routing.
+- Verify with focused Aget API/current-tab coverage, line-count checks, and the
+  standard check set.
+
+Status note:
+
+- Completed with D393. `src/aget/backends.rs` became a compact
+  `src/aget/backends/mod.rs` route that preserves the public facade backend
+  re-exports. Focused modules under `src/aget/backends/` now own default
+  extractor selection, browser automation/default backend delegation,
+  current-tab request/result traits, owned `AgetBrowser` adaptation, and the
+  compatibility command browser adapter. `workpads/research/tasks.md` was not
+  compacted. Focused Aget API/current-tab coverage, line-count checks,
+  `cargo fmt --check`, `git diff --check`, and full `cargo test` passed.
+
 ### ✅ Task I20: Design OAuth-safe browser login and profile import flow
 
 Acceptance criteria:
