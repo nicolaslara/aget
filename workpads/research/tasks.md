@@ -4218,6 +4218,30 @@ Status note:
   was not compacted. Focused `cargo test --lib html_clean`, line-count checks,
   `cargo fmt --check`, `git diff --check`, and full `cargo test` passed.
 
+### ✅ Task I19gzzd: Split cmux session import tests
+
+Acceptance criteria:
+
+- Preserve current cmux session import assertions, missing-backend behavior, and
+  ignored real-smoke recipes.
+- Split `tests/session_cli/imports_cmux.rs` into a compact route plus focused
+  modules for deterministic CLI coverage and real cmux smoke coverage.
+- Keep existing `session_cli::imports_cmux` test routing usable.
+- Do not compact `workpads/research/tasks.md`.
+- Record the split in compact knowledge routing.
+- Verify with focused session cmux coverage, line-count checks, and the
+  standard check set.
+
+Status note:
+
+- Completed with D405. `tests/session_cli/imports_cmux.rs` is now a compact
+  route, with deterministic mocked import and missing-backend assertions in
+  `tests/session_cli/imports_cmux/deterministic.rs` and ignored live cmux smoke
+  recipes in `tests/session_cli/imports_cmux/real_smoke.rs`. `workpads/research/tasks.md`
+  was not compacted. Focused `cargo test --test session_cli imports_cmux`,
+  line-count checks, `cargo fmt --check`, `git diff --check`, and full
+  `cargo test` passed.
+
 ### ✅ Task I20: Design OAuth-safe browser login and profile import flow
 
 Acceptance criteria:
