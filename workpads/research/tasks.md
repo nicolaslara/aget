@@ -4139,6 +4139,34 @@ Status note:
   `cargo test --lib extraction::owned::`, line-count checks,
   `cargo fmt --check`, `git diff --check`, and full `cargo test` passed.
 
+### ✅ Task I19gzza: Split browser CDP session-data helpers
+
+Acceptance criteria:
+
+- Preserve current owned CDP cookie, storage-origin, runtime-storage, and
+  page-target helper behavior.
+- Split `src/browser_cdp/session_data.rs` into smaller behavior-focused modules
+  for cookies, storage origins/runtime storage, and page-target selection.
+- Keep the helper names re-exported through `browser_cdp::client` for existing
+  CDP client code and tests.
+- Do not compact `workpads/research/tasks.md`.
+- Record the split in compact knowledge routing.
+- Verify with focused browser-CDP state/script coverage, line-count checks, and
+  the standard check set.
+
+Status note:
+
+- Completed with D402. `src/browser_cdp/session_data.rs` became a compact
+  `session_data/mod.rs` route. Focused modules now own cookie mapping/dedupe,
+  storage origin/runtime parsing, and page-target selection while preserving
+  the helper re-export surface used by `browser_cdp::client` and tests.
+  `workpads/research/tasks.md` was not compacted. Focused
+  `cargo test --lib browser_cdp::tests::state`,
+  `cargo test --lib browser_cdp::tests::scripts::prefers_existing_non_internal_page_target`,
+  `cargo test --lib browser_cdp::tests::chrome::cdp_client::state`,
+  line-count checks, `cargo fmt --check`, `git diff --check`, and full
+  `cargo test` passed.
+
 ### ✅ Task I20: Design OAuth-safe browser login and profile import flow
 
 Acceptance criteria:
