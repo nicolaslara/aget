@@ -10,7 +10,7 @@ Open the referenced child indexes for older per-decision rows, then open the per
 | D168-D231 individual decision rows | `decision-index/d168-d231.md` |
 | D232-D292 individual decision rows | `decision-index/d232-d292.md` |
 | D293-D346 individual decision rows | `decision-index/d293-d346.md` |
-| D347-D393 individual decision rows | Recent decision routing below |
+| D347-D394 individual decision rows | Recent decision routing below |
 | Foundation and early migration bundles | Full archive routing below |
 
 ## Recent Decision Routing
@@ -71,6 +71,7 @@ Open the referenced child indexes for older per-decision rows, then open the per
 | D391 | `d391-browser-render-capture-split.md` | Mechanical split of browser CDP render capture helpers. |
 | D392 | `d392-get-failure-test-split.md` | Mechanical split of get CLI failure tests. |
 | D393 | `d393-aget-backend-facade-split.md` | Mechanical split of Aget facade backend helpers. |
+| D394 | `d394-get-session-replay-test-split.md` | Mechanical split of get CLI session replay tests. |
 
 ## Full Archive Routing
 
@@ -89,7 +90,7 @@ Open the referenced child indexes for older per-decision rows, then open the per
 | D123-D150 | `d123-d150-module-decomposition.md` index to section files | Original extraction/CDP/test module decomposition through I19i completion. |
 | D151-D157 | `d151-d157-auth-and-browser-import.md` | OAuth-safe authorization API/CLI and conservative browser-neutral Chrome import surface. |
 | D158-D167 | `d158-d167-recent-migration-followups.md` | Recent source-backed extraction improvements and follow-up decomposition slices. |
-| D168-D393 | `decision-index/` plus per-decision files | Module/test/support decomposition plus owned extractor/browser parity improvements, agent-facing option docs, support-file routing refreshes, login-session injection, markdown options, metadata coverage, CDP diagnostics, transport/readiness coverage, ignored local Chrome smoke refreshes, support-file archive splits, the current no-task-compaction size audit, frame-tree storage export, excluded selector cleanup, consent-popup cleanup, CSS selector option support, cache-mode compatibility options, `keep_attrs` cleanup support, `prettiify` cleaned-HTML formatting, `process_in_browser` local-content routing, explicit request identity via `user_agent`/`locale`/`timezone_id`, the AgetExtractor options/waits parity helper split, the owned page module split, the attached-page capture test split, the markdown normalize helper split, the markdown table renderer split, the markdown writer helper split, the markdown render-dispatch split, the owned option-application split, the owned content extraction split, the inline markdown assertion split, the markdown fixture route split, the get CLI validation test split, the AgetExtractor option validation split, the Aget API support helper split, the markdown link/image assertion split, the cleanup assertion split, the browser render capture split, the get failure test split, and the Aget backend facade split. |
+| D168-D394 | `decision-index/` plus per-decision files | Module/test/support decomposition plus owned extractor/browser parity improvements, agent-facing option docs, support-file routing refreshes, login-session injection, markdown options, metadata coverage, CDP diagnostics, transport/readiness coverage, ignored local Chrome smoke refreshes, support-file archive splits, the current no-task-compaction size audit, frame-tree storage export, excluded selector cleanup, consent-popup cleanup, CSS selector option support, cache-mode compatibility options, `keep_attrs` cleanup support, `prettiify` cleaned-HTML formatting, `process_in_browser` local-content routing, explicit request identity via `user_agent`/`locale`/`timezone_id`, the AgetExtractor options/waits parity helper split, the owned page module split, the attached-page capture test split, the markdown normalize helper split, the markdown table renderer split, the markdown writer helper split, the markdown render-dispatch split, the owned option-application split, the owned content extraction split, the inline markdown assertion split, the markdown fixture route split, the get CLI validation test split, the AgetExtractor option validation split, the Aget API support helper split, the markdown link/image assertion split, the cleanup assertion split, the browser render capture split, the get failure test split, the Aget backend facade split, and the get session replay test split. |
 
 ## Current Open Migration Gaps
 

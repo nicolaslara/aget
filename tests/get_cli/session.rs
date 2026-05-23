@@ -2,5 +2,5 @@
 mod fallback;
 #[path = "session/real_smoke.rs"]
 mod real_smoke;
-#[path = "session/replay.rs"]
+#[path = "session/replay/mod.rs"]
 mod replay;
