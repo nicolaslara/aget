@@ -3770,6 +3770,21 @@ Status note:
 
 - Completed with D386. `tests/get_cli/validation.rs` now keeps only the `validation` module route. `validation/options.rs` owns the Crawl4AI backend-option forwarding matrix, and `validation/rejections.rs` owns unsupported extractor-option and JavaScript wait rejection coverage plus shared JSON/metadata error assertions. Existing test names and command assertions are preserved. The route is now 4 lines, with helper files at 106 and 104 lines. `workpads/research/tasks.md` was not compacted. Focused get CLI validation coverage, line-count checks, `cargo fmt --check`, and `git diff --check` passed. A first full `cargo test` run hit a transient `session_authorize_reimport_after_user_login_replaces_failed_verification_session` failure outside the touched get validation area; the failing test passed on direct rerun, and a full `cargo test` rerun passed.
 
+### ✅ Task I19gzl: Split AgetExtractor option validation helper
+
+Acceptance criteria:
+
+- Preserve current AgetExtractor backend-option validation coverage and assertion behavior.
+- Split `tests/mock_site_cli/aget_extractor/options_waits/validation.rs` into smaller behavior-focused helpers.
+- Preserve the existing `validation::assert_option_validation` call path used by mock-site extractor coverage.
+- Do not compact `workpads/research/tasks.md`.
+- Record the split in compact knowledge routing.
+- Verify with focused owned extractor option validation coverage, line-count checks, and the standard check set.
+
+Status note:
+
+- Completed with D387. `tests/mock_site_cli/aget_extractor/options_waits/validation.rs` now keeps only the `assert_option_validation` route. `validation/document.rs` owns document/cache/base-URL and unsupported-option diagnostics, `validation/markdown.rs` owns markdown/link/table/typography/wrapping/Google Docs diagnostics, `validation/browser.rs` owns browser/readiness/timeout/iframe/scrolling diagnostics, and `validation/support.rs` owns the shared invalid-option assertion helper. Existing validation coverage and assertion strings are preserved. The route is now 18 lines, with helper files at 45, 87, 42, and 25 lines. `workpads/research/tasks.md` was not compacted. Focused owned extractor option validation coverage, line-count checks, `cargo fmt --check`, `git diff --check`, and full `cargo test` passed.
+
 ### ✅ Task I20: Design OAuth-safe browser login and profile import flow
 
 Acceptance criteria:
