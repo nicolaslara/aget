@@ -4195,6 +4195,29 @@ Status note:
   checks, `cargo fmt --check`, `git diff --check`, and full `cargo test`
   passed.
 
+### ✅ Task I19gzzc: Split owned HTML cleanup tests
+
+Acceptance criteria:
+
+- Preserve current owned HTML cleanup URL/link/image assertion behavior.
+- Split `src/extraction/html_clean/mod.rs` so the route keeps cleanup helpers
+  while focused unit tests move into a separate module.
+- Keep existing `extraction::html_clean::{...}` helper paths usable by owned
+  extraction code.
+- Do not compact `workpads/research/tasks.md`.
+- Record the split in compact knowledge routing.
+- Verify with focused HTML cleanup coverage, line-count checks, and the
+  standard check set.
+
+Status note:
+
+- Completed with D404. `src/extraction/html_clean/mod.rs` is now a compact
+  cleanup route and `src/extraction/html_clean/tests.rs` owns the focused
+  URL/link/image cleanup unit assertions while preserving existing
+  `extraction::html_clean::{...}` helper paths. `workpads/research/tasks.md`
+  was not compacted. Focused `cargo test --lib html_clean`, line-count checks,
+  `cargo fmt --check`, `git diff --check`, and full `cargo test` passed.
+
 ### ✅ Task I20: Design OAuth-safe browser login and profile import flow
 
 Acceptance criteria:
