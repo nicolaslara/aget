@@ -3858,6 +3858,34 @@ Status note:
   coverage, line-count checks, `cargo fmt --check`, `git diff --check`, and
   full `cargo test` passed.
 
+### ✅ Task I19gzp: Split browser CDP render capture helpers
+
+Acceptance criteria:
+
+- Preserve current owned browser/CDP render behavior and public module exports.
+- Split `src/browser_cdp/render.rs` into a compact route module and a focused
+  attached-page capture helper module.
+- Keep `browser_cdp::render_page`, `browser_cdp::render_attached_page`, and
+  request/result type paths stable for existing callers and tests.
+- Do not compact `workpads/research/tasks.md`.
+- Record the split in compact knowledge routing.
+- Verify with focused browser CDP render/current-tab coverage, line-count
+  checks, and the standard check set.
+
+Status note:
+
+- Completed with D391. `src/browser_cdp/render.rs` moved to
+  `src/browser_cdp/render/mod.rs`, which keeps request/result types, public
+  render entrypoints, launch/attach orchestration, context overrides,
+  state-loading, navigation, and shutdown. `render/capture.rs` owns
+  attached-page readiness/capture, warnings, iframe processing, overlay
+  cleanup, final URL evaluation, shadow-DOM fallback, and outerHTML capture.
+  Existing `browser_cdp::render_page`, `browser_cdp::render_attached_page`, and
+  request/result type re-exports are preserved. `workpads/research/tasks.md`
+  was not compacted. Focused browser CDP render/current-tab coverage,
+  line-count checks, `cargo fmt --check`, `git diff --check`, and full
+  `cargo test` passed.
+
 ### ✅ Task I20: Design OAuth-safe browser login and profile import flow
 
 Acceptance criteria:

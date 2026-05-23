@@ -1,14 +1,15 @@
+mod capture;
+
 use std::path::Path;
-use std::thread;
 use std::time::Duration;
 
-use crate::error::AgetError;
+use crate::error::{AgetError, ErrorCode};
 use crate::session::PlaywrightState;
 
 use super::chrome_process::ChromeProcess;
-use super::client::{CdpClient, PageSession};
-use super::page_scripts::shadow_dom_flatten_expression;
+use super::client::CdpClient;
 use super::CHROME_SHUTDOWN_WAIT;
+use capture::{capture_attached_page, AttachedPageCaptureOptions};
 
 pub(crate) struct BrowserRenderRequest<'a> {
     pub(crate) tmp_dir: &'a Path,
@@ -133,7 +134,7 @@ pub(crate) fn render_attached_page(
     let page = client
         .attach_existing_page(request.page_timeout)?
         .ok_or_else(|| AgetError::Stable {
-            code: crate::error::ErrorCode::ExtractionFailed,
+            code: ErrorCode::ExtractionFailed,
             message: "owned browser current-tab CDP attach found no page targets".to_string(),
         })?;
     client.enable_page_domains(&page.session_id, request.page_timeout)?;
@@ -179,112 +180,4 @@ fn apply_browser_context_overrides(
         client.set_timezone_override(session_id, timezone_id, timeout)?;
     }
     Ok(())
-}
-
-struct AttachedPageCaptureOptions<'a> {
-    wait_for_selector: Option<&'a str>,
-    wait_for_images: bool,
-    scan_full_page: bool,
-    scroll_delay: Duration,
-    max_scroll_steps: usize,
-    flatten_shadow_dom: bool,
-    process_iframes: bool,
-    settle_delay: Duration,
-    page_timeout: Duration,
-    wait_for_timeout: Option<Duration>,
-}
-
-fn capture_attached_page(
-    client: &mut CdpClient,
-    page: &PageSession,
-    options: AttachedPageCaptureOptions<'_>,
-) -> Result<RenderedPage, AgetError> {
-    let mut warnings = Vec::new();
-    if options.scan_full_page {
-        if let Err(error) = client.scan_full_page(
-            &page.session_id,
-            options.scroll_delay,
-            options.max_scroll_steps,
-            options.page_timeout,
-        ) {
-            warnings.push(format!(
-                "crawl4ai.scan_full_page failed; continuing with partial scroll: {error}"
-            ));
-        }
-    }
-    if let Some(selector) = options.wait_for_selector {
-        client.wait_for_selector(
-            &page.session_id,
-            selector,
-            options.wait_for_timeout.unwrap_or(options.page_timeout),
-        )?;
-    }
-    if options.wait_for_images && !client.wait_for_images_complete(&page.session_id)? {
-        warnings.push(
-            "some images did not finish loading before crawl4ai.wait_for_images timeout"
-                .to_string(),
-        );
-    }
-    if !options.settle_delay.is_zero() {
-        thread::sleep(options.settle_delay);
-    }
-    if options.process_iframes {
-        match client.process_iframes(&page.session_id, options.page_timeout) {
-            Ok((_total, _replaced, inaccessible)) if inaccessible > 0 => warnings.push(format!(
-                "crawl4ai.process_iframes could not access {inaccessible} iframe(s); continuing with accessible content only"
-            )),
-            Ok(_) => {}
-            Err(error) => warnings.push(format!(
-                "crawl4ai.process_iframes failed; continuing with unprocessed iframes: {error}"
-            )),
-        }
-    }
-    if let Err(error) =
-        client.remove_rendered_overlay_elements(&page.session_id, options.page_timeout)
-    {
-        warnings.push(format!("rendered overlay cleanup failed: {error}"));
-    }
-    let final_url =
-        client.evaluate_string(&page.session_id, "location.href", options.page_timeout)?;
-    let html = if options.flatten_shadow_dom {
-        match client.evaluate_string(
-            &page.session_id,
-            shadow_dom_flatten_expression(),
-            options.page_timeout,
-        ) {
-            Ok(html) if !html.trim().is_empty() => html,
-            Ok(_) => {
-                warnings.push(
-                    "shadow DOM flattening returned no content; falling back to outerHTML"
-                        .to_string(),
-                );
-                client.evaluate_string(
-                    &page.session_id,
-                    "document.documentElement.outerHTML || ''",
-                    options.page_timeout,
-                )?
-            }
-            Err(error) => {
-                warnings.push(format!(
-                    "shadow DOM flattening failed; falling back to outerHTML: {error}"
-                ));
-                client.evaluate_string(
-                    &page.session_id,
-                    "document.documentElement.outerHTML || ''",
-                    options.page_timeout,
-                )?
-            }
-        }
-    } else {
-        client.evaluate_string(
-            &page.session_id,
-            "document.documentElement.outerHTML || ''",
-            options.page_timeout,
-        )?
-    };
-    Ok(RenderedPage {
-        final_url,
-        html,
-        warnings,
-    })
 }
