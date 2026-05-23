@@ -4588,6 +4588,35 @@ Status note:
   checks, `get_cli`, mock-site extractor parity coverage, line-count checks,
   `cargo fmt --check`, `git diff --check`, and full `cargo test` passed.
 
+### ✅ Task I19gzzq: Split session CLI command definitions
+
+Acceptance criteria:
+
+- Preserve all `aget session` public command shapes for list, authorize,
+  inspect, delete, import cmux/browser/chrome, compose, and login
+  start/finish/cancel.
+- Preserve `BrowserChoice`, `SessionCommand`, `SessionSubcommand`, and all
+  command struct type names re-exported from `src/cli.rs` and `src/lib.rs`.
+- Split `src/cli/session.rs` into a compact route module plus focused
+  browser-choice, authorize, login, import, and basic session command modules.
+- Do not compact `workpads/research/tasks.md`.
+- Record the split in compact knowledge routing.
+- Verify with focused CLI parser coverage, line-count checks, and the standard
+  check set.
+
+Status note:
+
+- Completed with D418. `src/cli/session.rs` became a compact
+  `src/cli/session/mod.rs` route. `BrowserChoice` now lives in
+  `session/browser.rs`, `session authorize` arguments in
+  `session/authorize.rs`, `session login` arguments in `session/login.rs`,
+  `session import` arguments in `session/import.rs`, and inspect/delete/compose
+  arguments in `session/basic.rs`. The public type names re-exported from
+  `src/cli.rs` and `src/lib.rs` are preserved. `workpads/research/tasks.md` was
+  not compacted. Focused session parser coverage, broader CLI parser coverage,
+  `session_cli`, line-count checks, `cargo fmt --check`, `git diff --check`,
+  and full `cargo test` passed.
+
 ### ✅ Task I20: Design OAuth-safe browser login and profile import flow
 
 Acceptance criteria:
