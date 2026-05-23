@@ -111,6 +111,8 @@ fn browser_cdp_render_attached_page_reads_current_url_and_html_without_navigatio
 
     let rendered = render_attached_page(BrowserAttachedPageRenderRequest {
         ws_url: &format!("ws://127.0.0.1:{port}/devtools/browser/mock"),
+        locale: None,
+        timezone_id: None,
         wait_for_selector: None,
         wait_for_images: false,
         scan_full_page: false,
@@ -252,6 +254,8 @@ fn browser_cdp_render_attached_page_keeps_wait_for_timeout_out_of_image_wait() {
 
     let rendered = render_attached_page(BrowserAttachedPageRenderRequest {
         ws_url: &format!("ws://127.0.0.1:{port}/devtools/browser/mock"),
+        locale: None,
+        timezone_id: None,
         wait_for_selector: None,
         wait_for_images: true,
         scan_full_page: false,
@@ -361,6 +365,8 @@ fn browser_cdp_render_attached_page_reports_runtime_evaluation_exception() {
 
     let error = render_attached_page(BrowserAttachedPageRenderRequest {
         ws_url: &format!("ws://127.0.0.1:{port}/devtools/browser/mock"),
+        locale: None,
+        timezone_id: None,
         wait_for_selector: None,
         wait_for_images: false,
         scan_full_page: false,

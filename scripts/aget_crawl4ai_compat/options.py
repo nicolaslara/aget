@@ -26,6 +26,8 @@ EXTRACTOR_OPTION_TYPES = {
     "prettiify": ("crawler", "bool"),
     "process_in_browser": ("crawler", "bool"),
     "user_agent": ("crawler", "str"),
+    "locale": ("crawler", "str"),
+    "timezone_id": ("crawler", "str"),
     "word_count_threshold": ("crawler", "int"),
     "wait_until": ("crawler", "str"),
     "page_timeout": ("crawler", "int"),

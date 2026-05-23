@@ -26,6 +26,8 @@ pub(crate) struct CdpEndpointResult {
 #[allow(dead_code)]
 pub(crate) struct AttachedPageRequest<'a> {
     pub(crate) ws_url: &'a str,
+    pub(crate) locale: Option<&'a str>,
+    pub(crate) timezone_id: Option<&'a str>,
     pub(crate) wait_for_selector: Option<&'a str>,
     pub(crate) wait_for_images: bool,
     pub(crate) scan_full_page: bool,
@@ -53,6 +55,8 @@ pub(crate) struct AttachedPageResult {
 #[allow(dead_code)]
 pub(crate) struct CurrentTabRequest<'a> {
     pub(crate) port: u16,
+    pub(crate) locale: Option<&'a str>,
+    pub(crate) timezone_id: Option<&'a str>,
     pub(crate) wait_for_selector: Option<&'a str>,
     pub(crate) wait_for_images: bool,
     pub(crate) scan_full_page: bool,
@@ -97,6 +101,8 @@ impl AgetBrowser {
         })?;
         let rendered = self.render_attached_page(AttachedPageRequest {
             ws_url: &endpoint.ws_url,
+            locale: request.locale,
+            timezone_id: request.timezone_id,
             wait_for_selector: request.wait_for_selector,
             wait_for_images: request.wait_for_images,
             scan_full_page: request.scan_full_page,
@@ -124,6 +130,8 @@ impl AgetBrowser {
     ) -> Result<AttachedPageResult, AgetError> {
         let rendered = render_attached_page(BrowserAttachedPageRenderRequest {
             ws_url: request.ws_url,
+            locale: request.locale,
+            timezone_id: request.timezone_id,
             wait_for_selector: request.wait_for_selector,
             wait_for_images: request.wait_for_images,
             scan_full_page: request.scan_full_page,

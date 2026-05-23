@@ -24,6 +24,8 @@ pub trait BrowserAutomationBackend {
 
 pub struct BrowserCurrentTabRequest {
     pub port: u16,
+    pub locale: Option<String>,
+    pub timezone_id: Option<String>,
     pub wait_for_selector: Option<String>,
     pub wait_for_images: bool,
     pub scan_full_page: bool,
@@ -259,6 +261,8 @@ impl BrowserCurrentTabBackend for AgetBrowserBackend {
     ) -> Result<BrowserCurrentTabResult, AgetError> {
         let rendered = self.browser.render_current_tab(CurrentTabRequest {
             port: request.port,
+            locale: request.locale.as_deref(),
+            timezone_id: request.timezone_id.as_deref(),
             wait_for_selector: request.wait_for_selector.as_deref(),
             wait_for_images: request.wait_for_images,
             scan_full_page: request.scan_full_page,

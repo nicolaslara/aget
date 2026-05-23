@@ -15,6 +15,8 @@ pub(crate) struct BrowserRenderRequest<'a> {
     pub(crate) url: &'a str,
     pub(crate) state: &'a PlaywrightState,
     pub(crate) user_agent: Option<&'a str>,
+    pub(crate) locale: Option<&'a str>,
+    pub(crate) timezone_id: Option<&'a str>,
     pub(crate) wait_for_selector: Option<&'a str>,
     pub(crate) wait_until: PageWaitUntil,
     pub(crate) wait_for_images: bool,
@@ -34,6 +36,8 @@ pub(crate) struct BrowserRenderRequest<'a> {
 #[allow(dead_code)]
 pub(crate) struct BrowserAttachedPageRenderRequest<'a> {
     pub(crate) ws_url: &'a str,
+    pub(crate) locale: Option<&'a str>,
+    pub(crate) timezone_id: Option<&'a str>,
     pub(crate) wait_for_selector: Option<&'a str>,
     pub(crate) wait_for_images: bool,
     pub(crate) scan_full_page: bool,
@@ -80,6 +84,13 @@ pub(crate) fn render_page(request: BrowserRenderRequest<'_>) -> Result<RenderedP
     if let Some(user_agent) = request.user_agent {
         client.set_user_agent_override(&page.session_id, user_agent, request.page_timeout)?;
     }
+    apply_browser_context_overrides(
+        &mut client,
+        &page.session_id,
+        request.locale,
+        request.timezone_id,
+        request.page_timeout,
+    )?;
     if request.flatten_shadow_dom {
         client.force_open_shadow_roots(&page.session_id, request.page_timeout)?;
     }
@@ -126,6 +137,13 @@ pub(crate) fn render_attached_page(
             message: "owned browser current-tab CDP attach found no page targets".to_string(),
         })?;
     client.enable_page_domains(&page.session_id, request.page_timeout)?;
+    apply_browser_context_overrides(
+        &mut client,
+        &page.session_id,
+        request.locale,
+        request.timezone_id,
+        request.page_timeout,
+    )?;
     if request.flatten_shadow_dom {
         client.force_open_shadow_roots(&page.session_id, request.page_timeout)?;
     }
@@ -145,6 +163,22 @@ pub(crate) fn render_attached_page(
             wait_for_timeout: request.wait_for_timeout,
         },
     )
+}
+
+fn apply_browser_context_overrides(
+    client: &mut CdpClient,
+    session_id: &str,
+    locale: Option<&str>,
+    timezone_id: Option<&str>,
+    timeout: Duration,
+) -> Result<(), AgetError> {
+    if let Some(locale) = locale {
+        client.set_locale_override(session_id, locale, timeout)?;
+    }
+    if let Some(timezone_id) = timezone_id {
+        client.set_timezone_override(session_id, timezone_id, timeout)?;
+    }
+    Ok(())
 }
 
 struct AttachedPageCaptureOptions<'a> {

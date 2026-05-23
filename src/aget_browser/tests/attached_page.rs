@@ -24,6 +24,8 @@ fn renders_attached_page_without_aget_facade_or_command_backend() {
     let rendered = AgetBrowser::default()
         .render_attached_page(AttachedPageRequest {
             ws_url: &format!("ws://127.0.0.1:{port}/devtools/browser/mock"),
+            locale: None,
+            timezone_id: None,
             wait_for_selector: None,
             wait_for_images: false,
             scan_full_page: false,

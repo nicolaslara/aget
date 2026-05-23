@@ -3587,6 +3587,24 @@ Status note:
 
 - Completed with D374. `tests/mock_site_cli/aget_extractor/options_waits.rs` is now a 16-line router, with positive option behavior in `options_waits/content.rs`, backend option validation and unsupported-option diagnostics in `options_waits/validation.rs`, and redirect/wait behavior in `options_waits/waits.rs`. Existing integration test routing and assertions were preserved; no production code or fixture behavior changed. `workpads/research/tasks.md` was not compacted. Focused AgetExtractor parity coverage, line-count checks, `cargo fmt --check`, `git diff --check`, and full `cargo test` passed.
 
+### ✅ Task I19gz: Support Crawl4AI browser locale and timezone options
+
+Acceptance criteria:
+
+- Inspect Crawl4AI source before changing owned browser context identity behavior.
+- Accept `crawl4ai.locale` and `crawl4ai.timezone_id` as owned backend options.
+- Apply configured locale/timezone to owned CDP-rendered page requests before navigation.
+- Route otherwise-static requests through the owned browser path when these browser-context options are supplied.
+- Do not implement geolocation, proxy, arbitrary headers, or random user-agent behavior in this slice.
+- Keep the optional Crawl4AI command compatibility helper able to pass `locale` and `timezone_id` to real Crawl4AI.
+- Do not compact `workpads/research/tasks.md`.
+- Record the source-backed boundary in `knowledge.md`.
+- Verify with focused CDP/option coverage, helper syntax checks, and the standard check set.
+
+Status note:
+
+- Completed with D375. Crawl4AI source inspection showed `CrawlerRunConfig.locale` and `timezone_id` are explicit browser-context settings, and owned `AgetExtractor` now accepts `crawl4ai.locale` plus `crawl4ai.timezone_id`, routes requests requiring those context settings through owned CDP rendering, applies CDP locale/timezone emulation before page capture, and forwards both options through the compatibility Crawl4AI helper. This slice did not add geolocation, proxy, arbitrary-header, or random-user-agent behavior. `workpads/research/tasks.md` was not compacted. Focused CDP/context-routing/command-option/helper parse checks, `cargo fmt --check`, `git diff --check`, and full `cargo test` passed.
+
 ### ✅ Task I20: Design OAuth-safe browser login and profile import flow
 
 Acceptance criteria:

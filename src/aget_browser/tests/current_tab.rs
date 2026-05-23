@@ -34,6 +34,8 @@ fn renders_current_tab_from_explicit_cdp_port_without_aget_facade_or_command_bac
     let rendered = AgetBrowser::default()
         .render_current_tab(CurrentTabRequest {
             port,
+            locale: None,
+            timezone_id: None,
             wait_for_selector: None,
             wait_for_images: false,
             scan_full_page: false,

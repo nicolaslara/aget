@@ -30,6 +30,8 @@ fn browser_cdp_render_attached_page_reports_no_page_targets() {
 
     let error = render_attached_page(BrowserAttachedPageRenderRequest {
         ws_url: &format!("ws://127.0.0.1:{port}/devtools/browser/mock"),
+        locale: None,
+        timezone_id: None,
         wait_for_selector: None,
         wait_for_images: false,
         scan_full_page: false,

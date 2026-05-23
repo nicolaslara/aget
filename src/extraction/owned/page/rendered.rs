@@ -45,6 +45,8 @@ pub(super) fn extract_owned_rendered_page_with_url(
         url: render_url,
         state,
         user_agent: owned_options.user_agent.as_deref(),
+        locale: owned_options.locale.as_deref(),
+        timezone_id: owned_options.timezone_id.as_deref(),
         wait_for_selector: options.wait_for_selector.as_deref(),
         wait_until: owned_options.wait_until,
         wait_for_images: owned_options.wait_for_images,

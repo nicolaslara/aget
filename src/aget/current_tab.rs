@@ -79,6 +79,8 @@ where
             .browser_backend
             .render_current_tab(BrowserCurrentTabRequest {
                 port: options.port,
+                locale: owned_options.locale.clone(),
+                timezone_id: owned_options.timezone_id.clone(),
                 wait_for_selector: get_options.wait_for_selector.clone(),
                 wait_for_images: owned_options.wait_for_images,
                 scan_full_page: owned_options.scan_full_page,

@@ -163,6 +163,36 @@ impl CdpClient {
         Ok(())
     }
 
+    pub(in crate::browser_cdp) fn set_locale_override(
+        &mut self,
+        session_id: &str,
+        locale: &str,
+        timeout: Duration,
+    ) -> Result<(), AgetError> {
+        self.send(
+            "Emulation.setLocaleOverride",
+            Some(json!({ "locale": locale })),
+            self.session_param(session_id),
+            timeout,
+        )?;
+        Ok(())
+    }
+
+    pub(in crate::browser_cdp) fn set_timezone_override(
+        &mut self,
+        session_id: &str,
+        timezone_id: &str,
+        timeout: Duration,
+    ) -> Result<(), AgetError> {
+        self.send(
+            "Emulation.setTimezoneOverride",
+            Some(json!({ "timezoneId": timezone_id })),
+            self.session_param(session_id),
+            timeout,
+        )?;
+        Ok(())
+    }
+
     pub(super) fn close_browser(&mut self, timeout: Duration) -> Result<(), AgetError> {
         if self.direct_page_connection {
             return Ok(());

@@ -73,6 +73,17 @@ pub(super) fn extract_owned_static_or_rendered(
             &owned_options,
         );
     }
+    if browser_context_options_require_render(&owned_options) {
+        return extract_owned_rendered_page(
+            tmp_dir,
+            url,
+            state,
+            options,
+            timeout,
+            fallback_selector,
+            &owned_options,
+        );
+    }
     if !state.origins.is_empty() {
         return extract_owned_rendered_page(
             tmp_dir,
@@ -288,7 +299,12 @@ fn should_route_local_input_through_browser(
         || owned_options.wait_for_images
         || owned_options.process_iframes
         || owned_options.scan_full_page
+        || browser_context_options_require_render(owned_options)
         || options.wait_for_selector.is_some()
+}
+
+fn browser_context_options_require_render(owned_options: &OwnedExtractorOptions) -> bool {
+    owned_options.locale.is_some() || owned_options.timezone_id.is_some()
 }
 
 fn local_browser_render_input(
@@ -330,7 +346,10 @@ fn local_browser_render_input(
 
 #[cfg(test)]
 mod tests {
-    use super::{local_browser_render_input, should_route_local_input_through_browser};
+    use super::{
+        browser_context_options_require_render, local_browser_render_input,
+        should_route_local_input_through_browser,
+    };
     use crate::cli::OutputFormat;
     use crate::extraction::GetOptions;
 
@@ -371,6 +390,41 @@ mod tests {
         ));
         let mut owned_options = OwnedExtractorOptions::default();
         owned_options.process_in_browser = true;
+        assert!(should_route_local_input_through_browser(
+            &options,
+            &owned_options
+        ));
+    }
+
+    #[test]
+    fn browser_context_options_require_browser_rendering() {
+        let options = GetOptions {
+            url: "https://example.com/page".to_string(),
+            sessions: Vec::new(),
+            output: None,
+            home: None,
+            timeout: None,
+            content_format: OutputFormat::Markdown,
+            selector: None,
+            exclude_selector: None,
+            wait_for_selector: None,
+            max_chars: None,
+            backend_options: Vec::new(),
+        };
+
+        let mut owned_options = OwnedExtractorOptions {
+            locale: Some("sv-SE".to_string()),
+            ..OwnedExtractorOptions::default()
+        };
+        assert!(browser_context_options_require_render(&owned_options));
+        assert!(should_route_local_input_through_browser(
+            &options,
+            &owned_options
+        ));
+
+        owned_options.locale = None;
+        owned_options.timezone_id = Some("Europe/Stockholm".to_string());
+        assert!(browser_context_options_require_render(&owned_options));
         assert!(should_route_local_input_through_browser(
             &options,
             &owned_options

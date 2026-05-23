@@ -83,6 +83,8 @@ fn validate_crawl4ai_options(args: &Args) -> Result<(), String> {
         "prettiify",
         "process_in_browser",
         "user_agent",
+        "locale",
+        "timezone_id",
         "word_count_threshold",
         "wait_until",
         "page_timeout",

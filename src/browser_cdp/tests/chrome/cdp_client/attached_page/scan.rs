@@ -112,6 +112,8 @@ fn browser_cdp_render_attached_page_scans_full_page_before_capture() {
 
     let rendered = render_attached_page(BrowserAttachedPageRenderRequest {
         ws_url: &format!("ws://127.0.0.1:{port}/devtools/browser/mock"),
+        locale: None,
+        timezone_id: None,
         wait_for_selector: None,
         wait_for_images: false,
         scan_full_page: true,

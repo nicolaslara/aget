@@ -168,3 +168,40 @@ fn browser_cdp_sets_user_agent_override_for_page_session() {
         .unwrap();
     handle.join().unwrap();
 }
+
+#[test]
+fn browser_cdp_sets_locale_and_timezone_overrides_for_page_session() {
+    let listener = TcpListener::bind(("127.0.0.1", 0)).unwrap();
+    let port = listener.local_addr().unwrap().port();
+    let handle = thread::spawn(move || {
+        let (stream, _) = listener.accept().unwrap();
+        let mut websocket = tungstenite::accept(stream).unwrap();
+
+        let request = read_cdp_request(&mut websocket);
+        assert_eq!(request["method"], "Emulation.setLocaleOverride");
+        assert_eq!(request["sessionId"], "session-1");
+        assert_eq!(request["params"]["locale"], "sv-SE");
+        reply_ok(&mut websocket, &request, json!({}));
+
+        let request = read_cdp_request(&mut websocket);
+        assert_eq!(request["method"], "Emulation.setTimezoneOverride");
+        assert_eq!(request["sessionId"], "session-1");
+        assert_eq!(request["params"]["timezoneId"], "Europe/Stockholm");
+        reply_ok(&mut websocket, &request, json!({}));
+
+        let _ = websocket.close(None);
+    });
+
+    let mut client = CdpClient::connect(
+        &format!("ws://127.0.0.1:{port}/devtools/browser/mock"),
+        Duration::from_secs(2),
+    )
+    .unwrap();
+    client
+        .set_locale_override("session-1", "sv-SE", Duration::from_secs(2))
+        .unwrap();
+    client
+        .set_timezone_override("session-1", "Europe/Stockholm", Duration::from_secs(2))
+        .unwrap();
+    handle.join().unwrap();
+}
