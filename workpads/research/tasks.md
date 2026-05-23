@@ -3680,6 +3680,21 @@ Status note:
 
 - Completed with D380. `src/extraction/markdown/writer.rs` is now a module directory: `writer/mod.rs` keeps `MarkdownWriter` state, constructor/child cloning, URL resolution, tag-preservation checks, and image-alt fallback; `writer/text.rs` owns normalized text pushes, spacing-sensitive inline output, and blank-line normalization; and `writer/references.rs` owns abbreviation collection, reference-link numbering, paragraph-scoped reference flushing, final reference definitions, and abbreviation definition output. Existing `writer::MarkdownWriter` call paths are preserved. The split keeps the child helper modules at 103 and 54 lines and reduces the writer route to 207 lines. `workpads/research/tasks.md` was not compacted. Focused extractor/markdown coverage, line-count checks, `cargo fmt --check`, `git diff --check`, and full `cargo test` passed.
 
+### ✅ Task I19gzf: Split markdown render dispatch helpers
+
+Acceptance criteria:
+
+- Preserve current markdown rendering behavior, including node traversal, tag dispatch, preserved raw HTML, Google Docs inline/list style handling, and `only_text` inline-tag handling.
+- Split `src/extraction/markdown/mod.rs` into smaller behavior-focused modules.
+- Preserve the existing `element_to_markdown` entrypoint and internal renderer call paths.
+- Do not compact `workpads/research/tasks.md`.
+- Record the split in compact knowledge routing.
+- Verify with focused markdown coverage, line-count checks, and the standard check set.
+
+Status note:
+
+- Completed with D381. `src/extraction/markdown/mod.rs` now keeps the `element_to_markdown` entrypoint, writer setup, final reference/abbreviation flushing, normalization, wrapping, and table padding. `src/extraction/markdown/dispatch.rs` owns DOM node traversal, tag dispatch, preserved raw HTML output, Google Docs inline/list style handling, line-through hiding, and `only_text` inline-tag handling. Existing `element_to_markdown`, `render_node`, and `render_children` routes are preserved for markdown submodules. The split reduces the renderer entrypoint route to 114 lines, with dispatch at 239 lines. `workpads/research/tasks.md` was not compacted. Focused extractor/markdown coverage, line-count checks, `cargo fmt --check`, `git diff --check`, and full `cargo test` passed.
+
 ### ✅ Task I20: Design OAuth-safe browser login and profile import flow
 
 Acceptance criteria:

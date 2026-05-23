@@ -57,6 +57,7 @@ Open the referenced child indexes for older per-decision rows, then open the per
 | D378 | `d378-markdown-normalize-split.md` | Mechanical split of markdown normalization, wrapping, escaping, and URL helper boundaries. |
 | D379 | `d379-markdown-table-split.md` | Mechanical split of markdown table rendering, row collection, bypass, ignored-table, and padding helpers. |
 | D380 | `d380-markdown-writer-split.md` | Mechanical split of markdown writer text, reference-link, and abbreviation helpers. |
+| D381 | `d381-markdown-dispatch-split.md` | Mechanical split of markdown node traversal and tag-dispatch helpers. |
 
 ## Full Archive Routing
 
@@ -75,7 +76,7 @@ Open the referenced child indexes for older per-decision rows, then open the per
 | D123-D150 | `d123-d150-module-decomposition.md` index to section files | Original extraction/CDP/test module decomposition through I19i completion. |
 | D151-D157 | `d151-d157-auth-and-browser-import.md` | OAuth-safe authorization API/CLI and conservative browser-neutral Chrome import surface. |
 | D158-D167 | `d158-d167-recent-migration-followups.md` | Recent source-backed extraction improvements and follow-up decomposition slices. |
-| D168-D380 | `decision-index/` plus per-decision files | Module/test/support decomposition plus owned extractor/browser parity improvements, agent-facing option docs, support-file routing refreshes, login-session injection, markdown options, metadata coverage, CDP diagnostics, transport/readiness coverage, ignored local Chrome smoke refreshes, support-file archive splits, the current no-task-compaction size audit, frame-tree storage export, excluded selector cleanup, consent-popup cleanup, CSS selector option support, cache-mode compatibility options, `keep_attrs` cleanup support, `prettiify` cleaned-HTML formatting, `process_in_browser` local-content routing, explicit request identity via `user_agent`/`locale`/`timezone_id`, the AgetExtractor options/waits parity helper split, the owned page module split, the attached-page capture test split, the markdown normalize helper split, the markdown table renderer split, and the markdown writer helper split. |
+| D168-D381 | `decision-index/` plus per-decision files | Module/test/support decomposition plus owned extractor/browser parity improvements, agent-facing option docs, support-file routing refreshes, login-session injection, markdown options, metadata coverage, CDP diagnostics, transport/readiness coverage, ignored local Chrome smoke refreshes, support-file archive splits, the current no-task-compaction size audit, frame-tree storage export, excluded selector cleanup, consent-popup cleanup, CSS selector option support, cache-mode compatibility options, `keep_attrs` cleanup support, `prettiify` cleaned-HTML formatting, `process_in_browser` local-content routing, explicit request identity via `user_agent`/`locale`/`timezone_id`, the AgetExtractor options/waits parity helper split, the owned page module split, the attached-page capture test split, the markdown normalize helper split, the markdown table renderer split, the markdown writer helper split, and the markdown render-dispatch split. |
 
 ## Current Open Migration Gaps
 
