@@ -3755,6 +3755,21 @@ Status note:
 
 - Completed with D385. `tests/mock_site_cli/aget_extractor_site/markdown.rs` now keeps only the `routes` entrypoint and dispatches to focused fixture route helpers: `markdown/basic.rs` for basic markdown/base-link fixtures, `markdown/inline.rs` for inline/escaping/Unicode/Google Docs fixtures, `markdown/wrapping_preserve.rs` for wrapping/reference/body-width/single-line-break/preserved-tag fixtures, and `markdown/links_code_lists.rs` for nested-list/link/image/code-whitespace/ordered-start fixtures. Existing mock-site route paths and fixture HTML are preserved. The route is now 17 lines, with helper files at 47, 108, 106, and 78 lines. `workpads/research/tasks.md` was not compacted. Focused markdown/mock-site coverage, line-count checks, `cargo fmt --check`, `git diff --check`, and full `cargo test` passed.
 
+### ✅ Task I19gzk: Split get CLI validation tests
+
+Acceptance criteria:
+
+- Preserve current get CLI validation coverage and assertion behavior.
+- Split `tests/get_cli/validation.rs` into smaller behavior-focused test helpers.
+- Preserve the existing `validation` module entrypoint used by `tests/get_cli.rs`.
+- Do not compact `workpads/research/tasks.md`.
+- Record the split in compact knowledge routing.
+- Verify with focused get CLI validation coverage, line-count checks, and the standard check set.
+
+Status note:
+
+- Completed with D386. `tests/get_cli/validation.rs` now keeps only the `validation` module route. `validation/options.rs` owns the Crawl4AI backend-option forwarding matrix, and `validation/rejections.rs` owns unsupported extractor-option and JavaScript wait rejection coverage plus shared JSON/metadata error assertions. Existing test names and command assertions are preserved. The route is now 4 lines, with helper files at 106 and 104 lines. `workpads/research/tasks.md` was not compacted. Focused get CLI validation coverage, line-count checks, `cargo fmt --check`, and `git diff --check` passed. A first full `cargo test` run hit a transient `session_authorize_reimport_after_user_login_replaces_failed_verification_session` failure outside the touched get validation area; the failing test passed on direct rerun, and a full `cargo test` rerun passed.
+
 ### ✅ Task I20: Design OAuth-safe browser login and profile import flow
 
 Acceptance criteria:
