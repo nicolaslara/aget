@@ -3695,6 +3695,21 @@ Status note:
 
 - Completed with D381. `src/extraction/markdown/mod.rs` now keeps the `element_to_markdown` entrypoint, writer setup, final reference/abbreviation flushing, normalization, wrapping, and table padding. `src/extraction/markdown/dispatch.rs` owns DOM node traversal, tag dispatch, preserved raw HTML output, Google Docs inline/list style handling, line-through hiding, and `only_text` inline-tag handling. Existing `element_to_markdown`, `render_node`, and `render_children` routes are preserved for markdown submodules. The split reduces the renderer entrypoint route to 114 lines, with dispatch at 239 lines. `workpads/research/tasks.md` was not compacted. Focused extractor/markdown coverage, line-count checks, `cargo fmt --check`, `git diff --check`, and full `cargo test` passed.
 
+### ✅ Task I19gzg: Split owned extractor option application helpers
+
+Acceptance criteria:
+
+- Preserve current owned backend option parsing and unsupported-option diagnostics.
+- Split `src/extraction/owned/options/apply.rs` into smaller behavior-focused modules.
+- Preserve the existing `apply_owned_extractor_option` call path used by owned option parsing.
+- Do not compact `workpads/research/tasks.md`.
+- Record the split in compact knowledge routing.
+- Verify with focused owned option validation coverage, line-count checks, and the standard check set.
+
+Status note:
+
+- Completed with D382. `src/extraction/owned/options/apply.rs` is now a module directory: `apply/mod.rs` keeps the `apply_owned_extractor_option` route and canonical supported-option list; `apply/document.rs` owns document selection, cleanup, metadata/request-identity, and cleaned-HTML options; `apply/markdown.rs` owns markdown, link, image, table, typography, wrapping, and social-link options; and `apply/browser.rs` owns browser/readiness, timeout, scrolling, iframe, shadow-DOM, and word-threshold options. Existing owned option parsing call paths and unsupported-option diagnostics are preserved. The split reduces the route to 34 lines, with child modules at 183, 89, and 61 lines. `workpads/research/tasks.md` was not compacted. Focused owned option validation coverage, line-count checks, `cargo fmt --check`, `git diff --check`, and full `cargo test` passed.
+
 ### ✅ Task I20: Design OAuth-safe browser login and profile import flow
 
 Acceptance criteria:
