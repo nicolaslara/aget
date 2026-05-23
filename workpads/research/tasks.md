@@ -4063,6 +4063,31 @@ Status note:
   `cargo test --test get_cli session::replay`, line-count checks,
   `cargo fmt --check`, `git diff --check`, and full `cargo test` passed.
 
+### ✅ Task I19gzx: Split browser CDP client page helpers
+
+Acceptance criteria:
+
+- Preserve current owned CDP client behavior and public call paths.
+- Split `src/browser_cdp/client/mod.rs` so page target/session lifecycle and
+  Runtime.evaluate exception helpers live in smaller behavior-focused modules.
+- Keep `client::{CdpClient, PageSession}` and existing internal helper access
+  usable by browser render, state, login, and CDP tests.
+- Do not compact `workpads/research/tasks.md`.
+- Record the split in compact knowledge routing.
+- Verify with focused CDP client coverage, line-count checks, and the standard
+  check set.
+
+Status note:
+
+- Completed with D399. `src/browser_cdp/client/mod.rs` became a compact CDP
+  client route. `client/page.rs` now owns target/page lifecycle, page-domain
+  enabling, shadow-root bootstrap, request identity overrides, and close
+  helpers. `client/runtime.rs` now owns shared Runtime.evaluate exception
+  reporting. `client::{CdpClient, PageSession}` and existing browser-CDP call
+  paths are preserved. `workpads/research/tasks.md` was not compacted. Focused
+  `cargo test --lib browser_cdp::tests::chrome::cdp_client`, line-count checks,
+  `cargo fmt --check`, `git diff --check`, and full `cargo test` passed.
+
 ### ✅ Task I20: Design OAuth-safe browser login and profile import flow
 
 Acceptance criteria:
