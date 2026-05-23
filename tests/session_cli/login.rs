@@ -6,5 +6,5 @@ mod direct;
 mod finish;
 #[path = "login/real_smoke.rs"]
 mod real_smoke;
-#[path = "login/start.rs"]
+#[path = "login/start/mod.rs"]
 mod start;

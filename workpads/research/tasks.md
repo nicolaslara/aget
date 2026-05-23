@@ -4011,6 +4011,30 @@ Status note:
   `cargo test --lib extraction::`, line-count checks, `cargo fmt --check`,
   `git diff --check`, and full `cargo test` passed.
 
+### ✅ Task I19gzv: Split session login start tests
+
+Acceptance criteria:
+
+- Preserve current `aget session login start` CLI coverage and assertion
+  behavior.
+- Split `tests/session_cli/login/start.rs` into smaller behavior-focused test
+  modules.
+- Keep `start` as the call path used by `tests/session_cli/login.rs`.
+- Do not compact `workpads/research/tasks.md`.
+- Record the split in compact knowledge routing.
+- Verify with focused session-login-start coverage, line-count checks, and the
+  standard check set.
+
+Status note:
+
+- Completed with D397. `tests/session_cli/login/start.rs` became a compact
+  `tests/session_cli/login/start/mod.rs` route. Focused modules under
+  `start/` now own the happy path, HTTPS validation, exact non-`www` scope,
+  injected-session conflict rejection, and duplicate pending-flow rejection.
+  `workpads/research/tasks.md` was not compacted. Focused
+  `cargo test --test session_cli session_login_start`, line-count checks,
+  `cargo fmt --check`, `git diff --check`, and full `cargo test` passed.
+
 ### ✅ Task I20: Design OAuth-safe browser login and profile import flow
 
 Acceptance criteria:
