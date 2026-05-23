@@ -4088,6 +4088,31 @@ Status note:
   `cargo test --lib browser_cdp::tests::chrome::cdp_client`, line-count checks,
   `cargo fmt --check`, `git diff --check`, and full `cargo test` passed.
 
+### ✅ Task I19gzy: Split browser CDP transport tests
+
+Acceptance criteria:
+
+- Preserve current owned CDP transport coverage and assertion behavior.
+- Split `src/browser_cdp/tests/chrome/cdp_client/transport.rs` into smaller
+  behavior-focused modules for WebSocket config, keepalive, dialog handling,
+  and response-frame parsing.
+- Keep `cdp_client::transport` as the module path used by the CDP client test
+  route.
+- Do not compact `workpads/research/tasks.md`.
+- Record the split in compact knowledge routing.
+- Verify with focused CDP client transport coverage, line-count checks, and the
+  standard check set.
+
+Status note:
+
+- Completed with D400. `src/browser_cdp/tests/chrome/cdp_client/transport.rs`
+  became a compact `transport/mod.rs` route. Focused modules now own WebSocket
+  config, keepalive ping behavior, dialog auto-handling, and response-frame
+  parsing coverage. `workpads/research/tasks.md` was not compacted. Focused
+  `cargo test --lib browser_cdp::tests::chrome::cdp_client::transport`,
+  line-count checks, `cargo fmt --check`, `git diff --check`, and full
+  `cargo test` passed.
+
 ### ✅ Task I20: Design OAuth-safe browser login and profile import flow
 
 Acceptance criteria:
