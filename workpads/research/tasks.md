@@ -4113,6 +4113,32 @@ Status note:
   line-count checks, `cargo fmt --check`, `git diff --check`, and full
   `cargo test` passed.
 
+### ✅ Task I19gzz: Split owned main-content scoring helpers
+
+Acceptance criteria:
+
+- Preserve current owned main-content selection behavior and scoring outputs.
+- Split `src/extraction/owned/content/main_content.rs` into smaller
+  behavior-focused modules for candidate selection, scoring, label heuristics,
+  and text normalization.
+- Keep `main_content::default_main_content_element_id` usable by
+  `src/extraction/owned/content/mod.rs`.
+- Do not compact `workpads/research/tasks.md`.
+- Record the split in compact knowledge routing.
+- Verify with focused main-content extraction coverage, line-count checks, and
+  the standard check set.
+
+Status note:
+
+- Completed with D401. `src/extraction/owned/content/main_content.rs` became a
+  compact `main_content/mod.rs` route. Focused modules now own scoring, label
+  heuristics, and text normalization while preserving
+  `default_main_content_element_id` for owned content extraction. `workpads/research/tasks.md`
+  was not compacted. Focused
+  `cargo test --test mock_site_cli aget_extractor_backend_covers_static_http_parity_slice`,
+  `cargo test --lib extraction::owned::`, line-count checks,
+  `cargo fmt --check`, `git diff --check`, and full `cargo test` passed.
+
 ### ✅ Task I20: Design OAuth-safe browser login and profile import flow
 
 Acceptance criteria:
