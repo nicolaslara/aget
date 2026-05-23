@@ -3710,6 +3710,21 @@ Status note:
 
 - Completed with D382. `src/extraction/owned/options/apply.rs` is now a module directory: `apply/mod.rs` keeps the `apply_owned_extractor_option` route and canonical supported-option list; `apply/document.rs` owns document selection, cleanup, metadata/request-identity, and cleaned-HTML options; `apply/markdown.rs` owns markdown, link, image, table, typography, wrapping, and social-link options; and `apply/browser.rs` owns browser/readiness, timeout, scrolling, iframe, shadow-DOM, and word-threshold options. Existing owned option parsing call paths and unsupported-option diagnostics are preserved. The split reduces the route to 34 lines, with child modules at 183, 89, and 61 lines. `workpads/research/tasks.md` was not compacted. Focused owned option validation coverage, line-count checks, `cargo fmt --check`, `git diff --check`, and full `cargo test` passed.
 
+### ✅ Task I19gzh: Split owned content extraction helpers
+
+Acceptance criteria:
+
+- Preserve current owned content extraction behavior, including selector fallback, target-element selection, main-content selection, line-through cleanup, single/multi-target output, and markdown base-URL handling.
+- Split `src/extraction/owned/content.rs` into smaller behavior-focused modules.
+- Preserve the existing `content::extract_owned_content` and `content::markdown_base_url` call paths.
+- Do not compact `workpads/research/tasks.md`.
+- Record the split in compact knowledge routing.
+- Verify with focused owned extractor/content coverage, line-count checks, and the standard check set.
+
+Status note:
+
+- Completed with D383. `src/extraction/owned/content.rs` moved to `src/extraction/owned/content/mod.rs`, which keeps `extract_owned_content`, cleanup ordering, and `markdown_base_url`. `content/selection.rs` owns root/target selection and selected-element lookup, `content/cleanup.rs` owns line-through removal, and `content/render.rs` owns single/multi-target HTML/markdown/text output construction. Existing owned content extraction and markdown base-URL call paths are preserved. The split reduces the route to 111 lines, with child helper modules at 36, 41, and 110 lines; `main_content.rs` remains 261 lines. `workpads/research/tasks.md` was not compacted. Focused owned extractor/content coverage, line-count checks, `cargo fmt --check`, `git diff --check`, and full `cargo test` passed.
+
 ### ✅ Task I20: Design OAuth-safe browser login and profile import flow
 
 Acceptance criteria:
