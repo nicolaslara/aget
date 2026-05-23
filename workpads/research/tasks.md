@@ -4301,6 +4301,36 @@ Status note:
   line-count checks, `cargo fmt --check`, `git diff --check`, and full
   `cargo test` passed.
 
+### ✅ Task I19gzzg: Split main-content mock-site routes
+
+Acceptance criteria:
+
+- Preserve current mock-site routes used by owned main-content extraction
+  parity coverage.
+- Split `tests/mock_site_cli/aget_extractor_site/main_content.rs` into a
+  compact route plus focused route modules for basic selection, density/fallback
+  scoring, and noisy/threshold candidates.
+- Keep existing `aget_extractor_site::main_content::routes` usable by the
+  mock-site parity builder.
+- Do not compact `workpads/research/tasks.md`.
+- Record the split in compact knowledge routing.
+- Verify with focused mock-site extraction parity coverage, line-count checks,
+  and the standard check set.
+
+Status note:
+
+- Completed with D408. `tests/mock_site_cli/aget_extractor_site/main_content.rs`
+  is now a compact route. `main_content/basic.rs` owns basic selection,
+  overlay, consent, and labeled-content routes; `main_content/density.rs` owns
+  page-chrome, link-density, unlabeled-density, and body-fallback routes; and
+  `main_content/noise_threshold.rs` owns noisy-candidate and word-threshold
+  routes. Existing `aget_extractor_site::main_content::routes` remains usable
+  by the mock-site parity builder. `workpads/research/tasks.md` was not
+  compacted. Focused
+  `cargo test --test mock_site_cli aget_extractor_backend_covers_static_http_parity_slice`,
+  line-count checks, `cargo fmt --check`, `git diff --check`, and full
+  `cargo test` passed.
+
 ### ✅ Task I20: Design OAuth-safe browser login and profile import flow
 
 Acceptance criteria:
