@@ -1,42 +1,16 @@
 use ego_tree::NodeRef;
 use scraper::{ElementRef, Node};
 
-use super::inline::{inline_markdown_from_children, raw_text_from_node};
-use super::normalize::{normalize_markdown, trim_trailing_horizontal_space};
-use super::writer::MarkdownWriter;
-use super::{render_children, render_node};
+use super::super::inline::inline_markdown_from_children;
+use super::super::normalize::trim_trailing_horizontal_space;
+use super::super::writer::MarkdownWriter;
+use super::super::{render_children, render_node};
 
-pub(super) fn render_heading(node: NodeRef<'_, Node>, tag: &str, writer: &mut MarkdownWriter) {
-    let level = tag
-        .strip_prefix('h')
-        .and_then(|value| value.parse::<usize>().ok())
-        .unwrap_or(1)
-        .clamp(1, 6);
-    let text = inline_markdown_from_children(node, writer);
-    if text.is_empty() {
-        return;
-    }
-    writer.ensure_blank_line();
-    writer.output.push_str(&"#".repeat(level));
-    writer.output.push(' ');
-    writer.output.push_str(&text);
-    writer.ensure_blank_line();
-}
-
-pub(super) fn render_block(node: NodeRef<'_, Node>, writer: &mut MarkdownWriter) {
-    writer.ensure_blank_line();
-    render_children(node, writer);
-    writer.ensure_blank_line();
-    writer.append_paragraph_reference_link_definitions();
-}
-
-pub(super) fn render_horizontal_rule(writer: &mut MarkdownWriter) {
-    writer.ensure_blank_line();
-    writer.output.push_str("* * *");
-    writer.ensure_blank_line();
-}
-
-pub(super) fn render_list(node: NodeRef<'_, Node>, ordered: bool, writer: &mut MarkdownWriter) {
+pub(in crate::extraction::markdown) fn render_list(
+    node: NodeRef<'_, Node>,
+    ordered: bool,
+    writer: &mut MarkdownWriter,
+) {
     let is_nested = writer.list_depth > 0;
     if is_nested {
         trim_trailing_horizontal_space(&mut writer.output);
@@ -129,7 +103,10 @@ fn parse_google_doc_margin_left(value: &str, google_list_indent: usize) -> Optio
     Some(pixels / google_list_indent.max(1))
 }
 
-pub(super) fn render_definition_list(node: NodeRef<'_, Node>, writer: &mut MarkdownWriter) {
+pub(in crate::extraction::markdown) fn render_definition_list(
+    node: NodeRef<'_, Node>,
+    writer: &mut MarkdownWriter,
+) {
     writer.ensure_blank_line();
     let mut child = node.first_child();
     while let Some(current) = child {
@@ -162,71 +139,4 @@ pub(super) fn render_definition_list(node: NodeRef<'_, Node>, writer: &mut Markd
         child = next;
     }
     writer.ensure_blank_line();
-}
-
-pub(super) fn render_code_block(node: NodeRef<'_, Node>, writer: &mut MarkdownWriter) {
-    let text = if writer.handle_code_in_pre {
-        pre_text_with_code_markers(node)
-    } else {
-        raw_text_from_node(node)
-    };
-    if text.trim().is_empty() {
-        return;
-    }
-    writer.ensure_blank_line();
-    writer.output.push_str("```\n");
-    writer.output.push_str(text.trim_matches('\n'));
-    writer.output.push_str("\n```");
-    writer.ensure_blank_line();
-}
-
-fn pre_text_with_code_markers(node: NodeRef<'_, Node>) -> String {
-    let mut output = String::new();
-    collect_pre_text_with_code_markers(node, &mut output);
-    output
-}
-
-fn collect_pre_text_with_code_markers(node: NodeRef<'_, Node>, output: &mut String) {
-    match node.value() {
-        Node::Text(text) => output.push_str(text),
-        Node::Element(element) if element.name() == "code" => {
-            output.push('`');
-            output.push_str(&raw_text_from_node(node));
-            output.push('`');
-        }
-        _ => {
-            let mut child = node.first_child();
-            while let Some(current) = child {
-                collect_pre_text_with_code_markers(current, output);
-                child = current.next_sibling();
-            }
-        }
-    }
-}
-
-pub(super) fn render_blockquote(node: NodeRef<'_, Node>, writer: &mut MarkdownWriter) {
-    let mut child_writer = writer.child();
-    render_children(node, &mut child_writer);
-    let quote = normalize_markdown(&child_writer.output);
-    if quote.is_empty() {
-        return;
-    }
-    writer.ensure_blank_line();
-    for line in quote.lines() {
-        writer.output.push('>');
-        let line = line.trim();
-        if !line.is_empty() {
-            writer.output.push(' ');
-            writer.output.push_str(line);
-        }
-        writer.output.push('\n');
-    }
-    writer.ensure_blank_line();
-}
-
-pub(super) fn is_structural_block(tag: &str) -> bool {
-    matches!(
-        tag,
-        "article" | "aside" | "footer" | "header" | "main" | "nav" | "section"
-    )
 }

@@ -4498,6 +4498,34 @@ Status note:
   `Connection reset by peer` in an unrelated `session_cli` authorization test,
   and the isolated rerun plus second full-suite run passed.
 
+### ✅ Task I19gzzn: Split markdown block renderer helpers
+
+Acceptance criteria:
+
+- Preserve owned markdown rendering for headings, generic blocks, horizontal
+  rules, ordered/unordered lists, Google Docs list indentation, definition
+  lists, fenced pre/code blocks, `handle_code_in_pre`, blockquotes, and
+  structural block detection.
+- Split `src/extraction/markdown/block.rs` into a compact route module plus
+  focused structural-block, list, code-block, and blockquote modules.
+- Preserve the function names and visibility used by markdown dispatch.
+- Do not compact `workpads/research/tasks.md`.
+- Record the split in compact knowledge routing.
+- Verify with focused markdown coverage, line-count checks, and the standard
+  check set.
+
+Status note:
+
+- Completed with D415. `src/extraction/markdown/block.rs` became a compact
+  `src/extraction/markdown/block/mod.rs` route. Structural block rendering now
+  lives in `block/structure.rs`, ordered/unordered and definition list
+  rendering in `block/lists.rs`, fenced pre/code rendering in `block/code.rs`,
+  and blockquote rendering in `block/quote.rs`. Markdown dispatch still imports
+  the same function names from `block`. `workpads/research/tasks.md` was not
+  compacted. Focused markdown compilation, markdown-named test filtering,
+  mock-site extractor parity coverage, line-count checks, `cargo fmt --check`,
+  `git diff --check`, and full `cargo test` passed.
+
 ### ✅ Task I20: Design OAuth-safe browser login and profile import flow
 
 Acceptance criteria:
