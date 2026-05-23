@@ -4331,6 +4331,34 @@ Status note:
   line-count checks, `cargo fmt --check`, `git diff --check`, and full
   `cargo test` passed.
 
+### ✅ Task I19gzzh: Split main binary helper modules
+
+Acceptance criteria:
+
+- Preserve current CLI parse-error envelopes, command-name detection, get and
+  current-tab output envelopes, inline-content suppression, and error response
+  mapping.
+- Split helper logic out of `src/main.rs` into focused modules for argument
+  inspection and output/error envelope shaping.
+- Keep `src/main.rs` as the binary dispatch entrypoint for get, current-tab,
+  and session commands.
+- Do not compact `workpads/research/tasks.md`.
+- Record the split in compact knowledge routing.
+- Verify with focused CLI/envelope coverage, line-count checks, and the
+  standard check set.
+
+Status note:
+
+- Completed with D409. `src/main.rs` remains the binary dispatch entrypoint for
+  get, current-tab, and session commands. `src/main_args.rs` owns envelope
+  request detection and stable command-name inference for parse errors, while
+  `src/main_envelope.rs` owns success envelope printing, `GetSuccess` envelope
+  data shaping with inline-content suppression, generic envelope serialization
+  used by session output views, and binary error-response mapping.
+  `workpads/research/tasks.md` was not compacted. Focused
+  `cargo test --test cli`, line-count checks, `cargo fmt --check`,
+  `git diff --check`, and full `cargo test` passed.
+
 ### ✅ Task I20: Design OAuth-safe browser login and profile import flow
 
 Acceptance criteria:

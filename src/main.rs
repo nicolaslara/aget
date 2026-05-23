@@ -1,15 +1,16 @@
-use std::ffi::OsString;
 use std::process::ExitCode;
 
-use aget::{
-    Aget, Cli, Command, CurrentTabOptions, EnvelopeFormat, ErrorCode, ErrorResponse, GetSuccess,
-    InlineContent, TimingMs, ENVELOPE_SCHEMA_VERSION,
-};
+use aget::{Aget, Cli, Command, CurrentTabOptions, EnvelopeFormat, ErrorCode, ErrorResponse};
 use clap::error::ErrorKind;
-use serde::Serialize;
-use serde_json::Value;
 
+mod main_args;
+mod main_envelope;
 mod main_session;
+
+use main_args::{args_request_json_envelope, command_name_from_args};
+use main_envelope::{
+    envelope_data, error_response, get_envelope_data, io_error, print_success_envelope,
+};
 
 fn main() -> ExitCode {
     let args = std::env::args_os().collect::<Vec<_>>();
@@ -47,63 +48,6 @@ fn main() -> ExitCode {
             ExitCode::from(1)
         }
     }
-}
-
-fn command_name_from_args(args: &[OsString]) -> &'static str {
-    let tokens = args
-        .iter()
-        .skip(1)
-        .filter_map(|arg| arg.to_str())
-        .collect::<Vec<_>>();
-
-    if let Some(index) = tokens.iter().position(|token| *token == "session") {
-        return match tokens.get(index + 1).copied() {
-            Some("list") => "session.list",
-            Some("authorize") => "session.authorize",
-            Some("inspect") => "session.inspect",
-            Some("delete") => "session.delete",
-            Some("compose") => "session.compose",
-            Some("import") => match tokens.get(index + 2).copied() {
-                Some("cmux") => "session.import.cmux",
-                Some("browser") => "session.import.browser",
-                Some("chrome") => "session.import.chrome",
-                _ => "session.import",
-            },
-            Some("login") => match tokens.get(index + 2).copied() {
-                Some("start") => "session.login.start",
-                Some("finish") => "session.login.finish",
-                Some("cancel") => "session.login.cancel",
-                _ => "session.login",
-            },
-            _ => "session",
-        };
-    }
-
-    if tokens.contains(&"get")
-        || tokens
-            .iter()
-            .any(|token| token.starts_with("http://") || token.starts_with("https://"))
-    {
-        return "get";
-    }
-    if tokens.contains(&"current-tab") {
-        return "current-tab";
-    }
-
-    "cli"
-}
-
-fn args_request_json_envelope(args: &[OsString]) -> bool {
-    let mut iter = args.iter().filter_map(|arg| arg.to_str());
-    while let Some(arg) = iter.next() {
-        if arg == "--envelope" {
-            return matches!(iter.next(), Some("json"));
-        }
-        if arg == "--envelope=json" {
-            return true;
-        }
-    }
-    false
 }
 
 fn run(cli: Cli) -> Result<(), ErrorResponse> {
@@ -185,61 +129,5 @@ fn run(cli: Cli) -> Result<(), ErrorResponse> {
         Command::Session(session) => {
             main_session::run_session(session.command, structured_output, cli.global.timeout)
         }
-    }
-}
-
-fn print_success_envelope(
-    command: &str,
-    data: Value,
-    warnings: Vec<String>,
-    timing_ms: TimingMs,
-) -> Result<(), ErrorResponse> {
-    let envelope = serde_json::json!({
-        "ok": true,
-        "schema_version": ENVELOPE_SCHEMA_VERSION,
-        "command": command,
-        "data": data,
-        "warnings": warnings,
-        "timing_ms": timing_ms,
-    });
-    println!("{}", serde_json::to_string(&envelope).map_err(io_error)?);
-    Ok(())
-}
-
-fn get_envelope_data(
-    success: &GetSuccess,
-    inline_content: InlineContent,
-) -> Result<Value, ErrorResponse> {
-    let mut data = envelope_data(success, &["ok", "warnings", "timing_ms"])?;
-    if let Value::Object(object) = &mut data {
-        let include_content = match inline_content {
-            InlineContent::Always => true,
-            InlineContent::Never => false,
-            InlineContent::Auto => !success.sensitive,
-        };
-        if !include_content {
-            object.remove("content");
-        }
-    }
-    Ok(data)
-}
-
-fn envelope_data<T: Serialize>(value: &T, remove_keys: &[&str]) -> Result<Value, ErrorResponse> {
-    let mut data = serde_json::to_value(value).map_err(io_error)?;
-    if let Value::Object(object) = &mut data {
-        for key in remove_keys {
-            object.remove(*key);
-        }
-    }
-    Ok(data)
-}
-
-fn io_error(error: impl std::fmt::Display) -> ErrorResponse {
-    ErrorResponse::new(ErrorCode::IoError, error.to_string())
-}
-
-fn error_response(error: aget::AgetError) -> ErrorResponse {
-    match error {
-        aget::AgetError::Stable { code, message } => ErrorResponse::new(code, message),
     }
 }
