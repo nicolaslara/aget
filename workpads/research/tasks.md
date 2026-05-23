@@ -4557,6 +4557,37 @@ Status note:
   browser CDP setup coverage, wider CDP client coverage, line-count checks,
   `cargo fmt --check`, `git diff --check`, and full `cargo test` passed.
 
+### ✅ Task I19gzzp: Split extraction pipeline helpers
+
+Acceptance criteria:
+
+- Preserve `aget get` orchestration helpers for direct extraction finish,
+  primary extractor execution, session-backed browser fallback, success/error
+  finalization, private content artifact writing, metadata writing, output
+  limits, selected-session loading, and sensitive output handling.
+- Split `src/extraction/pipeline.rs` into a compact route module plus focused
+  direct-extraction, backend execution, finalization, and session-loading
+  modules.
+- Preserve the function names and visibility used by `src/extraction/mod.rs`
+  and owned extractor callers.
+- Do not compact `workpads/research/tasks.md`.
+- Record the split in compact knowledge routing.
+- Verify with focused get/extraction coverage, line-count checks, and the
+  standard check set.
+
+Status note:
+
+- Completed with D417. `src/extraction/pipeline.rs` became a compact
+  `src/extraction/pipeline/mod.rs` route. Direct extraction finish now lives in
+  `pipeline/direct.rs`, primary extractor and session fallback execution in
+  `pipeline/backend.rs`, success/error artifact and metadata finalization in
+  `pipeline/finalization.rs`, and selected-session loading in
+  `pipeline/sessions.rs`. The helper function names used by
+  `src/extraction/mod.rs` and owned direct extraction callers are preserved.
+  `workpads/research/tasks.md` was not compacted. Focused extraction library
+  checks, `get_cli`, mock-site extractor parity coverage, line-count checks,
+  `cargo fmt --check`, `git diff --check`, and full `cargo test` passed.
+
 ### ✅ Task I20: Design OAuth-safe browser login and profile import flow
 
 Acceptance criteria:
