@@ -4440,6 +4440,32 @@ Status note:
   was not compacted. Focused markdown parity coverage, line-count checks,
   `cargo fmt --check`, `git diff --check`, and full `cargo test` passed.
 
+### ✅ Task I19gzzl: Split owned HTTP extraction helpers
+
+Acceptance criteria:
+
+- Preserve owned static HTTP fetch behavior, local `file://` input handling,
+  `raw:`/`raw://` input handling, user-agent forwarding, session cookie replay,
+  timeout error mapping, and URL validation.
+- Split `src/extraction/http.rs` into a compact route module plus focused
+  source-parsing/local-input, cookie-header, and unit-test modules.
+- Preserve existing `owned_fetch` call paths used by the owned extractor.
+- Do not compact `workpads/research/tasks.md`.
+- Record the split in compact knowledge routing.
+- Verify with focused owned HTTP coverage, line-count checks, and the standard
+  check set.
+
+Status note:
+
+- Completed with D413. `src/extraction/http.rs` became a compact
+  `src/extraction/http/mod.rs` route. `http/source.rs` owns HTTP/file/raw
+  source parsing and local response creation, `http/cookies.rs` owns
+  session-cookie replay filtering and cookie-header construction, and
+  `http/tests.rs` owns local-input unit coverage. Existing owned extractor
+  `owned_fetch` call paths are preserved. `workpads/research/tasks.md` was not
+  compacted. Focused owned HTTP coverage, line-count checks,
+  `cargo fmt --check`, `git diff --check`, and full `cargo test` passed.
+
 ### ✅ Task I20: Design OAuth-safe browser login and profile import flow
 
 Acceptance criteria:
