@@ -3740,6 +3740,21 @@ Status note:
 
 - Completed with D384. `tests/mock_site_cli/aget_extractor/markdown/inline_blocks.rs` now keeps only the `assert_inline_blocks` route and dispatches to focused assertion helpers: `inline_blocks/semantics.rs` for semantic inline/block assertions, `inline_blocks/escape_unicode.rs` for escaping and Unicode options, `inline_blocks/google_preserve.rs` for Google Docs and preserved-tag behavior, and `inline_blocks/wrapping.rs` for wrapping and single-line-break behavior. Existing `inline_blocks::assert_inline_blocks` coverage is preserved. The route is now 19 lines, with helper files at 72, 69, 60, and 157 lines. `workpads/research/tasks.md` was not compacted. Focused markdown coverage, line-count checks, `cargo fmt --check`, `git diff --check`, and full `cargo test` passed.
 
+### ✅ Task I19gzj: Split markdown mock-site route fixtures
+
+Acceptance criteria:
+
+- Preserve current markdown mock-site routes and fixture HTML.
+- Split `tests/mock_site_cli/aget_extractor_site/markdown.rs` into smaller behavior-focused route helpers.
+- Preserve the existing `markdown::routes` call path used by the mock-site extractor parity site.
+- Do not compact `workpads/research/tasks.md`.
+- Record the split in compact knowledge routing.
+- Verify with focused markdown/mock-site coverage, line-count checks, and the standard check set.
+
+Status note:
+
+- Completed with D385. `tests/mock_site_cli/aget_extractor_site/markdown.rs` now keeps only the `routes` entrypoint and dispatches to focused fixture route helpers: `markdown/basic.rs` for basic markdown/base-link fixtures, `markdown/inline.rs` for inline/escaping/Unicode/Google Docs fixtures, `markdown/wrapping_preserve.rs` for wrapping/reference/body-width/single-line-break/preserved-tag fixtures, and `markdown/links_code_lists.rs` for nested-list/link/image/code-whitespace/ordered-start fixtures. Existing mock-site route paths and fixture HTML are preserved. The route is now 17 lines, with helper files at 47, 108, 106, and 78 lines. `workpads/research/tasks.md` was not compacted. Focused markdown/mock-site coverage, line-count checks, `cargo fmt --check`, `git diff --check`, and full `cargo test` passed.
+
 ### ✅ Task I20: Design OAuth-safe browser login and profile import flow
 
 Acceptance criteria:
