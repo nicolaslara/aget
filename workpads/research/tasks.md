@@ -3665,6 +3665,21 @@ Status note:
 
 - Completed with D379. `src/extraction/markdown/table.rs` is now a module directory: `table/mod.rs` keeps table rendering orchestration and the existing `render_table`/`pad_markdown_tables` route; `table/rows.rs` owns caption/row/cell extraction plus GFM row formatting; `table/ignored.rs` owns ignored-table plain text extraction; `table/bypass.rs` owns bypass-table HTML-like rendering; and `table/pad.rs` owns padded-table post-processing. The split keeps all child files at 87 lines or less and preserves existing call paths. `workpads/research/tasks.md` was not compacted. Focused table/markdown coverage, line-count checks, `cargo fmt --check`, `git diff --check`, and full `cargo test` passed.
 
+### ✅ Task I19gze: Split markdown writer helper state
+
+Acceptance criteria:
+
+- Preserve current markdown writer behavior, including text normalization, reference links, paragraph-scoped reference flushing, and abbreviation definitions.
+- Split `src/extraction/markdown/writer.rs` into smaller behavior-focused modules.
+- Preserve existing `writer::MarkdownWriter` call paths used by markdown rendering modules.
+- Do not compact `workpads/research/tasks.md`.
+- Record the split in compact knowledge routing.
+- Verify with focused markdown coverage, line-count checks, and the standard check set.
+
+Status note:
+
+- Completed with D380. `src/extraction/markdown/writer.rs` is now a module directory: `writer/mod.rs` keeps `MarkdownWriter` state, constructor/child cloning, URL resolution, tag-preservation checks, and image-alt fallback; `writer/text.rs` owns normalized text pushes, spacing-sensitive inline output, and blank-line normalization; and `writer/references.rs` owns abbreviation collection, reference-link numbering, paragraph-scoped reference flushing, final reference definitions, and abbreviation definition output. Existing `writer::MarkdownWriter` call paths are preserved. The split keeps the child helper modules at 103 and 54 lines and reduces the writer route to 207 lines. `workpads/research/tasks.md` was not compacted. Focused extractor/markdown coverage, line-count checks, `cargo fmt --check`, `git diff --check`, and full `cargo test` passed.
+
 ### ✅ Task I20: Design OAuth-safe browser login and profile import flow
 
 Acceptance criteria:
