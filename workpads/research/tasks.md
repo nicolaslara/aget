@@ -4242,6 +4242,35 @@ Status note:
   line-count checks, `cargo fmt --check`, `git diff --check`, and full
   `cargo test` passed.
 
+### ✅ Task I19gzze: Split browser CDP client transport helpers
+
+Acceptance criteria:
+
+- Preserve current owned CDP connect, command-send, response-read,
+  auto-dialog, keepalive, and WebSocket config behavior.
+- Split `src/browser_cdp/client/transport.rs` into a compact route plus focused
+  modules for connection/socket setup and message/command handling.
+- Keep existing `browser_cdp::client::transport::{...}` helper paths usable by
+  navigation/readiness code and transport tests.
+- Do not compact `workpads/research/tasks.md`.
+- Record the split in compact knowledge routing.
+- Verify with focused browser CDP client transport coverage, line-count checks,
+  and the standard check set.
+
+Status note:
+
+- Completed with D406. `src/browser_cdp/client/transport.rs` became a compact
+  `transport/mod.rs` route. `transport/connection.rs` owns CDP WebSocket
+  connection setup and socket timeouts, while `transport/message.rs` owns
+  command serialization, response matching, frame parsing, auto-dialog
+  handling, keepalive pings, and test keepalive tuning. Existing
+  `browser_cdp::client::transport::{...}` helper paths remain available to
+  navigation/readiness code and transport tests. `workpads/research/tasks.md`
+  was not compacted. Focused
+  `cargo test --lib browser_cdp::tests::chrome::cdp_client::transport`,
+  line-count checks, `cargo fmt --check`, `git diff --check`, and full
+  `cargo test` passed.
+
 ### ✅ Task I20: Design OAuth-safe browser login and profile import flow
 
 Acceptance criteria:

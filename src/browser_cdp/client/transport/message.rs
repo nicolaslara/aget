@@ -2,38 +2,14 @@ use std::io;
 use std::time::{Duration, Instant};
 
 use serde_json::{json, Value};
-use tungstenite::client::connect_with_config;
-use tungstenite::protocol::WebSocketConfig;
-use tungstenite::stream::MaybeTlsStream;
 use tungstenite::Message;
 
-use super::CdpClient;
+use super::cdp_io_error;
+use crate::browser_cdp::client::CdpClient;
 use crate::browser_cdp::io_aget_error;
 use crate::error::{AgetError, ErrorCode};
 
-const CDP_READ_POLL: Duration = Duration::from_millis(100);
-const CDP_KEEPALIVE_INTERVAL: Duration = Duration::from_secs(30);
-
 impl CdpClient {
-    pub(in crate::browser_cdp) fn connect(
-        ws_url: &str,
-        timeout: Duration,
-    ) -> Result<Self, AgetError> {
-        let (mut socket, _) = connect_with_config(ws_url, Some(cdp_websocket_config()), 3)
-            .map_err(|error| AgetError::Stable {
-                code: ErrorCode::BackendUnavailable,
-                message: format!("owned browser fallback could not connect to Chrome CDP: {error}"),
-            })?;
-        configure_socket_timeout(&mut socket, timeout)?;
-        Ok(Self {
-            socket,
-            next_id: 1,
-            direct_page_connection: is_direct_page_ws_url(ws_url),
-            keepalive_interval: CDP_KEEPALIVE_INTERVAL,
-            last_keepalive: Instant::now(),
-        })
-    }
-
     pub(in crate::browser_cdp) fn send(
         &mut self,
         method: &str,
@@ -41,25 +17,11 @@ impl CdpClient {
         session_id: Option<&str>,
         timeout: Duration,
     ) -> Result<Value, AgetError> {
-        let id = self.next_id;
-        self.next_id += 1;
-        let mut command = serde_json::Map::new();
-        command.insert("id".to_string(), json!(id));
-        command.insert("method".to_string(), json!(method));
-        if let Some(params) = params {
-            command.insert("params".to_string(), params);
-        }
-        if let Some(session_id) = session_id {
-            command.insert("sessionId".to_string(), json!(session_id));
-        }
-        let text = serde_json::to_string(&Value::Object(command)).map_err(io_aget_error)?;
-        self.socket
-            .send(Message::Text(text.into()))
-            .map_err(cdp_io_error)?;
+        let id = self.send_no_wait(method, params, session_id)?;
         self.wait_for_response(id, method, timeout)
     }
 
-    pub(super) fn send_no_wait(
+    pub(in crate::browser_cdp::client) fn send_no_wait(
         &mut self,
         method: &str,
         params: Option<Value>,
@@ -109,7 +71,10 @@ impl CdpClient {
         }
     }
 
-    pub(super) fn read_message(&mut self, deadline: Instant) -> Result<Value, AgetError> {
+    pub(in crate::browser_cdp::client) fn read_message(
+        &mut self,
+        deadline: Instant,
+    ) -> Result<Value, AgetError> {
         loop {
             if let Some(message) = self.try_read_message(deadline)? {
                 return Ok(message);
@@ -118,7 +83,7 @@ impl CdpClient {
         }
     }
 
-    pub(super) fn try_read_message(
+    pub(in crate::browser_cdp::client) fn try_read_message(
         &mut self,
         deadline: Instant,
     ) -> Result<Option<Value>, AgetError> {
@@ -210,45 +175,4 @@ impl CdpClient {
         self.keepalive_interval = interval;
         self.last_keepalive = Instant::now();
     }
-}
-
-pub(in crate::browser_cdp) fn cdp_websocket_config() -> WebSocketConfig {
-    WebSocketConfig::default()
-        .max_message_size(None)
-        .max_frame_size(None)
-}
-
-fn configure_socket_timeout(
-    socket: &mut tungstenite::WebSocket<MaybeTlsStream<std::net::TcpStream>>,
-    timeout: Duration,
-) -> Result<(), AgetError> {
-    let timeout = timeout.min(CDP_READ_POLL).max(Duration::from_millis(10));
-    match socket.get_mut() {
-        MaybeTlsStream::Plain(stream) => {
-            stream
-                .set_read_timeout(Some(timeout))
-                .map_err(io_aget_error)?;
-            stream
-                .set_write_timeout(Some(timeout))
-                .map_err(io_aget_error)?;
-        }
-        #[allow(unreachable_patterns)]
-        _ => {}
-    }
-    Ok(())
-}
-
-pub(super) fn remaining(deadline: Instant) -> Duration {
-    deadline.saturating_duration_since(Instant::now())
-}
-
-fn cdp_io_error(error: tungstenite::Error) -> AgetError {
-    AgetError::Stable {
-        code: ErrorCode::ExtractionFailed,
-        message: format!("owned browser fallback Chrome CDP I/O failed: {error}"),
-    }
-}
-
-fn is_direct_page_ws_url(ws_url: &str) -> bool {
-    ws_url.contains("/devtools/page/") || ws_url.contains("/devtools/webview/")
 }
