@@ -3807,6 +3807,31 @@ Status note:
   line-count checks, `cargo fmt --check`, `git diff --check`, and full
   `cargo test` passed.
 
+### ✅ Task I19gzn: Split markdown link and image assertions
+
+Acceptance criteria:
+
+- Preserve current markdown link/image parity assertions and route entrypoint.
+- Split `tests/mock_site_cli/aget_extractor/markdown/links_images.rs` into
+  smaller behavior-focused assertion helpers.
+- Keep `links_images::assert_links_and_images` as the call path used by
+  mock-site markdown coverage.
+- Do not compact `workpads/research/tasks.md`.
+- Record the split in compact knowledge routing.
+- Verify with focused markdown/mock-site coverage, line-count checks, and the
+  standard check set.
+
+Status note:
+
+- Completed with D389. `tests/mock_site_cli/aget_extractor/markdown/links_images.rs`
+  now keeps only the `assert_links_and_images` route. Focused helper modules
+  under `links_images/` own default markdown output, image options, link
+  options, reference-link options, and shared escaped fixture URLs. Existing
+  markdown parity coverage and assertion strings are preserved.
+  `workpads/research/tasks.md` was not compacted. Focused mock-site markdown
+  coverage, line-count checks, `cargo fmt --check`, `git diff --check`, and
+  full `cargo test` passed.
+
 ### ✅ Task I20: Design OAuth-safe browser login and profile import flow
 
 Acceptance criteria:
