@@ -4526,6 +4526,37 @@ Status note:
   mock-site extractor parity coverage, line-count checks, `cargo fmt --check`,
   `git diff --check`, and full `cargo test` passed.
 
+### ✅ Task I19gzzo: Split browser CDP page session helpers
+
+Acceptance criteria:
+
+- Preserve owned CDP page creation, existing-page attach, direct-page WebSocket
+  handling, flattened target attachment, page-domain enabling, auto-attach
+  setup, shadow-root preload injection, user-agent/locale/timezone overrides,
+  browser/page close behavior, and session-parameter routing.
+- Split `src/browser_cdp/client/page.rs` into a compact route module plus
+  focused target/session, domain setup, emulation/context override, script
+  preload, and close modules.
+- Preserve the `PageSession` type and `CdpClient` method names used by render,
+  login, state, and tests.
+- Do not compact `workpads/research/tasks.md`.
+- Record the split in compact knowledge routing.
+- Verify with focused browser CDP client coverage, line-count checks, and the
+  standard check set.
+
+Status note:
+
+- Completed with D416. `src/browser_cdp/client/page.rs` became a compact
+  `src/browser_cdp/client/page/mod.rs` route. Page target creation/attach and
+  direct-page WebSocket handling now live in `page/targets.rs`, page/runtime/
+  network domain setup and auto-attach in `page/domains.rs`, shadow-root
+  preload injection in `page/preload.rs`, user-agent/locale/timezone overrides
+  in `page/emulation.rs`, and close helpers in `page/close.rs`. `PageSession`
+  and the existing `CdpClient` method names used by render, login, state, and
+  tests are preserved. `workpads/research/tasks.md` was not compacted. Focused
+  browser CDP setup coverage, wider CDP client coverage, line-count checks,
+  `cargo fmt --check`, `git diff --check`, and full `cargo test` passed.
+
 ### ✅ Task I20: Design OAuth-safe browser login and profile import flow
 
 Acceptance criteria:
