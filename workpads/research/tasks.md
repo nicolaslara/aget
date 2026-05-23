@@ -4643,6 +4643,34 @@ Status note:
   cleanup tests, line-count checks, `cargo fmt --check`, `git diff --check`,
   and full `cargo test` passed.
 
+### ✅ Task I19gzzs: Split cmux session import helpers
+
+Acceptance criteria:
+
+- Preserve `CmuxImportOptions` and `import_cmux_session` public API exported
+  from `src/session/mod.rs`.
+- Preserve cmux command invocation, private temp stdout/stderr files, timeout
+  handling, malformed JSON errors, duplicate-cookie conflict detection,
+  allowed-domain filtering, and session metadata.
+- Split `src/session/cmux.rs` into a compact route module plus focused import,
+  command, domain-filtering, and type modules.
+- Do not compact `workpads/research/tasks.md`.
+- Record the split in compact knowledge routing.
+- Verify with focused cmux session tests, line-count checks, and the standard
+  check set.
+
+Status note:
+
+- Completed with D420. `src/session/cmux.rs` became a compact
+  `src/session/cmux/mod.rs` route. Session construction and duplicate-cookie
+  conflict handling now live in `cmux/import.rs`, cmux command execution and
+  private stdout/stderr handling in `cmux/command.rs`, allowed-domain matching
+  in `cmux/domains.rs`, and public/deserialized types in `cmux/types.rs`.
+  `CmuxImportOptions` and `import_cmux_session` remain re-exported from
+  `src/session/mod.rs`. `workpads/research/tasks.md` was not compacted.
+  Focused cmux tests, line-count checks, `cargo fmt --check`,
+  `git diff --check`, and full `cargo test` passed.
+
 ### ✅ Task I20: Design OAuth-safe browser login and profile import flow
 
 Acceptance criteria:
