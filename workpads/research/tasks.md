@@ -4617,6 +4617,32 @@ Status note:
   `session_cli`, line-count checks, `cargo fmt --check`, `git diff --check`,
   and full `cargo test` passed.
 
+### ✅ Task I19gzzr: Split HTML cleanup URL helpers
+
+Acceptance criteria:
+
+- Preserve owned cleanup behavior for external links, internal links, external
+  images, excluded-domain URLs, and social-media links.
+- Split `src/extraction/html_clean/urls.rs` into a compact route module plus
+  focused element-removal and Crawl4AI-like domain-matching helpers.
+- Preserve the function names and visibility re-exported by
+  `src/extraction/html_clean/mod.rs`.
+- Do not compact `workpads/research/tasks.md`.
+- Record the split in compact knowledge routing.
+- Verify with focused HTML cleanup coverage, line-count checks, and the
+  standard check set.
+
+Status note:
+
+- Completed with D419. `src/extraction/html_clean/urls.rs` became a compact
+  `src/extraction/html_clean/urls/mod.rs` route. Selector-driven DOM removal
+  now lives in `urls/elements.rs`, and Crawl4AI-like URL/domain normalization
+  plus excluded-domain option normalization lives in `urls/domains.rs`. The
+  cleanup entrypoint function names re-exported by `html_clean/mod.rs` are
+  preserved. `workpads/research/tasks.md` was not compacted. Focused HTML
+  cleanup tests, line-count checks, `cargo fmt --check`, `git diff --check`,
+  and full `cargo test` passed.
+
 ### ✅ Task I20: Design OAuth-safe browser login and profile import flow
 
 Acceptance criteria:
