@@ -4271,6 +4271,36 @@ Status note:
   line-count checks, `cargo fmt --check`, `git diff --check`, and full
   `cargo test` passed.
 
+### ✅ Task I19gzzf: Split agent-browser state filtering helpers
+
+Acceptance criteria:
+
+- Preserve current agent-browser raw-state model parsing, domain/origin
+  allowlist matching, cookie/storage filtering, duplicate-conflict detection,
+  and Playwright-state adapter behavior.
+- Split `src/session/agent_browser/state_filter.rs` into a compact route plus
+  focused modules for raw state models, domain helpers, and session filtering.
+- Keep existing `session::agent_browser::state_filter::{...}` helper paths
+  usable by session import code and tests.
+- Do not compact `workpads/research/tasks.md`.
+- Record the split in compact knowledge routing.
+- Verify with focused agent-browser session filtering coverage, line-count
+  checks, and the standard check set.
+
+Status note:
+
+- Completed with D407. `src/session/agent_browser/state_filter.rs` became a
+  compact `state_filter/mod.rs` route. `state_filter/model.rs` owns raw
+  agent-browser state shapes and expiration parsing, `state_filter/domains.rs`
+  owns domain/origin matching helpers, and `state_filter/filter.rs` owns raw
+  state loading, allowlist filtering, duplicate-conflict detection, session
+  construction, and the Playwright-state adapter. Existing
+  `session::agent_browser::state_filter::{...}` helper paths remain available
+  to session import code and tests. `workpads/research/tasks.md` was not
+  compacted. Focused `cargo test --lib session::agent_browser::tests`,
+  line-count checks, `cargo fmt --check`, `git diff --check`, and full
+  `cargo test` passed.
+
 ### ✅ Task I20: Design OAuth-safe browser login and profile import flow
 
 Acceptance criteria:

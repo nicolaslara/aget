@@ -2,62 +2,10 @@ use std::collections::BTreeMap;
 use std::fs::File;
 use std::path::Path;
 
-use serde::Deserialize;
-
+use super::domains::{domain_allowed, normalize_domain, origin_host};
+use super::model::{AgentBrowserCookie, AgentBrowserOrigin, AgentBrowserState};
 use crate::error::{AgetError, ErrorCode};
-use crate::session::{
-    PlaywrightState, Session, SessionCookie, SessionOrigin, SessionSource, StorageEntry,
-};
-
-#[derive(Debug, Deserialize)]
-pub(crate) struct AgentBrowserState {
-    #[serde(default)]
-    pub(crate) cookies: Vec<AgentBrowserCookie>,
-    #[serde(default)]
-    pub(crate) origins: Vec<AgentBrowserOrigin>,
-}
-
-#[derive(Debug, Deserialize)]
-pub(crate) struct AgentBrowserCookie {
-    pub(crate) name: String,
-    pub(crate) value: String,
-    pub(crate) domain: String,
-    pub(crate) path: String,
-    #[serde(default, deserialize_with = "deserialize_agent_browser_expires")]
-    pub(crate) expires: Option<i64>,
-    #[serde(rename = "httpOnly", default)]
-    pub(crate) http_only: bool,
-    #[serde(default)]
-    pub(crate) secure: bool,
-    #[serde(rename = "sameSite", default)]
-    pub(crate) same_site: Option<String>,
-}
-
-#[derive(Debug, Deserialize)]
-pub(crate) struct AgentBrowserOrigin {
-    pub(crate) origin: String,
-    #[serde(rename = "localStorage", default)]
-    pub(crate) local_storage: Vec<StorageEntry>,
-    #[serde(rename = "sessionStorage", default)]
-    pub(crate) session_storage: Vec<StorageEntry>,
-}
-
-fn deserialize_agent_browser_expires<'de, D>(deserializer: D) -> Result<Option<i64>, D::Error>
-where
-    D: serde::Deserializer<'de>,
-{
-    use serde::de::Error;
-
-    let expires = Option::<serde_json::Number>::deserialize(deserializer)?;
-    expires
-        .map(|number| {
-            number
-                .as_i64()
-                .or_else(|| number.as_f64().map(|value| value.trunc() as i64))
-                .ok_or_else(|| Error::custom("agent-browser expires must be numeric"))
-        })
-        .transpose()
-}
+use crate::session::{PlaywrightState, Session, SessionCookie, SessionOrigin, SessionSource};
 
 #[derive(Debug, Clone)]
 pub(crate) struct AgentBrowserSessionFilter {
@@ -205,49 +153,4 @@ pub(crate) fn filter_playwright_state(
         },
         filter,
     )
-}
-
-pub(crate) fn domain_allowed(candidate_domain: &str, allowed_domains: &[String]) -> bool {
-    allowed_domains
-        .iter()
-        .any(|allowed| domain_matches_allowed(candidate_domain, allowed))
-}
-
-pub(crate) fn domain_matches_allowed(candidate_domain: &str, allowed_domain: &str) -> bool {
-    let candidate = normalize_domain(candidate_domain);
-    let allowed = normalize_domain(allowed_domain);
-    if candidate.is_empty() || allowed.is_empty() {
-        return false;
-    }
-
-    if candidate == allowed {
-        return true;
-    }
-
-    if let Some(candidate_root) = candidate.strip_prefix('.') {
-        return candidate_root == allowed;
-    }
-
-    candidate.ends_with(&format!(".{allowed}"))
-}
-
-pub(crate) fn origin_host(origin: &str) -> Option<String> {
-    let (_, rest) = origin.split_once("://")?;
-    let authority = rest.split('/').next().unwrap_or(rest);
-    let host_port = authority.rsplit('@').next().unwrap_or(authority);
-    let host = if let Some(stripped) = host_port.strip_prefix('[') {
-        stripped.split(']').next()?
-    } else {
-        host_port.split(':').next().unwrap_or(host_port)
-    };
-    let host = normalize_domain(host);
-    (!host.is_empty()).then_some(host)
-}
-
-pub(crate) fn normalize_domain(domain: &str) -> String {
-    domain
-        .trim()
-        .trim_start_matches('.')
-        .trim_end_matches('.')
-        .to_ascii_lowercase()
 }

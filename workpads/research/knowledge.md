@@ -25,7 +25,7 @@ Authenticated state and content stay local by default; site-specific paywall/log
 - I19e remains open for broader rendered JavaScript parity, manual real logged-in profile/keychain smoke execution, and startup/error classification. Current wait/startup/evaluation-error/transport/storage/local-smoke detail routes through D284, D287, D329, D340-D353, D360, and D365.
 - I19h remains open because final migration review requires review subagents for test adequacy, architecture cohesion, and security/privacy.
 - Recently completed: I23 added `aget session login start --session <provider>` support so reusable OAuth/provider sessions such as `oauth`, `google`, or `github` can be injected into controlled login profiles without exposing credentials to the agent. See D325.
-- Current support-file rule: do not compact `workpads/research/tasks.md`. Keep top-level support files as compact routers and move dense completed-history detail to referenced archive files; see D308, D347, D357, D364, and D376-D406.
+- Current support-file rule: do not compact `workpads/research/tasks.md`. Keep top-level support files as compact routers and move dense completed-history detail to referenced archive files; see D308, D347, D357, D364, and D376-D407.
 - Release-binary private GitHub session smoke evidence is recorded in `experiments/2026-05-22-release-binary-github-private-repo-smoke.md`: public fetch worked, unauthenticated private repo fetch returned GitHub's generic private/404 page, user-driven `session login` saved a reusable `github` session, and that session fetched both `nicolaslara/zodl-desktop` and `nicolaslara/ai`.
 
 ## Decision Routing
@@ -39,7 +39,7 @@ Authenticated state and content stay local by default; site-specific paywall/log
 | Original module-decomposition sequence | `archive/knowledge/d123-d150-module-decomposition.md` |
 | Auth/browser import and browser-choice design | `archive/knowledge/d151-d157-auth-and-browser-import.md` |
 | Recent migration follow-ups and source-backed extraction improvements | `archive/knowledge/d158-d167-recent-migration-followups.md` |
-| Latest individual decisions | `archive/knowledge/current-decision-index.md` and per-decision files through `archive/knowledge/d406-browser-cdp-client-transport-split.md` |
+| Latest individual decisions | `archive/knowledge/current-decision-index.md` and per-decision files through `archive/knowledge/d407-agent-browser-state-filter-split.md` |
 | Release-binary private GitHub session smoke | `experiments/2026-05-22-release-binary-github-private-repo-smoke.md` |
 
 ## Historical Support Docs
