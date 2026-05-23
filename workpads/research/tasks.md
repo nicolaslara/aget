@@ -3832,6 +3832,32 @@ Status note:
   coverage, line-count checks, `cargo fmt --check`, `git diff --check`, and
   full `cargo test` passed.
 
+### ✅ Task I19gzo: Split cleanup parity assertions
+
+Acceptance criteria:
+
+- Preserve current owned extractor cleanup parity assertions and route entrypoint.
+- Split `tests/mock_site_cli/aget_extractor/cleanup.rs` into smaller
+  behavior-focused assertion helpers.
+- Keep `cleanup::assert_cleanup_outputs` as the call path used by mock-site
+  extractor coverage.
+- Do not compact `workpads/research/tasks.md`.
+- Record the split in compact knowledge routing.
+- Verify with focused mock-site extractor coverage, line-count checks, and the
+  standard check set.
+
+Status note:
+
+- Completed with D390. `tests/mock_site_cli/aget_extractor/cleanup.rs` now
+  keeps only the `assert_cleanup_outputs` route. Focused helper modules under
+  `cleanup/` own default cleaned HTML assertions, attribute/prettify options,
+  image cleanup options, link/domain cleanup options, selector-after-pruning
+  coverage, markdown cleanup coverage, and the shared `/html-cleanup`
+  extraction helper. Existing cleanup parity assertions are preserved.
+  `workpads/research/tasks.md` was not compacted. Focused mock-site extractor
+  coverage, line-count checks, `cargo fmt --check`, `git diff --check`, and
+  full `cargo test` passed.
+
 ### ✅ Task I20: Design OAuth-safe browser login and profile import flow
 
 Acceptance criteria:
