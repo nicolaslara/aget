@@ -3650,6 +3650,21 @@ Status note:
 
 - Completed with D378. `src/extraction/markdown/normalize.rs` is now a module directory: `normalize/mod.rs` keeps document/inline normalization, Unicode-snob replacements, punctuation spacing, and trailing whitespace helpers; `normalize/wrap.rs` owns body-width wrapping and single-line-break application; `normalize/escape.rs` owns Markdown/link/table escaping; and `normalize/url.rs` owns absolute URL checks plus base-URL target resolution. Existing `super::normalize::*` imports are preserved, and `workpads/research/tasks.md` was not compacted. Focused markdown parity coverage, line-count checks, `cargo fmt --check`, `git diff --check`, and full `cargo test` passed.
 
+### ✅ Task I19gzd: Split markdown table renderer helpers
+
+Acceptance criteria:
+
+- Preserve current markdown table, ignored-table, bypass-table, and padded-table behavior.
+- Split `src/extraction/markdown/table.rs` into smaller behavior-focused modules.
+- Preserve existing `table::render_table` and `table::pad_markdown_tables` call paths.
+- Do not compact `workpads/research/tasks.md`.
+- Record the split in compact knowledge routing.
+- Verify with focused table/markdown coverage, line-count checks, and the standard check set.
+
+Status note:
+
+- Completed with D379. `src/extraction/markdown/table.rs` is now a module directory: `table/mod.rs` keeps table rendering orchestration and the existing `render_table`/`pad_markdown_tables` route; `table/rows.rs` owns caption/row/cell extraction plus GFM row formatting; `table/ignored.rs` owns ignored-table plain text extraction; `table/bypass.rs` owns bypass-table HTML-like rendering; and `table/pad.rs` owns padded-table post-processing. The split keeps all child files at 87 lines or less and preserves existing call paths. `workpads/research/tasks.md` was not compacted. Focused table/markdown coverage, line-count checks, `cargo fmt --check`, `git diff --check`, and full `cargo test` passed.
+
 ### ✅ Task I20: Design OAuth-safe browser login and profile import flow
 
 Acceptance criteria:
