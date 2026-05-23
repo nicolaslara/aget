@@ -1,14 +1,17 @@
 use ego_tree::NodeRef;
 use scraper::{ElementRef, Node};
 
-use super::normalize::{
+use super::image::image_markdown;
+use crate::extraction::markdown::normalize::{
     escape_link_text, escape_link_title, escape_markdown_link_target, is_absolute_http_url,
-    normalize_inline_markdown,
 };
-use super::render_children;
-use super::writer::MarkdownWriter;
+use crate::extraction::markdown::render_children;
+use crate::extraction::markdown::writer::MarkdownWriter;
 
-pub(super) fn render_link(node: NodeRef<'_, Node>, writer: &mut MarkdownWriter) {
+pub(in crate::extraction::markdown) fn render_link(
+    node: NodeRef<'_, Node>,
+    writer: &mut MarkdownWriter,
+) {
     if writer.ignore_links {
         render_children(node, writer);
         return;
@@ -167,108 +170,8 @@ fn heading_level(tag: &str) -> Option<usize> {
         .filter(|level| (1..=6).contains(level))
 }
 
-pub(super) fn render_abbreviation(node: NodeRef<'_, Node>, writer: &mut MarkdownWriter) {
-    let text = inline_markdown_from_children(node, writer);
-    if text.is_empty() {
-        return;
-    }
-    if let Some(title) = ElementRef::wrap(node)
-        .and_then(|element| element.attr("title"))
-        .map(normalize_inline_markdown)
-    {
-        writer.record_abbreviation(text.clone(), title);
-    }
-    writer.push_inline(&text);
-}
-
-pub(super) fn render_image(node: NodeRef<'_, Node>, writer: &mut MarkdownWriter) {
-    if let Some(markdown) = image_markdown(node, writer) {
-        writer.push_inline(&markdown);
-    }
-}
-
-fn image_markdown(node: NodeRef<'_, Node>, writer: &mut MarkdownWriter) -> Option<String> {
-    if writer.ignore_images {
-        return None;
-    }
-    let element = ElementRef::wrap(node)?;
-    let src = element.attr("src")?;
-    if src.trim().is_empty() {
-        return None;
-    }
-    let alt = writer.image_alt(element.attr("alt")).to_string();
-    if writer.images_as_html || (writer.images_with_size && image_has_size(element)) {
-        return Some(image_html(element, src, &alt));
-    }
-    if writer.images_to_alt {
-        return Some(escape_markdown_link_target(&alt));
-    }
-    if !writer.inline_links {
-        let reference = writer.reference_link(src, "");
-        return Some(format!(
-            "![{}][{reference}]",
-            escape_markdown_link_target(&alt)
-        ));
-    }
-    Some(format!(
-        "![{}]({})",
-        escape_markdown_link_target(&alt),
-        escape_markdown_link_target(&writer.resolve_url(src))
-    ))
-}
-
-fn image_has_size(element: ElementRef<'_>) -> bool {
-    element.attr("width").is_some() || element.attr("height").is_some()
-}
-
-fn image_html(element: ElementRef<'_>, src: &str, alt: &str) -> String {
-    let mut output = format!("<img src='{src}' ");
-    if let Some(width) = element.attr("width").filter(|value| !value.is_empty()) {
-        output.push_str(&format!("width='{width}' "));
-    }
-    if let Some(height) = element.attr("height").filter(|value| !value.is_empty()) {
-        output.push_str(&format!("height='{height}' "));
-    }
-    if !alt.is_empty() {
-        output.push_str(&format!("alt='{alt}' "));
-    }
-    output.push_str("/>");
-    output
-}
-
-pub(super) fn inline_markdown_from_children(
-    node: NodeRef<'_, Node>,
-    parent: &MarkdownWriter,
-) -> String {
-    let mut writer = parent.child();
-    render_children(node, &mut writer);
-    normalize_inline_markdown(&writer.output)
-}
-
 fn link_label_markdown_from_children(node: NodeRef<'_, Node>, parent: &MarkdownWriter) -> String {
     let mut writer = parent.link_child();
     render_children(node, &mut writer);
-    normalize_inline_markdown(&writer.output)
-}
-
-pub(super) fn inline_text_from_node(node: NodeRef<'_, Node>) -> String {
-    normalize_inline_markdown(&raw_text_from_node(node))
-}
-
-pub(super) fn raw_text_from_node(node: NodeRef<'_, Node>) -> String {
-    let mut output = String::new();
-    collect_raw_text(node, &mut output);
-    output
-}
-
-fn collect_raw_text(node: NodeRef<'_, Node>, output: &mut String) {
-    if let Node::Text(text) = node.value() {
-        output.push_str(text);
-    }
-    let mut child = node.first_child();
-    while let Some(current) = child {
-        let next = current.next_sibling();
-        collect_raw_text(current, output);
-        child = next;
-    }
+    crate::extraction::markdown::normalize::normalize_inline_markdown(&writer.output)
 }

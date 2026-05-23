@@ -3985,6 +3985,32 @@ Status note:
   `cargo test --test get_cli fallback`, line-count checks,
   `cargo fmt --check`, `git diff --check`, and full `cargo test` passed.
 
+### ✅ Task I19gzu: Split markdown inline renderer helpers
+
+Acceptance criteria:
+
+- Preserve current owned markdown inline rendering behavior and call paths.
+- Split `src/extraction/markdown/inline.rs` into smaller behavior-focused
+  modules for link rendering, image rendering, and inline text helpers.
+- Keep `super::inline::{inline_markdown_from_children, inline_text_from_node,
+  raw_text_from_node, render_abbreviation, render_image, render_link}` usable by
+  markdown dispatch/block code.
+- Do not compact `workpads/research/tasks.md`.
+- Record the split in compact knowledge routing.
+- Verify with focused markdown extraction coverage, line-count checks, and the
+  standard check set.
+
+Status note:
+
+- Completed with D396. `src/extraction/markdown/inline.rs` became a compact
+  `src/extraction/markdown/inline/mod.rs` route. Focused modules under
+  `inline/` now own link rendering, image rendering, and inline text/
+  abbreviation helpers while preserving the existing markdown dispatch/block
+  import surface. `workpads/research/tasks.md` was not compacted. Focused
+  `cargo test --test mock_site_cli aget_extractor`,
+  `cargo test --lib extraction::`, line-count checks, `cargo fmt --check`,
+  `git diff --check`, and full `cargo test` passed.
+
 ### ✅ Task I20: Design OAuth-safe browser login and profile import flow
 
 Acceptance criteria:
