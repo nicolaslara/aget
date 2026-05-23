@@ -3785,6 +3785,28 @@ Status note:
 
 - Completed with D387. `tests/mock_site_cli/aget_extractor/options_waits/validation.rs` now keeps only the `assert_option_validation` route. `validation/document.rs` owns document/cache/base-URL and unsupported-option diagnostics, `validation/markdown.rs` owns markdown/link/table/typography/wrapping/Google Docs diagnostics, `validation/browser.rs` owns browser/readiness/timeout/iframe/scrolling diagnostics, and `validation/support.rs` owns the shared invalid-option assertion helper. Existing validation coverage and assertion strings are preserved. The route is now 18 lines, with helper files at 45, 87, 42, and 25 lines. `workpads/research/tasks.md` was not compacted. Focused owned extractor option validation coverage, line-count checks, `cargo fmt --check`, `git diff --check`, and full `cargo test` passed.
 
+### ✅ Task I19gzm: Split Aget API support helpers
+
+Acceptance criteria:
+
+- Preserve current Aget API support helper behavior and public test import names.
+- Split `tests/aget_api/support.rs` into smaller behavior-focused helper modules.
+- Keep `tests/aget_api/support.rs` as a compact router for existing `crate::support::*` imports.
+- Do not compact `workpads/research/tasks.md`.
+- Record the split in compact knowledge routing.
+- Verify with focused Aget API coverage, line-count checks, and the standard check set.
+
+Status note:
+
+- Completed with D388. `tests/aget_api/support.rs` now keeps only the compact
+  router and re-exports for existing `crate::support::*` imports. Focused
+  helper modules under `tests/aget_api/support/` now own session fixtures,
+  the in-memory session store, extractor fakes, and browser automation/fallback
+  fakes. Existing Aget API test import names and behavior are preserved.
+  `workpads/research/tasks.md` was not compacted. Focused Aget API coverage,
+  line-count checks, `cargo fmt --check`, `git diff --check`, and full
+  `cargo test` passed.
+
 ### ✅ Task I20: Design OAuth-safe browser login and profile import flow
 
 Acceptance criteria:

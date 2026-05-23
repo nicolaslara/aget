@@ -10,6 +10,7 @@ Open the referenced child indexes for older per-decision rows, then open the per
 | D168-D231 individual decision rows | `decision-index/d168-d231.md` |
 | D232-D292 individual decision rows | `decision-index/d232-d292.md` |
 | D293-D346 individual decision rows | `decision-index/d293-d346.md` |
+| D347-D388 individual decision rows | Recent decision routing below |
 | Foundation and early migration bundles | Full archive routing below |
 
 ## Recent Decision Routing
@@ -64,6 +65,7 @@ Open the referenced child indexes for older per-decision rows, then open the per
 | D385 | `d385-markdown-fixture-route-split.md` | Mechanical split of markdown mock-site fixture route helpers. |
 | D386 | `d386-get-validation-test-split.md` | Mechanical split of get CLI validation test helpers. |
 | D387 | `d387-extractor-option-validation-split.md` | Mechanical split of AgetExtractor option validation helpers. |
+| D388 | `d388-aget-api-support-split.md` | Mechanical split of Aget API support helpers. |
 
 ## Full Archive Routing
 
@@ -82,7 +84,7 @@ Open the referenced child indexes for older per-decision rows, then open the per
 | D123-D150 | `d123-d150-module-decomposition.md` index to section files | Original extraction/CDP/test module decomposition through I19i completion. |
 | D151-D157 | `d151-d157-auth-and-browser-import.md` | OAuth-safe authorization API/CLI and conservative browser-neutral Chrome import surface. |
 | D158-D167 | `d158-d167-recent-migration-followups.md` | Recent source-backed extraction improvements and follow-up decomposition slices. |
-| D168-D387 | `decision-index/` plus per-decision files | Module/test/support decomposition plus owned extractor/browser parity improvements, agent-facing option docs, support-file routing refreshes, login-session injection, markdown options, metadata coverage, CDP diagnostics, transport/readiness coverage, ignored local Chrome smoke refreshes, support-file archive splits, the current no-task-compaction size audit, frame-tree storage export, excluded selector cleanup, consent-popup cleanup, CSS selector option support, cache-mode compatibility options, `keep_attrs` cleanup support, `prettiify` cleaned-HTML formatting, `process_in_browser` local-content routing, explicit request identity via `user_agent`/`locale`/`timezone_id`, the AgetExtractor options/waits parity helper split, the owned page module split, the attached-page capture test split, the markdown normalize helper split, the markdown table renderer split, the markdown writer helper split, the markdown render-dispatch split, the owned option-application split, the owned content extraction split, the inline markdown assertion split, the markdown fixture route split, the get CLI validation test split, and the AgetExtractor option validation split. |
+| D168-D388 | `decision-index/` plus per-decision files | Module/test/support decomposition plus owned extractor/browser parity improvements, agent-facing option docs, support-file routing refreshes, login-session injection, markdown options, metadata coverage, CDP diagnostics, transport/readiness coverage, ignored local Chrome smoke refreshes, support-file archive splits, the current no-task-compaction size audit, frame-tree storage export, excluded selector cleanup, consent-popup cleanup, CSS selector option support, cache-mode compatibility options, `keep_attrs` cleanup support, `prettiify` cleaned-HTML formatting, `process_in_browser` local-content routing, explicit request identity via `user_agent`/`locale`/`timezone_id`, the AgetExtractor options/waits parity helper split, the owned page module split, the attached-page capture test split, the markdown normalize helper split, the markdown table renderer split, the markdown writer helper split, the markdown render-dispatch split, the owned option-application split, the owned content extraction split, the inline markdown assertion split, the markdown fixture route split, the get CLI validation test split, the AgetExtractor option validation split, and the Aget API support helper split. |
 
 ## Current Open Migration Gaps
 
