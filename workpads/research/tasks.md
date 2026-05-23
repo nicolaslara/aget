@@ -3635,6 +3635,21 @@ Status note:
 
 - Completed with D377. `src/browser_cdp/tests/chrome/cdp_client/attached_page/capture.rs` is now a 3-line router at `capture/mod.rs`, with current URL/HTML capture coverage in `capture/basic.rs`, image-readiness timeout-boundary coverage in `capture/images.rs`, and runtime-evaluation exception coverage in `capture/runtime_error.rs`. Test names, mock CDP sequencing, and assertions are preserved. `workpads/research/tasks.md` was not compacted. Focused attached-page CDP coverage, line-count checks, `cargo fmt --check`, `git diff --check`, and full `cargo test` passed.
 
+### ✅ Task I19gzc: Split markdown normalization helpers
+
+Acceptance criteria:
+
+- Preserve current markdown rendering behavior while reducing `src/extraction/markdown/normalize.rs`.
+- Keep document wrapping/single-line-break behavior, markdown escaping behavior, and URL/link target helpers in separate readable boundaries.
+- Preserve existing `super::normalize::*` call paths used by markdown renderer modules.
+- Do not compact `workpads/research/tasks.md`.
+- Record the split in compact knowledge routing.
+- Verify with focused markdown coverage, line-count checks, and the standard check set.
+
+Status note:
+
+- Completed with D378. `src/extraction/markdown/normalize.rs` is now a module directory: `normalize/mod.rs` keeps document/inline normalization, Unicode-snob replacements, punctuation spacing, and trailing whitespace helpers; `normalize/wrap.rs` owns body-width wrapping and single-line-break application; `normalize/escape.rs` owns Markdown/link/table escaping; and `normalize/url.rs` owns absolute URL checks plus base-URL target resolution. Existing `super::normalize::*` imports are preserved, and `workpads/research/tasks.md` was not compacted. Focused markdown parity coverage, line-count checks, `cargo fmt --check`, `git diff --check`, and full `cargo test` passed.
+
 ### ✅ Task I20: Design OAuth-safe browser login and profile import flow
 
 Acceptance criteria:
