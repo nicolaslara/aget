@@ -3620,6 +3620,21 @@ Status note:
 
 - Completed with D376. `src/extraction/owned/page.rs` became `src/extraction/owned/page/mod.rs`, with cleaned HTML extraction and output shaping in `page/html.rs`, local raw/file browser-routing helpers plus their tests in `page/local_input.rs`, and existing readiness/rendered helpers kept as sibling modules. The orchestration route is now 123 lines, with child modules at 176, 157, 85, and 78 lines. Behavior and internal caller paths are preserved, and `workpads/research/tasks.md` was not compacted. Focused local-input tests, line-count checks, `cargo fmt --check`, `git diff --check`, and full `cargo test` passed.
 
+### ✅ Task I19gzb: Split attached-page capture CDP tests
+
+Acceptance criteria:
+
+- Preserve current attached-page capture test behavior and assertions.
+- Split `src/browser_cdp/tests/chrome/cdp_client/attached_page/capture.rs` into smaller behavior-focused child modules.
+- Keep the existing parent module path available for test routing.
+- Do not compact `workpads/research/tasks.md`.
+- Record the split in compact knowledge routing.
+- Verify with focused attached-page CDP coverage, line-count checks, and the standard check set.
+
+Status note:
+
+- Completed with D377. `src/browser_cdp/tests/chrome/cdp_client/attached_page/capture.rs` is now a 3-line router at `capture/mod.rs`, with current URL/HTML capture coverage in `capture/basic.rs`, image-readiness timeout-boundary coverage in `capture/images.rs`, and runtime-evaluation exception coverage in `capture/runtime_error.rs`. Test names, mock CDP sequencing, and assertions are preserved. `workpads/research/tasks.md` was not compacted. Focused attached-page CDP coverage, line-count checks, `cargo fmt --check`, `git diff --check`, and full `cargo test` passed.
+
 ### ✅ Task I20: Design OAuth-safe browser login and profile import flow
 
 Acceptance criteria:
