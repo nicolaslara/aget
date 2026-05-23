@@ -4035,6 +4035,34 @@ Status note:
   `cargo test --test session_cli session_login_start`, line-count checks,
   `cargo fmt --check`, `git diff --check`, and full `cargo test` passed.
 
+### ✅ Task I19gzw: Split mock backend config helpers
+
+Acceptance criteria:
+
+- Preserve current `aget_mock_backend` test-support behavior and public helper
+  call paths.
+- Split `tests/support/bin/aget_mock_backend/config.rs` into smaller
+  behavior-focused modules for config loading, expected args/environment,
+  Crawl4AI option validation, and state assertions/placeholders.
+- Keep `config::{read_config, assert_expected_args,
+  assert_expected_environment, assert_expected_state, read_state,
+  expand_state_placeholders}` usable by the mock backend binary.
+- Do not compact `workpads/research/tasks.md`.
+- Record the split in compact knowledge routing.
+- Verify with focused get CLI validation/session coverage, line-count checks,
+  and the standard check set.
+
+Status note:
+
+- Completed with D398. `tests/support/bin/aget_mock_backend/config.rs` became a
+  compact `tests/support/bin/aget_mock_backend/config/mod.rs` route. Focused
+  modules under `config/` now own expected args/environment checks, Crawl4AI
+  option validation, and state assertions/placeholders while preserving the
+  mock backend binary's `config::...` helper surface. `workpads/research/tasks.md`
+  was not compacted. Focused `cargo test --test get_cli validation`,
+  `cargo test --test get_cli session::replay`, line-count checks,
+  `cargo fmt --check`, `git diff --check`, and full `cargo test` passed.
+
 ### ✅ Task I20: Design OAuth-safe browser login and profile import flow
 
 Acceptance criteria:

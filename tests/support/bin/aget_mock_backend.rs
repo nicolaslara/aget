@@ -7,7 +7,7 @@ use std::time::Duration;
 mod args;
 #[path = "aget_mock_backend/behavior.rs"]
 mod behavior;
-#[path = "aget_mock_backend/config.rs"]
+#[path = "aget_mock_backend/config/mod.rs"]
 mod config;
 #[path = "aget_mock_backend/http.rs"]
 mod http;
