@@ -4386,6 +4386,34 @@ Status note:
   Focused redaction and session fallback artifact coverage, line-count checks,
   `cargo fmt --check`, `git diff --check`, and full `cargo test` passed.
 
+### ✅ Task I19gzzj: Split browser CDP navigation helpers
+
+Acceptance criteria:
+
+- Preserve CDP navigation behavior for normal page navigation, blank-response
+  storage navigation, same-document navigation, lifecycle wait timeouts,
+  network-idle tracking, and `Page.navigate` error reporting.
+- Split `src/browser_cdp/client/navigation.rs` into a compact route module plus
+  focused helpers for blank-response navigation, lifecycle waits, and
+  network-idle waits.
+- Preserve existing `CdpClient` method names used by render, login, state, and
+  real-Chrome smoke paths.
+- Do not compact `workpads/research/tasks.md`.
+- Record the split in compact knowledge routing.
+- Verify with focused browser CDP navigation coverage, line-count checks, and
+  the standard check set.
+
+Status note:
+
+- Completed with D411. `src/browser_cdp/client/navigation.rs` became a compact
+  `src/browser_cdp/client/navigation/mod.rs` route. Focused modules now own
+  blank-response navigation for storage-state loading, lifecycle event waits,
+  and network-idle request tracking. Existing `CdpClient` method names used by
+  render, login, state, and real-Chrome smoke paths are preserved.
+  `workpads/research/tasks.md` was not compacted. Focused browser CDP
+  navigation coverage, line-count checks, `cargo fmt --check`,
+  `git diff --check`, and full `cargo test` passed.
+
 ### ✅ Task I20: Design OAuth-safe browser login and profile import flow
 
 Acceptance criteria:
