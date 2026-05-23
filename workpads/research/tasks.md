@@ -4414,6 +4414,32 @@ Status note:
   navigation coverage, line-count checks, `cargo fmt --check`,
   `git diff --check`, and full `cargo test` passed.
 
+### ✅ Task I19gzzk: Split markdown dispatch Google Docs helpers
+
+Acceptance criteria:
+
+- Preserve markdown rendering behavior for generic tag dispatch, preserved
+  tags, only-text rendering, emphasis/quotes/sup-sub handling, Google Docs
+  styled inline spans, and Google Docs ordered/unordered list detection.
+- Split `src/extraction/markdown/dispatch.rs` into a compact route module plus
+  focused Google Docs helper module.
+- Preserve existing `render_node` and `render_children` imports used by
+  markdown block/inline/table helpers.
+- Do not compact `workpads/research/tasks.md`.
+- Record the split in compact knowledge routing.
+- Verify with focused markdown coverage, line-count checks, and the standard
+  check set.
+
+Status note:
+
+- Completed with D412. `src/extraction/markdown/dispatch.rs` became a compact
+  `src/extraction/markdown/dispatch/mod.rs` route. Google Docs-specific styled
+  inline rendering and list-style ordered/unordered detection now live in
+  `dispatch/google_doc.rs`, while `render_node` and `render_children` imports
+  used by block/inline/table helpers remain stable. `workpads/research/tasks.md`
+  was not compacted. Focused markdown parity coverage, line-count checks,
+  `cargo fmt --check`, `git diff --check`, and full `cargo test` passed.
+
 ### ✅ Task I20: Design OAuth-safe browser login and profile import flow
 
 Acceptance criteria:
