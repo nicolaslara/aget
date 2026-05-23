@@ -1,4 +1,4 @@
-#[path = "session/fallback.rs"]
+#[path = "session/fallback/mod.rs"]
 mod fallback;
 #[path = "session/real_smoke.rs"]
 mod real_smoke;

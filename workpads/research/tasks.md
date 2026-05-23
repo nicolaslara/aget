@@ -3961,6 +3961,30 @@ Status note:
   `cargo test --test get_cli replay`, line-count checks, `cargo fmt --check`,
   `git diff --check`, and full `cargo test` passed.
 
+### ✅ Task I19gzt: Split get CLI session fallback tests
+
+Acceptance criteria:
+
+- Preserve current get CLI session fallback coverage and assertion behavior.
+- Split `tests/get_cli/session/fallback.rs` into smaller behavior-focused test
+  modules.
+- Keep `fallback` as the call path used by `tests/get_cli/session.rs`.
+- Do not compact `workpads/research/tasks.md`.
+- Record the split in compact knowledge routing.
+- Verify with focused get CLI session fallback coverage, line-count checks, and
+  the standard check set.
+
+Status note:
+
+- Completed with D395. `tests/get_cli/session/fallback.rs` became a compact
+  `tests/get_cli/session/fallback/mod.rs` route. Focused modules under
+  `fallback/` now own session-backed redaction, successful agent-browser
+  fallback with composed state, unauthenticated no-fallback behavior, and
+  close-failure preservation of the original sanitized Crawl4AI error.
+  `workpads/research/tasks.md` was not compacted. Focused
+  `cargo test --test get_cli fallback`, line-count checks,
+  `cargo fmt --check`, `git diff --check`, and full `cargo test` passed.
+
 ### ✅ Task I20: Design OAuth-safe browser login and profile import flow
 
 Acceptance criteria:
