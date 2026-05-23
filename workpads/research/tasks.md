@@ -4167,6 +4167,34 @@ Status note:
   line-count checks, `cargo fmt --check`, `git diff --check`, and full
   `cargo test` passed.
 
+### ✅ Task I19gzzb: Split browser CDP discovery helpers
+
+Acceptance criteria:
+
+- Preserve current owned CDP discovery, DevToolsActivePort, existing-profile
+  attach, and profile-shutdown behavior.
+- Split `src/browser_cdp/discovery.rs` into smaller behavior-focused modules
+  for active-port startup waiting/parsing, `/json/*` and direct WebSocket
+  endpoint discovery, and existing-profile attach/shutdown cleanup.
+- Keep existing `browser_cdp::discovery::{...}` helper paths usable by
+  Chrome-process code, current-tab code, and discovery tests.
+- Do not compact `workpads/research/tasks.md`.
+- Record the split in compact knowledge routing.
+- Verify with focused discovery coverage, line-count checks, and the standard
+  check set.
+
+Status note:
+
+- Completed with D403. `src/browser_cdp/discovery.rs` became a compact
+  `discovery/mod.rs` route. Focused modules now own DevToolsActivePort startup
+  waiting/parsing, `/json/*` and direct WebSocket endpoint discovery, and
+  existing-profile attach/shutdown cleanup while preserving existing
+  `browser_cdp::discovery::{...}` helper paths. `workpads/research/tasks.md`
+  was not compacted. Focused `cargo test --lib browser_cdp::tests::discovery`,
+  `cargo test --lib browser_cdp::tests::chrome::chrome_process`, line-count
+  checks, `cargo fmt --check`, `git diff --check`, and full `cargo test`
+  passed.
+
 ### ✅ Task I20: Design OAuth-safe browser login and profile import flow
 
 Acceptance criteria:

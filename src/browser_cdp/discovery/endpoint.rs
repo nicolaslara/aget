@@ -1,110 +1,10 @@
-mod diagnostics;
-
-use std::fs;
-use std::net::TcpStream;
-use std::path::Path;
-use std::process::Child;
-use std::thread;
-use std::time::{Duration, Instant};
+use std::time::Duration;
 
 use serde_json::Value;
 use url::Url;
 
+use crate::browser_cdp::client::CdpClient;
 use crate::error::{AgetError, ErrorCode};
-use crate::process::TempOutputFile;
-
-use super::client::CdpClient;
-pub(super) use diagnostics::classify_chrome_startup_error;
-use diagnostics::devtools_ws_url_from_chrome_stderr;
-#[cfg(test)]
-pub(super) use diagnostics::{devtools_ws_url_from_stderr, relevant_chrome_stderr};
-
-pub(super) fn wait_for_devtools_active_port(
-    child: &mut Child,
-    user_data_dir: &Path,
-    stderr_capture: &TempOutputFile,
-    timeout: Duration,
-) -> Result<String, AgetError> {
-    let deadline = Instant::now() + timeout;
-    while Instant::now() < deadline {
-        if let Ok(Some(status)) = child.try_wait() {
-            let exit_code = status
-                .code()
-                .map(|code| code.to_string())
-                .unwrap_or_else(|| "unknown".to_string());
-            return Err(AgetError::Stable {
-                code: ErrorCode::BackendUnavailable,
-                message: format!(
-                    "owned browser fallback Chrome exited early (exit code: {exit_code}) without writing DevToolsActivePort"
-                ),
-            });
-        }
-        if let Some((port, path)) = read_devtools_active_port(user_data_dir) {
-            return Ok(format!("ws://127.0.0.1:{port}{path}"));
-        }
-        if let Some(ws_url) = devtools_ws_url_from_chrome_stderr(stderr_capture) {
-            return Ok(ws_url);
-        }
-        thread::sleep(Duration::from_millis(50));
-    }
-    Err(AgetError::Stable {
-        code: ErrorCode::Timeout,
-        message: "owned browser fallback timed out waiting for Chrome CDP startup".to_string(),
-    })
-}
-
-pub(super) fn read_devtools_active_port(user_data_dir: &Path) -> Option<(u16, String)> {
-    let content = fs::read_to_string(user_data_dir.join("DevToolsActivePort")).ok()?;
-    let mut lines = content.lines();
-    let port = lines.next()?.trim().parse::<u16>().ok()?;
-    let path = lines
-        .next()
-        .unwrap_or("/devtools/browser")
-        .trim()
-        .to_string();
-    Some((port, path))
-}
-
-pub(super) fn connect_existing_profile_browser(
-    profile_dir: &Path,
-    timeout: Duration,
-) -> Result<Option<CdpClient>, AgetError> {
-    let Some((port, path)) = read_devtools_active_port(profile_dir) else {
-        return Ok(None);
-    };
-    let ws_url = format!("ws://127.0.0.1:{port}{path}");
-    match CdpClient::connect(&ws_url, timeout) {
-        Ok(client) => Ok(Some(client)),
-        Err(AgetError::Stable {
-            code: ErrorCode::BackendUnavailable,
-            ..
-        }) => {
-            let discovered_ws_url = match discover_cdp_ws_url(port, timeout) {
-                Ok(ws_url) => ws_url,
-                Err(_) => {
-                    remove_stale_devtools_active_port(profile_dir);
-                    return Ok(None);
-                }
-            };
-            match CdpClient::connect(&discovered_ws_url, timeout) {
-                Ok(client) => Ok(Some(client)),
-                Err(AgetError::Stable {
-                    code: ErrorCode::BackendUnavailable,
-                    ..
-                }) => {
-                    remove_stale_devtools_active_port(profile_dir);
-                    Ok(None)
-                }
-                Err(error) => Err(error),
-            }
-        }
-        Err(error) => Err(error),
-    }
-}
-
-fn remove_stale_devtools_active_port(profile_dir: &Path) {
-    let _ = fs::remove_file(profile_dir.join("DevToolsActivePort"));
-}
 
 pub(crate) fn discover_cdp_ws_url(port: u16, timeout: Duration) -> Result<String, AgetError> {
     let config = ureq::Agent::config_builder()
@@ -226,7 +126,7 @@ fn discover_cdp_ws_url_from_direct_ws(port: u16, timeout: Duration) -> Result<St
     Ok(ws_url)
 }
 
-pub(super) fn rewrite_cdp_ws_host(ws_url: &str, port: u16) -> Option<String> {
+pub(in crate::browser_cdp) fn rewrite_cdp_ws_host(ws_url: &str, port: u16) -> Option<String> {
     let mut url = Url::parse(ws_url).ok()?;
     match url.scheme() {
         "ws" | "wss" => {}
@@ -241,18 +141,5 @@ fn cdp_discovery_error(error: ureq::Error) -> AgetError {
     AgetError::Stable {
         code: ErrorCode::BackendUnavailable,
         message: format!("owned browser CDP discovery failed: {error}"),
-    }
-}
-
-pub(super) fn wait_for_profile_browser_shutdown(profile_dir: &Path, timeout: Duration) {
-    let deadline = Instant::now() + timeout;
-    while Instant::now() < deadline {
-        let Some((port, _)) = read_devtools_active_port(profile_dir) else {
-            return;
-        };
-        if TcpStream::connect(("127.0.0.1", port)).is_err() {
-            return;
-        }
-        thread::sleep(Duration::from_millis(50));
     }
 }
