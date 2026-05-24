@@ -1,7 +1,7 @@
 use assert_cmd::Command;
 use predicates::prelude::*;
 
-use super::support::{local_server, mock_backend_command};
+use super::support::local_server;
 
 #[test]
 fn top_level_url_runs_get_command() {
@@ -10,7 +10,6 @@ fn top_level_url_runs_get_command() {
     let mut cmd = Command::cargo_bin("aget").unwrap();
 
     cmd.env("AGET_HOME", temp.path().join("aget-home"))
-        .env("AGET_CRAWL4AI_COMMAND", mock_backend_command())
         .arg(url)
         .assert()
         .success()
@@ -26,7 +25,6 @@ fn top_level_url_alias_preserves_get_output_flags() {
 
     let output = cmd
         .env("AGET_HOME", temp.path().join("aget-home"))
-        .env("AGET_CRAWL4AI_COMMAND", mock_backend_command())
         .args(["--envelope", "json", &url, "--content-format", "html"])
         .assert()
         .success()
@@ -38,7 +36,7 @@ fn top_level_url_alias_preserves_get_output_flags() {
     assert_eq!(json["ok"], true);
     assert_eq!(json["command"], "get");
     assert_eq!(json["data"]["content_format"], "html");
-    assert_eq!(json["data"]["content"], "<main>Example</main>");
+    assert_eq!(json["data"]["content"], "<body><main>Example</main></body>");
     server.join().unwrap();
 }
 
@@ -50,7 +48,6 @@ fn envelope_global_flag_emits_structured_output() {
 
     let output = cmd
         .env("AGET_HOME", temp.path().join("aget-home"))
-        .env("AGET_CRAWL4AI_COMMAND", mock_backend_command())
         .args(["--envelope", "json", "get", &url])
         .assert()
         .success()

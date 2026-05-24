@@ -10,7 +10,7 @@ pub(super) fn assert_automatic_links_option(aget_home: &Path, site: &MockSite) {
         aget_home,
         site,
         "/markdown-links",
-        &[("crawl4ai.use_automatic_links", "false")],
+        &[("aget.use_automatic_links", "false")],
     );
     assert!(markdown_disable_automatic_links.contains(
         "Canonical [https://example.com/docs](https://example.com/docs \"Docs title\")."
@@ -23,7 +23,7 @@ pub(super) fn assert_link_options(aget_home: &Path, site: &MockSite, urls: &Link
         aget_home,
         site,
         "/markdown-links",
-        &[("crawl4ai.ignore_links", "true")],
+        &[("aget.ignore_links", "true")],
     );
     assert!(markdown_ignore_links.contains("## Linked Heading"));
     assert!(markdown_ignore_links.contains("Read the guide or email support."));
@@ -37,7 +37,7 @@ pub(super) fn assert_link_options(aget_home: &Path, site: &MockSite, urls: &Link
         aget_home,
         site,
         "/markdown-links",
-        &[("crawl4ai.ignore_anchors", "true")],
+        &[("aget.ignore_anchors", "true")],
     );
     assert!(markdown_ignore_anchors.contains("## Linked Heading"));
     assert!(markdown_ignore_anchors.contains("Read the guide or email support."));
@@ -51,7 +51,7 @@ pub(super) fn assert_link_options(aget_home: &Path, site: &MockSite, urls: &Link
         aget_home,
         site,
         "/markdown-links",
-        &[("crawl4ai.ignore_mailto_links", "false")],
+        &[("aget.ignore_mailto_links", "false")],
     );
     assert!(markdown_include_mailto_links.contains("Read [the guide]("));
     assert!(markdown_include_mailto_links.contains("[email support](mailto:help@example.com)."));
@@ -60,7 +60,7 @@ pub(super) fn assert_link_options(aget_home: &Path, site: &MockSite, urls: &Link
         aget_home,
         site,
         "/markdown-links",
-        &[("crawl4ai.protect_links", "true")],
+        &[("aget.protect_links", "true")],
     );
     assert!(markdown_protect_links.contains(&format!(
         "## [Linked Heading](<{}> \"Heading title\")",
@@ -85,7 +85,7 @@ pub(super) fn assert_link_options(aget_home: &Path, site: &MockSite, urls: &Link
         aget_home,
         site,
         "/markdown-links",
-        &[("crawl4ai.skip_internal_links", "true")],
+        &[("aget.skip_internal_links", "true")],
     );
     assert!(markdown_skip_internal_links.contains("Jump within page."));
     assert!(!markdown_skip_internal_links.contains("/markdown-links#details"));

@@ -2,7 +2,7 @@ use super::chrome_launch_command;
 use crate::process::create_private_file;
 
 #[test]
-fn chrome_launch_args_include_agent_browser_stability_flags() {
+fn chrome_launch_args_include_stability_flags() {
     let temp = tempfile::tempdir().unwrap();
     let stderr = create_private_file(&temp.path().join("stderr.txt")).unwrap();
     let command = chrome_launch_command(

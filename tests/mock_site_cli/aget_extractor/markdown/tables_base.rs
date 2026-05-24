@@ -19,7 +19,7 @@ pub(super) fn assert_tables_and_base_links(aget_home: &Path, site: &MockSite) {
         aget_home,
         site,
         "/markdown",
-        &[("crawl4ai.ignore_tables", "true")],
+        &[("aget.ignore_tables", "true")],
     );
     assert_eq!(
         markdown_ignore_tables,
@@ -34,7 +34,7 @@ pub(super) fn assert_tables_and_base_links(aget_home: &Path, site: &MockSite) {
         aget_home,
         site,
         "/markdown",
-        &[("crawl4ai.bypass_tables", "true")],
+        &[("aget.bypass_tables", "true")],
     );
     assert_eq!(
         markdown_bypass_tables,

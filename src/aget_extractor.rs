@@ -3,9 +3,7 @@ use crate::extraction::{
     run_owned_extractor_backend, ExtractorBackendResult, ExtractorRequest, OWNED_EXTRACTOR,
 };
 
-/// Local extraction engine for the Crawl4AI-like URL-to-content behavior that
-/// `aget` now owns. The methods currently delegate to the migrated extraction
-/// slices while the engine boundary is introduced mechanically.
+/// Local extraction engine for URL-to-content behavior.
 #[derive(Clone, Debug, Default)]
 pub struct AgetExtractor;
 
@@ -134,7 +132,7 @@ mod tests {
             wait_for_selector: None,
             max_chars: None,
             backend_options: vec![ExtractorOption {
-                key: "crawl4ai.target_elements".to_string(),
+                key: "aget.target_elements".to_string(),
                 value: "h1,p".to_string(),
             }],
         };

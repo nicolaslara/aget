@@ -5,7 +5,7 @@ use scraper::Html;
 
 use crate::error::AgetError;
 
-use self::domains::crawl4ai_like_domain_from_option;
+use self::domains::aget_like_domain_from_option;
 use self::elements::{
     remove_excluded_domain_url_elements, remove_external_url_elements, remove_internal_url_elements,
 };
@@ -42,7 +42,7 @@ pub(in crate::extraction) fn remove_owned_excluded_domain_urls(
     }
     let excluded_domains = excluded_domains
         .iter()
-        .filter_map(|domain| crawl4ai_like_domain_from_option(domain))
+        .filter_map(|domain| aget_like_domain_from_option(domain))
         .collect::<Vec<_>>();
     if excluded_domains.is_empty() {
         return Ok(document);

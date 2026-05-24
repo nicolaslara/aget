@@ -1,6 +1,4 @@
-use std::path::{Path, PathBuf};
-use std::process::Command as StdCommand;
-use std::sync::OnceLock;
+use std::path::Path;
 
 use aget::extraction::{ExtractorBackend, ExtractorBackendResult, ExtractorRequest};
 use aget::{
@@ -9,55 +7,8 @@ use aget::{
 
 use super::mock_site::{MockResponse, MockSite};
 
-fn shell_quote(value: &str) -> String {
-    format!("'{}'", value.replace('\'', "'\\''"))
-}
-
-pub(crate) fn mock_backend_command() -> String {
-    shell_quote(&mock_tool_path("aget-mock-backend").to_string_lossy())
-}
-
-pub(crate) fn mock_agent_browser_command() -> PathBuf {
-    mock_tool_path("aget-mock-agent-browser")
-}
-
-fn mock_tool_path(name: &str) -> PathBuf {
-    let tools = MOCK_TOOLS.get_or_init(build_mock_tools);
-    let binary = if cfg!(windows) {
-        format!("{name}.exe")
-    } else {
-        name.to_string()
-    };
-    tools.target_dir.join("debug").join(binary)
-}
-
-struct MockTools {
-    target_dir: PathBuf,
-}
-
-static MOCK_TOOLS: OnceLock<MockTools> = OnceLock::new();
-
-fn build_mock_tools() -> MockTools {
-    let root = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-    let manifest = root.join("tests/fixtures/mock-tools/Cargo.toml");
-    let target_dir = root.join("target/aget-mock-tools");
-    let status = StdCommand::new("cargo")
-        .args([
-            "build",
-            "--quiet",
-            "--manifest-path",
-            manifest.to_str().unwrap(),
-            "--target-dir",
-            target_dir.to_str().unwrap(),
-        ])
-        .status()
-        .unwrap();
-    assert!(status.success(), "failed to build mocked e2e helper tools");
-    MockTools { target_dir }
-}
-
-pub(crate) fn aget(home: &Path, backend: &str) -> Aget {
-    Aget::new(home).with_backend_command(backend.to_string())
+pub(crate) fn aget(home: &Path) -> Aget {
+    Aget::new(home)
 }
 
 pub(crate) fn success_data(output: &[u8], command: &str) -> serde_json::Value {

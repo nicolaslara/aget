@@ -148,11 +148,11 @@ fn parse_backend_option(value: &str) -> Result<ExtractorOption, String> {
     if key.is_empty() {
         return Err("backend option key must not be empty".to_string());
     }
-    if !key.starts_with("crawl4ai.") {
-        return Err("backend option key must be namespaced, e.g. crawl4ai.wait_until".to_string());
+    if !key.starts_with("aget.") {
+        return Err("backend option key must be namespaced, e.g. aget.wait_until".to_string());
     }
-    if key.trim_start_matches("crawl4ai.").is_empty() {
-        return Err("backend option key must include a crawl4ai option name".to_string());
+    if key.trim_start_matches("aget.").is_empty() {
+        return Err("backend option key must include an aget option name".to_string());
     }
     Ok(ExtractorOption {
         key: key.to_string(),

@@ -12,9 +12,7 @@ use crate::session::{
     LoginFinishOptions, LoginFinishResult, LoginStartOptions, LoginStartResult, Session,
 };
 
-/// Local browser/CDP engine for the `agent-browser`-like behavior that `aget`
-/// now owns. The methods currently delegate to the migrated implementation
-/// slices while the engine boundary is introduced mechanically.
+/// Local Chrome/CDP engine for browser-backed session capture and extraction.
 #[derive(Clone, Debug, Default)]
 pub struct AgetBrowser;
 

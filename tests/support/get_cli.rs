@@ -7,23 +7,6 @@ use std::thread::{self, JoinHandle};
 use std::time::{Duration, Instant};
 
 use aget::{Session, SessionCookie, SessionOrigin, SessionStore, StorageEntry};
-use serde_json::json;
-
-#[path = "mock_tools.rs"]
-mod mock_tools;
-
-pub(crate) fn mock_agent_browser(dir: &Path, config: serde_json::Value) -> PathBuf {
-    mock_tools::mock_agent_browser(dir, config)
-}
-
-pub(crate) fn mock_backend_command(dir: &Path, config: serde_json::Value) -> String {
-    mock_tools::mock_backend_command(dir, config)
-}
-
-pub(crate) fn success_backend(dir: &Path) -> String {
-    mock_backend_command(dir, json!({"behavior": "success", "content": "# Fake"}))
-}
-
 pub(crate) fn success_envelope(output: &[u8], command: &str) -> serde_json::Value {
     let json: serde_json::Value = serde_json::from_slice(output).unwrap();
     assert_eq!(json["ok"], true);
@@ -59,7 +42,10 @@ pub(crate) fn cookie_echo_server(path: &str) -> (String, JoinHandle<()>, Receive
                     idle_after_request = Some(Instant::now() + Duration::from_secs(2));
                     let cookie = request
                         .lines()
-                        .find_map(|line| line.strip_prefix("Cookie: "))
+                        .find_map(|line| {
+                            line.strip_prefix("Cookie: ")
+                                .or_else(|| line.strip_prefix("cookie: "))
+                        })
                         .unwrap_or("none");
                     let _ = cookie_sender.send(cookie.to_string());
                     let filler = "Local cookie replay verification content. ".repeat(40);

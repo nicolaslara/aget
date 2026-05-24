@@ -3,17 +3,16 @@ use std::fs;
 use aget::OutputFormat;
 
 use crate::support::mock_site::MockSite;
-use crate::support::mock_site_cli::{aget, mock_backend_command};
+use crate::support::mock_site_cli::aget;
 
 #[test]
 fn documents_output_limits_out_file_and_warning_contract() {
     let temp = tempfile::tempdir().unwrap();
     let aget_home = temp.path().join("aget-home");
     let site = MockSite::start();
-    let fake_backend = mock_backend_command();
     let out_path = temp.path().join("agent-context.txt");
 
-    let result = aget(&aget_home, &fake_backend)
+    let result = aget(&aget_home)
         .get(site.url("/warning"))
         .content_format(OutputFormat::Text)
         .output(&out_path)
@@ -21,7 +20,7 @@ fn documents_output_limits_out_file_and_warning_contract() {
         .run()
         .unwrap();
 
-    assert_eq!(result.warnings, vec!["mock warning"]);
+    assert!(result.warnings.is_empty());
     assert_eq!(result.content, "Warning Page");
     assert_eq!(result.artifacts.content, out_path.to_string_lossy());
     assert_eq!(fs::read_to_string(&out_path).unwrap(), "Warning Page\n");

@@ -3,9 +3,7 @@ use scraper::ElementRef;
 use crate::error::AgetError;
 use crate::extraction::html_clean::parse_css_selector;
 
-use super::labels::{
-    content_label_bonus, content_label_penalty, crawl4ai_like_class_id_noise_penalty,
-};
+use super::labels::{aget_like_class_id_noise_penalty, content_label_bonus, content_label_penalty};
 use super::text::{normalize_text_pieces, word_count};
 
 pub(in crate::extraction::owned::content::main_content) fn score_main_content_candidate(
@@ -33,11 +31,11 @@ pub(in crate::extraction::owned::content::main_content) fn score_main_content_ca
     };
     let positive_label_bonus = content_label_bonus(element) as i64;
     let label_penalty = content_label_penalty(element) as i64;
-    let class_id_noise_penalty = crawl4ai_like_class_id_noise_penalty(element) as i64;
-    let pruning_score = crawl4ai_like_pruning_score(element, &link_selector);
+    let class_id_noise_penalty = aget_like_class_id_noise_penalty(element) as i64;
+    let pruning_score = aget_like_pruning_score(element, &link_selector);
     if matches!(element.value().name(), "div" | "section")
         && positive_label_bonus == 0
-        && !is_crawl4ai_dense_generic_candidate(element, pruning_score)?
+        && !is_aget_dense_generic_candidate(element, pruning_score)?
     {
         return Ok(0);
     }
@@ -49,7 +47,7 @@ pub(in crate::extraction::owned::content::main_content) fn score_main_content_ca
     )
 }
 
-fn is_crawl4ai_dense_generic_candidate(
+fn is_aget_dense_generic_candidate(
     element: ElementRef<'_>,
     pruning_score: i64,
 ) -> Result<bool, AgetError> {
@@ -71,7 +69,7 @@ fn contains_descendant_positive_content_container(
         .any(|descendant| descendant.id() != element.id() && content_label_bonus(descendant) > 0))
 }
 
-fn crawl4ai_like_pruning_score(element: ElementRef<'_>, link_selector: &scraper::Selector) -> i64 {
+fn aget_like_pruning_score(element: ElementRef<'_>, link_selector: &scraper::Selector) -> i64 {
     let text_len = normalize_text_pieces(element.text()).chars().count();
     if text_len == 0 {
         return 0;

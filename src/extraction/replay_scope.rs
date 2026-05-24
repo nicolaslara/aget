@@ -1,5 +1,5 @@
 use crate::error::{AgetError, ErrorCode};
-use crate::session::agent_browser::origin_host;
+use crate::session::browser_state::origin_host;
 use crate::session::Session;
 
 pub(super) fn enforce_replay_scope(url: &str, sessions: &[Session]) -> Result<(), AgetError> {

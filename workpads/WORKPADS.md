@@ -6,33 +6,42 @@ Source of truth for active projects.
 
 | Project | Status | Description |
 | --- | --- | --- |
-| `research` | 🔨 Active | Background research and technical direction for local auth-aware agent web fetching. |
+| `post-migration` | 🔨 Active | CLI-first productization after the owned-backend migration. |
+| `research` | 📚 Historical | Archived research, migration history, and source-reference evidence. |
 
 ## Project Context
 
-### research
+### post-migration
 
 Load:
 
 ```text
 project.md
 WORKING.md
+workpads/post-migration/tasks.md
+workpads/post-migration/knowledge.md
+workpads/post-migration/references.md
+```
+
+Quick nav:
+
+- `workpads/post-migration/tasks.md` §Phase 1 for documentation and source-of-truth cleanup
+- `workpads/post-migration/tasks.md` §Phase 2 for historical dependency-surface removal
+- `workpads/post-migration/tasks.md` §Phase 3 for upstream-inspired parity coverage
+- `workpads/post-migration/tasks.md` §Phase 4 for diagnostics, release, artifacts, and bounded crawl/map/batch CLI work
+
+### research
+
+Load only when older design evidence, migration history, or source-project
+research is needed:
+
+```text
 workpads/research/tasks.md
 workpads/research/knowledge.md
 workpads/research/references.md
 ```
 
-Quick nav:
-
-- `project.md` §Features To Preserve From curl.md
-- `project.md` §Features To Preserve From Firecrawl
-- `project.md` §New Local/Auth Requirements
-- `project.md` §Rust Research Areas
-- `workpads/research/tasks.md` §Phase 1 for source-project research
-- `workpads/research/tasks.md` §Phase 2 for local browser/auth research
-- `workpads/research/tasks.md` §Phase 3 for Rust feasibility
-
-Reference repos to clone on demand:
+Historical reference repos:
 
 ```bash
 mkdir -p references/repos
@@ -42,6 +51,7 @@ git clone https://github.com/firecrawl/firecrawl.git references/repos/firecrawl
 
 Rules:
 
-- Do not begin implementation until research tasks identify a minimal architecture.
-- Record primary-source links in `references.md`.
-- Record decisions, risks, and rejected alternatives in `knowledge.md`.
+- Treat `post-migration` as the executable source of truth.
+- Keep `aget` CLI-first; MCP is out of scope.
+- Record primary-source links and source snapshots in the active `references.md`.
+- Record decisions, risks, and rejected alternatives in the active `knowledge.md`.

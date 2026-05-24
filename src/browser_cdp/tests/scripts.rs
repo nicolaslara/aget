@@ -84,7 +84,7 @@ fn full_page_scan_expression_uses_bounded_viewport_scrolls() {
 }
 
 #[test]
-fn rendered_overlay_cleanup_expression_uses_generic_crawl4ai_rules() {
+fn rendered_overlay_cleanup_expression_uses_generic_aget_rules() {
     let expression = rendered_overlay_cleanup_expression();
 
     assert!(expression.contains("cookie-banner"));

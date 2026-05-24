@@ -122,13 +122,20 @@ Acceptance criteria:
 - Define tools and command names.
 - Decide whether the plugin should call CLI, run a local server, or embed logic.
 
-### 📋 Task R11: Research MCP compatibility
+### 🚫 Task R11: Research MCP compatibility
 
 Acceptance criteria:
 
 - Determine whether `aget` should expose an MCP server.
 - Sketch tool schemas for fetch/current-tab/map/crawl/status.
 - Record compatibility implications for Claude, Cursor, OpenCode, and other agents.
+
+Status note:
+
+- Closed as out of scope after the owned-backend migration. `aget` is a CLI
+  tool; future integration work should keep the Rust CLI and structured envelope
+  as the product surface. Do not add MCP work unless the user explicitly reverses
+  this project direction.
 
 ## Phase 5: Architecture Proposal
 
@@ -4899,20 +4906,25 @@ aget get <url> \
 
 Acceptance criteria:
 
-- Inventory the practical integration surfaces for Cursor, Claude, Codex, and other likely agent hosts, distinguishing native custom tools, MCP tools, shell/CLI wrappers, project skills, slash commands, and documentation-only guidance.
-- Decide which integrations should be first-class in this repo versus deferred to MCP or external packages.
+- Inventory the practical integration surfaces for Cursor, Claude, Codex, and other likely agent hosts, distinguishing native custom tools, shell/CLI wrappers, project skills, slash commands, and documentation-only guidance.
+- Keep MCP out of scope. `aget` is a CLI tool, and integrations should call the CLI/envelope directly unless the user explicitly changes direction.
 - For each recommended first-class integration, define the tool names, schemas, install/setup steps, and privacy warnings.
 - Preserve the Rust CLI and structured envelope as the behavior source of truth unless a host integration has a strong reason to call a server/API directly.
 - Ensure any authenticated/session-backed integration keeps explicit session selection and does not read ambient browser auth by default.
-- Document unsupported hosts and the recommended fallback path, such as using the CLI directly or waiting for MCP support.
+- Document unsupported hosts and the recommended fallback path, such as using the CLI directly.
 
 ### 📋 Task I13: Review default fetch replacement and signature compatibility
 
 Acceptance criteria:
 
 - Evaluate whether `aget` should replace default fetch/webfetch tools in OpenCode or other agent hosts, remain an explicit `aget_fetch` tool, or support both modes.
-- Compare existing fetch/webfetch signatures across OpenCode, Cursor, Claude/MCP conventions, Codex-style agent environments, and curl.md's OpenCode plugin where primary docs are available.
+- Compare existing fetch/webfetch signatures across OpenCode, Cursor, Codex-style agent environments, and curl.md's OpenCode plugin where primary docs are available.
 - Decide whether `aget_fetch` should use a host-compatible signature, an aget-specific signature, or a compatibility wrapper that maps default fetch arguments onto `aget get`.
 - Record privacy and product risks of transparent replacement, especially for authenticated content, inline `data.content`, local artifact paths, session selection, and consent boundaries.
 - If replacement is recommended, define the minimal safe behavior: unauthenticated default, explicit `sessions`, content limits, error shape, and whether sensitive output should default to path-only or bounded inline content.
 - Update README/agent guidance with the chosen recommendation before implementing a replacement tool name such as `webfetch`.
+
+## Post-Migration Work
+
+Post-migration CLI productization moved to the active workpad:
+`workpads/post-migration/tasks.md`.

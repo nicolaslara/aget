@@ -4,16 +4,15 @@ use std::path::PathBuf;
 use aget::OutputFormat;
 
 use crate::support::mock_site::MockSite;
-use crate::support::mock_site_cli::{aget, mock_backend_command};
+use crate::support::mock_site_cli::aget;
 
 #[test]
 fn documents_public_get_json_contract_for_agents() {
     let temp = tempfile::tempdir().unwrap();
     let aget_home = temp.path().join("aget-home");
     let site = MockSite::start();
-    let fake_backend = mock_backend_command();
 
-    let result = aget(&aget_home, &fake_backend)
+    let result = aget(&aget_home)
         .get(site.url("/public"))
         .content_format(OutputFormat::Text)
         .selector("main")
@@ -24,8 +23,8 @@ fn documents_public_get_json_contract_for_agents() {
     assert_eq!(result.url, site.url("/public"));
     assert_eq!(result.final_url, site.url("/public"));
     assert_eq!(result.content_format, "text");
-    assert_eq!(result.extractor, "crawl4ai");
-    assert_eq!(result.content, "Public Main Visible public article.");
+    assert_eq!(result.extractor, "aget-owned-extractor");
+    assert_eq!(result.content, "Public Main\nVisible public article.");
     assert!(result.sessions.is_empty());
     assert!(!result.sensitive);
     assert!(result.warnings.is_empty());
@@ -46,7 +45,7 @@ fn documents_public_get_json_contract_for_agents() {
     assert!(metadata_path.starts_with(aget_home.join("runs")));
     assert_eq!(
         fs::read_to_string(content_path).unwrap(),
-        "Public Main Visible public article.\n"
+        "Public Main\nVisible public article.\n"
     );
 
     let metadata: serde_json::Value =

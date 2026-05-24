@@ -5,16 +5,13 @@ use crate::support::mock_site::MockSite;
 use super::support::html_cleanup;
 
 pub(super) fn assert_image_cleanup_options(aget_home: &Path, site: &MockSite) {
-    let no_images = html_cleanup(aget_home, site, &[("crawl4ai.exclude_all_images", "true")]);
+    let no_images = html_cleanup(aget_home, site, &[("aget.exclude_all_images", "true")]);
     assert!(!no_images.contains("<img"));
     assert!(!no_images.contains("diagram.png"));
     assert!(!no_images.contains("Inline image"));
 
-    let no_external_images = html_cleanup(
-        aget_home,
-        site,
-        &[("crawl4ai.exclude_external_images", "true")],
-    );
+    let no_external_images =
+        html_cleanup(aget_home, site, &[("aget.exclude_external_images", "true")]);
     assert!(no_external_images.contains("href=\"/kept\""));
     assert!(no_external_images.contains("href=\"https://external.example/out\""));
     assert!(no_external_images.contains("id=\"social-link\""));

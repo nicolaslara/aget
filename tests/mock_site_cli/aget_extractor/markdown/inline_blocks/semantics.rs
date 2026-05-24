@@ -18,7 +18,7 @@ pub(super) fn assert_semantic_inline_blocks(aget_home: &Path, site: &MockSite) {
         aget_home,
         site,
         "/markdown-inline-blocks",
-        &[("crawl4ai.include_sup_sub", "true")],
+        &[("aget.include_sup_sub", "true")],
     );
     assert!(markdown_include_sup_sub.contains("power <sup>2</sup>, and water <sub>2</sub>."));
 
@@ -26,7 +26,7 @@ pub(super) fn assert_semantic_inline_blocks(aget_home: &Path, site: &MockSite) {
         aget_home,
         site,
         "/markdown-inline-blocks",
-        &[("crawl4ai.ignore_emphasis", "true")],
+        &[("aget.ignore_emphasis", "true")],
     );
     assert!(markdown_ignore_emphasis
         .contains("Status: ~~removed~~, soft, under, `Cmd K`, `TTY`, \"quoted\""));
@@ -40,7 +40,7 @@ pub(super) fn assert_semantic_inline_blocks(aget_home: &Path, site: &MockSite) {
         aget_home,
         site,
         "/markdown-inline-blocks",
-        &[("crawl4ai.hide_strikethrough", "true")],
+        &[("aget.hide_strikethrough", "true")],
     );
     assert!(markdown_hide_strikethrough.contains("Status: ~~removed~~, _soft_, _under_"));
     assert!(!markdown_hide_strikethrough.contains("Styled removed text."));
@@ -49,10 +49,7 @@ pub(super) fn assert_semantic_inline_blocks(aget_home: &Path, site: &MockSite) {
         aget_home,
         site,
         "/markdown-inline-blocks",
-        &[
-            ("crawl4ai.emphasis_mark", "*"),
-            ("crawl4ai.strong_mark", "__"),
-        ],
+        &[("aget.emphasis_mark", "*"), ("aget.strong_mark", "__")],
     );
     assert!(markdown_emphasis_markers.contains("Status: ~~removed~~, *soft*, *under*,"));
     assert!(markdown_emphasis_markers.contains("Definition with __detail__."));
@@ -63,10 +60,7 @@ pub(super) fn assert_semantic_inline_blocks(aget_home: &Path, site: &MockSite) {
         aget_home,
         site,
         "/markdown-inline-blocks",
-        &[
-            ("crawl4ai.open_quote", "<<"),
-            ("crawl4ai.close_quote", ">>"),
-        ],
+        &[("aget.open_quote", "<<"), ("aget.close_quote", ">>")],
     );
     assert!(markdown_quote_markers.contains("`Cmd K`, `TTY`, <<quoted>>, HTML"));
 }

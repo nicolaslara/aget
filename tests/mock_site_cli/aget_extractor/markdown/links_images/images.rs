@@ -10,7 +10,7 @@ pub(super) fn assert_image_options(aget_home: &Path, site: &MockSite, urls: &Lin
         aget_home,
         site,
         "/markdown-links",
-        &[("crawl4ai.ignore_images", "true")],
+        &[("aget.ignore_images", "true")],
     );
     assert!(markdown_ignore_images.contains("Asset [release notes]("));
     assert!(markdown_ignore_images.contains(&format!("Icon []({}).", site.url("/download"))));
@@ -22,7 +22,7 @@ pub(super) fn assert_image_options(aget_home: &Path, site: &MockSite, urls: &Lin
         aget_home,
         site,
         "/markdown-links",
-        &[("crawl4ai.images_to_alt", "true")],
+        &[("aget.images_to_alt", "true")],
     );
     assert!(markdown_images_to_alt.contains("Canonical <https://example.com/docs>."));
     assert!(markdown_images_to_alt.contains(&format!(
@@ -41,7 +41,7 @@ pub(super) fn assert_image_options(aget_home: &Path, site: &MockSite, urls: &Lin
         aget_home,
         site,
         "/markdown-links",
-        &[("crawl4ai.default_image_alt", "Missing alt")],
+        &[("aget.default_image_alt", "Missing alt")],
     );
     assert!(markdown_default_image_alt.contains(&format!(
         "Missing ![Missing alt]({}) and empty ![Missing alt]({}).",
@@ -54,8 +54,8 @@ pub(super) fn assert_image_options(aget_home: &Path, site: &MockSite, urls: &Lin
         site,
         "/markdown-links",
         &[
-            ("crawl4ai.default_image_alt", "Missing alt"),
-            ("crawl4ai.images_to_alt", "true"),
+            ("aget.default_image_alt", "Missing alt"),
+            ("aget.images_to_alt", "true"),
         ],
     );
     assert!(markdown_default_alt_to_alt.contains("Missing Missing alt and empty Missing alt."));
@@ -65,8 +65,8 @@ pub(super) fn assert_image_options(aget_home: &Path, site: &MockSite, urls: &Lin
         site,
         "/markdown-links",
         &[
-            ("crawl4ai.images_as_html", "true"),
-            ("crawl4ai.images_to_alt", "true"),
+            ("aget.images_as_html", "true"),
+            ("aget.images_to_alt", "true"),
         ],
     );
     assert!(markdown_images_as_html.contains("Asset [release notes]("));
@@ -85,8 +85,8 @@ pub(super) fn assert_image_options(aget_home: &Path, site: &MockSite, urls: &Lin
         site,
         "/markdown-links",
         &[
-            ("crawl4ai.default_image_alt", "Missing alt"),
-            ("crawl4ai.images_as_html", "true"),
+            ("aget.default_image_alt", "Missing alt"),
+            ("aget.images_as_html", "true"),
         ],
     );
     assert!(markdown_default_alt_as_html.contains(
@@ -98,8 +98,8 @@ pub(super) fn assert_image_options(aget_home: &Path, site: &MockSite, urls: &Lin
         site,
         "/markdown-links",
         &[
-            ("crawl4ai.images_with_size", "true"),
-            ("crawl4ai.images_to_alt", "true"),
+            ("aget.images_with_size", "true"),
+            ("aget.images_to_alt", "true"),
         ],
     );
     assert!(markdown_images_with_size.contains(
@@ -116,7 +116,7 @@ pub(super) fn assert_image_options(aget_home: &Path, site: &MockSite, urls: &Lin
         aget_home,
         site,
         "/markdown-inline-blocks",
-        &[("crawl4ai.images_with_size", "true")],
+        &[("aget.images_with_size", "true")],
     );
     assert!(markdown_images_with_size_keeps_unsized_images
         .contains(&format!("![Figure alt]({})", site.url("/figure.png"))));

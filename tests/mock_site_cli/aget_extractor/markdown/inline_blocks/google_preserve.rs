@@ -16,7 +16,7 @@ pub(super) fn assert_google_doc_and_preserve_tags(aget_home: &Path, site: &MockS
         aget_home,
         site,
         "/markdown-google-doc",
-        &[("crawl4ai.google_doc", "true")],
+        &[("aget.google_doc", "true")],
     );
     assert!(markdown_google_doc.contains("**Bold** _Italic_ `Code` Gone"));
 
@@ -25,8 +25,8 @@ pub(super) fn assert_google_doc_and_preserve_tags(aget_home: &Path, site: &MockS
         site,
         "/markdown-google-doc",
         &[
-            ("crawl4ai.google_doc", "true"),
-            ("crawl4ai.hide_strikethrough", "true"),
+            ("aget.google_doc", "true"),
+            ("aget.hide_strikethrough", "true"),
         ],
     );
     assert!(markdown_google_doc_hide_strike.contains("**Bold** _Italic_ `Code`"));
@@ -43,7 +43,7 @@ pub(super) fn assert_google_doc_and_preserve_tags(aget_home: &Path, site: &MockS
         aget_home,
         site,
         "/markdown-preserve-tags",
-        &[("crawl4ai.preserve_tags", "custom-card,math-box")],
+        &[("aget.preserve_tags", "custom-card,math-box")],
     );
     assert_eq!(
         markdown_preserve_tags,

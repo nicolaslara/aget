@@ -1,7 +1,6 @@
 use assert_cmd::Command;
-use serde_json::json;
 
-use crate::support::get_cli::{mock_backend_command, save_cookie_session};
+use crate::support::get_cli::save_cookie_session;
 
 #[test]
 fn get_rejects_session_replay_outside_saved_scope() {
@@ -14,12 +13,10 @@ fn get_rejects_session_replay_outside_saved_scope() {
         "sid",
         "secret-cookie",
     );
-    let fake_backend = mock_backend_command(temp.path(), json!({"behavior": "exit"}));
 
     let mut cmd = Command::cargo_bin("aget").unwrap();
     let output = cmd
         .env("AGET_HOME", &aget_home)
-        .env("AGET_CRAWL4AI_COMMAND", &fake_backend)
         .args([
             "--envelope",
             "json",

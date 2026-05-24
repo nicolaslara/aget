@@ -14,7 +14,7 @@ fn assert_reference_link_option(aget_home: &Path, site: &MockSite) {
         aget_home,
         site,
         "/markdown-links",
-        &[("crawl4ai.inline_links", "false")],
+        &[("aget.inline_links", "false")],
     );
     assert!(markdown_reference_links.contains("## [Linked Heading][1]"));
     assert!(markdown_reference_links.contains("Read [the guide][2] or email support."));
@@ -44,8 +44,8 @@ fn assert_paragraph_reference_link_option(aget_home: &Path, site: &MockSite) {
         site,
         "/markdown-reference-paragraphs",
         &[
-            ("crawl4ai.inline_links", "false"),
-            ("crawl4ai.links_each_paragraph", "true"),
+            ("aget.inline_links", "false"),
+            ("aget.links_each_paragraph", "true"),
         ],
     );
     assert_eq!(

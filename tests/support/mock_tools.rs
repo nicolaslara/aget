@@ -6,15 +6,6 @@ use std::time::{SystemTime, UNIX_EPOCH};
 
 use serde_json::Value;
 
-pub fn mock_backend_command(dir: &Path, config: Value) -> String {
-    shell_quote(&configured_tool(dir, "aget-mock-backend", config).to_string_lossy())
-}
-
-pub fn mock_agent_browser(dir: &Path, config: Value) -> PathBuf {
-    configured_tool(dir, "aget-mock-agent-browser", config)
-}
-
-#[allow(dead_code)]
 pub fn mock_cmux(dir: &Path, config: Value) -> PathBuf {
     configured_tool(dir, "aget-mock-cmux", config)
 }
@@ -74,10 +65,6 @@ fn mock_tool_bin(bin: &str) -> PathBuf {
         path.display()
     );
     path
-}
-
-fn shell_quote(value: &str) -> String {
-    format!("'{}'", value.replace('\'', "'\\''"))
 }
 
 #[cfg(unix)]

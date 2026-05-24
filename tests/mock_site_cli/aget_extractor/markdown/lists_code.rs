@@ -15,7 +15,7 @@ pub(super) fn assert_lists_and_code_blocks(aget_home: &Path, site: &MockSite) {
         aget_home,
         site,
         "/markdown-nested-lists",
-        &[("crawl4ai.ul_item_mark", "-")],
+        &[("aget.ul_item_mark", "-")],
     );
     assert_eq!(
         markdown_unordered_marker,
@@ -33,7 +33,7 @@ pub(super) fn assert_lists_and_code_blocks(aget_home: &Path, site: &MockSite) {
         aget_home,
         site,
         "/markdown-google-doc-lists",
-        &[("crawl4ai.google_doc", "true")],
+        &[("aget.google_doc", "true")],
     );
     assert_eq!(
         markdown_google_doc_lists,
@@ -45,8 +45,8 @@ pub(super) fn assert_lists_and_code_blocks(aget_home: &Path, site: &MockSite) {
         site,
         "/markdown-google-doc-lists",
         &[
-            ("crawl4ai.google_doc", "true"),
-            ("crawl4ai.google_list_indent", "72"),
+            ("aget.google_doc", "true"),
+            ("aget.google_list_indent", "72"),
         ],
     );
     assert_eq!(
@@ -73,7 +73,7 @@ pub(super) fn assert_lists_and_code_blocks(aget_home: &Path, site: &MockSite) {
         aget_home,
         site,
         "/markdown-code-whitespace",
-        &[("crawl4ai.mark_code", "false")],
+        &[("aget.mark_code", "false")],
     );
     assert_eq!(markdown_mark_code_false, markdown_code_whitespace);
 
@@ -81,7 +81,7 @@ pub(super) fn assert_lists_and_code_blocks(aget_home: &Path, site: &MockSite) {
         aget_home,
         site,
         "/markdown-code-whitespace",
-        &[("crawl4ai.handle_code_in_pre", "true")],
+        &[("aget.handle_code_in_pre", "true")],
     );
     assert_eq!(
         markdown_code_in_pre,

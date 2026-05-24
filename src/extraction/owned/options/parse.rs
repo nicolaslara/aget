@@ -10,27 +10,25 @@ use crate::extraction::html_clean::parse_css_selector;
 pub(super) fn parse_owned_base_url(value: &str) -> Result<String, AgetError> {
     let value = value.trim();
     if value.is_empty() {
-        return Err(extraction_failed(
-            "crawl4ai.base_url expects a non-empty URL",
-        ));
+        return Err(extraction_failed("aget.base_url expects a non-empty URL"));
     }
     Url::parse(value).map_err(|error| {
         extraction_failed(format!(
-            "crawl4ai.base_url expects an absolute URL, got '{value}': {error}"
+            "aget.base_url expects an absolute URL, got '{value}': {error}"
         ))
     })?;
     Ok(value.to_string())
 }
 
 pub(super) fn parse_owned_excluded_tags(value: &str) -> Result<Vec<String>, AgetError> {
-    parse_owned_list("crawl4ai.excluded_tags", value)?
+    parse_owned_list("aget.excluded_tags", value)?
         .into_iter()
         .map(|tag| {
             if is_html_tag_name(&tag) {
                 Ok(tag)
             } else {
                 Err(extraction_failed(format!(
-                    "crawl4ai.excluded_tags entry '{tag}' is not a plain HTML tag name"
+                    "aget.excluded_tags entry '{tag}' is not a plain HTML tag name"
                 )))
             }
         })
@@ -75,7 +73,7 @@ pub(super) fn parse_owned_target_elements(value: &str) -> Result<Vec<String>, Ag
 }
 
 pub(super) fn parse_owned_render_delay(value: &str) -> Result<Duration, AgetError> {
-    parse_owned_seconds("crawl4ai.delay_before_return_html", value)
+    parse_owned_seconds("aget.delay_before_return_html", value)
 }
 
 pub(super) fn parse_owned_seconds(name: &str, value: &str) -> Result<Duration, AgetError> {
@@ -126,7 +124,7 @@ pub(super) fn parse_owned_milliseconds(name: &str, value: &str) -> Result<Durati
 pub(super) fn parse_owned_word_count_threshold(value: &str) -> Result<usize, AgetError> {
     value.trim().parse::<usize>().map_err(|_| {
         extraction_failed(format!(
-            "crawl4ai.word_count_threshold expects a non-negative integer value, got '{value}'"
+            "aget.word_count_threshold expects a non-negative integer value, got '{value}'"
         ))
     })
 }
@@ -134,7 +132,7 @@ pub(super) fn parse_owned_word_count_threshold(value: &str) -> Result<usize, Age
 pub(super) fn parse_owned_body_width(value: &str) -> Result<usize, AgetError> {
     value.trim().parse::<usize>().map_err(|_| {
         extraction_failed(format!(
-            "crawl4ai.body_width expects a non-negative integer value, got '{value}'"
+            "aget.body_width expects a non-negative integer value, got '{value}'"
         ))
     })
 }
@@ -142,12 +140,12 @@ pub(super) fn parse_owned_body_width(value: &str) -> Result<usize, AgetError> {
 pub(super) fn parse_owned_google_list_indent(value: &str) -> Result<usize, AgetError> {
     let indent = value.trim().parse::<usize>().map_err(|_| {
         extraction_failed(format!(
-            "crawl4ai.google_list_indent expects a positive integer pixel value, got '{value}'"
+            "aget.google_list_indent expects a positive integer pixel value, got '{value}'"
         ))
     })?;
     if indent == 0 {
         return Err(extraction_failed(
-            "crawl4ai.google_list_indent expects a positive integer pixel value",
+            "aget.google_list_indent expects a positive integer pixel value",
         ));
     }
     Ok(indent)
@@ -156,7 +154,7 @@ pub(super) fn parse_owned_google_list_indent(value: &str) -> Result<usize, AgetE
 pub(super) fn parse_owned_max_scroll_steps(value: &str) -> Result<usize, AgetError> {
     value.trim().parse::<usize>().map_err(|_| {
         extraction_failed(format!(
-            "crawl4ai.max_scroll_steps expects a non-negative integer value, got '{value}'"
+            "aget.max_scroll_steps expects a non-negative integer value, got '{value}'"
         ))
     })
 }
@@ -167,7 +165,7 @@ pub(super) fn parse_owned_wait_until(value: &str) -> Result<PageWaitUntil, AgetE
         "load" => Ok(PageWaitUntil::Load),
         "networkidle" => Ok(PageWaitUntil::NetworkIdle),
         _ => Err(extraction_failed(format!(
-            "crawl4ai.wait_until supports only 'domcontentloaded', 'load', or 'networkidle' in the owned extractor, got '{value}'"
+            "aget.wait_until supports only 'domcontentloaded', 'load', or 'networkidle' in the owned extractor, got '{value}'"
         ))),
     }
 }

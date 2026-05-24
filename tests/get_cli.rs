@@ -1,5 +1,3 @@
-#[path = "get_cli/failure.rs"]
-mod failure;
 #[path = "get_cli/output.rs"]
 mod output;
 #[path = "get_cli/session.rs"]

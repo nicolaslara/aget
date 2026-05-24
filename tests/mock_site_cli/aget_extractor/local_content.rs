@@ -25,7 +25,7 @@ pub(super) fn assert_local_content_urls(aget_home: &Path) {
         )
         .content_format(OutputFormat::Markdown)
         .selector("main")
-        .backend_option("crawl4ai.base_url", "https://docs.example/raw/")
+        .backend_option("aget.base_url", "https://docs.example/raw/")
         .run()
         .unwrap();
     assert_eq!(
@@ -40,7 +40,7 @@ pub(super) fn assert_local_content_urls(aget_home: &Path) {
         )
         .content_format(OutputFormat::Markdown)
         .selector("main")
-        .backend_option("crawl4ai.base_url", "https://docs.example/config-base/")
+        .backend_option("aget.base_url", "https://docs.example/config-base/")
         .run()
         .unwrap();
     assert_eq!(

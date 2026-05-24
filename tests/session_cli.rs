@@ -10,6 +10,4 @@ mod imports_cmux;
 mod inspect;
 #[path = "session_cli/list.rs"]
 mod list;
-#[path = "session_cli/login.rs"]
-mod login;
 mod support;

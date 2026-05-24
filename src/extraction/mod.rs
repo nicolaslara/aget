@@ -1,7 +1,5 @@
 mod artifacts;
 mod backends;
-mod command;
-mod fallback_command;
 mod html_clean;
 mod http;
 mod markdown;
@@ -12,19 +10,15 @@ mod replay_scope;
 mod types;
 
 use std::fs;
-use std::io;
 use std::time::{Duration, Instant};
 
 #[cfg(test)]
 use self::artifacts::redact_values;
 use self::artifacts::{
-    create_private_dir, create_private_file, read_output_file, run_id, sanitize_backend_artifacts,
-    sanitize_backend_error, sensitive_values, write_error_metadata, write_metadata,
-    write_private_file,
+    create_private_dir, run_id, sanitize_backend_artifacts, sanitize_backend_error,
+    sensitive_values, write_error_metadata, write_metadata, write_private_file,
 };
-pub use self::backends::{
-    AgetExtractorBackend, CommandBrowserFallbackBackend, CommandExtractorBackend,
-};
+pub use self::backends::AgetExtractorBackend;
 use self::output::output_options;
 pub use self::output::OutputOptions;
 pub(crate) use self::owned::{
@@ -49,9 +43,6 @@ use crate::error::{AgetError, ErrorCode};
 use crate::session::{compose_playwright_state, SessionStore, TempStateFile};
 
 const DEFAULT_TIMEOUT: Duration = Duration::from_secs(60);
-const FALLBACK_EXTRACTOR: &str = "agent-browser-fallback";
-const FALLBACK_WARNING: &str = "agent-browser fallback used after Crawl4AI failed";
-
 pub fn get_url(options: GetOptions) -> Result<GetSuccess, AgetError> {
     let extractor = AgetExtractorBackend::default();
     let browser_fallback = AgetBrowserBackend::default();
@@ -166,13 +157,6 @@ fn extraction_failed(message: impl Into<String>) -> AgetError {
     AgetError::Stable {
         code: ErrorCode::ExtractionFailed,
         message: message.into(),
-    }
-}
-
-fn backend_unavailable(command: &str, error: io::Error) -> AgetError {
-    AgetError::Stable {
-        code: ErrorCode::BackendUnavailable,
-        message: format!("Crawl4AI backend is unavailable for command '{command}': {error}"),
     }
 }
 

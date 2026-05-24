@@ -17,7 +17,7 @@ pub(super) fn routes(builder: MockSiteBuilder) -> MockSiteBuilder {
     </header>
     <article class="story">
       <h1>Real Article</h1>
-      <p>The real article should win because Crawl4AI-style pruning ignores candidates inside page chrome.</p>
+      <p>The real article should win because generic pruning ignores candidates inside page chrome.</p>
     </article>
   </body>
 </html>

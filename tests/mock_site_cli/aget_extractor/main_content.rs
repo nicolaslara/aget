@@ -51,7 +51,7 @@ pub(super) fn assert_main_content_scoring(aget_home: &Path, site: &MockSite) {
         .unwrap();
     assert_eq!(
         page_chrome_markdown.content,
-        "# Real Article\n\nThe real article should win because Crawl4AI-style pruning ignores candidates inside page chrome."
+        "# Real Article\n\nThe real article should win because generic pruning ignores candidates inside page chrome."
     );
 
     let link_dense_markdown = Aget::new(aget_home)
@@ -113,7 +113,7 @@ pub(super) fn assert_main_content_scoring(aget_home: &Path, site: &MockSite) {
         .with_extractor_backend(AgetExtractorBackend::default())
         .get(site.url("/main-content-word-threshold"))
         .content_format(OutputFormat::Markdown)
-        .backend_option("crawl4ai.word_count_threshold", "9")
+        .backend_option("aget.word_count_threshold", "9")
         .run()
         .unwrap();
     assert_eq!(
@@ -144,7 +144,7 @@ pub(super) fn assert_main_content_scoring(aget_home: &Path, site: &MockSite) {
         .with_extractor_backend(AgetExtractorBackend::default())
         .get(site.url("/overlay-content"))
         .content_format(OutputFormat::Html)
-        .backend_option("crawl4ai.remove_overlay_elements", "false")
+        .backend_option("aget.remove_overlay_elements", "false")
         .run()
         .unwrap();
     assert!(overlay_html_without_cleanup
@@ -161,8 +161,8 @@ pub(super) fn assert_main_content_scoring(aget_home: &Path, site: &MockSite) {
         .with_extractor_backend(AgetExtractorBackend::default())
         .get(site.url("/consent-popup-content"))
         .content_format(OutputFormat::Text)
-        .backend_option("crawl4ai.remove_consent_popups", "true")
-        .backend_option("crawl4ai.remove_overlay_elements", "false")
+        .backend_option("aget.remove_consent_popups", "true")
+        .backend_option("aget.remove_overlay_elements", "false")
         .run()
         .unwrap();
     assert_eq!(

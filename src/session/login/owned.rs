@@ -3,7 +3,7 @@ use std::path::{Path, PathBuf};
 
 use crate::error::{AgetError, ErrorCode};
 use crate::process::DEFAULT_SUBPROCESS_TIMEOUT;
-use crate::session::agent_browser::{filter_playwright_state, AgentBrowserSessionFilter};
+use crate::session::browser_state::{filter_playwright_state, BrowserSessionFilter};
 use crate::session::compose_playwright_state;
 use crate::session::SessionSource;
 
@@ -18,7 +18,7 @@ use super::types::{
     LoginStartOptions, LoginStartResult, PendingLogin,
 };
 
-pub(crate) fn start_owned_login_session(
+pub fn start_owned_login_session(
     options: LoginStartOptions,
 ) -> Result<LoginStartResult, AgetError> {
     validate_login_name(&options.name)?;
@@ -75,7 +75,7 @@ pub(crate) fn start_owned_login_session(
     Ok(LoginStartResult { pending })
 }
 
-pub(crate) fn finish_owned_login_session(
+pub fn finish_owned_login_session(
     options: LoginFinishOptions,
 ) -> Result<LoginFinishResult, AgetError> {
     validate_login_name(&options.name)?;
@@ -90,9 +90,9 @@ pub(crate) fn finish_owned_login_session(
     )?;
     let session = filter_playwright_state(
         state,
-        AgentBrowserSessionFilter {
+        BrowserSessionFilter {
             name: pending.name.clone(),
-            source: SessionSource::AgentBrowser {
+            source: SessionSource::BrowserLogin {
                 session: pending.agent_session.clone(),
             },
             allowed_domains: pending.allowed_domains.clone(),
@@ -111,7 +111,7 @@ pub(crate) fn finish_owned_login_session(
     Ok(LoginFinishResult { session, pending })
 }
 
-pub(crate) fn cancel_owned_login_session(
+pub fn cancel_owned_login_session(
     options: LoginCancelOptions,
 ) -> Result<LoginCancelResult, AgetError> {
     validate_login_name(&options.name)?;

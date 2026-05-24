@@ -89,9 +89,9 @@ fn aget_extractor_backend_honors_wait_for_images_option_with_chrome() {
         .with_extractor_backend(AgetExtractorBackend::default())
         .get(site.url("/image-wait"))
         .content_format(OutputFormat::Text)
-        .backend_option("crawl4ai.wait_until", "domcontentloaded")
-        .backend_option("crawl4ai.delay_before_return_html", "0")
-        .backend_option("crawl4ai.wait_for_images", "true")
+        .backend_option("aget.wait_until", "domcontentloaded")
+        .backend_option("aget.delay_before_return_html", "0")
+        .backend_option("aget.wait_for_images", "true")
         .run()
         .unwrap();
 
@@ -138,9 +138,9 @@ fn aget_extractor_backend_honors_networkidle_wait_until_with_chrome() {
         .with_extractor_backend(AgetExtractorBackend::default())
         .get(site.url("/networkidle"))
         .content_format(OutputFormat::Text)
-        .backend_option("crawl4ai.wait_until", "networkidle")
-        .backend_option("crawl4ai.delay_before_return_html", "0")
-        .backend_option("crawl4ai.page_timeout", "5000")
+        .backend_option("aget.wait_until", "networkidle")
+        .backend_option("aget.delay_before_return_html", "0")
+        .backend_option("aget.page_timeout", "5000")
         .run()
         .unwrap();
 

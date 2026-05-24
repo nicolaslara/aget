@@ -34,7 +34,7 @@ pub(super) fn capture_attached_page(
             options.page_timeout,
         ) {
             warnings.push(format!(
-                "crawl4ai.scan_full_page failed; continuing with partial scroll: {error}"
+                "aget.scan_full_page failed; continuing with partial scroll: {error}"
             ));
         }
     }
@@ -47,8 +47,7 @@ pub(super) fn capture_attached_page(
     }
     if options.wait_for_images && !client.wait_for_images_complete(&page.session_id)? {
         warnings.push(
-            "some images did not finish loading before crawl4ai.wait_for_images timeout"
-                .to_string(),
+            "some images did not finish loading before aget.wait_for_images timeout".to_string(),
         );
     }
     if !options.settle_delay.is_zero() {
@@ -57,11 +56,11 @@ pub(super) fn capture_attached_page(
     if options.process_iframes {
         match client.process_iframes(&page.session_id, options.page_timeout) {
             Ok((_total, _replaced, inaccessible)) if inaccessible > 0 => warnings.push(format!(
-                "crawl4ai.process_iframes could not access {inaccessible} iframe(s); continuing with accessible content only"
+                "aget.process_iframes could not access {inaccessible} iframe(s); continuing with accessible content only"
             )),
             Ok(_) => {}
             Err(error) => warnings.push(format!(
-                "crawl4ai.process_iframes failed; continuing with unprocessed iframes: {error}"
+                "aget.process_iframes failed; continuing with unprocessed iframes: {error}"
             )),
         }
     }

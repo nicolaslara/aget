@@ -2,15 +2,13 @@ use std::fs;
 
 use crate::error::{AgetError, ErrorCode};
 use crate::process::DEFAULT_SUBPROCESS_TIMEOUT;
-use crate::session::agent_browser::{filter_playwright_state, AgentBrowserSessionFilter};
+use crate::session::browser_state::{filter_playwright_state, BrowserSessionFilter};
 use crate::session::{Session, SessionSource};
 
 use super::profile::prepare_owned_chrome_profile;
 use super::{io_aget_error, ChromeImportOptions};
 
-pub(crate) fn import_owned_chrome_session(
-    options: ChromeImportOptions,
-) -> Result<Session, AgetError> {
+pub fn import_owned_chrome_session(options: ChromeImportOptions) -> Result<Session, AgetError> {
     fs::create_dir_all(&options.tmp_dir).map_err(io_aget_error)?;
     let prepared = prepare_owned_chrome_profile(&options.profile, &options.tmp_dir)?;
     let state =
@@ -24,7 +22,7 @@ pub(crate) fn import_owned_chrome_session(
 
     let session = filter_playwright_state(
         state,
-        AgentBrowserSessionFilter {
+        BrowserSessionFilter {
             name: options.name.clone(),
             source: SessionSource::ChromeProfile {
                 profile: options.profile.clone(),

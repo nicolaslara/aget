@@ -70,8 +70,8 @@ pub(super) fn extract_owned_content(
         document = remove_owned_line_through_elements(document, &root_ids, &target_ids);
     }
 
-    // Match Crawl4AI's cleanup order: selectors see original attributes, but
-    // serialized cleaned HTML keeps only its small important-attribute allowlist.
+    // Selectors see original attributes, but serialized cleaned HTML keeps only
+    // its small important-attribute allowlist.
     if owned_options.only_text {
         document = replace_owned_only_text_elements(document, &root_ids, &target_ids);
     }

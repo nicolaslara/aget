@@ -12,7 +12,7 @@ fn aget_extractor_backend_processes_raw_content_in_browser_with_chrome() {
             r##"raw:<html><body><main><h1>Raw Browser</h1><div id="client-result">Loading</div><script>document.querySelector("#client-result").innerHTML = "<p>Rendered Raw</p>"</script></main></body></html>"##,
         )
         .content_format(OutputFormat::Text)
-        .backend_option("crawl4ai.process_in_browser", "true")
+        .backend_option("aget.process_in_browser", "true")
         .wait_for_selector("#client-result p")
         .run()
         .unwrap();

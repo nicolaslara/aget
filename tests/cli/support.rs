@@ -1,8 +1,5 @@
 use std::io::{Read, Write};
 use std::net::{Shutdown, TcpListener};
-use std::path::PathBuf;
-use std::process::Command as StdCommand;
-use std::sync::OnceLock;
 use std::thread::{self, JoinHandle};
 use std::time::Duration;
 
@@ -169,46 +166,4 @@ fn reply_ok(
                 .into(),
         ))
         .unwrap();
-}
-
-pub fn mock_backend_command() -> String {
-    shell_quote(&mock_tool_path("aget-mock-backend").to_string_lossy())
-}
-
-fn mock_tool_path(name: &str) -> PathBuf {
-    let tools = MOCK_TOOLS.get_or_init(build_mock_tools);
-    let binary = if cfg!(windows) {
-        format!("{name}.exe")
-    } else {
-        name.to_string()
-    };
-    tools.target_dir.join("debug").join(binary)
-}
-
-struct MockTools {
-    target_dir: PathBuf,
-}
-
-static MOCK_TOOLS: OnceLock<MockTools> = OnceLock::new();
-
-fn build_mock_tools() -> MockTools {
-    let root = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-    let manifest = root.join("tests/fixtures/mock-tools/Cargo.toml");
-    let target_dir = root.join("target/aget-mock-tools");
-    let status = StdCommand::new("cargo")
-        .args([
-            "build",
-            "--manifest-path",
-            manifest.to_str().unwrap(),
-            "--target-dir",
-            target_dir.to_str().unwrap(),
-        ])
-        .status()
-        .unwrap();
-    assert!(status.success());
-    MockTools { target_dir }
-}
-
-fn shell_quote(value: &str) -> String {
-    format!("'{}'", value.replace('\'', "'\\''"))
 }

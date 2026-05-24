@@ -4,9 +4,7 @@ use scraper::{Html, HtmlTreeSink};
 use crate::error::AgetError;
 
 use super::super::parse_css_selector;
-use super::domains::{
-    crawl4ai_like_base_domain, crawl4ai_like_url_base_domain, is_crawl4ai_like_external_url,
-};
+use super::domains::{aget_like_base_domain, aget_like_url_base_domain, is_aget_like_external_url};
 
 pub(super) fn remove_external_url_elements(
     document: Html,
@@ -15,12 +13,12 @@ pub(super) fn remove_external_url_elements(
     base_url: &str,
 ) -> Result<Html, AgetError> {
     let selector = parse_css_selector(selector_list)?;
-    let base_domain = crawl4ai_like_base_domain(base_url);
+    let base_domain = aget_like_base_domain(base_url);
     let node_ids = document
         .select(&selector)
         .filter_map(|element| {
             let value = element.value().attr(attribute)?;
-            is_crawl4ai_like_external_url(value, base_url, &base_domain).then_some(element.id())
+            is_aget_like_external_url(value, base_url, &base_domain).then_some(element.id())
         })
         .collect::<Vec<_>>();
     let tree = HtmlTreeSink::new(document);
@@ -37,12 +35,12 @@ pub(super) fn remove_internal_url_elements(
     base_url: &str,
 ) -> Result<Html, AgetError> {
     let selector = parse_css_selector(selector_list)?;
-    let base_domain = crawl4ai_like_base_domain(base_url);
+    let base_domain = aget_like_base_domain(base_url);
     let node_ids = document
         .select(&selector)
         .filter_map(|element| {
             let value = element.value().attr(attribute)?;
-            (!is_crawl4ai_like_external_url(value, base_url, &base_domain)).then_some(element.id())
+            (!is_aget_like_external_url(value, base_url, &base_domain)).then_some(element.id())
         })
         .collect::<Vec<_>>();
     let tree = HtmlTreeSink::new(document);
@@ -64,7 +62,7 @@ pub(super) fn remove_excluded_domain_url_elements(
         .select(&selector)
         .filter_map(|element| {
             let value = element.value().attr(attribute)?;
-            let url_domain = crawl4ai_like_url_base_domain(value, base_url)?;
+            let url_domain = aget_like_url_base_domain(value, base_url)?;
             excluded_domains
                 .iter()
                 .any(|excluded_domain| &url_domain == excluded_domain)

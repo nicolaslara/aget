@@ -4,7 +4,7 @@ use crate::session::{PlaywrightCookie, PlaywrightOrigin, SessionSource, StorageE
 
 #[test]
 fn filters_cookies_and_origins_by_allowed_domains() {
-    let state = AgentBrowserState {
+    let state = BrowserState {
         cookies: vec![
             cookie("sid", "example.com"),
             cookie("sub", "docs.example.com"),
@@ -17,7 +17,7 @@ fn filters_cookies_and_origins_by_allowed_domains() {
         ],
     };
 
-    let session = filter_agent_browser_state(state, filter()).unwrap();
+    let session = filter_browser_state(state, filter()).unwrap();
 
     assert_eq!(session.cookies.len(), 2);
     assert!(session.cookies.iter().any(|cookie| cookie.name == "sid"));
@@ -52,12 +52,12 @@ fn filters_cookies_and_origins_by_allowed_domains() {
 fn rejects_conflicting_duplicate_cookies() {
     let mut duplicate = cookie("sid", "example.com");
     duplicate.value = "different-secret".to_string();
-    let state = AgentBrowserState {
+    let state = BrowserState {
         cookies: vec![cookie("sid", "example.com"), duplicate],
         origins: Vec::new(),
     };
 
-    let error = filter_agent_browser_state(state, filter()).unwrap_err();
+    let error = filter_browser_state(state, filter()).unwrap_err();
 
     assert_eq!(error.code(), ErrorCode::SessionConflict);
 }
@@ -69,12 +69,12 @@ fn rejects_conflicting_duplicate_origins() {
         name: "token".to_string(),
         value: "different-secret".to_string(),
     }];
-    let state = AgentBrowserState {
+    let state = BrowserState {
         cookies: Vec::new(),
         origins: vec![origin("https://example.com"), duplicate],
     };
 
-    let error = filter_agent_browser_state(state, filter()).unwrap_err();
+    let error = filter_browser_state(state, filter()).unwrap_err();
 
     assert_eq!(error.code(), ErrorCode::SessionConflict);
 }
@@ -140,21 +140,6 @@ fn filters_playwright_state_with_same_import_rules() {
     assert_eq!(session.origins[0].session_storage[0].name, "session-token");
 }
 
-#[cfg(unix)]
-#[test]
-fn raw_state_file_uses_private_permissions_and_is_removed_on_drop() {
-    use std::os::unix::fs::PermissionsExt;
-
-    let temp = tempfile::tempdir().unwrap();
-    let raw_state = RawStateFile::new(temp.path(), "agent-browser-raw-state").unwrap();
-    let path = raw_state.path().to_path_buf();
-    let mode = std::fs::metadata(&path).unwrap().permissions().mode() & 0o777;
-
-    assert_eq!(mode, 0o600);
-    drop(raw_state);
-    assert!(!path.exists());
-}
-
 #[test]
 fn origin_host_parses_http_hosts() {
     assert_eq!(
@@ -168,17 +153,8 @@ fn origin_host_parses_http_hosts() {
     assert_eq!(origin_host("file:///tmp/page.html"), None);
 }
 
-#[test]
-fn user_action_detection_matches_profile_and_login_failures() {
-    assert!(indicates_user_action(
-        "Please quit Chrome before using this profile"
-    ));
-    assert!(indicates_user_action("login needed for this site"));
-    assert!(!indicates_user_action("syntax error"));
-}
-
-fn filter() -> AgentBrowserSessionFilter {
-    AgentBrowserSessionFilter {
+fn filter() -> BrowserSessionFilter {
+    BrowserSessionFilter {
         name: "demo".to_string(),
         source: SessionSource::ChromeProfile {
             profile: "Default".to_string(),
@@ -188,8 +164,8 @@ fn filter() -> AgentBrowserSessionFilter {
     }
 }
 
-fn cookie(name: &str, domain: &str) -> AgentBrowserCookie {
-    AgentBrowserCookie {
+fn cookie(name: &str, domain: &str) -> BrowserCookie {
+    BrowserCookie {
         name: name.to_string(),
         value: format!("{name}-secret"),
         domain: domain.to_string(),
@@ -201,8 +177,8 @@ fn cookie(name: &str, domain: &str) -> AgentBrowserCookie {
     }
 }
 
-fn origin(origin: &str) -> AgentBrowserOrigin {
-    AgentBrowserOrigin {
+fn origin(origin: &str) -> BrowserOrigin {
+    BrowserOrigin {
         origin: origin.to_string(),
         local_storage: vec![StorageEntry {
             name: "token".to_string(),

@@ -1,13 +1,14 @@
 use assert_cmd::Command;
 
 use crate::support::get_cli::{
-    save_cookie_session_with_sensitivity, success_backend, success_data,
+    cookie_echo_server, save_cookie_session_with_sensitivity, success_data,
 };
 
 #[test]
 fn get_session_marks_output_sensitive_even_if_session_metadata_is_false() {
     let temp = tempfile::tempdir().unwrap();
     let aget_home = temp.path().join("aget-home");
+    let (url, server, cookies) = cookie_echo_server("/session");
     save_cookie_session_with_sensitivity(
         &aget_home,
         "local",
@@ -16,25 +17,18 @@ fn get_session_marks_output_sensitive_even_if_session_metadata_is_false() {
         "secret-cookie",
         false,
     );
-    let fake_backend = success_backend(temp.path());
 
     let mut cmd = Command::cargo_bin("aget").unwrap();
     let output = cmd
         .env("AGET_HOME", &aget_home)
-        .env("AGET_CRAWL4AI_COMMAND", &fake_backend)
-        .args([
-            "--envelope",
-            "json",
-            "get",
-            "http://127.0.0.1/session",
-            "--session",
-            "local",
-        ])
+        .args(["--envelope", "json", "get", &url, "--session", "local"])
         .assert()
         .success()
         .get_output()
         .stdout
         .clone();
+    server.join().unwrap();
+    assert!(cookies.recv().unwrap().contains("sid=secret-cookie"));
 
     let json = success_data(&output, "get");
     assert_eq!(json["sessions"], serde_json::json!(["local"]));

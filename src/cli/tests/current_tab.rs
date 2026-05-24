@@ -23,7 +23,7 @@ fn parses_current_tab_command() {
         "--max-chars",
         "456",
         "--backend-option",
-        "crawl4ai.wait_for_images=true",
+        "aget.wait_for_images=true",
     ])
     .unwrap();
 
@@ -40,7 +40,7 @@ fn parses_current_tab_command() {
             wait_for_selector: Some(".ready".to_string()),
             max_chars: Some(456),
             backend_options: vec![ExtractorOption {
-                key: "crawl4ai.wait_for_images".to_string(),
+                key: "aget.wait_for_images".to_string(),
                 value: "true".to_string(),
             }],
         })

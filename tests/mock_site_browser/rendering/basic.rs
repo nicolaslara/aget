@@ -14,9 +14,9 @@ fn aget_extractor_backend_renders_waited_javascript_page_with_chrome() {
         .get(site.url("/delayed"))
         .content_format(OutputFormat::Text)
         .wait_for_selector("#ready")
-        .backend_option("crawl4ai.page_timeout", "5000")
-        .backend_option("crawl4ai.wait_for_timeout", "1000")
-        .backend_option("crawl4ai.wait_until", "domcontentloaded")
+        .backend_option("aget.page_timeout", "5000")
+        .backend_option("aget.wait_for_timeout", "1000")
+        .backend_option("aget.wait_until", "domcontentloaded")
         .run()
         .unwrap();
 

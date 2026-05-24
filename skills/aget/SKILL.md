@@ -177,7 +177,7 @@ aget --envelope json get "https://example.com/account" --session target --output
 
 This avoids repeated provider login while keeping the provider credential ceremony outside the agent. `aget get` enforces replay scope, so an `oauth` session for `accounts.example.com` must not be passed to `https://example.com/...` fetches unless its saved scope actually matches that request host.
 
-`aget session login start --session <provider>` injects only explicitly named local sessions into the controlled login browser profile. The user still completes any provider prompts, passwords, passkeys, and one-time-code steps; `login finish` saves only the target relying-party session unless the user later asks to compose same-scope sessions. Provider-session injection is supported only by the owned browser backend and only with the default aget-owned login profile; omit `--profile`, and unset `AGET_AGENT_BROWSER_COMMAND` if a compatibility backend is selected. If injected sessions conflict on cookie or storage values, retry with narrower or corrected sessions instead of choosing a secret silently.
+`aget session login start --session <provider>` injects only explicitly named local sessions into the controlled login browser profile. The user still completes any provider prompts, passwords, passkeys, and one-time-code steps; `login finish` saves only the target relying-party session unless the user later asks to compose same-scope sessions. Provider-session injection uses the current Chrome/CDP login path and the default aget-owned login profile; omit `--profile` when injecting sessions. If injected sessions conflict on cookie or storage values, retry with narrower or corrected sessions instead of choosing a secret silently.
 
 ## Access Verification
 
@@ -264,13 +264,13 @@ Chrome import uses `aget`'s owned local Chrome/CDP import path:
 aget --envelope json session import browser --browser chrome --browser-profile Default --name target --allow-domain docs.example.com
 ```
 
-Before running either import command, ask the user to approve the specific local surface/profile and domains. These commands can read credential-equivalent local browser state. Prefer named Chrome profiles such as `--browser-profile Default`; explicit `--profile-path` is an advanced path and may launch that local profile directory directly, so use it only with a disposable or explicitly approved profile path.
+Before running either import command, ask the user to approve the specific local surface/profile and domains. These commands can read credential-equivalent local browser state. Prefer named Chrome profiles such as `--browser-profile Default`; explicit `--profile-path` is an advanced path and may launch that local profile directory directly, so use it only with a disposable or explicitly approved profile path. Import stores only scoped exported cookies/storage in the named `aget` session; it does not retain the whole source browser profile. For login flows, the default aget-owned temporary profile is cleaned up after finish or cancel; a caller-provided custom profile path is caller-owned and is not deleted by `aget`.
 
 If Chrome import returns `requires_user_action`, do not close the user's browser. Relay the message and let the user decide whether to quit Chrome and retry.
 
 ## Interpreting Results
 
 - `ok: true` with login-wall-looking content is still a successful generic fetch. Decide next action from the content and user goal.
-- `backend_unavailable` means an optional local dependency or explicitly configured compatibility backend such as Chrome, cmux, Crawl4AI, or agent-browser is missing.
+- `backend_unavailable` means a required local component for the selected command is missing or unavailable, such as Chrome/CDP for browser-backed flows or cmux for `session import cmux`.
 - `requires_user_action` means the user must do something local, such as complete login or unlock/quit a profile.
 - For extraction tuning beyond the core flows above, inspect the project README instead of inventing flags or site-specific workarounds.

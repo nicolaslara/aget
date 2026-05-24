@@ -6,7 +6,7 @@ use crate::support::mock_site_cli::{
 };
 
 #[test]
-fn aget_browser_fallback_replays_cookie_backed_session_without_agent_browser() {
+fn aget_browser_fallback_replays_cookie_backed_session_without_browser_state() {
     let temp = tempfile::tempdir().unwrap();
     let aget_home = temp.path().join("aget-home");
     let site = MockSite::start();

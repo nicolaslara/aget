@@ -44,30 +44,30 @@ pub(super) fn apply_document_option(
                 .extend(parse_owned_target_elements(value)?);
         }
         "only_text" => {
-            owned_options.only_text = parse_owned_bool("crawl4ai.only_text", value)?;
+            owned_options.only_text = parse_owned_bool("aget.only_text", value)?;
         }
         "remove_consent_popups" => {
             owned_options.remove_consent_popups =
-                parse_owned_bool("crawl4ai.remove_consent_popups", value)?;
+                parse_owned_bool("aget.remove_consent_popups", value)?;
         }
         "remove_overlay_elements" => {
             owned_options.remove_overlay_elements =
-                parse_owned_bool("crawl4ai.remove_overlay_elements", value)?;
+                parse_owned_bool("aget.remove_overlay_elements", value)?;
         }
         "remove_forms" => {
-            owned_options.remove_forms = parse_owned_bool("crawl4ai.remove_forms", value)?;
+            owned_options.remove_forms = parse_owned_bool("aget.remove_forms", value)?;
         }
         "keep_data_attributes" => {
             owned_options.keep_data_attributes =
-                parse_owned_bool("crawl4ai.keep_data_attributes", value)?;
+                parse_owned_bool("aget.keep_data_attributes", value)?;
         }
         "keep_attrs" => {
             owned_options
                 .keep_attrs
-                .extend(parse_owned_list("crawl4ai.keep_attrs", value)?);
+                .extend(parse_owned_list("aget.keep_attrs", value)?);
         }
         "prettiify" => {
-            owned_options.prettiify = parse_owned_bool("crawl4ai.prettiify", value)?;
+            owned_options.prettiify = parse_owned_bool("aget.prettiify", value)?;
         }
         "user_agent" => {
             owned_options.user_agent = trimmed_string_option(value);

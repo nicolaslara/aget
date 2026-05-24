@@ -12,11 +12,8 @@ pub(super) fn assert_link_cleanup_options(aget_home: &Path, site: &MockSite) {
 }
 
 fn assert_external_link_cleanup(aget_home: &Path, site: &MockSite) {
-    let no_external_links = html_cleanup(
-        aget_home,
-        site,
-        &[("crawl4ai.exclude_external_links", "true")],
-    );
+    let no_external_links =
+        html_cleanup(aget_home, site, &[("aget.exclude_external_links", "true")]);
     assert!(no_external_links.contains("href=\"/kept\""));
     assert!(no_external_links.contains("id=\"same-domain-link\""));
     assert!(!no_external_links.contains("id=\"external-link\""));
@@ -28,11 +25,8 @@ fn assert_external_link_cleanup(aget_home: &Path, site: &MockSite) {
 }
 
 fn assert_internal_link_cleanup(aget_home: &Path, site: &MockSite) {
-    let no_internal_links = html_cleanup(
-        aget_home,
-        site,
-        &[("crawl4ai.exclude_internal_links", "true")],
-    );
+    let no_internal_links =
+        html_cleanup(aget_home, site, &[("aget.exclude_internal_links", "true")]);
     assert!(!no_internal_links.contains("id=\"kept-link\""));
     assert!(!no_internal_links.contains("id=\"same-domain-link\""));
     assert!(!no_internal_links.contains("href=\"/same-domain\""));
@@ -50,7 +44,7 @@ fn assert_social_link_cleanup(aget_home: &Path, site: &MockSite) {
     let no_social_links = html_cleanup(
         aget_home,
         site,
-        &[("crawl4ai.exclude_social_media_links", "true")],
+        &[("aget.exclude_social_media_links", "true")],
     );
     assert!(no_social_links.contains("href=\"/kept\""));
     assert!(no_social_links.contains("id=\"external-link\""));
@@ -64,8 +58,8 @@ fn assert_social_link_cleanup(aget_home: &Path, site: &MockSite) {
         aget_home,
         site,
         &[
-            ("crawl4ai.exclude_social_media_links", "true"),
-            ("crawl4ai.exclude_social_media_domains", "social.example"),
+            ("aget.exclude_social_media_links", "true"),
+            ("aget.exclude_social_media_domains", "social.example"),
         ],
     );
     assert!(no_custom_social_links.contains("href=\"/kept\""));
@@ -82,7 +76,7 @@ fn assert_domain_cleanup(aget_home: &Path, site: &MockSite) {
     let no_excluded_domains = html_cleanup(
         aget_home,
         site,
-        &[("crawl4ai.exclude_domains", "external.example,cdn.example")],
+        &[("aget.exclude_domains", "external.example,cdn.example")],
     );
     assert!(no_excluded_domains.contains("href=\"/kept\""));
     assert!(no_excluded_domains.contains("src=\"/diagram.png\""));

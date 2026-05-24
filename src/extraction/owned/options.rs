@@ -177,9 +177,9 @@ pub(crate) fn validate_owned_extraction_options(
     }
     let mut owned_options = OwnedExtractorOptions::default();
     for option in &options.backend_options {
-        let option_name = option.key.strip_prefix("crawl4ai.").ok_or_else(|| {
+        let option_name = option.key.strip_prefix("aget.").ok_or_else(|| {
             extraction_failed(format!(
-                "owned extractor backend option '{}' must use the crawl4ai namespace",
+                "owned extractor backend option '{}' must use the aget namespace",
                 option.key
             ))
         })?;

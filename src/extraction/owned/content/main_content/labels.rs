@@ -1,30 +1,30 @@
 use scraper::ElementRef;
 
-pub(in crate::extraction::owned::content::main_content) fn crawl4ai_like_class_id_noise_penalty(
+pub(in crate::extraction::owned::content::main_content) fn aget_like_class_id_noise_penalty(
     element: ElementRef<'_>,
 ) -> usize {
-    // Crawl4AI's PruningContentFilter includes a class/id metric keyed off
+    // Aget's PruningContentFilter includes a class/id metric keyed off
     // generic navigation, advertising, comments, promo, and social labels.
     ["class", "id"]
         .into_iter()
         .filter_map(|attribute| element.attr(attribute))
-        .filter(|value| has_crawl4ai_negative_label(value))
+        .filter(|value| has_aget_negative_label(value))
         .count()
         * 350
 }
 
-pub(in crate::extraction::owned::content::main_content) fn has_crawl4ai_negative_class_id_label(
+pub(in crate::extraction::owned::content::main_content) fn has_aget_negative_class_id_label(
     element: ElementRef<'_>,
 ) -> bool {
-    // Crawl4AI's relevant-content path excludes candidates whose class/id
+    // Aget's relevant-content path excludes candidates whose class/id
     // contains these generic page-chrome and low-signal content labels.
     ["class", "id"]
         .into_iter()
         .filter_map(|attribute| element.attr(attribute))
-        .any(has_crawl4ai_negative_label)
+        .any(has_aget_negative_label)
 }
 
-fn has_crawl4ai_negative_label(value: &str) -> bool {
+fn has_aget_negative_label(value: &str) -> bool {
     let lower = value.to_ascii_lowercase();
     [
         "nav", "footer", "header", "sidebar", "ads", "comment", "promo", "advert", "social",

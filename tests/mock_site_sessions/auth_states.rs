@@ -1,14 +1,13 @@
 use assert_cmd::Command;
 
 use crate::support::mock_site::MockSite;
-use crate::support::mock_site_cli::{mock_backend_command, save_cookie_session, success_data};
+use crate::support::mock_site_cli::{save_cookie_session, success_data};
 
 #[test]
 fn mock_site_covers_unauthenticated_expired_and_logout_states() {
     let temp = tempfile::tempdir().unwrap();
     let aget_home = temp.path().join("aget-home");
     let site = MockSite::start();
-    let fake_backend = mock_backend_command();
     save_cookie_session(
         &aget_home,
         "expired",
@@ -21,7 +20,6 @@ fn mock_site_covers_unauthenticated_expired_and_logout_states() {
     let unauthenticated = Command::cargo_bin("aget")
         .unwrap()
         .env("AGET_HOME", &aget_home)
-        .env("AGET_CRAWL4AI_COMMAND", &fake_backend)
         .args([
             "--envelope",
             "json",
@@ -51,7 +49,6 @@ fn mock_site_covers_unauthenticated_expired_and_logout_states() {
     let expired = Command::cargo_bin("aget")
         .unwrap()
         .env("AGET_HOME", &aget_home)
-        .env("AGET_CRAWL4AI_COMMAND", &fake_backend)
         .args([
             "--envelope",
             "json",
@@ -78,7 +75,6 @@ fn mock_site_covers_unauthenticated_expired_and_logout_states() {
     let logout = Command::cargo_bin("aget")
         .unwrap()
         .env("AGET_HOME", &aget_home)
-        .env("AGET_CRAWL4AI_COMMAND", &fake_backend)
         .args([
             "--envelope",
             "json",

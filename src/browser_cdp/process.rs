@@ -86,9 +86,8 @@ fn process_command_mentions(pid: u32, _needle: &Path) -> bool {
     #[cfg(windows)]
     {
         // The pid is captured from a Chrome process launched by this engine.
-        // agent-browser also uses pid-based Windows cleanup for detached
-        // processes, so do not make cleanup depend on fragile command-line
-        // probing APIs that are not always available on Windows.
+        // Keep cleanup independent from fragile command-line probing APIs that
+        // are not always available on Windows.
         let _ = _needle;
         return process_is_running(pid);
     }
@@ -206,12 +205,12 @@ mod tests {
     use super::{windows_detached_process_flags, windows_taskkill_args};
 
     #[test]
-    fn windows_process_flags_match_agent_browser_detached_group_launch() {
+    fn windows_process_flags_match_detached_group_launch() {
         assert_eq!(windows_detached_process_flags(), 0x00000200 | 0x00000008);
     }
 
     #[test]
-    fn windows_taskkill_args_match_agent_browser_pid_termination() {
+    fn windows_taskkill_args_match_pid_termination() {
         assert_eq!(windows_taskkill_args(42), ["/PID", "42", "/F"]);
     }
 }

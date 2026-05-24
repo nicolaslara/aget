@@ -14,7 +14,7 @@ pub(in crate::extraction) fn prune_owned_unwanted_attributes(
         if let Node::Element(element) = node {
             element.attrs.retain(|(name, _)| {
                 let name = name.local.as_ref();
-                is_crawl4ai_important_attr(name)
+                is_aget_important_attr(name)
                     || keep_attrs.iter().any(|keep_attr| keep_attr == name)
                     || (keep_data_attributes && name.starts_with("data-"))
                     || (keep_style_attributes && name == "style")
@@ -24,6 +24,6 @@ pub(in crate::extraction) fn prune_owned_unwanted_attributes(
     document
 }
 
-fn is_crawl4ai_important_attr(name: &str) -> bool {
+fn is_aget_important_attr(name: &str) -> bool {
     CRAWL4AI_IMPORTANT_ATTRS.contains(&name)
 }

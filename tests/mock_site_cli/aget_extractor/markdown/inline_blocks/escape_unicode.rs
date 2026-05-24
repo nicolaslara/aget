@@ -10,9 +10,9 @@ pub(super) fn assert_escaping_and_unicode_options(aget_home: &Path, site: &MockS
         site,
         "/markdown-inline-blocks",
         &[
-            ("crawl4ai.escape_dot", "false"),
-            ("crawl4ai.escape_dash", "false"),
-            ("crawl4ai.escape_plus", "false"),
+            ("aget.escape_dot", "false"),
+            ("aget.escape_dash", "false"),
+            ("aget.escape_plus", "false"),
         ],
     );
     assert!(markdown_line_start_escapes.contains("\n\n1. Not a generated list.\n\n"));
@@ -26,7 +26,7 @@ pub(super) fn assert_escaping_and_unicode_options(aget_home: &Path, site: &MockS
         aget_home,
         site,
         "/markdown-inline-blocks",
-        &[("crawl4ai.escape_backslash", "false")],
+        &[("aget.escape_backslash", "false")],
     );
     assert!(markdown_backslash_escape.contains(r"Literal \*stars\* and \[brackets\]."));
     assert!(!markdown_backslash_escape.contains(r"Literal \\*stars\\* and \\[brackets\\]."));
@@ -35,7 +35,7 @@ pub(super) fn assert_escaping_and_unicode_options(aget_home: &Path, site: &MockS
         aget_home,
         site,
         "/markdown-escape-snob",
-        &[("crawl4ai.escape_snob", "true")],
+        &[("aget.escape_snob", "true")],
     );
     assert_eq!(
         markdown_escape_snob,
@@ -60,7 +60,7 @@ pub(super) fn assert_escaping_and_unicode_options(aget_home: &Path, site: &MockS
         aget_home,
         site,
         "/markdown-unicode-snob",
-        &[("crawl4ai.unicode_snob", "false")],
+        &[("aget.unicode_snob", "false")],
     );
     assert_eq!(
         markdown_unicode_ascii,

@@ -1,32 +1,16 @@
 use std::io::{Read, Write};
 use std::net::TcpListener;
 use std::path::{Path, PathBuf};
-use std::sync::mpsc::{self, Receiver};
 use std::thread;
-use std::time::{Duration, Instant};
 
 use aget::{Session, SessionCookie, SessionOrigin, StorageEntry};
 use serde_json::json;
 
 #[path = "mock_tools.rs"]
 mod mock_tools;
-use mock_tools::mock_agent_browser;
-
-pub(crate) fn mock_backend_command(dir: &Path, config: serde_json::Value) -> String {
-    mock_tools::mock_backend_command(dir, config)
-}
 
 pub(crate) fn mock_cmux(dir: &Path, config: serde_json::Value) -> PathBuf {
     mock_tools::mock_cmux(dir, config)
-}
-
-pub(crate) fn agent_browser_tool(
-    dir: &Path,
-    log_path: &Path,
-    mut config: serde_json::Value,
-) -> PathBuf {
-    config["log_path"] = serde_json::Value::String(log_path.to_string_lossy().into_owned());
-    mock_agent_browser(dir, config)
 }
 
 pub(crate) fn chrome_import_state() -> serde_json::Value {
@@ -170,58 +154,4 @@ pub(crate) fn loopback_cookie_echo_server() -> (String, thread::JoinHandle<()>) 
     });
 
     (url, handle)
-}
-
-pub(crate) fn crawl4ai_cookie_echo_server() -> (String, thread::JoinHandle<()>, Receiver<String>) {
-    let listener = TcpListener::bind("127.0.0.1:0").unwrap();
-    listener.set_nonblocking(true).unwrap();
-    let addr = listener.local_addr().unwrap();
-    let url = format!("http://{addr}/cmux-cookie-crawl4ai-echo");
-    let (cookie_sender, cookie_receiver) = mpsc::channel();
-
-    let handle = thread::spawn(move || {
-        let deadline = Instant::now() + Duration::from_secs(30);
-        let mut handled_request = false;
-        let mut idle_after_request = None;
-
-        while Instant::now() < deadline {
-            match listener.accept() {
-                Ok((mut stream, _)) => {
-                    let mut buffer = [0; 4096];
-                    let bytes_read = stream.read(&mut buffer).unwrap_or_default();
-                    let request = String::from_utf8_lossy(&buffer[..bytes_read]);
-                    handled_request = true;
-                    idle_after_request = Some(Instant::now() + Duration::from_secs(2));
-                    let cookie = request
-                        .lines()
-                        .find_map(|line| line.strip_prefix("Cookie: "))
-                        .unwrap_or("none");
-                    let _ = cookie_sender.send(cookie.to_string());
-                    let filler = "Local cmux import replay verification content. ".repeat(40);
-                    let body = format!(
-                        "<!doctype html><html><body><main><h1>cmux Cookie Echo</h1><p>Cookie: {cookie}</p><article>{filler}</article></main></body></html>"
-                    );
-                    let response = format!(
-                        "HTTP/1.1 200 OK\r\nContent-Type: text/html; charset=utf-8\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{}",
-                        body.len(),
-                        body
-                    );
-                    let _ = stream.write_all(response.as_bytes());
-                }
-                Err(error) if error.kind() == std::io::ErrorKind::WouldBlock => {
-                    if handled_request
-                        && matches!(idle_after_request, Some(end) if Instant::now() >= end)
-                    {
-                        break;
-                    }
-                    thread::sleep(Duration::from_millis(20));
-                }
-                Err(error) => panic!("cookie echo server failed: {error}"),
-            }
-        }
-
-        assert!(handled_request);
-    });
-
-    (url, handle, cookie_receiver)
 }

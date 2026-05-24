@@ -33,7 +33,7 @@ pub(in crate::extraction) fn run_primary_extractor(
             code: ErrorCode::ExtractionFailed,
             message: backend
                 .error
-                .unwrap_or_else(|| "Crawl4AI extraction failed".to_string()),
+                .unwrap_or_else(|| "primary extraction failed".to_string()),
         });
     }
 

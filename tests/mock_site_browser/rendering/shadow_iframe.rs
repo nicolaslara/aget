@@ -38,7 +38,7 @@ fn aget_extractor_backend_flattens_shadow_dom_with_chrome() {
         .with_extractor_backend(AgetExtractorBackend::default())
         .get(site.url("/shadow-dom"))
         .content_format(OutputFormat::Text)
-        .backend_option("crawl4ai.flatten_shadow_dom", "true")
+        .backend_option("aget.flatten_shadow_dom", "true")
         .run()
         .unwrap();
 
@@ -92,7 +92,7 @@ fn aget_extractor_backend_processes_accessible_iframes_with_chrome() {
         .with_extractor_backend(AgetExtractorBackend::default())
         .get(site.url("/iframe-page"))
         .content_format(OutputFormat::Text)
-        .backend_option("crawl4ai.process_iframes", "true")
+        .backend_option("aget.process_iframes", "true")
         .run()
         .unwrap();
 

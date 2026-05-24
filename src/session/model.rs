@@ -33,7 +33,7 @@ pub enum SessionSource {
     Manual,
     Cmux { surface: String },
     ChromeProfile { profile: String },
-    AgentBrowser { session: String },
+    BrowserLogin { session: String },
     Composed { sessions: Vec<String> },
 }
 

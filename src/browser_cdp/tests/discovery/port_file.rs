@@ -10,7 +10,7 @@ use crate::error::ErrorCode;
 use crate::process::{create_private_file, TempOutputFile};
 
 #[test]
-fn wait_for_devtools_active_port_reports_agent_browser_style_early_exit_code() {
+fn wait_for_devtools_active_port_reports_early_exit_code() {
     let temp = tempfile::tempdir().unwrap();
     let stderr_capture = TempOutputFile::new(temp.path(), "chrome-stderr").unwrap();
     let stderr = create_private_file(stderr_capture.path()).unwrap();

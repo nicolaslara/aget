@@ -1,40 +1,20 @@
-use std::collections::BTreeMap;
-use std::fs::File;
-use std::path::Path;
-
 use super::domains::{domain_allowed, normalize_domain, origin_host};
-use super::model::{AgentBrowserCookie, AgentBrowserOrigin, AgentBrowserState};
+use super::model::{BrowserCookie, BrowserOrigin, BrowserState};
 use crate::error::{AgetError, ErrorCode};
 use crate::session::{PlaywrightState, Session, SessionCookie, SessionOrigin, SessionSource};
+use std::collections::BTreeMap;
 
 #[derive(Debug, Clone)]
-pub(crate) struct AgentBrowserSessionFilter {
+pub(crate) struct BrowserSessionFilter {
     pub(crate) name: String,
     pub(crate) source: SessionSource,
     pub(crate) allowed_domains: Vec<String>,
     pub(crate) source_session: String,
 }
 
-pub(crate) fn read_filtered_agent_browser_session(
-    raw_state_path: &Path,
-    filter: AgentBrowserSessionFilter,
-) -> Result<Session, AgetError> {
-    let file = File::open(raw_state_path).map_err(|error| AgetError::Stable {
-        code: ErrorCode::ExtractionFailed,
-        message: format!("agent-browser did not write raw state: {error}"),
-    })?;
-    let state: AgentBrowserState =
-        serde_json::from_reader(file).map_err(|error| AgetError::Stable {
-            code: ErrorCode::ExtractionFailed,
-            message: format!("agent-browser returned malformed state JSON: {error}"),
-        })?;
-
-    filter_agent_browser_state(state, filter)
-}
-
-pub(crate) fn filter_agent_browser_state(
-    state: AgentBrowserState,
-    filter: AgentBrowserSessionFilter,
+pub(crate) fn filter_browser_state(
+    state: BrowserState,
+    filter: BrowserSessionFilter,
 ) -> Result<Session, AgetError> {
     let mut cookies_by_key = BTreeMap::new();
     for cookie in state.cookies {
@@ -63,7 +43,7 @@ pub(crate) fn filter_agent_browser_state(
                 return Err(AgetError::Stable {
                     code: ErrorCode::SessionConflict,
                     message: format!(
-                        "agent-browser returned conflicting duplicate cookie '{}' for domain '{}' and path '{}'",
+                        "browser state returned conflicting duplicate cookie '{}' for domain '{}' and path '{}'",
                         key.0, key.1, key.2
                     ),
                 });
@@ -95,7 +75,7 @@ pub(crate) fn filter_agent_browser_state(
                 return Err(AgetError::Stable {
                     code: ErrorCode::SessionConflict,
                     message: format!(
-                        "agent-browser returned conflicting duplicate storage origin '{}'",
+                        "browser state returned conflicting duplicate storage origin '{}'",
                         session_origin.origin
                     ),
                 });
@@ -123,14 +103,14 @@ pub(crate) fn filter_agent_browser_state(
 
 pub(crate) fn filter_playwright_state(
     state: PlaywrightState,
-    filter: AgentBrowserSessionFilter,
+    filter: BrowserSessionFilter,
 ) -> Result<Session, AgetError> {
-    filter_agent_browser_state(
-        AgentBrowserState {
+    filter_browser_state(
+        BrowserState {
             cookies: state
                 .cookies
                 .into_iter()
-                .map(|cookie| AgentBrowserCookie {
+                .map(|cookie| BrowserCookie {
                     name: cookie.name,
                     value: cookie.value,
                     domain: cookie.domain,
@@ -144,7 +124,7 @@ pub(crate) fn filter_playwright_state(
             origins: state
                 .origins
                 .into_iter()
-                .map(|origin| AgentBrowserOrigin {
+                .map(|origin| BrowserOrigin {
                     origin: origin.origin,
                     local_storage: origin.local_storage,
                     session_storage: origin.session_storage,

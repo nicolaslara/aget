@@ -1,16 +1,13 @@
 use assert_cmd::Command;
 
 use crate::support::mock_site::MockSite;
-use crate::support::mock_site_cli::{
-    mock_backend_command, save_cookie_session, save_mixed_scope_session, success_data,
-};
+use crate::support::mock_site_cli::{save_cookie_session, save_mixed_scope_session, success_data};
 
 #[test]
 fn documents_session_compose_replay_and_scope_rejection_contract() {
     let temp = tempfile::tempdir().unwrap();
     let aget_home = temp.path().join("aget-home");
     let site = MockSite::start();
-    let fake_backend = mock_backend_command();
     save_cookie_session(
         &aget_home,
         "provider",
@@ -45,7 +42,6 @@ fn documents_session_compose_replay_and_scope_rejection_contract() {
     let composed_fetch = Command::cargo_bin("aget")
         .unwrap()
         .env("AGET_HOME", &aget_home)
-        .env("AGET_CRAWL4AI_COMMAND", &fake_backend)
         .args([
             "--envelope",
             "json",
@@ -76,7 +72,6 @@ fn documents_session_compose_replay_and_scope_rejection_contract() {
     let rejected = Command::cargo_bin("aget")
         .unwrap()
         .env("AGET_HOME", &aget_home)
-        .env("AGET_CRAWL4AI_COMMAND", &fake_backend)
         .args([
             "--envelope",
             "json",

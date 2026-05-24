@@ -8,7 +8,7 @@ mod labels;
 mod scoring;
 mod text;
 
-use labels::has_crawl4ai_negative_class_id_label;
+use labels::has_aget_negative_class_id_label;
 use scoring::score_main_content_candidate;
 
 pub(super) fn default_main_content_element_id(
@@ -32,10 +32,10 @@ fn best_main_content_candidate_id(
     for selector in ["main", r#"[role="main"]"#, "article", "section", "div"] {
         let selector = parse_css_selector(selector)?;
         for element in document.select(&selector) {
-            if is_inside_crawl4ai_pruning_excluded_tag(element) {
+            if is_inside_aget_pruning_excluded_tag(element) {
                 continue;
             }
-            if has_crawl4ai_negative_class_id_label(element) {
+            if has_aget_negative_class_id_label(element) {
                 continue;
             }
             let score = score_main_content_candidate(element, word_count_threshold)?;
@@ -54,7 +54,7 @@ fn best_main_content_candidate_id(
     Ok(best.map(|(_, id)| id))
 }
 
-fn is_inside_crawl4ai_pruning_excluded_tag(element: ElementRef<'_>) -> bool {
+fn is_inside_aget_pruning_excluded_tag(element: ElementRef<'_>) -> bool {
     element.ancestors().any(|ancestor| {
         ElementRef::wrap(ancestor)
             .map(|ancestor| {

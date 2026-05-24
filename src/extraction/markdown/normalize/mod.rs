@@ -75,7 +75,7 @@ pub(super) fn normalize_inline_markdown(text: &str) -> String {
 pub(super) fn normalize_unicode_snob_text(text: &str) -> String {
     let mut output = String::with_capacity(text.len());
     for character in text.chars() {
-        if let Some(replacement) = crawl4ai_unicode_replacement(character) {
+        if let Some(replacement) = aget_unicode_replacement(character) {
             output.push_str(replacement);
         } else {
             output.push(character);
@@ -84,7 +84,7 @@ pub(super) fn normalize_unicode_snob_text(text: &str) -> String {
     output
 }
 
-fn crawl4ai_unicode_replacement(character: char) -> Option<&'static str> {
+fn aget_unicode_replacement(character: char) -> Option<&'static str> {
     match character {
         '\u{00a9}' => Some("(C)"),
         '\u{2019}' | '\u{2018}' => Some("'"),

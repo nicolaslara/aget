@@ -8,8 +8,8 @@ Detailed decision history lives under `workpads/research/archive/knowledge/`; st
 `aget` is a local-first, auth-aware URL-to-agent-context tool. The active implementation direction is a Rust CLI/library with these boundaries:
 
 - `src/aget/`: public facade and orchestration across extractor, browser automation/fallback, and session-store backends.
-- `src/extraction/` plus `src/aget_extractor.rs`: local Crawl4AI-like extraction engine and backend wrapper.
-- `src/browser_cdp/`, `src/aget_browser.rs`, `src/aget_browser/`, and browser-facing session modules: local agent-browser-like Chrome/CDP behavior and backend wrapper.
+- `src/extraction/` plus `src/aget_extractor.rs`: local extraction engine and backend wrapper.
+- `src/browser_cdp/`, `src/aget_browser.rs`, `src/aget_browser/`, and browser-facing session modules: local Chrome/CDP behavior and backend wrapper.
 - `src/session/`: local session model, store, composition, imports, login lifecycle, and compatibility helpers.
 
 Safety boundary remains unchanged: `aget` is a generic fetcher for content the user is authorized to access.
@@ -17,7 +17,8 @@ Authenticated state and content stay local by default; site-specific paywall/log
 
 ## Active Work State
 
-- Active workpad: `workpads/research/tasks.md`.
+- Active workpad: `workpads/post-migration/tasks.md`.
+- Historical research and migration record: `workpads/research/tasks.md`.
 - Main migration umbrella: I19 on branch `dep-migration-homegrown-backends`.
 - Completed migration phase detail is archived in `archive/knowledge/d308-workpad-support-routing.md`.
 - I19/I19d/I19e/I19h are complete as replacement-grade migration work. Final closure evidence is in `experiments/2026-05-24-final-migration-release-and-browser-smokes.md`.
@@ -55,7 +56,8 @@ Authenticated state and content stay local by default; site-specific paywall/log
 
 ## Current Verification Expectations
 
-- For behavior changes, inspect the relevant external source snapshot under `references/repos/crawl4ai` or `references/repos/agent-browser` before porting and record the source-backed decision in the appropriate workpad file.
+- For normal product changes, use current `aget` code, CLI help, README, skill, and local tests as the source of truth.
+- Inspect historical Crawl4AI or `agent-browser` source snapshots only for explicitly scoped parity work, historical evidence, or behavior-level comparison tasks.
 - Run focused tests for touched behavior plus `cargo fmt --check` and, at stable points, `cargo test`.
 - Before starting another task after a stable point, make an explicit commit decision. The user wants iterative stable commits on this branch.
 - `CLAUDE_REVIEW.md` is an untracked review artifact in this worktree; do not rewrite or commit it unless explicitly asked.

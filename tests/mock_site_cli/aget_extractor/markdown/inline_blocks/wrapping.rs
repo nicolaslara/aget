@@ -9,7 +9,7 @@ pub(super) fn assert_wrapping_options(aget_home: &Path, site: &MockSite) {
         aget_home,
         site,
         "/markdown-body-width",
-        &[("crawl4ai.body_width", "24")],
+        &[("aget.body_width", "24")],
     );
     assert_eq!(
         markdown_body_width,
@@ -29,10 +29,7 @@ pub(super) fn assert_wrapping_options(aget_home: &Path, site: &MockSite) {
         aget_home,
         site,
         "/markdown-body-width",
-        &[
-            ("crawl4ai.body_width", "24"),
-            ("crawl4ai.wrap_list_items", "true"),
-        ],
+        &[("aget.body_width", "24"), ("aget.wrap_list_items", "true")],
     );
     assert_eq!(
         markdown_wrap_list_items,
@@ -55,7 +52,7 @@ pub(super) fn assert_wrapping_options(aget_home: &Path, site: &MockSite) {
         aget_home,
         site,
         "/markdown-wrap-tables",
-        &[("crawl4ai.body_width", "24")],
+        &[("aget.body_width", "24")],
     );
     assert_eq!(
         markdown_wrap_tables_default,
@@ -71,7 +68,7 @@ pub(super) fn assert_wrapping_options(aget_home: &Path, site: &MockSite) {
         aget_home,
         site,
         "/markdown-wrap-tables",
-        &[("crawl4ai.pad_tables", "true")],
+        &[("aget.pad_tables", "true")],
     );
     assert_eq!(
         markdown_pad_tables,
@@ -87,10 +84,7 @@ pub(super) fn assert_wrapping_options(aget_home: &Path, site: &MockSite) {
         aget_home,
         site,
         "/markdown-wrap-tables",
-        &[
-            ("crawl4ai.body_width", "24"),
-            ("crawl4ai.wrap_tables", "true"),
-        ],
+        &[("aget.body_width", "24"), ("aget.wrap_tables", "true")],
     );
     assert_eq!(
         markdown_wrap_tables_true,
@@ -108,7 +102,7 @@ pub(super) fn assert_wrapping_options(aget_home: &Path, site: &MockSite) {
         aget_home,
         site,
         "/markdown-wrap-links",
-        &[("crawl4ai.body_width", "34")],
+        &[("aget.body_width", "34")],
     );
     assert_ne!(
         markdown_wrap_links_default,
@@ -122,10 +116,7 @@ pub(super) fn assert_wrapping_options(aget_home: &Path, site: &MockSite) {
         aget_home,
         site,
         "/markdown-wrap-links",
-        &[
-            ("crawl4ai.body_width", "34"),
-            ("crawl4ai.wrap_links", "false"),
-        ],
+        &[("aget.body_width", "34"), ("aget.wrap_links", "false")],
     );
     assert_eq!(
         markdown_wrap_links_false,
@@ -139,7 +130,7 @@ pub(super) fn assert_wrapping_options(aget_home: &Path, site: &MockSite) {
         aget_home,
         site,
         "/markdown-single-line-break",
-        &[("crawl4ai.single_line_break", "true")],
+        &[("aget.single_line_break", "true")],
     );
     assert_eq!(
         markdown_single_line_break,

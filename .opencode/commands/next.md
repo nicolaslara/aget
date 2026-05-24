@@ -26,7 +26,8 @@ Choose a pending `📋` task based on:
 - Current state
 - Risk
 - Testability
-- Whether it unblocks architecture decisions
+- Whether it unblocks source-of-truth cleanup, dependency removal, or product
+  reliability
 
 ## Step 3: Execute
 
@@ -42,7 +43,8 @@ Choose a pending `📋` task based on:
 
 ## Rules
 
-- Do not start implementation during research unless explicitly requested.
+- Use `workpads/WORKPADS.md` to identify the active workpad; older research
+  workpads are historical unless `WORKPADS.md` says otherwise.
 - Do not commit without explicit user confirmation.
 - If evidence is weak, record uncertainty instead of guessing.
 - Do not mark tasks complete while material review findings remain unresolved.

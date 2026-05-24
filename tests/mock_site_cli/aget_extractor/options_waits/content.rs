@@ -10,7 +10,7 @@ pub(super) fn assert_content_options(aget_home: &Path, site: &MockSite) {
         .get(site.url("/markdown"))
         .content_format(OutputFormat::Markdown)
         .selector("main.article")
-        .backend_option("crawl4ai.only_text", "true")
+        .backend_option("aget.only_text", "true")
         .run()
         .unwrap();
     assert_eq!(
@@ -27,7 +27,7 @@ pub(super) fn assert_content_options(aget_home: &Path, site: &MockSite) {
         .get(site.url("/markdown"))
         .content_format(OutputFormat::Html)
         .selector("main.article")
-        .backend_option("crawl4ai.only_text", "true")
+        .backend_option("aget.only_text", "true")
         .run()
         .unwrap();
     assert!(only_text_html.content.contains("Intro with bold and"));
@@ -44,7 +44,7 @@ pub(super) fn assert_content_options(aget_home: &Path, site: &MockSite) {
         .get(site.url("/word-threshold"))
         .content_format(OutputFormat::Text)
         .selector("main.article")
-        .backend_option("crawl4ai.word_count_threshold", "4")
+        .backend_option("aget.word_count_threshold", "4")
         .run()
         .unwrap();
     assert_eq!(
@@ -57,7 +57,7 @@ pub(super) fn assert_content_options(aget_home: &Path, site: &MockSite) {
         .get(site.url("/word-threshold"))
         .content_format(OutputFormat::Html)
         .selector("main.article")
-        .backend_option("crawl4ai.word_count_threshold", "9")
+        .backend_option("aget.word_count_threshold", "9")
         .run()
         .unwrap();
     assert!(threshold_html.content.contains("Tiny caption"));
@@ -71,8 +71,8 @@ pub(super) fn assert_content_options(aget_home: &Path, site: &MockSite) {
         .get(site.url("/formats"))
         .content_format(OutputFormat::Text)
         .selector("main.article")
-        .backend_option("crawl4ai.cache", "bypass")
-        .backend_option("crawl4ai.cache_mode", "disabled")
+        .backend_option("aget.cache", "bypass")
+        .backend_option("aget.cache_mode", "disabled")
         .run()
         .unwrap();
     assert_eq!(
@@ -83,7 +83,7 @@ pub(super) fn assert_content_options(aget_home: &Path, site: &MockSite) {
     let cache_enabled = Aget::new(aget_home)
         .with_extractor_backend(AgetExtractorBackend::default())
         .get(site.url("/formats"))
-        .backend_option("crawl4ai.cache_mode", "enabled")
+        .backend_option("aget.cache_mode", "enabled")
         .run()
         .unwrap_err();
     assert_eq!(cache_enabled.code(), ErrorCode::ExtractionFailed);
@@ -96,7 +96,7 @@ pub(super) fn assert_content_options(aget_home: &Path, site: &MockSite) {
         .get(site.url("/formats"))
         .content_format(OutputFormat::Text)
         .selector("main.article")
-        .backend_option("crawl4ai.user_agent", "aget-test/2.0")
+        .backend_option("aget.user_agent", "aget-test/2.0")
         .run()
         .unwrap();
     assert_eq!(

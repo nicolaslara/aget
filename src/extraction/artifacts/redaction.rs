@@ -32,7 +32,7 @@ pub(in crate::extraction) fn sanitize_backend_error(
     match error {
         AgetError::Stable { code, .. } => AgetError::Stable {
             code,
-            message: "Crawl4AI extraction failed for session-backed request".to_string(),
+            message: "primary extraction failed for session-backed request".to_string(),
         },
     }
 }

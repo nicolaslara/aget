@@ -15,7 +15,9 @@ Progress persists in files and git, not conversation context.
 
 ## Current Phase
 
-The project is in **research and design bootstrap**. Do not start implementation until the research workpad has been reviewed and initial technical direction is chosen.
+The project is in **post-migration CLI productization**. The active product
+surface is the Rust CLI and its structured envelope. Do not add an MCP server or
+MCP dependency unless the user explicitly reverses this direction.
 
 ## Mandatory Workflow
 
@@ -50,14 +52,10 @@ Use succinct comments when repository-specific terms or boundaries are not self-
 
 ## Implementation Direction
 
-The likely implementation language is Rust, but this is not finalized. Research should evaluate whether pure Rust is practical for:
-
-- Browser automation through CDP/WebDriver.
-- HTML-to-markdown conversion quality.
-- Main-content extraction/readability.
-- Token estimation.
-- OpenCode/MCP integration.
-- Local profile/session handling.
+The implementation language is Rust. Future implementation work should preserve
+the CLI as the behavior source of truth and keep integrations as thin
+CLI/envelope callers unless a workpad task explicitly approves a different
+boundary.
 
 ## Safety Boundary
 
@@ -74,3 +72,7 @@ During research, verification means:
 - Open questions are recorded explicitly instead of guessed.
 
 During implementation, verification requirements will be added once stack and test strategy are chosen.
+During implementation, verify touched behavior with focused tests plus the
+standard formatting/test gate recorded in the active workpad. For documentation
+work, verify command examples against current CLI help and grep for stale
+dependency claims.

@@ -75,7 +75,7 @@ pub(super) fn run_login(
                     serde_json::json!({
                         "state": "login_finished",
                         "name": session.name,
-                        "source": "agent_browser",
+                        "source": "browser_login",
                         "cookie_count": session.cookies.len(),
                         "origin_count": session.origins.len(),
                     }),

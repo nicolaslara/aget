@@ -117,7 +117,7 @@ fn parses_get_output_shaping_options() {
         "--max-chars",
         "123",
         "--backend-option",
-        "crawl4ai.cache=bypass",
+        "aget.cache=bypass",
     ])
     .unwrap();
 
@@ -134,7 +134,7 @@ fn parses_get_output_shaping_options() {
             wait_for_selector: Some("css:.ready".to_string()),
             max_chars: Some(123),
             backend_options: vec![ExtractorOption {
-                key: "crawl4ai.cache".to_string(),
+                key: "aget.cache".to_string(),
                 value: "bypass".to_string(),
             }],
         })

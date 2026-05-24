@@ -34,7 +34,7 @@ fn aget_extractor_backend_honors_render_delay_option_with_chrome() {
         .with_extractor_backend(AgetExtractorBackend::default())
         .get(site.url("/slow-client-rendered"))
         .content_format(OutputFormat::Text)
-        .backend_option("crawl4ai.delay_before_return_html", "0.4")
+        .backend_option("aget.delay_before_return_html", "0.4")
         .run()
         .unwrap();
 

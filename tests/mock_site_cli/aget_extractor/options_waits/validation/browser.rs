@@ -7,34 +7,34 @@ use super::support::assert_invalid_option_contains;
 pub(super) fn assert_browser_option_validation(aget_home: &Path, site: &MockSite) {
     for (key, value, expected) in [
         (
-            "crawl4ai.page_timeout",
+            "aget.page_timeout",
             "soon",
-            "crawl4ai.page_timeout expects a non-negative integer number of milliseconds",
+            "aget.page_timeout expects a non-negative integer number of milliseconds",
         ),
         (
-            "crawl4ai.wait_until",
+            "aget.wait_until",
             "commit",
-            "crawl4ai.wait_until supports only 'domcontentloaded', 'load', or 'networkidle'",
+            "aget.wait_until supports only 'domcontentloaded', 'load', or 'networkidle'",
         ),
         (
-            "crawl4ai.wait_for_images",
+            "aget.wait_for_images",
             "eventually",
-            "crawl4ai.wait_for_images expects a boolean value",
+            "aget.wait_for_images expects a boolean value",
         ),
         (
-            "crawl4ai.process_iframes",
+            "aget.process_iframes",
             "maybe",
-            "crawl4ai.process_iframes expects a boolean value",
+            "aget.process_iframes expects a boolean value",
         ),
         (
-            "crawl4ai.scroll_delay",
+            "aget.scroll_delay",
             "later",
-            "crawl4ai.scroll_delay expects a non-negative number of seconds",
+            "aget.scroll_delay expects a non-negative number of seconds",
         ),
         (
-            "crawl4ai.max_scroll_steps",
+            "aget.max_scroll_steps",
             "many",
-            "crawl4ai.max_scroll_steps expects a non-negative integer value",
+            "aget.max_scroll_steps expects a non-negative integer value",
         ),
     ] {
         assert_invalid_option_contains(aget_home, site, key, value, expected);

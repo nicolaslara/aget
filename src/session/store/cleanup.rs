@@ -12,10 +12,6 @@ pub(super) fn sweep_orphaned_tmp(tmp_dir: &Path, min_age: Duration) -> io::Resul
             .file_name()
             .and_then(|name| name.to_str())
             .unwrap_or("");
-        if file_name == "agent-browser" {
-            sweep_orphaned_agent_browser_profiles(&path, min_age, now)?;
-            continue;
-        }
         if file_name == "owned-chrome" {
             sweep_orphaned_owned_chrome_profiles(&path, min_age, now)?;
             continue;
@@ -30,28 +26,6 @@ pub(super) fn sweep_orphaned_tmp(tmp_dir: &Path, min_age: Duration) -> io::Resul
         }
         if is_orphanable_tmp_file(file_name) && is_older_than(&path, min_age, now) {
             let _ = fs::remove_file(path);
-        }
-    }
-    Ok(())
-}
-
-fn sweep_orphaned_agent_browser_profiles(
-    dir: &Path,
-    min_age: Duration,
-    now: SystemTime,
-) -> io::Result<()> {
-    if !dir.exists() {
-        return Ok(());
-    }
-    for entry in fs::read_dir(dir)? {
-        let entry = entry?;
-        let path = entry.path();
-        let file_name = path
-            .file_name()
-            .and_then(|name| name.to_str())
-            .unwrap_or("");
-        if file_name.starts_with("aget-fallback-") && is_older_than(&path, min_age, now) {
-            let _ = fs::remove_dir_all(path);
         }
     }
     Ok(())
@@ -130,10 +104,7 @@ pub(super) fn sweep_orphaned_owned_login_profiles(
 
 pub(super) fn is_orphanable_tmp_file(file_name: &str) -> bool {
     (file_name.starts_with("playwright-state-") && file_name.ends_with(".json"))
-        || (file_name.starts_with("agent-browser-raw-state-") && file_name.ends_with(".json"))
         || (file_name.starts_with("login-raw-state-") && file_name.ends_with(".json"))
-        || (file_name.starts_with("agent-browser-stdout-") && file_name.ends_with(".txt"))
-        || (file_name.starts_with("agent-browser-stderr-") && file_name.ends_with(".txt"))
         || (file_name.starts_with("cmux-stdout-") && file_name.ends_with(".txt"))
         || (file_name.starts_with("cmux-stderr-") && file_name.ends_with(".txt"))
 }

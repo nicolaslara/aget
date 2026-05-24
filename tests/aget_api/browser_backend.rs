@@ -30,7 +30,7 @@ fn aget_browser_backend_does_not_save_failed_profile_path_import() {
 }
 
 #[test]
-fn aget_browser_backend_cancels_pending_login_without_agent_browser() {
+fn aget_browser_backend_cancels_pending_login_without_browser_state() {
     let temp = tempfile::tempdir().unwrap();
     let home = temp.path().join("aget-home");
     let tmp_dir = home.join("tmp");
@@ -60,7 +60,7 @@ fn aget_browser_backend_cancels_pending_login_without_agent_browser() {
 }
 
 #[test]
-fn aget_current_tab_api_renders_mock_cdp_page_without_agent_browser() {
+fn aget_current_tab_api_renders_mock_cdp_page_without_browser_state() {
     let temp = tempfile::tempdir().unwrap();
     let home = temp.path().join("aget-home");
     let (port, server) = mock_current_tab_cdp_server(

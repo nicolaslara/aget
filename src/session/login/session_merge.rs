@@ -1,4 +1,4 @@
-use crate::session::agent_browser::{domain_allowed, domain_matches_allowed};
+use crate::session::browser_state::{domain_allowed, domain_matches_allowed};
 use crate::session::Session;
 
 pub fn merge_login_session(mut existing: Session, mut fresh: Session) -> Session {

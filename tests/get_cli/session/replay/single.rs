@@ -2,52 +2,31 @@ use std::fs;
 use std::path::PathBuf;
 
 use assert_cmd::Command;
-use serde_json::json;
 
-use crate::support::get_cli::{mock_backend_command, save_cookie_session, success_data};
+use crate::support::get_cli::{cookie_echo_server, save_cookie_session, success_data};
 
 #[test]
 fn get_session_uses_named_session_state_and_marks_sensitive() {
     let temp = tempfile::tempdir().unwrap();
     let aget_home = temp.path().join("aget-home");
+    let (url, server, cookies) = cookie_echo_server("/session");
     save_cookie_session(&aget_home, "local", "127.0.0.1", "sid", "secret-cookie");
-    let fake_backend = mock_backend_command(
-        temp.path(),
-        json!({
-            "behavior": "success",
-            "content": "# Session Fetch",
-            "expect_state": {
-                "cookies": [{
-                    "name": "sid",
-                    "value": "secret-cookie",
-                    "domain": "127.0.0.1",
-                    "path": "/",
-                    "httpOnly": true,
-                    "secure": false,
-                    "sameSite": "Lax"
-                }],
-                "origins": []
-            }
-        }),
-    );
 
     let mut cmd = Command::cargo_bin("aget").unwrap();
     let output = cmd
         .env("AGET_HOME", &aget_home)
-        .env("AGET_CRAWL4AI_COMMAND", &fake_backend)
-        .args([
-            "--envelope",
-            "json",
-            "get",
-            "http://127.0.0.1/session",
-            "--session",
-            "local",
-        ])
+        .args(["--envelope", "json", "get", &url, "--session", "local"])
         .assert()
         .success()
         .get_output()
         .stdout
         .clone();
+    server.join().unwrap();
+
+    let headers = cookies.try_iter().collect::<Vec<_>>();
+    assert!(headers
+        .iter()
+        .any(|cookie| cookie.contains("sid=secret-cookie")));
 
     let json = success_data(&output, "get");
     assert_eq!(json["sessions"], serde_json::json!(["local"]));

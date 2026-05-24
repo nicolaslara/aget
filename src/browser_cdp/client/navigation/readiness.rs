@@ -147,12 +147,11 @@ impl CdpClient {
             .and_then(Value::as_str)
             .ok_or_else(|| AgetError::Stable {
                 code: ErrorCode::ExtractionFailed,
-                message: "crawl4ai.process_iframes returned no iframe processing result"
-                    .to_string(),
+                message: "aget.process_iframes returned no iframe processing result".to_string(),
             })?;
         let summary: Value = serde_json::from_str(raw).map_err(|error| AgetError::Stable {
             code: ErrorCode::ExtractionFailed,
-            message: format!("crawl4ai.process_iframes returned invalid summary JSON: {error}"),
+            message: format!("aget.process_iframes returned invalid summary JSON: {error}"),
         })?;
         Ok((
             summary

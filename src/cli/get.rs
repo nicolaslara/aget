@@ -41,7 +41,7 @@ pub struct GetCommand {
     #[arg(long)]
     pub max_chars: Option<usize>,
 
-    /// Advanced unstable backend escape hatch, e.g. `crawl4ai.wait_for_images=true`.
+    /// Advanced unstable backend option in key=value form.
     #[arg(long = "backend-option", value_parser = parse_backend_option)]
     pub backend_options: Vec<ExtractorOption>,
 }

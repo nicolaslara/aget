@@ -8,19 +8,16 @@ mod aget_extractor_site;
 use aget::OutputFormat;
 use assert_cmd::Command;
 use support::mock_site::{MockResponse, MockSite};
-use support::mock_site_cli::{aget, mock_backend_command, success_data};
+use support::mock_site_cli::{aget, success_data};
 
 #[test]
 fn mock_site_fetch_handles_redirect_output_shaping_and_waits() {
     let temp = tempfile::tempdir().unwrap();
     let aget_home = temp.path().join("aget-home");
     let site = MockSite::start();
-    let fake_backend = mock_backend_command();
-
     let output = Command::cargo_bin("aget")
         .unwrap()
         .env("AGET_HOME", &aget_home)
-        .env("AGET_CRAWL4AI_COMMAND", &fake_backend)
         .args([
             "--envelope",
             "json",
@@ -52,7 +49,6 @@ fn mock_site_fetch_handles_redirect_output_shaping_and_waits() {
     let delayed = Command::cargo_bin("aget")
         .unwrap()
         .env("AGET_HOME", &aget_home)
-        .env("AGET_CRAWL4AI_COMMAND", &fake_backend)
         .args([
             "--envelope",
             "json",
@@ -86,8 +82,6 @@ fn default_cli_fetch_uses_local_backend_without_command_dependencies() {
     let output = Command::cargo_bin("aget")
         .unwrap()
         .env("AGET_HOME", &aget_home)
-        .env_remove("AGET_CRAWL4AI_COMMAND")
-        .env_remove("AGET_AGENT_BROWSER_COMMAND")
         .args([
             "--envelope",
             "json",
@@ -138,8 +132,6 @@ fn default_cli_fetch_includes_page_metadata_in_json_envelope() {
     let output = Command::cargo_bin("aget")
         .unwrap()
         .env("AGET_HOME", &aget_home)
-        .env_remove("AGET_CRAWL4AI_COMMAND")
-        .env_remove("AGET_AGENT_BROWSER_COMMAND")
         .args([
             "--envelope",
             "json",
@@ -166,7 +158,6 @@ fn default_cli_fetch_includes_page_metadata_in_json_envelope() {
 fn backend_parity_covers_extractor_content_formats() {
     let temp = tempfile::tempdir().unwrap();
     let aget_home = temp.path().join("aget-home");
-    let fake_backend = mock_backend_command();
     let site = MockSite::builder()
         .route(
             "/formats",
@@ -185,7 +176,7 @@ fn backend_parity_covers_extractor_content_formats() {
         )
         .start();
 
-    let markdown = aget(&aget_home, &fake_backend)
+    let markdown = aget(&aget_home)
         .get(site.url("/formats"))
         .content_format(OutputFormat::Markdown)
         .run()
@@ -194,15 +185,15 @@ fn backend_parity_covers_extractor_content_formats() {
     assert!(markdown.content.contains("Format Heading"));
     assert!(markdown.content.contains("Format body text."));
 
-    let text = aget(&aget_home, &fake_backend)
+    let text = aget(&aget_home)
         .get(site.url("/formats"))
         .content_format(OutputFormat::Text)
         .run()
         .unwrap();
     assert_eq!(text.content_format, "text");
-    assert_eq!(text.content, "Format Heading Format body text.");
+    assert_eq!(text.content, "Format Heading\nFormat body text.");
 
-    let html = aget(&aget_home, &fake_backend)
+    let html = aget(&aget_home)
         .get(site.url("/formats"))
         .content_format(OutputFormat::Html)
         .run()
@@ -211,7 +202,7 @@ fn backend_parity_covers_extractor_content_formats() {
     assert!(html.content.contains("<main>"));
     assert!(html.content.contains("<h1>Format Heading</h1>"));
 
-    let json = aget(&aget_home, &fake_backend)
+    let json = aget(&aget_home)
         .get(site.url("/formats"))
         .content_format(OutputFormat::Json)
         .exclude_selector("p.ad")
@@ -220,5 +211,5 @@ fn backend_parity_covers_extractor_content_formats() {
     assert_eq!(json.content_format, "json");
     let parsed: serde_json::Value = serde_json::from_str(&json.content).unwrap();
     assert_eq!(parsed["url"], site.url("/formats"));
-    assert_eq!(parsed["content"], "Format Heading Format body text.");
+    assert_eq!(parsed["content"], "Format Heading\nFormat body text.");
 }

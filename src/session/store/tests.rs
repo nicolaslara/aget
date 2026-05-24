@@ -85,7 +85,6 @@ fn rejects_path_like_session_names() {
 
 #[test]
 fn orphan_sweep_recognizes_import_and_extractor_temp_files() {
-    assert!(is_orphanable_tmp_file("agent-browser-raw-state-123.json"));
     assert!(is_orphanable_tmp_file("login-raw-state-123.json"));
     assert!(is_orphanable_tmp_file("playwright-state-123.json"));
     assert!(!is_orphanable_tmp_file("owned-chrome"));

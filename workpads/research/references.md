@@ -13,13 +13,13 @@ Detailed reference rows are archived under `workpads/research/archive/references
 | Browser automation primary sources plus Rust dependency candidates | `archive/references/browser-automation-and-rust-candidates.md` |
 | Later YouTube/transcript/local-ASR candidates | `archive/references/later-media-inputs.md` |
 
-## Active Source Snapshots
+## Historical / Parity Source Snapshots
 
 | Project | Local / Source | Use |
 | --- | --- | --- |
-| Crawl4AI | `references/repos/crawl4ai`, commit `1debe5f5fcc118ced10826a1040a81f9b77e9255` | Inspect before porting extraction, markdown, readiness, session, or option behavior. License: Apache-2.0. |
-| Crawl4AI content pruning | `references/repos/crawl4ai/crawl4ai/content_filter_strategy.py` | Source for owned readability scoring signals. |
-| agent-browser | `references/repos/agent-browser`, commit `3bb1d43f8bb16444596365496f78395da8f1e6b7` | Inspect before porting browser/CDP/session/profile behavior. License: Apache-2.0. |
+| Crawl4AI | `references/repos/crawl4ai`, commit `1debe5f5fcc118ced10826a1040a81f9b77e9255` | Historical basis and parity-test comparison only; not an active runtime dependency. License: Apache-2.0. |
+| Crawl4AI content pruning | `references/repos/crawl4ai/crawl4ai/content_filter_strategy.py` | Historical source for readability scoring signals and parity comparison. |
+| agent-browser | `references/repos/agent-browser`, commit `3bb1d43f8bb16444596365496f78395da8f1e6b7` | Historical basis and parity-test comparison only; not an active runtime dependency. License: Apache-2.0. |
 | cmux | Source review at commit `7142e31d3a749c241843655cac2771927505860c` | `browser cookies get` returns broad cookie data; `aget` must post-filter by explicit allowlist. |
 | agent-fetch | `references/repos/agent-fetch` | Extraction-strategy inspiration for Readability/text-density/JSON-LD/Next.js/RSC/WordPress/selectors. License: MIT. |
 | Markdown Web Browser | `references/repos/markdown_web_browser` | Product comparison only; license rider and bot-detection framing make direct reuse unsuitable. |
@@ -31,11 +31,11 @@ Detailed reference rows are archived under `workpads/research/archive/references
 | Product intent and workflow | `project.md`, `WORKING.md`, `workpads/WORKPADS.md`, `workpads/research/tasks.md`, `workpads/research/knowledge.md` | Load before task work. |
 | Aget facade/orchestration | `src/aget/` | Public API and dependency wiring across extractor, browser automation/fallback, and session store backends. |
 | Aget facade/backend API coverage | `tests/aget_api.rs`, `tests/aget_api/` | Direct API coverage for extractor/session-store wiring, browser fallback, authorization, session import/login, and default AgetBrowser backend behavior. |
-| AgetExtractor boundary | `src/aget_extractor.rs`, `src/extraction/` | Local Crawl4AI-like extraction engine and backend wrapper. Details: `architecture-inputs.md`. |
+| AgetExtractor boundary | `src/aget_extractor.rs`, `src/extraction/` | Local extraction engine and backend wrapper. Details: `architecture-inputs.md`. |
 | AgetBrowser boundary | `src/aget_browser.rs`, `src/browser_cdp/`, `src/session/chrome/`, `src/session/login/` | Local browser/CDP/profile/session engine. Details: `architecture-inputs.md`. |
 | Session model/store/import | `src/session/` | Keep auth state local, scoped, and explicitly imported. |
 | Binary session CLI execution | `src/main_session/` | Dispatches `aget session` commands and keeps command names, profile argument normalization, JSON envelope shaping, and inspect/redaction views split from `src/main.rs`. |
-| Agent-facing usage | `.cursor/skills/aget/SKILL.md`, `.opencode/tools/aget.ts`, `README.md` | Keep command/default-backend wording aligned with current runtime behavior. |
+| Agent-facing usage | `skills/aget/SKILL.md`, `.opencode/tools/aget.ts`, `README.md` | Keep command/default-backend wording aligned with current runtime behavior. |
 | Mock-site integration coverage | `tests/support/mock_site.rs`, `tests/mock_site_*` | Local deterministic public/auth/session/rendering behavior. |
 | Get CLI coverage | `tests/get_cli.rs`, `tests/get_cli/`, `tests/support/get_cli.rs` | Get artifacts, output shaping, validation/failures, and session replay/fallback. |
 | Session CLI coverage | `tests/session_cli/`, `tests/support/session_cli.rs` | Session import, authorize, login lifecycle, and backend compatibility. |

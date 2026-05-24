@@ -78,7 +78,8 @@ fn read_config() -> Result<Value, String> {
         return Ok(serde_json::json!({}));
     }
     serde_json::from_str(
-        &fs::read_to_string(&config_path).map_err(|error| format!("read mock cmux config: {error}"))?,
+        &fs::read_to_string(&config_path)
+            .map_err(|error| format!("read mock cmux config: {error}"))?,
     )
     .map_err(|error| format!("parse mock cmux config: {error}"))
 }

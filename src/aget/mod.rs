@@ -15,8 +15,7 @@ pub use self::authorize::{
 };
 pub use self::backends::{
     AgetBrowserBackend, BrowserAutomationBackend, BrowserCurrentTabBackend,
-    BrowserCurrentTabRequest, CommandBrowserAutomationBackend, DefaultBrowserAutomationBackend,
-    DefaultExtractorBackend,
+    BrowserCurrentTabRequest, DefaultBrowserAutomationBackend, DefaultExtractorBackend,
 };
 pub use self::current_tab::CurrentTabOptions;
 pub use self::get_request::GetRequest;
@@ -40,10 +39,9 @@ pub struct AgetWith<E, S, B> {
     // automation so future encrypted or test stores can reuse the same `Aget` flow.
     session_store: S,
     // Browser automation covers login/profile import flows. The default backend is
-    // AgetBrowser CDP/Chrome automation; the command adapter remains compatibility-only.
+    // AgetBrowser CDP/Chrome automation.
     browser_backend: B,
-    // Pluggable URL extraction capability. The default backend is AgetExtractor
-    // extraction; command transport remains an explicit compatibility path.
+    // Pluggable URL extraction capability. The default backend is AgetExtractor.
     extractor_backend: E,
     timeout: Option<Duration>,
 }
@@ -66,13 +64,6 @@ impl Aget {
             extractor_backend: DefaultExtractorBackend::from_env(),
             timeout: None,
         })
-    }
-}
-
-impl<S, B> AgetWith<DefaultExtractorBackend, S, B> {
-    pub fn with_backend_command(mut self, command: impl Into<String>) -> Self {
-        self.extractor_backend = DefaultExtractorBackend::command(Some(command.into()));
-        self
     }
 }
 

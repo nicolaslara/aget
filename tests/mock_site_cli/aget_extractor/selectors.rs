@@ -71,7 +71,7 @@ pub(super) fn assert_selector_and_target_options(aget_home: &Path, site: &MockSi
         .with_extractor_backend(AgetExtractorBackend::default())
         .get(site.url("/selector-multiple"))
         .content_format(OutputFormat::Text)
-        .backend_option("crawl4ai.css_selector", ".result")
+        .backend_option("aget.css_selector", ".result")
         .run()
         .unwrap();
     assert_eq!(
@@ -83,7 +83,7 @@ pub(super) fn assert_selector_and_target_options(aget_home: &Path, site: &MockSi
         .with_extractor_backend(AgetExtractorBackend::default())
         .get(site.url("/selector-miss"))
         .content_format(OutputFormat::Text)
-        .backend_option("crawl4ai.css_selector", ".does-not-exist")
+        .backend_option("aget.css_selector", ".does-not-exist")
         .run()
         .unwrap();
     assert_eq!(
@@ -95,7 +95,7 @@ pub(super) fn assert_selector_and_target_options(aget_home: &Path, site: &MockSi
         .with_extractor_backend(AgetExtractorBackend::default())
         .get(site.url("/selector-miss"))
         .content_format(OutputFormat::Text)
-        .backend_option("crawl4ai.css_selector", "[[[invalid")
+        .backend_option("aget.css_selector", "[[[invalid")
         .run()
         .unwrap();
     assert_eq!(
@@ -108,7 +108,7 @@ pub(super) fn assert_selector_and_target_options(aget_home: &Path, site: &MockSi
         .get(site.url("/selector-multiple"))
         .content_format(OutputFormat::Text)
         .selector("aside")
-        .backend_option("crawl4ai.css_selector", ".result")
+        .backend_option("aget.css_selector", ".result")
         .run()
         .unwrap();
     assert_eq!(
@@ -121,7 +121,7 @@ pub(super) fn assert_selector_and_target_options(aget_home: &Path, site: &MockSi
         .get(site.url("/selector-multiple"))
         .content_format(OutputFormat::Text)
         .selector(".result")
-        .backend_option("crawl4ai.target_elements", "p")
+        .backend_option("aget.target_elements", "p")
         .run()
         .unwrap();
     assert_eq!(selector_scoped_targets.content, "Alpha body.\nBeta body.");
@@ -130,8 +130,8 @@ pub(super) fn assert_selector_and_target_options(aget_home: &Path, site: &MockSi
         .with_extractor_backend(AgetExtractorBackend::default())
         .get(site.url("/selector-multiple"))
         .content_format(OutputFormat::Text)
-        .backend_option("crawl4ai.css_selector", ".result")
-        .backend_option("crawl4ai.target_elements", "p")
+        .backend_option("aget.css_selector", ".result")
+        .backend_option("aget.target_elements", "p")
         .run()
         .unwrap();
     assert_eq!(
@@ -143,7 +143,7 @@ pub(super) fn assert_selector_and_target_options(aget_home: &Path, site: &MockSi
         .with_extractor_backend(AgetExtractorBackend::default())
         .get(site.url("/excluded-tags"))
         .content_format(OutputFormat::Text)
-        .backend_option("crawl4ai.excluded_tags", "aside,footer")
+        .backend_option("aget.excluded_tags", "aside,footer")
         .run()
         .unwrap();
     assert_eq!(excluded_tags.content, "Tag Filtering\nKept article body.");
@@ -152,7 +152,7 @@ pub(super) fn assert_selector_and_target_options(aget_home: &Path, site: &MockSi
         .with_extractor_backend(AgetExtractorBackend::default())
         .get(site.url("/excluded-tags"))
         .content_format(OutputFormat::Text)
-        .backend_option("crawl4ai.excluded_selector", "aside,footer")
+        .backend_option("aget.excluded_selector", "aside,footer")
         .run()
         .unwrap();
     assert_eq!(
@@ -164,7 +164,7 @@ pub(super) fn assert_selector_and_target_options(aget_home: &Path, site: &MockSi
         .with_extractor_backend(AgetExtractorBackend::default())
         .get(site.url("/excluded-tags"))
         .content_format(OutputFormat::Text)
-        .backend_option("crawl4ai.excluded_selector", "[[[invalid")
+        .backend_option("aget.excluded_selector", "[[[invalid")
         .run()
         .unwrap();
     assert_eq!(
@@ -176,7 +176,7 @@ pub(super) fn assert_selector_and_target_options(aget_home: &Path, site: &MockSi
         .with_extractor_backend(AgetExtractorBackend::default())
         .get(site.url("/excluded-tags"))
         .content_format(OutputFormat::Markdown)
-        .backend_option("crawl4ai.target_elements", "h1,p")
+        .backend_option("aget.target_elements", "h1,p")
         .run()
         .unwrap();
     assert_eq!(
@@ -188,8 +188,8 @@ pub(super) fn assert_selector_and_target_options(aget_home: &Path, site: &MockSi
         .with_extractor_backend(AgetExtractorBackend::default())
         .get(site.url("/markdown"))
         .content_format(OutputFormat::Html)
-        .backend_option("crawl4ai.target_elements", "strong")
-        .backend_option("crawl4ai.only_text", "true")
+        .backend_option("aget.target_elements", "strong")
+        .backend_option("aget.only_text", "true")
         .run()
         .unwrap();
     assert_eq!(targeted_only_text_root.content, "<strong>bold</strong>");
@@ -209,7 +209,7 @@ pub(super) fn assert_selector_and_target_options(aget_home: &Path, site: &MockSi
         .with_extractor_backend(AgetExtractorBackend::default())
         .get(site.url("/remove-forms"))
         .content_format(OutputFormat::Text)
-        .backend_option("crawl4ai.remove_forms", "true")
+        .backend_option("aget.remove_forms", "true")
         .run()
         .unwrap();
     assert_eq!(removed_forms.content, "Form Cleanup\nKept content.");

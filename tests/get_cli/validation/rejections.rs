@@ -1,30 +1,24 @@
 use std::{fs, path::Path};
 
 use assert_cmd::Command;
-use serde_json::json;
 
-use crate::support::get_cli::{metadata_files, mock_backend_command};
+use crate::support::get_cli::metadata_files;
 
 #[test]
-fn get_real_helper_rejects_unsupported_extractor_option_before_crawl4ai_import() {
+fn get_owned_extractor_rejects_unsupported_backend_option_before_fetch() {
     let temp = tempfile::tempdir().unwrap();
     let aget_home = temp.path().join("aget-home");
-    let fake_backend = mock_backend_command(
-        temp.path(),
-        json!({"behavior": "success", "validate_crawl4ai_options": true}),
-    );
 
     let output = Command::cargo_bin("aget")
         .unwrap()
         .env("AGET_HOME", &aget_home)
-        .env("AGET_CRAWL4AI_COMMAND", &fake_backend)
         .args([
             "--envelope",
             "json",
             "get",
             "https://example.com/unsupported-option",
             "--backend-option",
-            "crawl4ai.js_code=alert(1)",
+            "aget.js_code=alert(1)",
         ])
         .assert()
         .failure()
@@ -35,24 +29,19 @@ fn get_real_helper_rejects_unsupported_extractor_option_before_crawl4ai_import()
     assert_failure_error_contains(
         &output,
         &aget_home,
-        "unsupported extractor option 'js_code'",
-        "unsupported extractor option 'js_code'",
+        "does not support backend option 'aget.js_code'",
+        "does not support backend option 'aget.js_code'",
     );
 }
 
 #[test]
-fn get_real_helper_rejects_javascript_wait_before_crawl4ai_import() {
+fn get_owned_extractor_rejects_javascript_wait_before_fetch() {
     let temp = tempfile::tempdir().unwrap();
     let aget_home = temp.path().join("aget-home");
-    let fake_backend = mock_backend_command(
-        temp.path(),
-        json!({"behavior": "success", "validate_crawl4ai_options": true}),
-    );
 
     let output = Command::cargo_bin("aget")
         .unwrap()
         .env("AGET_HOME", &aget_home)
-        .env("AGET_CRAWL4AI_COMMAND", &fake_backend)
         .args([
             "--envelope",
             "json",

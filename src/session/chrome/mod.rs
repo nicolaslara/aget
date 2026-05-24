@@ -1,4 +1,3 @@
-mod compat;
 mod owned;
 mod profile;
 
@@ -9,7 +8,7 @@ use std::path::PathBuf;
 
 use crate::error::{AgetError, ErrorCode};
 
-pub use self::compat::import_chrome_session;
+pub use self::owned::import_owned_chrome_session as import_chrome_session;
 pub(crate) use self::owned::import_owned_chrome_session;
 
 #[derive(Debug, Clone, PartialEq, Eq)]

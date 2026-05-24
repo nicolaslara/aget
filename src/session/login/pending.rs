@@ -5,7 +5,7 @@ use std::thread;
 use std::time::Duration;
 
 use crate::error::{AgetError, ErrorCode};
-use crate::session::agent_browser::origin_host;
+use crate::session::browser_state::origin_host;
 
 use super::io_aget_error;
 use super::types::{LoginCompleteOptions, PendingLogin};
@@ -15,10 +15,6 @@ pub fn complete_login_session(options: LoginCompleteOptions) -> Result<(), AgetE
     remove_tool_owned_login_profile(&options.tmp_dir, &options.pending).map_err(io_aget_error)?;
     remove_pending_login(&options.tmp_dir, &options.pending.name).map_err(io_aget_error)?;
     Ok(())
-}
-
-pub(super) fn default_login_profile_path(tmp_dir: &Path, name: &str) -> PathBuf {
-    tmp_dir.join("agent-browser").join(format!("aget-{name}"))
 }
 
 pub(super) fn default_owned_login_profile_path(tmp_dir: &Path, name: &str) -> PathBuf {
@@ -149,9 +145,7 @@ pub(super) fn remove_tool_owned_login_profile(
     pending: &PendingLogin,
 ) -> io::Result<()> {
     let profile = PathBuf::from(&pending.profile);
-    if profile != default_login_profile_path(tmp_dir, &pending.name)
-        && profile != default_owned_login_profile_path(tmp_dir, &pending.name)
-    {
+    if profile != default_owned_login_profile_path(tmp_dir, &pending.name) {
         return Ok(());
     }
 
