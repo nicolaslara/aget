@@ -99,8 +99,8 @@ where
         let mut warnings =
             vec!["current-tab content may include authenticated/private browser data".to_string()];
         warnings.push(format!(
-            "current-tab used local CDP endpoint {}",
-            rendered.cdp_ws_url
+            "current-tab used an explicitly provided local CDP port {}",
+            options.port
         ));
         warnings.extend(rendered.warnings);
         warnings.append(&mut extraction.warnings);

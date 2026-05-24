@@ -84,6 +84,15 @@ fn aget_current_tab_api_renders_mock_cdp_page_without_agent_browser() {
     assert_eq!(result.content, "API Tab\nOwned current-tab content.");
     assert!(result.sensitive);
     assert!(result.sessions.is_empty());
+    assert!(result
+        .warnings
+        .iter()
+        .any(|warning| warning
+            .starts_with("current-tab used an explicitly provided local CDP port ")));
+    assert!(!result
+        .warnings
+        .iter()
+        .any(|warning| warning.contains("devtools/") || warning.contains("ws://")));
     server.join().unwrap();
 }
 

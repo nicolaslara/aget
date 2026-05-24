@@ -23,6 +23,12 @@ pub(crate) fn start_owned_login_session(
 ) -> Result<LoginStartResult, AgetError> {
     validate_login_name(&options.name)?;
     let allowed_domains = allowed_domains_from_url(&options.url)?;
+    if options.profile.is_some() && !options.injected_sessions.is_empty() {
+        return Err(AgetError::Stable {
+            code: ErrorCode::UsageError,
+            message: "session login start --session requires the default aget-owned login profile; omit --profile so injected provider state can be cleaned up after finish or cancel".to_string(),
+        });
+    }
     let profile = options
         .profile
         .map(PathBuf::from)

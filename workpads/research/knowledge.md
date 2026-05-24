@@ -20,12 +20,13 @@ Authenticated state and content stay local by default; site-specific paywall/log
 - Active workpad: `workpads/research/tasks.md`.
 - Main migration umbrella: I19 on branch `dep-migration-homegrown-backends`.
 - Completed migration phase detail is archived in `archive/knowledge/d308-workpad-support-routing.md`.
-- Still open: I19d, I19e, and I19h.
-- I19d remains open for full Crawl4AI-quality readability/markdown and still-richer rendered-page readiness. Recent source-backed markdown/readability/metadata work is D293-D307 plus D309-D311, D326-D328, D330-D339, D345, D348, D355-D356, D358-D359, D361-D363, D366-D373, and D375; current-state detail routes through D308.
-- I19e remains open for broader rendered JavaScript parity, manual real logged-in profile/keychain smoke execution, and startup/error classification. Current wait/startup/evaluation-error/transport/storage/local-smoke detail routes through D284, D287, D329, D340-D353, D360, and D365.
-- I19h remains open because final migration review requires review subagents for test adequacy, architecture cohesion, and security/privacy.
+- I19/I19d/I19e/I19h are complete as replacement-grade migration work. Final closure evidence is in `experiments/2026-05-24-final-migration-release-and-browser-smokes.md`.
+- I19d decision: the local `AgetExtractor` replacement is good enough for current agent usefulness. Remaining Crawl4AI-quality/readability/rendered-page deltas are accepted as normal backlog unless they change concrete agent outcomes.
+- I19e decision: the local `AgetBrowser` replacement is good enough for current browser/session usage. Verified support is intentionally Chrome/CDP-focused; broader browser/profile behavior is documented as unsupported/deferred.
+- I19h decision: final review passes completed for test adequacy, architecture cohesion, security/privacy, and docs/user workflow clarity. Material findings were fixed or explicitly deferred before closure.
 - Recently completed: I23 added `aget session login start --session <provider>` support so reusable OAuth/provider sessions such as `oauth`, `google`, or `github` can be injected into controlled login profiles without exposing credentials to the agent. See D325.
 - Current support-file rule: do not compact `workpads/research/tasks.md`. Keep top-level support files as compact routers and move dense completed-history detail to referenced archive files; see D308, D347, D357, D364, and D376-D420.
+- Latest mechanical cleanup split: I19gzzt moved HTML cleanup attribute helpers from one `attributes.rs` file into `src/extraction/html_clean/attributes/` route modules for pruning, image-source cleanup, comments, empty-element pruning, and only-text replacement. Behavior stayed behind the same `html_clean` re-exported helper names. Verification passed with `cargo fmt --check`, `cargo test html_clean`, and line-count checks.
 - Release-binary private GitHub session smoke evidence is recorded in `experiments/2026-05-22-release-binary-github-private-repo-smoke.md`: public fetch worked, unauthenticated private repo fetch returned GitHub's generic private/404 page, user-driven `session login` saved a reusable `github` session, and that session fetched both `nicolaslara/zodl-desktop` and `nicolaslara/ai`.
 
 ## Decision Routing
@@ -41,6 +42,7 @@ Authenticated state and content stay local by default; site-specific paywall/log
 | Recent migration follow-ups and source-backed extraction improvements | `archive/knowledge/d158-d167-recent-migration-followups.md` |
 | Latest individual decisions | `archive/knowledge/current-decision-index.md` and per-decision files through `archive/knowledge/d420-cmux-session-import-helper-split.md` |
 | Release-binary private GitHub session smoke | `experiments/2026-05-22-release-binary-github-private-repo-smoke.md` |
+| Final migration release/browser smokes | `experiments/2026-05-24-final-migration-release-and-browser-smokes.md` |
 
 ## Historical Support Docs
 

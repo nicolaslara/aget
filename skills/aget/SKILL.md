@@ -41,7 +41,7 @@ Before running `aget`, choose these deliberately.
 - **User named a session**: use that exact `--session <name>`.
 - **Page appears private after a public fetch**: explain the observed content and ask whether to use/create a local session.
 - **Existing local auth preferred**: ask for approval, then import the explicitly approved browser profile or cmux surface with scoped `--allow-domain`.
-- **OAuth/private content login needed**: if a provider session such as `oauth` exists, pass it alongside the target site session during fetch/verification, or compose it with the target session after both exist. If no provider session exists, ask whether the user wants to create/import one.
+- **OAuth/private content login needed**: if a provider session such as `oauth` exists, inject it into `session login start` for the target login flow. Do not pass provider sessions to unrelated target-site fetches; replay scope intentionally rejects sessions outside the request host. If no provider session exists, ask whether the user wants to create/import one.
 
 Do not infer access state from command success alone. `aget` is a generic fetcher: `ok: true` means extraction of the returned page succeeded, not that the user reached the intended content. A login wall, private-resource placeholder, subscription prompt, empty app shell, or generic error page can all be successful extractions. The caller agent must inspect content against the user goal or use caller-supplied verification predicates where available.
 
@@ -167,22 +167,17 @@ Use a provider-specific name when the distinction matters:
 aget --envelope json session import browser --browser chrome --browser-profile Default --name google --allow-domain accounts.google.com
 ```
 
-When fetching or verifying the relying-party site after sessions exist, pass both sessions explicitly:
+Inject provider sessions only into the login browser profile for the relying-party flow:
 
 ```bash
-aget --envelope json get "https://example.com/account" --session oauth --session target --output /tmp/aget-account.md
+aget --envelope json session login start target --url "https://example.com/login" --session oauth
+aget --envelope json session login finish target
+aget --envelope json get "https://example.com/account" --session target --output /tmp/aget-account.md
 ```
 
-Or persist a composed session if the combination is reusable:
+This avoids repeated provider login while keeping the provider credential ceremony outside the agent. `aget get` enforces replay scope, so an `oauth` session for `accounts.example.com` must not be passed to `https://example.com/...` fetches unless its saved scope actually matches that request host.
 
-```bash
-aget --envelope json session compose target-with-oauth --session oauth --session target
-aget --envelope json get "https://example.com/account" --session target-with-oauth --output /tmp/aget-account.md
-```
-
-This avoids repeated provider login while keeping the provider credential ceremony outside the agent. If composition reports cookie or storage conflicts, do not choose a winner silently; ask whether to keep separate request-time sessions, replace one session, or re-import narrower scopes.
-
-`aget session login start --session <provider>` injects only explicitly named local sessions into the controlled login browser profile. The user still completes any provider prompts, passwords, passkeys, and one-time-code steps; `login finish` saves only the target relying-party session unless the user later asks to compose sessions. If injected sessions conflict on cookie or storage values, retry with narrower or corrected sessions instead of choosing a secret silently.
+`aget session login start --session <provider>` injects only explicitly named local sessions into the controlled login browser profile. The user still completes any provider prompts, passwords, passkeys, and one-time-code steps; `login finish` saves only the target relying-party session unless the user later asks to compose same-scope sessions. Provider-session injection is supported only by the owned browser backend and only with the default aget-owned login profile; omit `--profile`, and unset `AGET_AGENT_BROWSER_COMMAND` if a compatibility backend is selected. If injected sessions conflict on cookie or storage values, retry with narrower or corrected sessions instead of choosing a secret silently.
 
 ## Access Verification
 
@@ -228,18 +223,18 @@ Avoid encoding site-specific login-wall strings into the skill or binary. Site-s
 
 ## Combining Sessions
 
-Some sites require provider cookies during login but not later fetches. Keep provider/app sessions explicit.
+Some sites require provider cookies during login but not later fetches. Inject provider sessions during login; combine sessions during fetch only when every selected session's saved scope matches the request host.
 
-During fetch:
+During fetch with same-scope sessions:
 
 ```bash
-aget --envelope json get "https://docs.example.com/account" --session provider --session app --output /tmp/account.md
+aget --envelope json get "https://docs.example.com/account" --session docs-base --session docs-extra --output /tmp/account.md
 ```
 
 Persist a reusable composition:
 
 ```bash
-aget --envelope json session compose target --session provider --session app
+aget --envelope json session compose target --session docs-base --session docs-extra
 aget --envelope json get "https://docs.example.com/account" --session target --output /tmp/account.md
 ```
 
@@ -253,7 +248,7 @@ If session composition reports a conflict, do not guess which secret wins. Ask t
 aget --envelope json session login start target --url "https://example.com/login" --session oauth --session okta
 ```
 
-Use this only for sessions the user explicitly named. Injection does not broaden later replay scope: the target session saved by `login finish` remains scoped to the login URL's allowed domains, and provider sessions remain separate unless the user later runs `aget session compose` or passes multiple sessions to `get`.
+Use this only for sessions the user explicitly named. Do not combine this with `--profile`; injection uses the default aget-owned login profile so provider state can be cleaned up after finish or cancel. Injection does not broaden later replay scope: the target session saved by `login finish` remains scoped to the login URL's allowed domains, and provider sessions remain separate unless the user later runs same-scope `aget session compose`.
 
 ## Importing Existing Local Auth
 
@@ -269,7 +264,7 @@ Chrome import uses `aget`'s owned local Chrome/CDP import path:
 aget --envelope json session import browser --browser chrome --browser-profile Default --name target --allow-domain docs.example.com
 ```
 
-Before running either import command, ask the user to approve the specific local surface/profile and domains. These commands can read credential-equivalent local browser state.
+Before running either import command, ask the user to approve the specific local surface/profile and domains. These commands can read credential-equivalent local browser state. Prefer named Chrome profiles such as `--browser-profile Default`; explicit `--profile-path` is an advanced path and may launch that local profile directory directly, so use it only with a disposable or explicitly approved profile path.
 
 If Chrome import returns `requires_user_action`, do not close the user's browser. Relay the message and let the user decide whether to quit Chrome and retry.
 

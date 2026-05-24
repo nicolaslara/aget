@@ -387,7 +387,7 @@ Acceptance criteria:
 - Keep the public `Aget` API stable enough that CLI and tests call capabilities, not implementation-specific commands.
 - Add comments around each backend boundary explaining what is abstracted and why the current adapter is command-backed.
 
-### 🚧 Task I19: Migrate PoC external backends into `aget`-owned implementations
+### ✅ Task I19: Migrate PoC external backends into `aget`-owned implementations
 
 Acceptance criteria:
 
@@ -401,7 +401,12 @@ Acceptance criteria:
 
 Status note:
 
-- Task split started on `dep-migration-homegrown-backends`. No porting should begin until I19a-I19c establish source references, backend boundaries, and parity tests.
+- Completed as a replacement-grade migration on `dep-migration-homegrown-backends`.
+  I19a-I19h established source references, backend boundaries, parity tests,
+  local `AgetExtractor` and `AgetBrowser` replacements, default-runtime switch,
+  PoC dependency demotion, final release/browser smokes, and independent review
+  passes. Final evidence is recorded in
+  `experiments/2026-05-24-final-migration-release-and-browser-smokes.md`.
 
 ### ✅ Task I19a: Stage dependency source clones and migration inventory
 
@@ -433,7 +438,7 @@ Acceptance criteria:
 - Add deterministic parity tests around `MockSite` and checked-in mock tools that can run without network credentials.
 - Add optional ignored/manual parity checks for the real dependencies and record their commands.
 
-### 🚧 Task I19d: Port Crawl4AI-backed extraction features into `aget`
+### ✅ Task I19d: Port Crawl4AI-backed extraction features into `aget`
 
 Acceptance criteria:
 
@@ -445,10 +450,18 @@ Acceptance criteria:
 
 Status note:
 
-- First owned extractor slices are implemented behind `ExtractorBackend` and documented in `knowledge.md` D55-D57, D59, D61-D63, D69-D73, D77-D82, D86-D95, D98-D100, D104-D115, D119-D122, D158-D160, D163-D164, D217-D231, D233-D234, D236-D240, D266-D267, D275, D277-D279, D281-D282, D285-D286, D293-D307, D309-D311, D345, D348, D355-D356, D358-D359, and D361-D363. The owned backend now has Rust HTTP(S) transport, CSS selector parsing with Crawl4AI-style no-match and invalid-selector fallback, all-match extraction, selected-wrapper HTML preservation, invalid-exclude-selector tolerance, generic overlay/modal/cookie/dialog selector cleanup, rendered style/z-index/fixed/sticky overlay cleanup before CDP HTML capture, optional shadow DOM flattening for CDP-rendered pages, source-backed iframe body replacement when `crawl4ai.process_iframes` forces CDP rendering, explicit raw/local HTML input handling, structural markdown for common static HTML elements including simple tables with captions, nested lists with Crawl4AI/html2text `*` unordered bullets and opt-in unordered marker strings, blockquotes that preserve child block breaks, Markdown hard breaks for `<br>`, escaped accidental list markers and literal backslashes in text, horizontal rules, definition lists, semantic figure/details/address block boundaries, strikethrough, quoted inline text with opt-in quote marker strings, keyboard/teletype inline code, raw fenced-code line preservation with opt-in Crawl4AI-style `<code>` markers inside `<pre>`, raw HTML subtree preservation with opt-in `crawl4ai.preserve_tags`, Crawl4AI-style plain anchor labels for linked inline code, Crawl4AI-style linked-heading markdown for anchors wrapping a single heading, underscore emphasis markers for `em`/`i`/`u` with opt-in emphasis/strong marker strings, abbreviation title definitions, link titles with escaped Markdown constructs, `mailto:` suppression with opt-in mailto link rendering, fragment-link preservation with opt-in `crawl4ai.skip_internal_links`, opt-in literal sup/sub wrappers, opt-in anchor link suppression, opt-in image suppression, opt-in image-alt-only rendering, opt-in raw image HTML rendering for all images or sized images, opt-in default image alt fallback, opt-in emphasis marker suppression, opt-in link target protection, opt-in reference-style link definitions including paragraph-scoped definition flushing, opt-in table syntax suppression, opt-in HTML-style table bypass rendering, opt-in automatic absolute-link suppression, opt-in broad normal-text markdown character escaping, opt-in line-start marker escape controls, opt-in literal backslash escape controls, opt-in Google Docs-style inline CSS emphasis and list indentation, title-insensitive automatic absolute links, empty anchor labels, linked-image anchors, escaped link/image markdown targets, base-URL-aware markdown links including `crawl4ai.base_url` for raw/local content, generic page metadata propagation including owned browser fallback successes and Crawl4AI-compatible missing-title fallback to prefixed title metadata, cleaned-HTML removal of script/style/link/meta/noscript, base64 image source blanking, Crawl4AI-thresholded empty-leaf element pruning that stays independent of `crawl4ai.word_count_threshold`, Crawl4AI-style `only_text` inline-tag replacement in cleaned HTML, Crawl4AI compatibility-helper-style block boundaries for owned text/json content payloads, Crawl4AI-style important-attribute pruning with opt-in `data-*` preservation, source-backed coverage that `ol[start]` is stripped by default cleaned-HTML extraction, Chrome/CDP rendering for localStorage-backed primary extraction, CDP retry when CSS waits require rendered DOM, CDP rendering for detected executable script-bearing pages, Crawl4AI-style explicit `css:` wait-prefix normalization for owned selector waits, bounded Crawl4AI-style `scan_full_page` CDP scrolling before rendered HTML capture, a conservative default main-content heuristic for text/markdown/json output that ranks multiple semantic candidates and labeled or sufficiently dense unlabeled `section`/`div` content containers by text/link/label/density score while skipping candidates nested inside generic page-chrome ancestors, candidates with Crawl4AI-negative class/id labels, candidates below explicit `crawl4ai.word_count_threshold`, and generic page-chrome tags when automatic main-content falls back to body/root, agent-facing OpenCode option docs aligned with the owned option surface, and safe support for `crawl4ai.base_url`, `crawl4ai.bypass_tables`, `crawl4ai.close_quote`, `crawl4ai.default_image_alt`, `crawl4ai.emphasis_mark`, `crawl4ai.open_quote`, `crawl4ai.strong_mark`, `crawl4ai.ul_item_mark`, `crawl4ai.excluded_tags`, `crawl4ai.target_elements`, `crawl4ai.preserve_tags`, `crawl4ai.handle_code_in_pre`, `crawl4ai.exclude_all_images`, `crawl4ai.exclude_domains`, `crawl4ai.exclude_external_images`, `crawl4ai.exclude_external_links`, `crawl4ai.exclude_internal_links`, `crawl4ai.skip_internal_links`, `crawl4ai.escape_backslash`, `crawl4ai.escape_dash`, `crawl4ai.escape_dot`, `crawl4ai.escape_plus`, `crawl4ai.escape_snob`, `crawl4ai.google_doc`, `crawl4ai.google_list_indent`, `crawl4ai.hide_strikethrough`, `crawl4ai.ignore_images`, `crawl4ai.ignore_anchors`, `crawl4ai.images_as_html`, `crawl4ai.images_to_alt`, `crawl4ai.images_with_size`, `crawl4ai.ignore_links`, `crawl4ai.inline_links`, `crawl4ai.links_each_paragraph`, `crawl4ai.ignore_mailto_links`, `crawl4ai.ignore_tables`, `crawl4ai.ignore_emphasis`, `crawl4ai.include_sup_sub`, `crawl4ai.protect_links`, `crawl4ai.use_automatic_links`, `crawl4ai.exclude_social_media_links`, `crawl4ai.exclude_social_media_domains`, `crawl4ai.only_text`, `crawl4ai.process_iframes`, `crawl4ai.remove_forms`, `crawl4ai.remove_overlay_elements`, `crawl4ai.keep_data_attributes`, applied `crawl4ai.word_count_threshold`, `crawl4ai.delay_before_return_html`, `crawl4ai.page_timeout`, `crawl4ai.wait_for_timeout`, `crawl4ai.wait_until` values `domcontentloaded`/`load`/`networkidle`, `crawl4ai.wait_for_images`, `crawl4ai.scan_full_page`, `crawl4ai.scroll_delay`, `crawl4ai.max_scroll_steps`, and `crawl4ai.flatten_shadow_dom`, but I19d remains in progress because full Crawl4AI-quality markdown/readability and still-richer rendered-page readiness heuristics are not yet owned.
-- Recent follow-up slices D326-D339, D345, D348, and D358-D359 add `crawl4ai.body_width`, `crawl4ai.mark_code`, `crawl4ai.single_line_break`, `crawl4ai.unicode_snob`, `crawl4ai.wrap_links`, `crawl4ai.wrap_list_items`, `crawl4ai.wrap_tables`, `crawl4ai.pad_tables`, `crawl4ai.hide_strikethrough`, `crawl4ai.inline_links`, `crawl4ai.links_each_paragraph`, `crawl4ai.escape_dot`/`crawl4ai.escape_plus`/`crawl4ai.escape_dash`, `crawl4ai.escape_backslash`, `crawl4ai.google_doc`, `crawl4ai.google_list_indent`, `crawl4ai.preserve_tags`, and `crawl4ai.handle_code_in_pre` compatibility with source-backed caveats where owned defaults intentionally remain stable. `workpads/research/tasks.md` was not compacted.
+- First owned extractor slices are implemented behind `ExtractorBackend` and documented in `knowledge.md` D55-D57, D59, D61-D63, D69-D73, D77-D82, D86-D95, D98-D100, D104-D115, D119-D122, D158-D160, D163-D164, D217-D231, D233-D234, D236-D240, D266-D267, D275, D277-D279, D281-D282, D285-D286, D293-D307, D309-D311, D345, D348, D355-D356, D358-D359, and D361-D363. The owned backend now has Rust HTTP(S) transport, CSS selector parsing with Crawl4AI-style no-match and invalid-selector fallback, all-match extraction, selected-wrapper HTML preservation, invalid-exclude-selector tolerance, generic overlay/modal/cookie/dialog selector cleanup, rendered style/z-index/fixed/sticky overlay cleanup before CDP HTML capture, optional shadow DOM flattening for CDP-rendered pages, source-backed iframe body replacement when `crawl4ai.process_iframes` forces CDP rendering, explicit raw/local HTML input handling, structural markdown for common static HTML elements including simple tables with captions, nested lists with Crawl4AI/html2text `*` unordered bullets and opt-in unordered marker strings, blockquotes that preserve child block breaks, Markdown hard breaks for `<br>`, escaped accidental list markers and literal backslashes in text, horizontal rules, definition lists, semantic figure/details/address block boundaries, strikethrough, quoted inline text with opt-in quote marker strings, keyboard/teletype inline code, raw fenced-code line preservation with opt-in Crawl4AI-style `<code>` markers inside `<pre>`, raw HTML subtree preservation with opt-in `crawl4ai.preserve_tags`, Crawl4AI-style plain anchor labels for linked inline code, Crawl4AI-style linked-heading markdown for anchors wrapping a single heading, underscore emphasis markers for `em`/`i`/`u` with opt-in emphasis/strong marker strings, abbreviation title definitions, link titles with escaped Markdown constructs, `mailto:` suppression with opt-in mailto link rendering, fragment-link preservation with opt-in `crawl4ai.skip_internal_links`, opt-in literal sup/sub wrappers, opt-in anchor link suppression, opt-in image suppression, opt-in image-alt-only rendering, opt-in raw image HTML rendering for all images or sized images, opt-in default image alt fallback, opt-in emphasis marker suppression, opt-in link target protection, opt-in reference-style link definitions including paragraph-scoped definition flushing, opt-in table syntax suppression, opt-in HTML-style table bypass rendering, opt-in automatic absolute-link suppression, opt-in broad normal-text markdown character escaping, opt-in line-start marker escape controls, opt-in literal backslash escape controls, opt-in Google Docs-style inline CSS emphasis and list indentation, title-insensitive automatic absolute links, empty anchor labels, linked-image anchors, escaped link/image markdown targets, base-URL-aware markdown links including `crawl4ai.base_url` for raw/local content, generic page metadata propagation including owned browser fallback successes and Crawl4AI-compatible missing-title fallback to prefixed title metadata, cleaned-HTML removal of script/style/link/meta/noscript, base64 image source blanking, Crawl4AI-thresholded empty-leaf element pruning that stays independent of `crawl4ai.word_count_threshold`, Crawl4AI-style `only_text` inline-tag replacement in cleaned HTML, Crawl4AI compatibility-helper-style block boundaries for owned text/json content payloads, Crawl4AI-style important-attribute pruning with opt-in `data-*` preservation, source-backed coverage that `ol[start]` is stripped by default cleaned-HTML extraction, Chrome/CDP rendering for localStorage-backed primary extraction, CDP retry when CSS waits require rendered DOM, CDP rendering for detected executable script-bearing pages, Crawl4AI-style explicit `css:` wait-prefix normalization for owned selector waits, bounded Crawl4AI-style `scan_full_page` CDP scrolling before rendered HTML capture, a conservative default main-content heuristic for text/markdown/json output that ranks multiple semantic candidates and labeled or sufficiently dense unlabeled `section`/`div` content containers by text/link/label/density score while skipping candidates nested inside generic page-chrome ancestors, candidates with Crawl4AI-negative class/id labels, candidates below explicit `crawl4ai.word_count_threshold`, and generic page-chrome tags when automatic main-content falls back to body/root, agent-facing OpenCode option docs aligned with the owned option surface, and safe support for `crawl4ai.base_url`, `crawl4ai.bypass_tables`, `crawl4ai.close_quote`, `crawl4ai.default_image_alt`, `crawl4ai.emphasis_mark`, `crawl4ai.open_quote`, `crawl4ai.strong_mark`, `crawl4ai.ul_item_mark`, `crawl4ai.excluded_tags`, `crawl4ai.target_elements`, `crawl4ai.preserve_tags`, `crawl4ai.handle_code_in_pre`, `crawl4ai.exclude_all_images`, `crawl4ai.exclude_domains`, `crawl4ai.exclude_external_images`, `crawl4ai.exclude_external_links`, `crawl4ai.exclude_internal_links`, `crawl4ai.skip_internal_links`, `crawl4ai.escape_backslash`, `crawl4ai.escape_dash`, `crawl4ai.escape_dot`, `crawl4ai.escape_plus`, `crawl4ai.escape_snob`, `crawl4ai.google_doc`, `crawl4ai.google_list_indent`, `crawl4ai.hide_strikethrough`, `crawl4ai.ignore_images`, `crawl4ai.ignore_anchors`, `crawl4ai.images_as_html`, `crawl4ai.images_to_alt`, `crawl4ai.images_with_size`, `crawl4ai.ignore_links`, `crawl4ai.inline_links`, `crawl4ai.links_each_paragraph`, `crawl4ai.ignore_mailto_links`, `crawl4ai.ignore_tables`, `crawl4ai.ignore_emphasis`, `crawl4ai.include_sup_sub`, `crawl4ai.protect_links`, `crawl4ai.use_automatic_links`, `crawl4ai.exclude_social_media_links`, `crawl4ai.exclude_social_media_domains`, `crawl4ai.only_text`, `crawl4ai.process_iframes`, `crawl4ai.remove_forms`, `crawl4ai.remove_overlay_elements`, `crawl4ai.keep_data_attributes`, applied `crawl4ai.word_count_threshold`, `crawl4ai.delay_before_return_html`, `crawl4ai.page_timeout`, `crawl4ai.wait_for_timeout`, `crawl4ai.wait_until` values `domcontentloaded`/`load`/`networkidle`, `crawl4ai.wait_for_images`, `crawl4ai.scan_full_page`, `crawl4ai.scroll_delay`, `crawl4ai.max_scroll_steps`, and `crawl4ai.flatten_shadow_dom`.
+- Final decision: complete as replacement-grade for current `aget` agent
+  usefulness. The owned `AgetExtractor` now covers the Crawl4AI-backed behavior
+  `aget` depends on: public/session fetch, rendered fetch, markdown/html/text/json
+  formats, selectors/exclusions, CSS waits, truncation/finalization, artifacts,
+  warnings, final URL, stable failures, option validation, and safety rejection
+  of JavaScript waits/user-script execution. Remaining Crawl4AI-quality
+  markdown/readability/readiness polish is accepted as normal product backlog
+  unless it changes concrete agent outcomes. Final validation is recorded in
+  `experiments/2026-05-24-final-migration-release-and-browser-smokes.md`.
 
-### 🚧 Task I19e: Port `agent-browser` session/browser features into `aget`
+### ✅ Task I19e: Port `agent-browser` session/browser features into `aget`
 
 Acceptance criteria:
 
@@ -460,7 +473,15 @@ Acceptance criteria:
 
 Status note:
 
-- Started after the first I19d owned extractor slices and documented in `knowledge.md` D58, D60, D64-D68, D83-D85, D96-D97, D101-D103, D116-D118, D214, D215, D241, D242, D244, D245, D283-D284, D287, D340-D353, D360, and D365. `OwnedBrowserAutomationBackend` now has an owned session-backed fallback extraction path for static and scripted cookie-backed pages, a minimal Chrome/CDP renderer for localStorage/sessionStorage-backed fallback extraction, explicit user-data-dir Chrome import, named Chrome profile resolution/copying into temporary user-data-dir imports, a first owned dedicated-profile login start/finish/cancel lifecycle, stale owned-login profile sweeping, PID-backed cleanup for detached owned login browsers including Windows pid termination hooks, profile-in-use Chrome startup classification as `requires_user_action`, Chrome stderr `DevTools listening on ...` URL startup fallback, sandbox/namespace startup hints, no-stderr Chrome startup hints, source-backed labeled generic Chrome stderr diagnostics including bounded five-line generic stderr tails, `/json/version`, `/json/list`, plus direct `/devtools/browser` CDP discovery fallbacks when attaching to an existing profile browser, three-attempt owned Chrome launch retries, stale `DevToolsActivePort` removal when existing-profile attach finds a dead endpoint, Windows detached process-group Chrome launch flags, agent-browser-style generic Chrome stability/noise-control launch flags, an agent-browser-style headed Chrome window-size boundary, stronger opt-in real-profile import smoke assertions for persisted scoped auth state, agent-browser-style networkidle reset/timeout coverage for the owned CDP navigation wait, agent-browser-style lifecycle/networkidle timeout messages for owned CDP navigation waits, agent-browser-style Chrome early-exit startup messages with explicit exit codes, agent-browser-style `Runtime.evaluate` exception reporting for owned rendered-page capture, readiness/preprocessing helpers, storage load/export including allow-domain-scoped frame-tree origins, stable blank-response storage navigation error reporting, Crawl4AI-compatible image readiness timeout boundary coverage, agent-browser-style binary and malformed CDP response frame coverage, agent-browser-style unlimited CDP WebSocket message and frame size configuration, agent-browser-style CDP WebSocket keepalive pings during command waits, agent-browser-style automatic `alert`/`beforeunload` dialog acceptance while leaving `confirm`/`prompt` explicit, and refreshed ignored local Chrome smoke assertions that match the owned newline-separated text block-boundary contract. I19e remains in progress because broader rendered JavaScript parity, manual real logged-in profile/keychain smoke execution, and still-fuller startup/error classification require deeper CDP/profile work.
+- Final decision: complete as replacement-grade for current `aget` browser/session
+  usefulness. The owned `AgetBrowser` covers dedicated login start/finish/cancel,
+  provider-session injection for login start, Chrome/profile import, current-tab
+  extraction, CDP attach/discovery, fallback extraction, state export/filtering,
+  session close, timeout handling, temp cleanup, local-only handling, profile-lock
+  and requires-user-action classifications, and startup diagnostics. Broader
+  browser-family/profile support remains explicitly unsupported/deferred. Final
+  validation is recorded in
+  `experiments/2026-05-24-final-migration-release-and-browser-smokes.md`.
 
 ### ✅ Task I19f: Switch default runtime path to homegrown backends
 
@@ -489,7 +510,7 @@ Status note:
 
 - Completed with `knowledge.md` D75. Implicit command defaults were removed from compatibility adapters: Crawl4AI-compatible extraction now requires an API-provided command or `AGET_CRAWL4AI_COMMAND`, and `agent-browser` compatibility paths require `AGET_AGENT_BROWSER_COMMAND`. README, CLI help, and the project skill now describe these as explicit compatibility surfaces. Full `cargo test`, formatting, diff hygiene, live-source default audit, and `.gitignore` review passed.
 
-### 🚧 Task I19h: Final migration review and cleanup
+### ✅ Task I19h: Final migration review and cleanup
 
 Acceptance criteria:
 
@@ -501,7 +522,18 @@ Acceptance criteria:
 
 Status note:
 
-- Started with `knowledge.md` D76 after I19f/I19g stable commits. Full deterministic suite and local Chrome ignored smokes passed, and tracked-file hygiene audit found no dependency clones, raw browser state, `.aget` artifacts, private benchmark outputs, or logs tracked. I19h remains in progress because the review-subagent acceptance item is still pending; this Codex session may only spawn subagents when explicitly requested by the user.
+- Completed with final deterministic and manual/ignored validation plus four
+  independent review passes: test adequacy, architecture cohesion,
+  security/privacy, and docs/user workflow clarity. Material findings were
+  accepted and resolved or deferred: provider-session guidance now matches
+  replay-scope semantics; README/skill document `session authorize`,
+  provider-session injection limits, explicit profile-path behavior, and artifact
+  retention; injected sessions with custom login profiles are rejected; broader
+  browser-family import and artifact garbage collection are deferred backlog.
+  `cargo fmt --check && cargo test`, local Chrome ignored smokes, release-binary
+  public/session/current-tab/session lifecycle checks, and tracked hygiene checks
+  are recorded in
+  `experiments/2026-05-24-final-migration-release-and-browser-smokes.md`.
 
 ### ✅ Task I19i: Split oversized extraction and CDP modules
 
@@ -4670,6 +4702,32 @@ Status note:
   `src/session/mod.rs`. `workpads/research/tasks.md` was not compacted.
   Focused cmux tests, line-count checks, `cargo fmt --check`,
   `git diff --check`, and full `cargo test` passed.
+
+### ✅ Task I19gzzt: Split HTML cleanup attribute helpers
+
+Acceptance criteria:
+
+- Preserve owned cleanup behavior for unwanted attributes, base64 image sources,
+  comments, empty elements, and only-text element replacement.
+- Split `src/extraction/html_clean/attributes.rs` into a compact route module
+  plus focused attribute-pruning, image-source, comment, empty-element, and
+  only-text modules.
+- Preserve the function names and visibility re-exported by
+  `src/extraction/html_clean/mod.rs`.
+- Do not compact `workpads/research/tasks.md`.
+- Record the split in compact knowledge routing.
+- Verify with focused HTML cleanup coverage, line-count checks, and the
+  standard check set.
+
+Status note:
+
+- Completed as a mechanical split. `src/extraction/html_clean/attributes.rs`
+  moved to `src/extraction/html_clean/attributes/` with focused modules for
+  attribute pruning, base64 image-source cleanup, comment removal,
+  empty-element pruning, and only-text element replacement. The route module
+  preserves the same helper names consumed by `src/extraction/html_clean/mod.rs`.
+  Verification passed with `cargo fmt --check`, `cargo test html_clean`, and
+  line-count checks for the split files.
 
 ### ✅ Task I20: Design OAuth-safe browser login and profile import flow
 
