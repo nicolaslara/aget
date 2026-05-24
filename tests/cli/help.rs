@@ -57,6 +57,33 @@ fn doctor_help_is_available() {
 }
 
 #[test]
+fn artifacts_help_is_available() {
+    let mut cmd = Command::cargo_bin("aget").unwrap();
+
+    cmd.args(["artifacts", "--help"]).assert().success().stdout(
+        predicate::str::contains("Usage: aget artifacts")
+            .and(predicate::str::contains("list"))
+            .and(predicate::str::contains("inspect"))
+            .and(predicate::str::contains("delete"))
+            .and(predicate::str::contains("prune")),
+    );
+}
+
+#[test]
+fn batch_help_is_available() {
+    let mut cmd = Command::cargo_bin("aget").unwrap();
+
+    cmd.args(["batch", "--help"]).assert().success().stdout(
+        predicate::str::contains("Usage: aget batch")
+            .and(predicate::str::contains("--file"))
+            .and(predicate::str::contains("--stdin"))
+            .and(predicate::str::contains("--concurrency"))
+            .and(predicate::str::contains("--output-dir"))
+            .and(predicate::str::contains("--fail-fast")),
+    );
+}
+
+#[test]
 fn get_rejects_invalid_format() {
     let mut cmd = Command::cargo_bin("aget").unwrap();
 

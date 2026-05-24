@@ -1,3 +1,7 @@
+#[path = "cli/artifacts.rs"]
+mod artifacts;
+#[path = "cli/batch.rs"]
+mod batch;
 #[path = "cli/current_tab.rs"]
 mod current_tab;
 #[path = "cli/doctor.rs"]

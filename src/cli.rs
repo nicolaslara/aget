@@ -3,6 +3,8 @@ use std::time::Duration;
 
 use clap::{Args, Parser, Subcommand, ValueEnum};
 
+mod artifacts;
+mod batch;
 mod current_tab;
 mod doctor;
 mod get;
@@ -10,6 +12,11 @@ mod session;
 #[cfg(test)]
 mod tests;
 
+pub use artifacts::{
+    ArtifactsCommand, ArtifactsSubcommand, DeleteArtifactCommand, InspectArtifactCommand,
+    PruneArtifactsCommand,
+};
+pub use batch::BatchCommand;
 pub use current_tab::CurrentTabCommand;
 pub use doctor::{DoctorCheck, DoctorCommand};
 pub use get::GetCommand;
@@ -70,10 +77,14 @@ pub struct GlobalOptions {
 pub enum Command {
     /// Extract one URL or explicit local-content input into agent-ready content.
     Get(GetCommand),
+    /// Fetch an explicit finite set of URLs.
+    Batch(BatchCommand),
     /// Extract the selected tab from an existing local browser CDP port.
     CurrentTab(CurrentTabCommand),
     /// Manage local auth/session state.
     Session(SessionCommand),
+    /// Manage local run artifacts under AGET_HOME.
+    Artifacts(ArtifactsCommand),
     /// Diagnose local aget CLI readiness.
     Doctor(DoctorCommand),
 }
@@ -125,7 +136,10 @@ fn alias_url_index(args: &[OsString]) -> Option<usize> {
     let mut saw_command = false;
     for (index, arg) in args.iter().enumerate().skip(1) {
         let arg = arg.to_string_lossy();
-        if matches!(arg.as_ref(), "get" | "current-tab" | "session" | "doctor") {
+        if matches!(
+            arg.as_ref(),
+            "get" | "batch" | "current-tab" | "session" | "artifacts" | "doctor"
+        ) {
             saw_command = true;
         }
         if saw_command {

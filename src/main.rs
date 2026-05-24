@@ -4,6 +4,8 @@ use aget::{Aget, Cli, Command, CurrentTabOptions, EnvelopeFormat, ErrorCode, Err
 use clap::error::ErrorKind;
 
 mod main_args;
+mod main_artifacts;
+mod main_batch;
 mod main_doctor;
 mod main_envelope;
 mod main_session;
@@ -96,6 +98,8 @@ fn run(cli: Cli) -> Result<ExitCode, ErrorResponse> {
         })()
         .map(|()| ExitCode::SUCCESS)
         .map_err(|error| error.with_command("get")),
+        Command::Batch(batch) => main_batch::run_batch(batch, structured_output, cli.global.quiet)
+            .map_err(|error| error.with_command("batch")),
         Command::CurrentTab(current_tab) => (|| {
             let aget = Aget::from_env()
                 .map_err(io_error)?
@@ -131,6 +135,10 @@ fn run(cli: Cli) -> Result<ExitCode, ErrorResponse> {
         .map_err(|error| error.with_command("current-tab")),
         Command::Session(session) => {
             main_session::run_session(session.command, structured_output, cli.global.timeout)
+                .map(|()| ExitCode::SUCCESS)
+        }
+        Command::Artifacts(artifacts) => {
+            main_artifacts::run_artifacts(artifacts.command, structured_output, cli.global.quiet)
                 .map(|()| ExitCode::SUCCESS)
         }
         Command::Doctor(doctor) => main_doctor::run_doctor(

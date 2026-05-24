@@ -31,9 +31,9 @@ cd "$repo_root"
 
 run_cmd cargo run --quiet -- get --help
 run_cmd cargo run --quiet -- get https://example.com
-run_cmd cargo run --quiet -- --json get https://example.com
-run_cmd cargo run --quiet -- get https://example.com --out "$out_file"
+run_cmd cargo run --quiet -- --envelope json get https://example.com
+run_cmd cargo run --quiet -- get https://example.com --output "$out_file"
 printf 'Wrote markdown to: %s\n' "$out_file"
-run_cmd cargo run --quiet -- get https://quotes.toscrape.com/js/ --out "$js_out_file" --quiet --timeout 60
+run_cmd cargo run --quiet -- get https://quotes.toscrape.com/js/ --output "$js_out_file" --quiet --timeout 60
 printf 'Wrote JS-rendered markdown to: %s\n' "$js_out_file"
 run_cmd cargo run --quiet -- https://example.com

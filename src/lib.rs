@@ -16,12 +16,14 @@ pub use aget::{
 pub use aget_browser::AgetBrowser;
 pub use aget_extractor::AgetExtractor;
 pub use cli::{
-    AuthorizeSessionCommand, BrowserChoice, Cli, Command, ComposeSessionCommand, CurrentTabCommand,
+    ArtifactsCommand, ArtifactsSubcommand, AuthorizeSessionCommand, BatchCommand, BrowserChoice,
+    Cli, Command, ComposeSessionCommand, CurrentTabCommand, DeleteArtifactCommand,
     DeleteSessionCommand, DoctorCheck, DoctorCommand, EnvelopeFormat, ExtractorOption, GetCommand,
     GlobalOptions, ImportBrowserSessionCommand, ImportChromeSessionCommand,
     ImportCmuxSessionCommand, ImportSessionCommand, ImportSessionSource, InlineContent,
-    InspectSessionCommand, LoginCancelCommand, LoginFinishCommand, LoginSessionCommand,
-    LoginSessionSubcommand, LoginStartCommand, OutputFormat, SessionCommand, SessionSubcommand,
+    InspectArtifactCommand, InspectSessionCommand, LoginCancelCommand, LoginFinishCommand,
+    LoginSessionCommand, LoginSessionSubcommand, LoginStartCommand, OutputFormat,
+    PruneArtifactsCommand, SessionCommand, SessionSubcommand,
 };
 pub use error::{AgetError, ErrorCode, ErrorResponse, ENVELOPE_SCHEMA_VERSION};
 pub use extraction::{get_url, AgetExtractorBackend, GetOptions, GetSuccess, TimingMs};

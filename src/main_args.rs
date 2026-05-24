@@ -34,6 +34,20 @@ pub(crate) fn command_name_from_args(args: &[OsString]) -> &'static str {
         return "doctor";
     }
 
+    if let Some(index) = tokens.iter().position(|token| *token == "artifacts") {
+        return match tokens.get(index + 1).copied() {
+            Some("list") => "artifacts.list",
+            Some("inspect") => "artifacts.inspect",
+            Some("delete") => "artifacts.delete",
+            Some("prune") => "artifacts.prune",
+            _ => "artifacts",
+        };
+    }
+
+    if tokens.contains(&"batch") {
+        return "batch";
+    }
+
     if tokens.contains(&"get")
         || tokens
             .iter()

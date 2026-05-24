@@ -1,6 +1,7 @@
 use std::fs::{self, File, OpenOptions};
 use std::io::{self, Write};
 use std::path::{Path, PathBuf};
+use std::sync::atomic::{AtomicU64, Ordering};
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use super::PlaywrightState;
@@ -9,6 +10,8 @@ use super::PlaywrightState;
 pub struct TempStateFile {
     path: PathBuf,
 }
+
+static STATE_FILE_COUNTER: AtomicU64 = AtomicU64::new(0);
 
 impl TempStateFile {
     pub fn write(dir: &Path, state: &PlaywrightState) -> io::Result<Self> {
@@ -36,9 +39,10 @@ fn unique_state_path(dir: &Path) -> PathBuf {
         .duration_since(UNIX_EPOCH)
         .map(|duration| duration.as_nanos())
         .unwrap_or_default();
+    let counter = STATE_FILE_COUNTER.fetch_add(1, Ordering::Relaxed);
     dir.join(format!(
-        "playwright-state-{}-{nanos}.json",
-        std::process::id()
+        "playwright-state-{}-{nanos}-{counter}.json",
+        std::process::id(),
     ))
 }
 

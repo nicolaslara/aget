@@ -45,6 +45,15 @@ the CLI envelope in a thin host-specific tool.
 - 2026-05-24: No commit immediately after PAR-002/PAR-003. The repo rule
   requires explicit commit approval, and the current goal continuation did not
   ask for another commit.
+- 2026-05-24: No commit immediately after REL-001. The repo rule requires
+  explicit commit approval, and the active goal continuation is moving into
+  REL-002.
+- 2026-05-24: No commit immediately after REL-002. The repo rule requires
+  explicit commit approval, and the active goal continuation is moving into
+  ART-001.
+- 2026-05-25: No commit immediately after ART-001/ART-002. The repo rule
+  requires explicit commit approval, and the active goal continuation is moving
+  into BACKLOG-001.
 
 ## Product Boundaries
 
@@ -103,6 +112,45 @@ the CLI envelope in a thin host-specific tool.
   cookies/storage in named `aget` sessions. Whole source browser profiles are
   not retained by `aget`; caller-provided custom login profile paths remain
   caller-owned and are not pruned by `aget`.
+- REL-001 defines releases as CLI binary artifacts only. The first artifact
+  targets are macOS and Linux tarballs; Windows remains deferred until a Windows
+  smoke path exists. Notarized app bundles are out of scope unless explicitly
+  requested.
+- REL-001 found and fixed stale demo script flags: use `--envelope json` and
+  `--output`, not removed aliases such as `--json` or `--out`.
+- Release artifact production is blocked on REL-002 prerequisites recorded in
+  the plan: add a top-level `LICENSE` matching Cargo's MIT metadata and create
+  `CHANGELOG.md` before publishing artifacts.
+- REL-002 produced the first local release artifact for the current verified
+  host target, `aarch64-apple-darwin`. The current release output is a local
+  `dist/` directory, not a published GitHub release. Cross-target artifacts
+  remain future work until each target has its own smoke path.
+- REL-002 added top-level `LICENSE` and `CHANGELOG.md` so the tarball includes
+  the declared MIT license and the release has a user-visible change log.
+- ART-001 defines artifact lifecycle commands as management of internal
+  `AGET_HOME/runs/<run-id>` directories only. A `metadata.artifacts.content`
+  path outside the selected run directory is caller-owned, even when it was
+  produced by `--output`, and must never be deleted by lifecycle commands.
+- ART-001 keeps artifact retention explicit and local: `aget get` does not
+  auto-prune, `prune` defaults to dry-run unless `--yes` is present, and future
+  config names are `artifacts.retention_days`, `artifacts.keep_last`, and
+  `artifacts.max_bytes`.
+- ART-002 implemented the artifact lifecycle command family. The release
+  artifact in `dist/` was regenerated afterward so the packaged binary and
+  README include `aget artifacts`.
+- BACKLOG-001 defines the bounded multi-URL backlog. Implementation order is
+  `batch` first, then `map`, then `crawl`; `crawl` requires `--limit`, defaults
+  to same-origin/same-path traversal, and records partial failures in manifests
+  instead of pretending the whole run succeeded.
+- BATCH-001 implements the first multi-URL command as explicit-list fetch only:
+  positional URLs, `--file`, and `--stdin` feed a bounded concurrent `get`
+  pipeline; `map` owns link discovery and `crawl` owns recursive traversal.
+  Batch manifests are the durable source of truth for partial success, duplicate
+  skips, per-item artifact paths, and non-zero exit behavior.
+- BATCH-001 uncovered a shared same-process concurrency hazard: artifact run IDs
+  and temporary Playwright state filenames previously used only process ID plus
+  nanoseconds. Concurrent in-process fetches can collide, so both names now add
+  a monotonic per-process counter.
 
 ## Execution Order
 

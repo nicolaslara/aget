@@ -211,3 +211,309 @@ Review-follow-up docs touched:
   import/source-profile retention, and `aget doctor` command reference.
 - `skills/aget/SKILL.md`: provider-session guidance and import/custom-profile
   retention guidance.
+
+## REL-001 Release Plan: 2026-05-24
+
+Design artifact:
+
+- `workpads/post-migration/release-plan.md`
+
+Current package metadata reviewed:
+
+- `Cargo.toml`: package `name = "aget"`, `version = "0.1.0"`,
+  `license = "MIT"`.
+- REL-002 added top-level `LICENSE` and `CHANGELOG.md` before producing release
+  archives.
+
+Validation commands run for this planning pass:
+
+```bash
+cargo fmt --check
+git diff --check
+cargo run --quiet -- --help
+cargo run --quiet -- doctor --help
+tmpdir="$(mktemp -d)"
+env -i PATH="/usr/bin:/bin:/usr/sbin:/sbin" \
+  AGET_HOME="$tmpdir/aget-home" \
+  target/debug/aget --envelope json get 'raw:<main><h1>No Command Path</h1></main>'
+rm -rf "$tmpdir"
+tmpdir="$(mktemp -d)"
+AGET_HOME="$tmpdir/aget-home" target/debug/aget --envelope json doctor --quick
+rm -rf "$tmpdir"
+rg -n '(--json|--out\b|backend\.key|Crawl4AI|crawl4ai|agent-browser|AGET_CRAWL4AI_COMMAND|AGET_AGENT_BROWSER_COMMAND)' \
+  README.md skills/aget/SKILL.md .opencode/tools/aget.ts scripts workpads/post-migration -S
+```
+
+The grep matched only historical/parity workpad mentions for old dependency
+names and the DOC-001 note that `--json`/`--out` are not current public flags.
+`scripts/demo_real_cli.sh` was updated to the current `--envelope json` and
+`--output` flags.
+
+## REL-002 Artifact Production: 2026-05-24
+
+Produced files:
+
+```text
+dist/aget-v0.1.0-aarch64-apple-darwin.tar.gz
+dist/aget-v0.1.0-aarch64-apple-darwin.tar.gz.sha256
+dist/SHA256SUMS
+```
+
+Final archive SHA-256:
+
+```text
+ea802299df748a61ccd20306482af4cf7018847decb790e0353fdc95560128d5  dist/aget-v0.1.0-aarch64-apple-darwin.tar.gz
+```
+
+Packaged binary SHA-256:
+
+```text
+9c7b1d09b8496a4bdaffca16789faacd203446675e86a8607156c1ae85de4b8f  dist/aget-v0.1.0-aarch64-apple-darwin/aget
+```
+
+Artifact generation command:
+
+```bash
+cargo build --release
+version=$(sed -n 's/^version = "\(.*\)"/\1/p' Cargo.toml | head -n 1)
+target=$(rustc -vV | sed -n 's/^host: //p')
+name="aget-v${version}-${target}"
+archive="${name}.tar.gz"
+rm -rf dist
+mkdir -p "dist/${name}"
+install -m 755 target/release/aget "dist/${name}/aget"
+install -m 644 README.md "dist/${name}/README.md"
+install -m 644 LICENSE "dist/${name}/LICENSE"
+find "dist/${name}" -exec touch -t 202605240000 {} +
+COPYFILE_DISABLE=1 tar --format ustar --uid 0 --gid 0 --uname root --gname wheel -C dist -cf "dist/${name}.tar" "${name}"
+gzip -n "dist/${name}.tar"
+shasum -a 256 "dist/${archive}" > "dist/${archive}.sha256"
+(cd dist && shasum -a 256 "$archive" > SHA256SUMS)
+```
+
+Reproducibility check:
+
+```bash
+before=$(shasum -a 256 dist/aget-v0.1.0-aarch64-apple-darwin.tar.gz | awk '{print $1}')
+# rerun the artifact generation command above
+after=$(shasum -a 256 dist/aget-v0.1.0-aarch64-apple-darwin.tar.gz | awk '{print $1}')
+test "$before" = "$after"
+```
+
+Release smoke validation:
+
+```bash
+cargo fmt --check
+git diff --check
+cargo test
+target/release/aget --help
+target/release/aget get --help
+target/release/aget current-tab --help
+target/release/aget session --help
+target/release/aget doctor --help
+tmpdir="$(mktemp -d)"
+env -i PATH="/usr/bin:/bin:/usr/sbin:/sbin" \
+  AGET_HOME="$tmpdir/aget-home" \
+  target/release/aget --envelope json get 'raw:<main><h1>No Command Path</h1></main>'
+rm -rf "$tmpdir"
+tmpdir="$(mktemp -d)"
+AGET_HOME="$tmpdir/aget-home" target/release/aget --envelope json doctor --quick
+rm -rf "$tmpdir"
+tmpdir="$(mktemp -d)"
+cargo install --path . --locked --root "$tmpdir/install"
+"$tmpdir/install/bin/aget" --version
+AGET_HOME="$tmpdir/aget-home" "$tmpdir/install/bin/aget" --envelope json doctor --quick
+rm -rf "$tmpdir"
+```
+
+Archive validation:
+
+```bash
+tar -tvzf dist/aget-v0.1.0-aarch64-apple-darwin.tar.gz
+cmp README.md dist/aget-v0.1.0-aarch64-apple-darwin/README.md
+cmp LICENSE dist/aget-v0.1.0-aarch64-apple-darwin/LICENSE
+dist/aget-v0.1.0-aarch64-apple-darwin/aget --version
+rg -n 'Crawl4AI|crawl4ai|agent-browser|AGET_CRAWL4AI_COMMAND|AGET_AGENT_BROWSER_COMMAND|AgentBrowser|agent_browser' \
+  README.md skills/aget/SKILL.md .opencode/tools/aget.ts src tests scripts -S
+```
+
+Validation result:
+
+- `cargo test`: 155 lib tests passed, 2 ignored; integration tests passed
+  including CLI, API, get, mock-site, docs-contract, and session CLI suites.
+- No-command-path smoke returned `ok: true` with `# No Command Path`.
+- Release-binary `doctor --quick` returned `ok: true` with one non-failing
+  OpenCode PATH warning.
+- Installed temp-root binary reported `aget 0.1.0` and `doctor --quick`
+  returned `ok: true`.
+- Active source grep found no old Crawl4AI or `agent-browser` runtime surfaces
+  in README, skill, OpenCode tool, `src`, `tests`, or scripts.
+- After ART-002 changed the binary and README, the archive was regenerated with
+  SHA-256 `ea802299df748a61ccd20306482af4cf7018847decb790e0353fdc95560128d5`.
+
+## ART-001 Artifact Lifecycle Design: 2026-05-24
+
+Design artifact:
+
+- `workpads/post-migration/artifact-lifecycle-design.md`
+
+Current implementation surfaces reviewed:
+
+- `src/extraction/mod.rs`: creates `AGET_HOME/runs/<run-id>` and chooses
+  caller-provided `--output` paths outside the run directory when requested.
+- `src/extraction/pipeline/direct.rs`: direct/raw/file extraction uses the same
+  run directory and caller-output behavior.
+- `src/extraction/pipeline/finalization.rs`: writes content and metadata paths
+  into `GetSuccess.artifacts`.
+- `src/extraction/artifacts/metadata.rs`: current `metadata.json` fields for
+  success and failure runs.
+- `src/session/store/mod.rs`: `AGET_HOME` layout includes `runs`, `sessions`,
+  `cache`, and `tmp`.
+- `src/session/store/permissions.rs`: private directory/file mode expectations.
+- `src/main_doctor.rs`: current read-only artifact checks and metadata sampling.
+
+Contract probe:
+
+```bash
+tmpdir="$(mktemp -d)"
+AGET_HOME="$tmpdir/aget-home" \
+  target/release/aget --envelope json get \
+  'raw:<main><h1>Artifact Design</h1><p>Hello</p></main>' \
+  --output "$tmpdir/caller-output.md" > "$tmpdir/result.json"
+metadata=$(jq -r '.data.artifacts.metadata' "$tmpdir/result.json")
+sed -n '1,220p' "$metadata"
+find "$tmpdir" -maxdepth 4 -type f -print | sort
+```
+
+Finding:
+
+- `metadata.json` is internal under `AGET_HOME/runs/<run-id>/metadata.json`.
+- `artifacts.content` points to the caller-provided `--output` path when set.
+- Therefore `delete`/`prune` must remove only the selected internal run
+  directory and preserve content paths outside that directory.
+
+Design validation:
+
+```bash
+cargo fmt --check
+git diff --check
+rg -n 'artifacts list|artifacts inspect|artifacts delete|artifacts prune|--older-than|--keep-last|--max-bytes|--dry-run|--yes|external' \
+  workpads/post-migration/artifact-lifecycle-design.md
+```
+
+## ART-002 Artifact Lifecycle Implementation: 2026-05-24
+
+Implemented surfaces:
+
+- `src/cli/artifacts.rs`
+- `src/main_artifacts.rs`
+- `tests/cli/artifacts.rs`
+
+Focused validation:
+
+```bash
+cargo fmt --check
+cargo test --lib cli::tests::artifacts
+cargo test --test cli artifacts
+cargo test --test get_cli get_json_success_writes_run_artifacts_with_empty_state
+```
+
+Full validation:
+
+```bash
+cargo test
+cargo build --release
+tmpdir="$(mktemp -d)"
+env -i PATH="/usr/bin:/bin:/usr/sbin:/sbin" \
+  AGET_HOME="$tmpdir/aget-home" \
+  target/release/aget --envelope json get 'raw:<main><h1>No Command Path</h1></main>'
+rm -rf "$tmpdir"
+tmpdir="$(mktemp -d)"
+AGET_HOME="$tmpdir/aget-home" target/release/aget --envelope json doctor --quick
+rm -rf "$tmpdir"
+tmpdir="$(mktemp -d)"
+AGET_HOME="$tmpdir/aget-home" target/release/aget --envelope json get 'raw:<main><h1>Artifact Smoke</h1></main>' >/dev/null
+AGET_HOME="$tmpdir/aget-home" target/release/aget --envelope json artifacts list
+rm -rf "$tmpdir"
+```
+
+Release artifact refresh after ART-002:
+
+```text
+ea802299df748a61ccd20306482af4cf7018847decb790e0353fdc95560128d5  dist/aget-v0.1.0-aarch64-apple-darwin.tar.gz
+9c7b1d09b8496a4bdaffca16789faacd203446675e86a8607156c1ae85de4b8f  dist/aget-v0.1.0-aarch64-apple-darwin/aget
+```
+
+## BACKLOG-001 Batch/Map/Crawl Design: 2026-05-25
+
+Design artifact:
+
+- `workpads/post-migration/batch-map-crawl-design.md`
+
+Current surfaces reviewed:
+
+- `project.md`: original product goals for batch, map, crawl, and local/auth
+  safety.
+- `src/cli/get.rs`: current `get` flags to reuse across multi-URL commands.
+- `src/extraction/owned/page/html.rs`: current extracted-page content and link
+  processing boundary for future `map`.
+- `workpads/post-migration/artifact-lifecycle-design.md`: internal artifact
+  ownership and lifecycle constraints.
+- `README.md`: current command reference and planned-work routing.
+
+Validation:
+
+```bash
+cargo fmt --check
+git diff --check
+rg -n 'aget batch|aget map|aget crawl|--limit|--concurrency|same-origin|same-path|partial|manifest|MCP|server' \
+  workpads/post-migration/batch-map-crawl-design.md README.md workpads/post-migration/tasks.md
+```
+
+## BATCH-001 Batch Implementation: 2026-05-25
+
+Implemented surfaces:
+
+- `src/cli/batch.rs`
+- `src/main_batch.rs`
+- `tests/cli/batch.rs`
+- `src/extraction/artifacts/mod.rs`
+- `src/session/playwright/state_file.rs`
+
+Focused validation:
+
+```bash
+cargo fmt --check
+cargo test --lib cli::tests::batch
+cargo test --test cli batch
+```
+
+Full validation:
+
+```bash
+cargo test
+cargo build --release
+tmpdir="$(mktemp -d)"
+AGET_HOME="$tmpdir/aget-home" \
+  target/release/aget --envelope json batch \
+  'raw:<main><h1>Batch Smoke</h1></main>' \
+  --output-dir "$tmpdir/batch"
+rm -rf "$tmpdir"
+tmpdir="$(mktemp -d)"
+env -i PATH="/usr/bin:/bin:/usr/sbin:/sbin" \
+  AGET_HOME="$tmpdir/aget-home" \
+  target/release/aget --envelope json get \
+  'raw:<main><h1>No Command Path</h1></main>'
+rm -rf "$tmpdir"
+tmpdir="$(mktemp -d)"
+AGET_HOME="$tmpdir/aget-home" \
+  target/release/aget --envelope json doctor --quick
+rm -rf "$tmpdir"
+```
+
+Release artifact refresh after BATCH-001:
+
+```text
+b8d245b882a6f3ce3643edc777cf39e3e72cf1aea091300839d22401dec917b8  dist/aget-v0.1.0-aarch64-apple-darwin.tar.gz
+59905d22287e34e7ec162acb8066dfc13bf452f15c4393d1c5f5ac9d7699e589  dist/aget-v0.1.0-aarch64-apple-darwin/aget
+```

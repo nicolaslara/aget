@@ -254,7 +254,7 @@ Status note:
   instead of failing static-fetch readiness. Tests cover parser shape, help,
   missing optional dependencies, JSON shape, and loose session-file permissions.
 
-### 📋 Task REL-001: Package/release plan
+### ✅ Task REL-001: Package/release plan
 
 Depends on: DOC-002, DR-002.
 
@@ -265,7 +265,16 @@ Acceptance criteria:
 - Defer notarized/app-bundle work unless explicitly requested; this is a CLI.
 - Release checklist includes README/skill sync and no-command-path smoke.
 
-### 📋 Task REL-002: Produce release artifacts
+Status note:
+
+- Completed in `workpads/post-migration/release-plan.md`. The plan defines
+  checkout install, release tarball targets, binary/archive naming, checksum
+  files and manifest, version policy, license/changelog requirements, and a
+  release smoke gate. It explicitly defers notarized/app-bundle packaging and
+  keeps release scope to CLI artifacts. The checklist includes README/skill
+  sync, no-command-path smoke, `doctor`, and stale dependency-surface grep.
+
+### ✅ Task REL-002: Produce release artifacts
 
 Depends on: REL-001.
 
@@ -275,7 +284,19 @@ Acceptance criteria:
 - README install section matches produced artifacts.
 - `aget doctor` validates release-binary basics.
 
-### 📋 Task ART-001: Design artifact lifecycle commands
+Status note:
+
+- Completed for the current verified host target `aarch64-apple-darwin`.
+  Generated `dist/aget-v0.1.0-aarch64-apple-darwin.tar.gz`, a per-archive
+  `.sha256`, and `dist/SHA256SUMS` from `target/release/aget` plus README and
+  LICENSE. The archive build normalizes file mtimes, owner/group metadata, and
+  gzip timestamp data; a repeat packaging pass produced the same SHA-256
+  (`b8d245b882a6f3ce3643edc777cf39e3e72cf1aea091300839d22401dec917b8` after
+  regenerating for the BATCH-001 binary).
+  README install instructions name the produced artifact, and release-binary
+  `doctor --quick` passed with `ok: true`.
+
+### ✅ Task ART-001: Design artifact lifecycle commands
 
 Depends on: DOC-002.
 
@@ -286,7 +307,16 @@ Acceptance criteria:
   confirmation rules.
 - Commands never delete caller-owned `--output` files outside `AGET_HOME`.
 
-### 📋 Task ART-002: Implement artifact lifecycle commands
+Status note:
+
+- Completed in `workpads/post-migration/artifact-lifecycle-design.md`. The
+  design chooses `aget artifacts list/inspect/delete/prune`, defines JSON and
+  human output, run ID validation, retention flags/config names, dry-run and
+  `--yes` confirmation behavior, sensitive metadata URL redaction, and strict
+  deletion boundaries. Caller-owned `--output` files outside the selected
+  `AGET_HOME/runs/<run-id>` directory are reported as external and preserved.
+
+### ✅ Task ART-002: Implement artifact lifecycle commands
 
 Depends on: ART-001.
 
@@ -296,7 +326,19 @@ Acceptance criteria:
 - Delete or prune only internal artifacts with confirmation or `--yes`.
 - Include JSON envelopes and tests.
 
-### 📋 Task BACKLOG-001: Design `batch`, `map`, and `crawl` backlog
+Status note:
+
+- Completed with `aget artifacts list`, `inspect`, `delete`, and `prune`.
+  JSON envelopes use command names `artifacts.*`; list reports run IDs,
+  directories, ages, sizes, sensitivity, source URL metadata, content ownership,
+  and metadata validity. Delete requires `--yes` and removes only internal run
+  directories, preserving caller-owned external `--output` paths. Prune supports
+  `--older-than`, `--keep-last`, `--max-bytes`, default dry-run behavior, and
+  `--yes` execution. Tests cover parser/help, list/inspect, delete
+  confirmation and external-output preservation, prune dry-run/delete behavior,
+  and prune usage errors.
+
+### ✅ Task BACKLOG-001: Design `batch`, `map`, and `crawl` backlog
 
 Depends on: DOC-002, ART-001.
 
@@ -307,7 +349,16 @@ Acceptance criteria:
   rate controls, session behavior, output artifacts, and partial failures.
 - Keep implementation CLI-first with no server or MCP layer.
 
-### 📋 Task BATCH-001: Implement `aget batch`
+Status note:
+
+- Completed in `workpads/post-migration/batch-map-crawl-design.md`. The design
+  defines CLI shapes for `batch`, `map`, and `crawl`; shared JSON/manifest
+  output; same-origin/path defaults; required crawl `--limit`; max concurrency,
+  crawl limit, max depth, and per-host delay boundaries; session replay behavior;
+  output artifact layout; and deterministic partial-failure semantics. It keeps
+  the implementation CLI-only with no server or MCP layer.
+
+### ✅ Task BATCH-001: Implement `aget batch`
 
 Depends on: BACKLOG-001, ART-002.
 
@@ -317,6 +368,20 @@ Acceptance criteria:
 - Use bounded concurrency.
 - Emit per-URL envelopes/artifacts.
 - Report partial failures deterministically.
+
+Status note:
+
+- Completed with `aget batch` for positional URL lists, newline-delimited
+  `--file` input, and newline-delimited `--stdin` input. The command uses
+  bounded thread concurrency, writes `manifest.json`, `manifest.md`, and
+  per-item content artifacts under `--output-dir` or an `AGET_HOME` batch run
+  directory, marks exact duplicate inputs as skipped, and returns a non-zero
+  exit code when any supported input fails. JSON envelope output uses
+  `command=batch` and embeds the batch manifest summary/items. Tests cover
+  parser/help, success artifacts, file input duplicates, stdin input, usage
+  errors, and partial failure behavior. Implementation also fixed shared
+  concurrent fetch safety by making run-artifact and temp-state file names
+  unique within a process.
 
 ### 📋 Task MAP-001: Implement `aget map`
 
