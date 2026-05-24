@@ -24,6 +24,9 @@ impl BrowserFallbackBackend for TestBrowserBackend {
         &self,
         request: BrowserFallbackRequest<'_>,
     ) -> Result<BrowserFallbackResult, AgetError> {
+        let Some(content) = self.fallback_content.clone() else {
+            return Err(test_backend_error());
+        };
         let state = fs::read_to_string(request.state_path).unwrap();
         assert!(state.contains("fallback-secret"));
         assert_eq!(request.state.cookies[0].value, "fallback-secret");
@@ -31,10 +34,7 @@ impl BrowserFallbackBackend for TestBrowserBackend {
 
         Ok(BrowserFallbackResult {
             final_url: request.url.to_string(),
-            content: self
-                .fallback_content
-                .clone()
-                .expect("fallback content should be configured"),
+            content,
             page_metadata: Default::default(),
             warnings: vec!["custom browser fallback".to_string()],
             extractor: "test-browser-fallback".to_string(),

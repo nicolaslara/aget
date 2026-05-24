@@ -4,6 +4,7 @@ use aget::{Aget, Cli, Command, CurrentTabOptions, EnvelopeFormat, ErrorCode, Err
 use clap::error::ErrorKind;
 
 mod main_args;
+mod main_doctor;
 mod main_envelope;
 mod main_session;
 
@@ -39,7 +40,7 @@ fn main() -> ExitCode {
     };
 
     match run(cli) {
-        Ok(()) => ExitCode::SUCCESS,
+        Ok(exit_code) => exit_code,
         Err(response) => {
             eprintln!(
                 "{}",
@@ -50,7 +51,7 @@ fn main() -> ExitCode {
     }
 }
 
-fn run(cli: Cli) -> Result<(), ErrorResponse> {
+fn run(cli: Cli) -> Result<ExitCode, ErrorResponse> {
     let structured_output = matches!(cli.global.envelope, EnvelopeFormat::Json);
     match cli.command {
         Command::Get(get) => (|| {
@@ -93,6 +94,7 @@ fn run(cli: Cli) -> Result<(), ErrorResponse> {
             }
             Ok::<(), ErrorResponse>(())
         })()
+        .map(|()| ExitCode::SUCCESS)
         .map_err(|error| error.with_command("get")),
         Command::CurrentTab(current_tab) => (|| {
             let aget = Aget::from_env()
@@ -125,9 +127,18 @@ fn run(cli: Cli) -> Result<(), ErrorResponse> {
             }
             Ok::<(), ErrorResponse>(())
         })()
+        .map(|()| ExitCode::SUCCESS)
         .map_err(|error| error.with_command("current-tab")),
         Command::Session(session) => {
             main_session::run_session(session.command, structured_output, cli.global.timeout)
+                .map(|()| ExitCode::SUCCESS)
         }
+        Command::Doctor(doctor) => main_doctor::run_doctor(
+            doctor,
+            structured_output,
+            cli.global.quiet,
+            std::time::Instant::now(),
+        )
+        .map_err(|error| error.with_command("doctor")),
     }
 }

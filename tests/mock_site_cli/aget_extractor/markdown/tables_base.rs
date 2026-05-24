@@ -53,4 +53,25 @@ pub(super) fn assert_tables_and_base_links(aget_home: &Path, site: &MockSite) {
             site.url("/guide/page.html")
         )
     );
+
+    let table_edges = markdown_content(
+        aget_home,
+        site,
+        "/markdown-table-edges",
+        &[("aget.body_width", "0")],
+    );
+    assert!(table_edges.contains("Table Caption\n\n| Name | Value | Empty |"));
+    assert!(table_edges.contains("| --- | --- | --- |"));
+    assert!(table_edges.contains("| Alpha | 1 |  |"));
+    for line in table_edges.lines().filter(|line| line.starts_with('|')) {
+        assert!(
+            line.ends_with('|'),
+            "table row missing trailing pipe: {line:?}"
+        );
+    }
+    let caption_line = table_edges
+        .lines()
+        .find(|line| line.contains("Table Caption"))
+        .unwrap();
+    assert!(!caption_line.contains('|'));
 }

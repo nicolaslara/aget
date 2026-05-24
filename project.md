@@ -24,7 +24,7 @@ Build a local-first tool that feels like `curl.md` for simple known URLs but can
 
 `aget` is a generic fetcher. It does not detect site-specific paywalls, login walls, rate limits, or content quirks. Site-specific reasoning is the calling agent's responsibility, expressed through session names, selected URLs, and run results. `aget` reports extraction outcomes; the agent decides what to do next.
 
-Initial command shape:
+Original command-shape sketch:
 
 ```bash
 aget fetch https://example.com/docs
@@ -106,7 +106,9 @@ aget status
 
 ## Project Tasks
 
-These are high-level project tasks. Executable research work lives in `workpads/research/tasks.md`; implementation tasks should be added after the research workpad produces an MVP technical direction.
+These are high-level historical project tasks. Current executable work lives in
+`workpads/WORKPADS.md` and the active `workpads/post-migration/` task list; the
+research workpad is retained as historical evidence.
 
 ### 📋 P1: Complete prior-art and feasibility research
 

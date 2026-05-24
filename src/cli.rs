@@ -4,12 +4,14 @@ use std::time::Duration;
 use clap::{Args, Parser, Subcommand, ValueEnum};
 
 mod current_tab;
+mod doctor;
 mod get;
 mod session;
 #[cfg(test)]
 mod tests;
 
 pub use current_tab::CurrentTabCommand;
+pub use doctor::{DoctorCheck, DoctorCommand};
 pub use get::GetCommand;
 pub use session::{
     AuthorizeSessionCommand, BrowserChoice, ComposeSessionCommand, DeleteSessionCommand,
@@ -72,6 +74,8 @@ pub enum Command {
     CurrentTab(CurrentTabCommand),
     /// Manage local auth/session state.
     Session(SessionCommand),
+    /// Diagnose local aget CLI readiness.
+    Doctor(DoctorCommand),
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, ValueEnum)]
@@ -121,7 +125,7 @@ fn alias_url_index(args: &[OsString]) -> Option<usize> {
     let mut saw_command = false;
     for (index, arg) in args.iter().enumerate().skip(1) {
         let arg = arg.to_string_lossy();
-        if matches!(arg.as_ref(), "get" | "current-tab" | "session") {
+        if matches!(arg.as_ref(), "get" | "current-tab" | "session" | "doctor") {
             saw_command = true;
         }
         if saw_command {

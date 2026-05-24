@@ -8,6 +8,8 @@ mod session;
 mod session_store;
 
 pub(crate) use browser_backend::TestBrowserBackend;
-pub(crate) use extractor_backend::{AuthorizationExtractor, FailingExtractor, InspectingExtractor};
+pub(crate) use extractor_backend::{
+    AuthorizationExtractor, FailingExtractor, InspectingExtractor, SecretLeakingExtractor,
+};
 pub(crate) use session::{cookie_session, pending_login};
 pub(crate) use session_store::MemorySessionStore;

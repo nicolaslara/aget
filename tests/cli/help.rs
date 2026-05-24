@@ -46,6 +46,17 @@ fn current_tab_help_is_available() {
 }
 
 #[test]
+fn doctor_help_is_available() {
+    let mut cmd = Command::cargo_bin("aget").unwrap();
+
+    cmd.args(["doctor", "--help"]).assert().success().stdout(
+        predicate::str::contains("Usage: aget doctor")
+            .and(predicate::str::contains("--quick"))
+            .and(predicate::str::contains("--check")),
+    );
+}
+
+#[test]
 fn get_rejects_invalid_format() {
     let mut cmd = Command::cargo_bin("aget").unwrap();
 

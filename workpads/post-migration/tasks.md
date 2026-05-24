@@ -145,7 +145,7 @@ Status note:
 
 ## Phase 3: Historical Parity Coverage
 
-### 📋 Task PAR-001: Build upstream-test coverage matrix
+### ✅ Task PAR-001: Build upstream-test coverage matrix
 
 Depends on: PM-001.
 
@@ -161,7 +161,16 @@ Acceptance criteria:
   current-tab, Chrome import, login lifecycle, provider-session injection,
   cleanup, error classification, and redaction.
 
-### 📋 Task PAR-002: Add missing parity/regression tests
+Status note:
+
+- Completed with `workpads/post-migration/parity-matrix.md`. The matrix
+  records Apache-2.0 source snapshots, upstream test paths, current local
+  coverage paths, covered/partial/not-applicable status, and concrete PAR-002
+  actions. Out-of-scope upstream behavior such as deep crawl, hosted/server
+  APIs, screenshots, interactive browser actions, and `doctor` is explicitly
+  routed to later backlog tasks or marked not-applicable.
+
+### ✅ Task PAR-002: Add missing parity/regression tests
 
 Depends on: PAR-001, DEP-001.
 
@@ -173,7 +182,17 @@ Acceptance criteria:
   `agent-browser`.
 - No incompatible upstream code or tests are copied.
 
-### 📋 Task PAR-003: Fix failures discovered by parity tests
+Status note:
+
+- Completed with behavior-level local tests for raw HTML edge cases, GFM table
+  formatting, same-scope login-session replacement, and session-backed failure
+  metadata redaction. Existing deterministic coverage was recorded for CSS
+  waits, selector fallback semantics, browser-state cookie/local/session-storage
+  filtering, domain scope, and provider-session injection at the public API
+  layer. The only matrix deviation is CLI-level provider-session fake-browser
+  testing, deferred until the CLI has a supported test backend seam.
+
+### ✅ Task PAR-003: Fix failures discovered by parity tests
 
 Depends on: PAR-002.
 
@@ -183,9 +202,18 @@ Acceptance criteria:
 - Implementation is fixed or the feature is downgraded/documented.
 - Focused parity tests, `cargo fmt --check`, and `cargo test` pass.
 
+Status note:
+
+- Completed during the PAR-002 test pass. The new raw-fragment parity test
+  exposed that fragment-only links in `raw:` input were being resolved against
+  the whole synthetic `raw:` URL. The owned extractor now avoids using `raw:`
+  inputs as markdown base URLs unless an explicit `aget.base_url` or `<base>`
+  tag is provided. Focused tests, `cargo fmt --check`, `git diff --check`, and
+  full `cargo test` pass.
+
 ## Phase 4: CLI Product Backlog
 
-### 📋 Task DR-001: Design `aget doctor`
+### ✅ Task DR-001: Design `aget doctor`
 
 Depends on: DOC-002.
 
@@ -199,7 +227,14 @@ Acceptance criteria:
 - Define human-readable output and `--envelope json` output.
 - Define redaction policy for diagnostics.
 
-### 📋 Task DR-002: Implement `aget doctor`
+Status note:
+
+- Completed in `workpads/post-migration/doctor-design.md`. The design defines
+  check IDs/categories/statuses, human and JSON output, exit semantics, optional
+  component handling, and redaction policy. Doctor must not check for Crawl4AI,
+  `agent-browser`, MCP, hosted services, or arbitrary browser ports.
+
+### ✅ Task DR-002: Implement `aget doctor`
 
 Depends on: DR-001.
 
@@ -210,6 +245,14 @@ Acceptance criteria:
 - Static fetch support does not fail just because Chrome is missing.
 - Tests cover healthy, missing optional dependency, bad permissions, and JSON
   shape.
+
+Status note:
+
+- Completed with a CLI `doctor` command, human output, JSON envelope output,
+  check filtering, and diagnostics for binary/store/artifacts/Chrome/current-tab
+  prerequisites/cmux/OpenCode. Missing optional Chrome or cmux reports `warn`
+  instead of failing static-fetch readiness. Tests cover parser shape, help,
+  missing optional dependencies, JSON shape, and loose session-file permissions.
 
 ### 📋 Task REL-001: Package/release plan
 

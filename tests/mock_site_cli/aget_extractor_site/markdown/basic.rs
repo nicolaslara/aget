@@ -29,6 +29,20 @@ pub(crate) fn routes(builder: MockSiteBuilder) -> MockSiteBuilder {
             ),
         )
         .route(
+            "/markdown-table-edges",
+            MockResponse::html(
+                r#"
+<html><body><main>
+  <table>
+    <caption>Table Caption</caption>
+    <tr><th>Name</th><th>Value</th><th>Empty</th></tr>
+    <tr><td>Alpha</td><td>1</td><td></td></tr>
+  </table>
+</main></body></html>
+"#,
+            ),
+        )
+        .route(
             "/markdown-base",
             MockResponse::html(
                 r#"

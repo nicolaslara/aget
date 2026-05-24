@@ -60,6 +60,25 @@ impl ExtractorBackend for FailingExtractor {
 }
 
 #[derive(Clone)]
+pub(crate) struct SecretLeakingExtractor;
+
+impl ExtractorBackend for SecretLeakingExtractor {
+    fn name(&self) -> &'static str {
+        "secret-leaking-extractor"
+    }
+
+    fn extract(&self, request: ExtractorRequest<'_>) -> Result<ExtractorBackendResult, AgetError> {
+        Err(AgetError::Stable {
+            code: ErrorCode::ExtractionFailed,
+            message: format!(
+                "primary extractor leaked {}",
+                request.state.cookies[0].value
+            ),
+        })
+    }
+}
+
+#[derive(Clone)]
 pub(crate) struct AuthorizationExtractor {
     baseline_content: String,
     verification_content: String,

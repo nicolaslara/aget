@@ -30,6 +30,10 @@ pub(crate) fn command_name_from_args(args: &[OsString]) -> &'static str {
         };
     }
 
+    if tokens.contains(&"doctor") {
+        return "doctor";
+    }
+
     if tokens.contains(&"get")
         || tokens
             .iter()

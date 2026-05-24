@@ -103,3 +103,111 @@ rg -n "Crawl4AI|crawl4ai|agent-browser|AGET_CRAWL4AI_COMMAND|AGET_AGENT_BROWSER_
 
 Allowed grep matches after closure are limited to historical/parity rows in
 `workpads/post-migration/`.
+
+## PAR-001 Inventory: 2026-05-24
+
+Source snapshots verified with:
+
+```bash
+git -C references/repos/crawl4ai rev-parse HEAD
+git -C references/repos/agent-browser rev-parse HEAD
+```
+
+Relevant upstream test discovery used:
+
+```bash
+rg --files references/repos/crawl4ai references/repos/agent-browser \
+  | rg '(^|/)(test|tests|spec|specs|__tests__)|(_test|\.test\.|\.spec\.)'
+rg -n "test_|def test|async def test|#\[test\]|async fn" \
+  references/repos/crawl4ai/tests/regression/test_reg_core_crawl.py \
+  references/repos/crawl4ai/tests/regression/test_reg_content.py \
+  references/repos/crawl4ai/tests/test_raw_html_edge_cases.py \
+  references/repos/crawl4ai/tests/test_issue_1484_css_selector.py \
+  references/repos/crawl4ai/tests/test_table_gfm_compliance.py \
+  references/repos/agent-browser/cli/src/native/e2e_tests.rs \
+  references/repos/agent-browser/cli/src/native/parity_tests.rs \
+  references/repos/agent-browser/cli/tests/doctor_cli.rs
+```
+
+Local coverage discovery used:
+
+```bash
+rg -n "fn .*\(|#\[test\]" \
+  tests/mock_site_cli.rs tests/get_cli tests/cli/current_tab.rs \
+  tests/aget_api src/session tests/session_cli tests/mock_site_browser \
+  tests/mock_site_docs_contract
+```
+
+Out-of-scope upstream behavior for this matrix:
+
+- Crawl4AI deep crawl, Docker/server API, cache database modes, hooks, network
+  capture, LLM extraction, schema extraction, proxy/anti-bot, and broad batch
+  APIs. These are not implemented `aget` features yet.
+- agent-browser interactive actions such as click/type/drag/upload/tabs,
+  Electron automation, HAR/vitals/React tree, credentials vault, daemon/socket
+  lifecycle, and `doctor`. These are not current `aget` features; `doctor` is
+  tracked under DR-001/DR-002.
+- Screenshot output is not currently an `aget get` artifact contract. Add it to
+  parity only if screenshot artifacts become implemented.
+
+## PAR-002 Focused Validation: 2026-05-24
+
+Focused tests used while adding deterministic parity coverage:
+
+```bash
+cargo fmt --check
+cargo test --lib merge_login_session_replaces_stale_same_scope_state
+cargo test --test get_cli get_raw_html_handles_edge_case_inputs
+cargo test --test mock_site_cli aget_extractor_backend_covers_static_http_parity_slice
+cargo test --test mock_site_cli mock_site_fetch_handles_redirect_output_shaping_and_waits
+cargo test --test aget_api aget_session_failure_metadata_redacts_sensitive_backend_error
+cargo test --test aget_api aget_start_login_session_injects_named_sessions_into_browser_backend
+cargo test --lib session::browser_state::tests::filters_playwright_state_with_same_import_rules
+```
+
+Final PAR-002/PAR-003 gate:
+
+```bash
+cargo fmt --check
+git diff --check
+cargo test
+```
+
+## DR-001 Design: 2026-05-24
+
+Design artifact:
+
+- `workpads/post-migration/doctor-design.md`
+
+Current implementation surfaces reviewed for DR-001:
+
+- `src/session/store/mod.rs` and `src/session/store/permissions.rs` for
+  `AGET_HOME`, layout, and permissions.
+- `src/browser_cdp/chrome_process/launch.rs` for Chrome command discovery.
+- `src/session/cmux/command.rs` for `AGET_CMUX_COMMAND` and cmux optionality.
+- `.opencode/tools/aget.ts` for `AGET_OPENCODE_BIN` wrapper resolution.
+- `src/main_envelope.rs` for structured JSON envelope shape.
+
+## DR-002 Implementation Validation: 2026-05-24
+
+Focused tests for the new doctor command:
+
+```bash
+cargo test --lib cli::tests::doctor
+cargo test --test cli doctor
+```
+
+Final gate for the implementation pass:
+
+```bash
+cargo fmt --check
+git diff --check
+cargo test
+```
+
+Review-follow-up docs touched:
+
+- `README.md`: provider-session bootstrap versus replay-scope guardrail,
+  import/source-profile retention, and `aget doctor` command reference.
+- `skills/aget/SKILL.md`: provider-session guidance and import/custom-profile
+  retention guidance.

@@ -94,7 +94,13 @@ pub(crate) fn extract_owned_html(
         .as_deref()
         .or(owned_options.css_selector.as_deref())
         .or(fallback_selector);
-    let configured_base_url = owned_options.base_url.as_deref().unwrap_or(&final_url);
+    let configured_base_url = owned_options.base_url.as_deref().unwrap_or_else(|| {
+        if final_url.starts_with("raw:") {
+            ""
+        } else {
+            &final_url
+        }
+    });
     let base_url = markdown_base_url(&document, configured_base_url)?;
 
     if !owned_options.exclude_domains.is_empty() {

@@ -175,9 +175,9 @@ aget --envelope json session login finish target
 aget --envelope json get "https://example.com/account" --session target --output /tmp/aget-account.md
 ```
 
-This avoids repeated provider login while keeping the provider credential ceremony outside the agent. `aget get` enforces replay scope, so an `oauth` session for `accounts.example.com` must not be passed to `https://example.com/...` fetches unless its saved scope actually matches that request host.
+This avoids repeated provider login while keeping the provider credential ceremony outside the agent. Provider sessions are bootstrap inputs for `session login start`, not fetch credentials for target content. `aget get` enforces replay scope as a guardrail, but scope acceptance is not permission to use provider credentials as target-site authorization.
 
-`aget session login start --session <provider>` injects only explicitly named local sessions into the controlled login browser profile. The user still completes any provider prompts, passwords, passkeys, and one-time-code steps; `login finish` saves only the target relying-party session unless the user later asks to compose same-scope sessions. Provider-session injection uses the current Chrome/CDP login path and the default aget-owned login profile; omit `--profile` when injecting sessions. If injected sessions conflict on cookie or storage values, retry with narrower or corrected sessions instead of choosing a secret silently.
+`aget session login start --session <provider>` injects only explicitly named local sessions into the controlled login browser profile. The user still completes any provider prompts, passwords, passkeys, and one-time-code steps; `login finish` saves only the target relying-party session unless the user later asks to compose same-scope sessions. Provider-session injection uses the current Chrome/CDP login path and the default aget-owned login profile; omit `--profile` when injecting sessions. Fetch target content with the session saved by `login finish`, not with the provider session. If injected sessions conflict on cookie or storage values, retry with narrower or corrected sessions instead of choosing a secret silently.
 
 ## Access Verification
 
@@ -264,7 +264,7 @@ Chrome import uses `aget`'s owned local Chrome/CDP import path:
 aget --envelope json session import browser --browser chrome --browser-profile Default --name target --allow-domain docs.example.com
 ```
 
-Before running either import command, ask the user to approve the specific local surface/profile and domains. These commands can read credential-equivalent local browser state. Prefer named Chrome profiles such as `--browser-profile Default`; explicit `--profile-path` is an advanced path and may launch that local profile directory directly, so use it only with a disposable or explicitly approved profile path. Import stores only scoped exported cookies/storage in the named `aget` session; it does not retain the whole source browser profile. For login flows, the default aget-owned temporary profile is cleaned up after finish or cancel; a caller-provided custom profile path is caller-owned and is not deleted by `aget`.
+Before running either import command, ask the user to approve the specific local surface/profile and domains. These commands can read credential-equivalent local browser state. Prefer named Chrome profiles such as `--browser-profile Default`; explicit `--profile-path` is an advanced path and may launch that local profile directory directly, so use it only with a disposable or explicitly approved profile path. Import stores only scoped exported cookies/storage in the named `aget` session; it does not copy, retain, or manage the whole source browser profile. For login flows, the default aget-owned temporary profile is cleaned up after finish or cancel; a caller-provided custom profile path is caller-owned and is not deleted or pruned by `aget`.
 
 If Chrome import returns `requires_user_action`, do not close the user's browser. Relay the message and let the user decide whether to quit Chrome and retry.
 

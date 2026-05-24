@@ -11,6 +11,7 @@ Normal use does not require external scraper or browser-control tools.
 - `aget get <url>` for HTTP(S), `raw:`, `raw://`, and `file://` inputs.
 - `aget current-tab --cdp-port <port> --allow-private-content` for explicitly
   approved local Chrome DevTools tab extraction.
+- `aget doctor` for local readiness diagnostics.
 - `aget session ...` commands for listing, inspecting, deleting, composing,
   importing, authorizing, and bootstrapping local sessions.
 - `--envelope json` for stable agent/tool output.
@@ -98,6 +99,7 @@ Top-level commands:
 aget get <url>
 aget current-tab --cdp-port <port> --allow-private-content
 aget session <command>
+aget doctor
 ```
 
 `aget get`:
@@ -114,7 +116,7 @@ aget get <url>
   [--exclude-selector <css>]
   [--wait-for-selector <css>]
   [--max-chars <n>]
-  [--backend-option <backend.key=value>...]
+  [--backend-option <aget.key=value>...]
 ```
 
 `aget current-tab`:
@@ -131,7 +133,7 @@ aget current-tab --cdp-port <port>
   [--exclude-selector <css>]
   [--wait-for-selector <css>]
   [--max-chars <n>]
-  [--backend-option <backend.key=value>...]
+  [--backend-option <aget.key=value>...]
 ```
 
 Session commands:
@@ -257,9 +259,11 @@ aget --envelope json session login start workdocs \
 aget --envelope json session login finish workdocs
 ```
 
-Provider sessions are for login bootstrap only. Do not replay a provider session
-against an unrelated target-site fetch unless that session's saved scope matches
-the request host. `aget get` enforces this replay scope.
+Provider sessions are for login bootstrap only. Do not pass a provider session
+to `aget get` for target-site content. Replay-scope checks are a guardrail that
+reject out-of-scope session use; they do not turn provider credentials into
+target-site authorization. Fetch target content with the relying-party session
+saved by `login finish`.
 
 ## Browser Support
 
@@ -273,10 +277,10 @@ Prefer named Chrome profiles through `--browser-profile`. Explicit
 `--profile-path` is advanced: it may launch that local profile directory
 directly, so use it only with a disposable or explicitly approved profile path.
 Import stores only the scoped exported cookies/storage in the named `aget`
-session. It does not make the original browser profile part of `aget` state.
-For login flows, the default aget-owned temporary profile is cleaned up after
-finish or cancel; a caller-provided custom profile path is treated as
-caller-owned and is not deleted by `aget`.
+session. It does not copy, retain, or manage the original browser profile as
+part of `aget` state. For login flows, the default aget-owned temporary profile
+is cleaned up after finish or cancel; a caller-provided custom profile path is
+caller-owned and is not deleted or pruned by `aget`.
 
 `current-tab` never scans profiles or common ports. The caller must provide an
 explicit local CDP port and `--allow-private-content`.

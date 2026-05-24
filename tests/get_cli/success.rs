@@ -121,3 +121,43 @@ fn get_inline_content_can_be_omitted_for_public_fetches() {
         "# Public But Artifact Only\n"
     );
 }
+
+#[test]
+fn get_raw_html_handles_edge_case_inputs() {
+    let temp = tempfile::tempdir().unwrap();
+    let aget_home = temp.path().join("aget-home");
+
+    let cases = [
+        (
+            "raw:Just plain text, no HTML tags",
+            "Just plain text, no HTML tags",
+        ),
+        (
+            "raw:<main><h1>Broken</h1><p>Unclosed paragraph",
+            "# Broken\n\nUnclosed paragraph",
+        ),
+        (
+            "raw:<main><p>Unicode 日本語 中文 한국어 العربية text</p></main>",
+            "Unicode 日本語 中文 한국어 العربية text",
+        ),
+        (
+            r##"raw:<main><a href="#section1">Jump</a><section id="section1">Fragment target</section></main>"##,
+            "[Jump](#section1) Fragment target",
+        ),
+    ];
+
+    for (input, expected) in cases {
+        let output = Command::cargo_bin("aget")
+            .unwrap()
+            .env("AGET_HOME", &aget_home)
+            .args(["--envelope", "json", "get", input])
+            .assert()
+            .success()
+            .get_output()
+            .stdout
+            .clone();
+
+        let json = success_data(&output, "get");
+        assert_eq!(json["content"], expected, "raw input failed: {input}");
+    }
+}
