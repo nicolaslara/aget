@@ -517,3 +517,85 @@ Release artifact refresh after BATCH-001:
 b8d245b882a6f3ce3643edc777cf39e3e72cf1aea091300839d22401dec917b8  dist/aget-v0.1.0-aarch64-apple-darwin.tar.gz
 59905d22287e34e7ec162acb8066dfc13bf452f15c4393d1c5f5ac9d7699e589  dist/aget-v0.1.0-aarch64-apple-darwin/aget
 ```
+
+## MAP-001 Map Implementation: 2026-05-25
+
+Implemented surfaces:
+
+- `src/cli/map.rs`
+- `src/main_map.rs`
+- `src/cli/tests/map.rs`
+- `tests/cli/map.rs`
+- `README.md`
+- `CHANGELOG.md`
+
+Focused validation:
+
+```bash
+cargo fmt --check
+cargo test --lib cli::tests::map
+cargo test --test cli map
+```
+
+Full validation:
+
+```bash
+cargo test
+cargo build --release
+tmpdir="$(mktemp -d)"
+page="$tmpdir/page.html"
+printf '%s\n' '<main><a href="/docs/a">A</a><a href="https://other.example/docs">External</a></main>' > "$page"
+AGET_HOME="$tmpdir/aget-home" \
+  target/release/aget --envelope json map "file://$page" --any-path
+rm -rf "$tmpdir"
+```
+
+Release artifact refresh after MAP-001:
+
+```text
+4c2e6721318c845cb379c95b119e76ee8554fa3547f182981c5d42e4078a373a  dist/aget-v0.1.0-aarch64-apple-darwin.tar.gz
+0e699ca349284625bb56be8bf3f4fa1a75cc481740fdd820e4563e4772a718b0  dist/aget-v0.1.0-aarch64-apple-darwin/aget
+```
+
+## CRAWL-001 Bounded Crawl Implementation: 2026-05-25
+
+Implemented surfaces:
+
+- `src/cli/crawl.rs`
+- `src/main_crawl.rs`
+- `src/cli/tests/crawl.rs`
+- `tests/cli/crawl.rs`
+- `README.md`
+- `CHANGELOG.md`
+
+Focused validation:
+
+```bash
+cargo fmt --check
+cargo test --lib cli::tests::crawl
+cargo test --test cli crawl
+```
+
+Full validation:
+
+```bash
+cargo test
+cargo build --release
+tmpdir="$(mktemp -d)"
+page="$tmpdir/index.html"
+printf '%s\n' '<main><a href="sub.html">Sub</a></main>' > "$page"
+printf '%s\n' '<main><h1>Sub</h1></main>' > "$tmpdir/sub.html"
+AGET_HOME="$tmpdir/aget-home" \
+  target/release/aget --envelope json crawl "file://$page" \
+  --limit 2 \
+  --any-path \
+  --content-format html
+rm -rf "$tmpdir"
+```
+
+Release artifact refresh after CRAWL-001:
+
+```text
+e95e4ddc16a3bf59128ec02ad92ae83ac73d8e25d74d78338391cf93bb2e832a  dist/aget-v0.1.0-aarch64-apple-darwin.tar.gz
+e6384d95635891b2c72c33b7d454e66d4f41d7859ccb292abfe3bc6f64da0e90  dist/aget-v0.1.0-aarch64-apple-darwin/aget
+```

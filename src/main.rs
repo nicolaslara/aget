@@ -6,8 +6,10 @@ use clap::error::ErrorKind;
 mod main_args;
 mod main_artifacts;
 mod main_batch;
+mod main_crawl;
 mod main_doctor;
 mod main_envelope;
+mod main_map;
 mod main_session;
 
 use main_args::{args_request_json_envelope, command_name_from_args};
@@ -100,6 +102,10 @@ fn run(cli: Cli) -> Result<ExitCode, ErrorResponse> {
         .map_err(|error| error.with_command("get")),
         Command::Batch(batch) => main_batch::run_batch(batch, structured_output, cli.global.quiet)
             .map_err(|error| error.with_command("batch")),
+        Command::Map(map) => main_map::run_map(map, structured_output, cli.global.quiet)
+            .map_err(|error| error.with_command("map")),
+        Command::Crawl(crawl) => main_crawl::run_crawl(crawl, structured_output, cli.global.quiet)
+            .map_err(|error| error.with_command("crawl")),
         Command::CurrentTab(current_tab) => (|| {
             let aget = Aget::from_env()
                 .map_err(io_error)?

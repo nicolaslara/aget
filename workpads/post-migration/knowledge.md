@@ -54,6 +54,11 @@ the CLI envelope in a thin host-specific tool.
 - 2026-05-25: No commit immediately after ART-001/ART-002. The repo rule
   requires explicit commit approval, and the active goal continuation is moving
   into BACKLOG-001.
+- 2026-05-25: No commit immediately after MAP-001. The repo rule requires
+  explicit commit approval before committing the completed map pass.
+- 2026-05-25: No commit immediately after CRAWL-001. The post-migration workpad
+  is complete, validation passed, and the only remaining closure step is an
+  explicit user-approved commit for the uncommitted MAP/CRAWL pass.
 
 ## Product Boundaries
 
@@ -151,6 +156,25 @@ the CLI envelope in a thin host-specific tool.
   and temporary Playwright state filenames previously used only process ID plus
   nanoseconds. Concurrent in-process fetches can collide, so both names now add
   a monotonic per-process counter.
+- MAP-001 keeps discovery non-recursive. URL input is fetched as HTML through
+  the existing `get` pipeline; artifact input is limited to successful internal
+  `get` run content so `map` does not silently read caller-owned external
+  output files. Discovered links are metadata, not fetched page content.
+- MAP-001 implements lightweight local filtering only: normalized absolute URL
+  dedupe with fragments dropped, same-origin/same-path defaults, simple
+  include/exclude glob patterns, and content-type inference from URL path
+  extensions. Stronger MIME verification belongs to `crawl` or a later
+  discovery task because `map` deliberately does not fetch discovered URLs.
+- CRAWL-001 completes the bounded multi-URL CLI backlog. `crawl` requires a
+  user-supplied limit and keeps traversal generic: no paywall/login/CAPTCHA
+  detection, no site-shaped retry advice, and no automatic policy
+  interpretation. It records partial failures in the manifest and leaves
+  site-specific decisions to the calling agent.
+- CRAWL-001 uses fetched HTML for discovery and the existing `get` pipeline for
+  per-page artifacts. When the requested crawl content format is not HTML,
+  discovery may require an additional HTML fetch for the same URL; this keeps
+  map/crawl behavior source-aligned with `get` rather than adding a separate
+  extraction path.
 
 ## Execution Order
 

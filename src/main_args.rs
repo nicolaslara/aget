@@ -48,6 +48,14 @@ pub(crate) fn command_name_from_args(args: &[OsString]) -> &'static str {
         return "batch";
     }
 
+    if tokens.contains(&"map") {
+        return "map";
+    }
+
+    if tokens.contains(&"crawl") {
+        return "crawl";
+    }
+
     if tokens.contains(&"get")
         || tokens
             .iter()

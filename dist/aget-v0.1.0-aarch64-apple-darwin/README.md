@@ -13,6 +13,10 @@ Normal use does not require external scraper or browser-control tools.
   approved local Chrome DevTools tab extraction.
 - `aget batch <url> [<url>...]` for bounded concurrent fetches with per-URL
   artifacts and a batch manifest.
+- `aget map <url>` and `aget map --artifact <run-id>` for one-page link
+  discovery without recursive fetching.
+- `aget crawl <url> --limit <n>` for same-origin/path-bounded traversal with a
+  manifest and per-page artifacts.
 - `aget doctor` for local readiness diagnostics.
 - `aget artifacts ...` for listing, inspecting, deleting, and pruning local run
   artifacts under `AGET_HOME`.
@@ -30,9 +34,7 @@ Normal use does not require external scraper or browser-control tools.
 - Project skill guidance in `skills/aget/SKILL.md`.
 - Project-local OpenCode tools in `.opencode/tools/aget.ts`.
 
-Planned CLI work is tracked in `workpads/post-migration/tasks.md`. The bounded
-`map` and `crawl` command design lives in
-`workpads/post-migration/batch-map-crawl-design.md`.
+Planned CLI work is tracked in `workpads/post-migration/tasks.md`.
 
 ## Install And Run
 
@@ -121,6 +123,24 @@ aget --envelope json batch https://example.com https://example.org \
   --output-dir /tmp/aget-batch
 ```
 
+Discover links from one page without crawling them:
+
+```bash
+aget --envelope json map https://example.com/docs \
+  --same-origin \
+  --same-path \
+  --max-links 200
+```
+
+Crawl a bounded docs section:
+
+```bash
+aget --envelope json crawl https://example.com/docs/ \
+  --limit 25 \
+  --max-depth 2 \
+  --concurrency 2
+```
+
 ## Command Reference
 
 Top-level commands:
@@ -128,6 +148,9 @@ Top-level commands:
 ```text
 aget get <url>
 aget batch <url> [<url>...]
+aget map <url>
+aget map --artifact <run-id>
+aget crawl <url> --limit <n>
 aget current-tab --cdp-port <port> --allow-private-content
 aget session <command>
 aget artifacts <command>
@@ -177,6 +200,64 @@ and per-item content/metadata artifacts under `--output-dir`; without
 `--output-dir`, it creates a local batch run directory under `AGET_HOME`.
 Duplicate inputs are reported as skipped. Partial failures are reported in the
 manifest and return a non-zero exit code.
+
+`aget map`:
+
+```text
+aget map <url>
+aget map --artifact <run-id>
+  [--session <name>...]
+  [--envelope <json|none>]
+  [--selector <css>]
+  [--exclude-selector <css>]
+  [--wait-for-selector <css>]
+  [--same-origin|--any-origin]
+  [--same-path|--any-path]
+  [--include <pattern>...]
+  [--exclude <pattern>...]
+  [--max-links <n>]
+  [--content-type <type>...]
+  [--output <markdown|json>]
+  [--backend-option <aget.key=value>...]
+```
+
+`aget map` fetches one page as HTML or reads one successful internal `get` run
+artifact, extracts links, deduplicates normalized absolute URLs, drops
+fragments, and emits `links.json` plus `links.md` under a local `AGET_HOME` run
+directory. It does not fetch discovered links. By default it keeps only links
+on the same origin and same path prefix as the source; use `--any-origin` or
+`--any-path` to widen discovery. Artifact mode rejects caller-owned external
+`--output` content paths.
+
+`aget crawl`:
+
+```text
+aget crawl <url> --limit <n>
+  [--max-depth <n>]
+  [--concurrency <1-8>]
+  [--same-origin|--any-origin]
+  [--same-path|--any-path]
+  [--allow-domain <domain>...]
+  [--include <pattern>...]
+  [--exclude <pattern>...]
+  [--session <name>...]
+  [--envelope <json|none>]
+  [--output-dir <path>]
+  [--content-format <markdown|html|text|json>]
+  [--selector <css>]
+  [--exclude-selector <css>]
+  [--wait-for-selector <css>]
+  [--max-chars <n>]
+  [--backend-option <aget.key=value>...]
+```
+
+`aget crawl` requires `--limit` and caps v1 crawls at 100 pages, depth 5, and
+concurrency 8. It fetches pages through the same `get` pipeline, discovers
+links from fetched HTML, and writes `manifest.json`, `manifest.md`, and
+per-page artifacts under `--output-dir` or a local `AGET_HOME` run directory.
+Traversal defaults to the start URL's origin and path prefix; `--any-origin`,
+`--any-path`, and `--allow-domain` must be explicit. Crawl records partial
+failures in the manifest and returns a non-zero exit code when any page fails.
 
 `aget current-tab`:
 

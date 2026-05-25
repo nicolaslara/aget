@@ -291,8 +291,8 @@ Status note:
   `.sha256`, and `dist/SHA256SUMS` from `target/release/aget` plus README and
   LICENSE. The archive build normalizes file mtimes, owner/group metadata, and
   gzip timestamp data; a repeat packaging pass produced the same SHA-256
-  (`b8d245b882a6f3ce3643edc777cf39e3e72cf1aea091300839d22401dec917b8` after
-  regenerating for the BATCH-001 binary).
+  (`e95e4ddc16a3bf59128ec02ad92ae83ac73d8e25d74d78338391cf93bb2e832a` after
+  regenerating for the CRAWL-001 binary).
   README install instructions name the produced artifact, and release-binary
   `doctor --quick` passed with `ok: true`.
 
@@ -383,7 +383,7 @@ Status note:
   concurrent fetch safety by making run-artifact and temp-state file names
   unique within a process.
 
-### 📋 Task MAP-001: Implement `aget map`
+### ✅ Task MAP-001: Implement `aget map`
 
 Depends on: BACKLOG-001.
 
@@ -394,7 +394,21 @@ Acceptance criteria:
 - Do not recursively crawl.
 - Provide JSON and markdown output.
 
-### 📋 Task CRAWL-001: Implement bounded `aget crawl`
+Status note:
+
+- Completed with `aget map` for one fetched URL or one successful internal
+  `aget get` artifact run. URL mode fetches source HTML through the existing
+  get pipeline; artifact mode reads only internal run content and rejects
+  caller-owned external `--output` paths. Link extraction deduplicates
+  normalized absolute URLs, drops fragments, skips non-page schemes, defaults
+  to same-origin and same-path filtering, supports `--any-origin`,
+  `--any-path`, simple `--include`/`--exclude` patterns, `--content-type`
+  inference filters, and `--max-links`. Output includes JSON envelope data plus
+  local `links.json`, `links.md`, and run metadata under `AGET_HOME/runs`.
+  Tests cover parser/help, URL mapping and filters, artifact mapping, external
+  artifact rejection, and conflicting inputs.
+
+### ✅ Task CRAWL-001: Implement bounded `aget crawl`
 
 Depends on: BATCH-001, MAP-001.
 
@@ -405,3 +419,16 @@ Acceptance criteria:
 - Default to same-origin/path-bounded traversal.
 - Record crawl manifest and artifacts.
 - Do not add site-specific bypass behavior.
+
+Status note:
+
+- Completed with `aget crawl <url> --limit <n>`. The command requires
+  `--limit`, caps v1 crawls at 100 pages, depth 5, and concurrency 8, and
+  traverses with same-origin and same-path defaults unless widened by
+  `--any-origin`, `--any-path`, or `--allow-domain`. Each fetched page uses the
+  existing `get` pipeline, stores per-page artifacts, discovers next links from
+  fetched HTML, and records `manifest.json` plus `manifest.md` under
+  `--output-dir` or `AGET_HOME/runs`. Partial failures are recorded in the
+  manifest and return a non-zero exit code without adding site-specific bypass
+  behavior. Tests cover parser/help, required limit and bounds, bounded
+  same-path traversal, manifest artifacts, and partial failure output.

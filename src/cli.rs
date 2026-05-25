@@ -5,9 +5,11 @@ use clap::{Args, Parser, Subcommand, ValueEnum};
 
 mod artifacts;
 mod batch;
+mod crawl;
 mod current_tab;
 mod doctor;
 mod get;
+mod map;
 mod session;
 #[cfg(test)]
 mod tests;
@@ -17,9 +19,11 @@ pub use artifacts::{
     PruneArtifactsCommand,
 };
 pub use batch::BatchCommand;
+pub use crawl::CrawlCommand;
 pub use current_tab::CurrentTabCommand;
 pub use doctor::{DoctorCheck, DoctorCommand};
 pub use get::GetCommand;
+pub use map::{MapCommand, MapOutput};
 pub use session::{
     AuthorizeSessionCommand, BrowserChoice, ComposeSessionCommand, DeleteSessionCommand,
     ImportBrowserSessionCommand, ImportChromeSessionCommand, ImportCmuxSessionCommand,
@@ -79,6 +83,10 @@ pub enum Command {
     Get(GetCommand),
     /// Fetch an explicit finite set of URLs.
     Batch(BatchCommand),
+    /// Extract and filter links from one page or internal artifact.
+    Map(MapCommand),
+    /// Traverse and fetch pages with explicit bounded limits.
+    Crawl(CrawlCommand),
     /// Extract the selected tab from an existing local browser CDP port.
     CurrentTab(CurrentTabCommand),
     /// Manage local auth/session state.
@@ -138,7 +146,7 @@ fn alias_url_index(args: &[OsString]) -> Option<usize> {
         let arg = arg.to_string_lossy();
         if matches!(
             arg.as_ref(),
-            "get" | "batch" | "current-tab" | "session" | "artifacts" | "doctor"
+            "get" | "batch" | "map" | "crawl" | "current-tab" | "session" | "artifacts" | "doctor"
         ) {
             saw_command = true;
         }

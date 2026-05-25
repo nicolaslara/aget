@@ -84,6 +84,38 @@ fn batch_help_is_available() {
 }
 
 #[test]
+fn map_help_is_available() {
+    let mut cmd = Command::cargo_bin("aget").unwrap();
+
+    cmd.args(["map", "--help"]).assert().success().stdout(
+        predicate::str::contains("Usage: aget map")
+            .and(predicate::str::contains("--artifact"))
+            .and(predicate::str::contains("--same-origin"))
+            .and(predicate::str::contains("--any-origin"))
+            .and(predicate::str::contains("--same-path"))
+            .and(predicate::str::contains("--any-path"))
+            .and(predicate::str::contains("--max-links"))
+            .and(predicate::str::contains("--content-type")),
+    );
+}
+
+#[test]
+fn crawl_help_is_available() {
+    let mut cmd = Command::cargo_bin("aget").unwrap();
+
+    cmd.args(["crawl", "--help"]).assert().success().stdout(
+        predicate::str::contains("Usage: aget crawl")
+            .and(predicate::str::contains("--limit"))
+            .and(predicate::str::contains("--max-depth"))
+            .and(predicate::str::contains("--concurrency"))
+            .and(predicate::str::contains("--same-origin"))
+            .and(predicate::str::contains("--any-origin"))
+            .and(predicate::str::contains("--allow-domain"))
+            .and(predicate::str::contains("--output-dir")),
+    );
+}
+
+#[test]
 fn get_rejects_invalid_format() {
     let mut cmd = Command::cargo_bin("aget").unwrap();
 
