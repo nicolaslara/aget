@@ -1,0 +1,103 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  rust:
+    name: Rust checks
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Rust stable
+        run: |
+          rustup toolchain install stable --profile minimal
+          rustup default stable
+
+      - name: Check formatting
+        run: cargo fmt --check
+
+      - name: Run tests
+        run: cargo test --locked
+
+      - name: Build release binary
+        run: cargo build --release --locked
+
+      - name: Check stale dependency surfaces
+        run: |
+          if grep -R -n -E 'Crawl4AI|crawl4ai|agent-browser|AGET_CRAWL4AI_COMMAND|AGET_AGENT_BROWSER_COMMAND|AgentBrowser|agent_browser' \
+            README.md skills/aget/SKILL.md .opencode/tools/aget.ts src tests scripts; then
+            echo "stale dependency surface found outside historical/workpad notes" >&2
+            exit 1
+          fi
+
+      - name: No-command-path smoke
+        run: |
+          tmpdir="$(mktemp -d)"
+          env -i PATH="/usr/bin:/bin:/usr/sbin:/sbin" \
+            AGET_HOME="$tmpdir/aget-home" \
+            target/release/aget --envelope json get 'raw:<main><h1>No Command Path</h1></main>'
+          rm -rf "$tmpdir"
+
+      - name: Doctor smoke
+        run: |
+          tmpdir="$(mktemp -d)"
+          AGET_HOME="$tmpdir/aget-home" target/release/aget --envelope json doctor --quick
+          rm -rf "$tmpdir"
+
+  package:
+    name: Package ${{ matrix.target }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - target: x86_64-unknown-linux-gnu
+            os: ubuntu-24.04
+          - target: aarch64-unknown-linux-gnu
+            os: ubuntu-24.04-arm
+          - target: aarch64-apple-darwin
+            os: macos-15
+          - target: x86_64-apple-darwin
+            os: macos-15-intel
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Rust stable
+        run: |
+          rustup toolchain install stable --profile minimal
+          rustup default stable
+
+      - name: Package release tarball
+        run: scripts/package-release.sh --target "${{ matrix.target }}"
+
+      - name: Smoke packaged binary
+        shell: bash
+        run: |
+          version="$(sed -n 's/^version = "\(.*\)"/\1/p' Cargo.toml | head -n 1)"
+          name="aget-v${version}-${{ matrix.target }}"
+          tmpdir="$(mktemp -d)"
+          tar -xzf "dist/${name}.tar.gz" -C "$tmpdir"
+          "$tmpdir/${name}/aget" --version
+          AGET_HOME="$tmpdir/aget-home" "$tmpdir/${name}/aget" --envelope json doctor --quick
+          test -f "$tmpdir/${name}/skills/aget/SKILL.md"
+          test -x "$tmpdir/${name}/scripts/install-codex-skill.sh"
+          rm -rf "$tmpdir"
+
+      - name: Upload package artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: aget-${{ matrix.target }}
+          path: |
+            dist/aget-v*-${{ matrix.target }}.tar.gz
+            dist/aget-v*-${{ matrix.target }}.tar.gz.sha256
+          if-no-files-found: error

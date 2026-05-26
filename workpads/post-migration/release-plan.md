@@ -140,6 +140,32 @@ The release smoke passes when:
   skill, OpenCode tool, `src`, `tests`, or scripts outside historical/parity
   workpad notes.
 
+## Automation
+
+Release packaging is script-backed:
+
+```bash
+scripts/package-release.sh --target "$(rustc -vV | sed -n 's/^host: //p')"
+```
+
+The script builds a locked release binary for the requested Unix target,
+packages `aget`, `README.md`, `LICENSE`, `skills/aget/SKILL.md`, and
+`scripts/install-codex-skill.sh`, then writes the per-archive `.sha256` file
+and `dist/SHA256SUMS`.
+
+GitHub Actions workflows:
+
+- `.github/workflows/ci.yml` runs formatting, tests, release build, stale
+  dependency-surface grep, no-command-path smoke, doctor smoke, and a
+  multi-target package smoke.
+- `.github/workflows/release.yml` builds macOS ARM, macOS Intel, Linux x86_64,
+  and Linux ARM64 tarballs on tag pushes or manual dispatch, verifies each
+  packaged binary, regenerates aggregate `SHA256SUMS`, and creates or updates
+  the GitHub Release assets.
+
+Windows remains excluded from the release matrix until REL-007 defines and
+passes a real Windows smoke path.
+
 ## README And Skill Sync
 
 Before producing artifacts:

@@ -1091,3 +1091,71 @@ Review note:
   fallback metadata, required `AGET_HOME/runs` item metadata, required content
   path matching, bounded manifest content reads to the manifest directory, and
   made `extract --artifact` refuse caller-owned external `--output` paths.
+
+## REL-004 CI And Release Automation: 2026-05-26
+
+Implemented surfaces:
+
+- `.github/workflows/ci.yml`
+- `.github/workflows/release.yml`
+- `scripts/package-release.sh`
+
+Primary source reviewed:
+
+- GitHub-hosted runner labels:
+  `https://docs.github.com/en/actions/reference/github-hosted-runners-reference`
+
+Design decisions:
+
+- CI runs on `ubuntu-24.04` for fmt, tests, release build, stale
+  dependency-surface grep, no-command-path smoke, and doctor smoke.
+- Multi-target package smoke uses hosted runner labels from the GitHub docs:
+  `ubuntu-24.04`, `ubuntu-24.04-arm`, `macos-15`, and `macos-15-intel`.
+- Release workflow runs on `v*` tag pushes or manual dispatch for an existing
+  tag. It packages macOS ARM, macOS Intel, Linux x86_64, and Linux ARM64
+  tarballs, verifies each packaged binary, regenerates aggregate `SHA256SUMS`,
+  and creates or updates GitHub Release assets with `gh`.
+- Windows artifacts remain deferred until REL-007 provides a real Windows
+  smoke path.
+- `scripts/package-release.sh` is the shared packaging contract for local and
+  CI use. It packages `aget`, `README.md`, `LICENSE`, `skills/aget/SKILL.md`,
+  and `scripts/install-codex-skill.sh`.
+
+Local validation:
+
+```bash
+bash -n scripts/package-release.sh
+ruby -e 'require "yaml"; ARGV.each { |path| YAML.load_file(path); puts path }' \
+  .github/workflows/ci.yml .github/workflows/release.yml
+tmpdir="$(mktemp -d)"
+target="$(rustc -vV | sed -n 's/^host: //p')"
+scripts/package-release.sh --target "$target" --out-dir "$tmpdir/dist"
+name="aget-v$(sed -n 's/^version = "\(.*\)"/\1/p' Cargo.toml | head -n 1)-$target"
+tar -xzf "$tmpdir/dist/$name.tar.gz" -C "$tmpdir"
+"$tmpdir/$name/aget" --version
+AGET_HOME="$tmpdir/aget-home" "$tmpdir/$name/aget" --envelope json doctor --quick
+test -f "$tmpdir/$name/README.md"
+test -f "$tmpdir/$name/LICENSE"
+test -f "$tmpdir/$name/skills/aget/SKILL.md"
+test -x "$tmpdir/$name/scripts/install-codex-skill.sh"
+(cd "$tmpdir/dist" && shasum -a 256 -c "$name.tar.gz.sha256" && shasum -a 256 -c SHA256SUMS)
+rm -rf "$tmpdir"
+```
+
+Validation result:
+
+- Shell syntax check passed.
+- Workflow YAML parsed successfully.
+- Host-target package smoke produced
+  `aget-v0.1.0-aarch64-apple-darwin.tar.gz` in a temporary directory.
+- Packaged binary reported `aget 0.1.0`.
+- Packaged `doctor --quick` returned `ok: true` with one non-failing OpenCode
+  PATH warning.
+- Packaged README, LICENSE, skill, and install helper were present.
+- Per-archive checksum and aggregate `SHA256SUMS` verified.
+- `cargo fmt --check`, `git diff --check`, and full `cargo test` passed after
+  the workflow/script/docs updates.
+- Stale dependency-surface grep returned no active matches.
+- No-command-path smoke returned `ok: true` with `# No Command Path`.
+- Remote GitHub Actions status is pending until these workflow files are pushed
+  and run on GitHub.

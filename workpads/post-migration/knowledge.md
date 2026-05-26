@@ -238,6 +238,15 @@ the CLI envelope in a thin host-specific tool.
   extraction must not fall back to unsigned manifest fields, and extraction
   must not trust external artifact content paths. Both findings were fixed and
   covered by regression tests.
+- REL-004 adds release automation without expanding product scope. CI remains
+  CLI-only and checks fmt, tests, release build, stale source-project surface
+  grep, no-command-path static fetch, doctor, and package smoke. Release
+  automation builds Unix tarballs for macOS ARM, macOS Intel, Linux x86_64, and
+  Linux ARM64 using hosted runners; Windows stays deferred until REL-007.
+- REL-004 uses `scripts/package-release.sh` as the packaging contract so local
+  and GitHub Actions releases include the same files: `aget`, README, LICENSE,
+  `skills/aget/SKILL.md`, and `scripts/install-codex-skill.sh`, plus
+  per-archive SHA-256 files and aggregate `SHA256SUMS`.
 
 ## Execution Order
 

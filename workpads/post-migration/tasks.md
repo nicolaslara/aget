@@ -608,7 +608,7 @@ Status note:
   errors, private artifact and manifest behavior, JSON/metadata schema paths,
   and content-path tampering.
 
-### 📋 Task REL-004: Automate CI and multi-target release builds
+### ✅ Task REL-004: Automate CI and multi-target release builds
 
 Depends on: REL-003.
 
@@ -625,7 +625,17 @@ Acceptance criteria:
 
 Status note:
 
-- Pending. Current release artifacts are produced manually on the local host.
+- Completed with `.github/workflows/ci.yml`,
+  `.github/workflows/release.yml`, and `scripts/package-release.sh`. CI covers
+  formatting, tests, release build, stale dependency-surface grep,
+  no-command-path smoke, doctor smoke, and multi-target package smoke. The
+  release workflow builds macOS ARM, macOS Intel, Linux x86_64, and Linux ARM64
+  tarballs, verifies packaged binaries, regenerates aggregate `SHA256SUMS`, and
+  creates or updates GitHub Release assets on tag pushes or manual dispatch.
+  Windows artifacts remain deferred to REL-007. Local validation covered shell
+  syntax, YAML parsing, host-target package production, packaged binary
+  `--version`, packaged `doctor --quick`, packaged README/LICENSE/skill/helper
+  presence, and checksum verification.
 
 ### 📋 Task REL-005: Define Homebrew tap/formula path
 
