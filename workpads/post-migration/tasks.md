@@ -497,7 +497,7 @@ Status note:
 
 ## Phase 5: Next Product Backlog
 
-### 📋 Task AGENT-001: Expose current CLI surface in agent integrations
+### ✅ Task AGENT-001: Expose current CLI surface in agent integrations
 
 Depends on: BATCH-001, MAP-001, CRAWL-001.
 
@@ -515,8 +515,14 @@ Acceptance criteria:
 
 Status note:
 
-- Pending. The CLI supports these commands, but the project-local OpenCode tool
-  and skill still primarily teach single-page fetch and session flows.
+- Completed with thin OpenCode CLI/envelope wrappers for `batch`, `map`,
+  `crawl`, `artifacts list`, `artifacts inspect`, and `doctor`. The aget skill
+  now has command-choice guidance for `get`, `batch`, `map`, `crawl`,
+  artifacts, and doctor, including artifact-first/private-content routing.
+  README names the new wrappers and states the integration remains CLI-only.
+  Deterministic Bun snapshots cover generated CLI args, and direct wrapper
+  smoke exercised `doctor`, `batch`, `map`, `crawl`, and `artifacts list`
+  against `target/release/aget`.
 
 ### 📋 Task CACHE-001: Add cache, freshness, and token/cost metadata
 

@@ -57,6 +57,27 @@ Restart Codex after installing or replacing the global skill.
 
 Before running `aget`, choose these deliberately.
 
+### 0. Command Choice
+
+- **One known URL**: use `aget get`.
+- **Several known URLs**: use `aget batch` with an explicit finite URL list or
+  newline-delimited file. This is for comparison/fetch fan-out, not discovery.
+- **Need candidate links from one page**: use `aget map`. Prefer
+  `aget map --artifact <run-id>` when a page was already fetched, especially
+  for private or large content.
+- **Need a bounded section of a site**: use `aget crawl <url> --limit <n>`.
+  Keep same-origin/same-path defaults unless the user explicitly approves a
+  wider scope.
+- **Need prior run metadata or local files**: use `aget artifacts list` and
+  `aget artifacts inspect <run-id>` before reading large or sensitive files.
+- **Tool or environment looks broken**: use `aget doctor --quick` before
+  changing sessions or browser setup.
+
+For sensitive pages, prefer an artifact-first flow: fetch with `--output` or
+default run artifacts, inspect metadata with `artifacts inspect`, then read only
+the local artifact paths needed for the task. Do not widen map/crawl scope on
+authenticated content without explicit user approval.
+
 ### 1. Auth Mode
 
 - **Public/unknown page**: start without `--session`.

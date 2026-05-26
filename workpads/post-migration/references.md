@@ -776,3 +776,78 @@ Validation result:
   `$CODEX_HOME/skills/aget`.
 - Fresh `CARGO_HOME` source install from `v0.1.0` installed `aget 0.1.0` from
   commit `b88ff890` and `doctor --quick` returned `ok: true`.
+
+## AGENT-001 OpenCode/Skill Integration: 2026-05-26
+
+Implemented surfaces:
+
+- `.opencode/tools/aget.ts`
+- `.opencode/lib/aget_args.ts`
+- `.opencode/tests/aget_args.test.ts`
+- `skills/aget/SKILL.md`
+- `README.md`
+
+New OpenCode wrappers:
+
+- `aget_batch`
+- `aget_map`
+- `aget_crawl`
+- `aget_artifacts_list`
+- `aget_artifacts_inspect`
+- `aget_doctor`
+
+Deterministic wrapper validation:
+
+```bash
+cd .opencode && bun test tests/aget_args.test.ts
+cd .opencode && bun -e 'import("./tools/aget.ts").then((m) => console.log(Object.keys(m).sort().join("\n")))'
+git diff --check
+cargo fmt --check
+cargo test
+rg -n 'Crawl4AI|crawl4ai|agent-browser|AGET_CRAWL4AI_COMMAND|AGET_AGENT_BROWSER_COMMAND|AgentBrowser|agent_browser' \
+  README.md skills/aget/SKILL.md .opencode/tools/aget.ts src tests scripts -S
+```
+
+Validation result:
+
+- Batch builder covers explicit URL lists, repeated sessions, content format,
+  concurrency, output directory, and fail-fast flag.
+- Map builder covers artifact-first discovery, same-path widening, include
+  filters, content-type filters, and max-link limits.
+- Crawl builder covers required limit, max depth, concurrency, allow-domain,
+  sessions, content format, and output directory.
+- Artifact and doctor builders cover `artifacts list`, `artifacts inspect`, and
+  selected `doctor --quick --check ...` diagnostics.
+- `.opencode/tools/aget.ts` exports only actual OpenCode tool definitions, not
+  test helpers.
+- `git diff --check`, `cargo fmt --check`, and `cargo test` passed. The stale
+  dependency-surface grep returned no active matches.
+
+Direct wrapper smoke:
+
+```bash
+tmpdir="$(mktemp -d)"
+# temporary Bun script imports .opencode/tools/aget.ts, points
+# AGET_OPENCODE_BIN at target/release/aget, and executes doctor, batch, map,
+# crawl, and artifacts_list against raw/file inputs under a temporary AGET_HOME.
+SMOKE_TMP="$tmpdir" bun "$tmpdir/wrapper_smoke.ts"
+rm -rf "$tmpdir"
+```
+
+Validation result:
+
+- The OpenCode tool module exported only tool definitions:
+  `artifacts_inspect`, `artifacts_list`, `batch`, `crawl`, `doctor`, `fetch`,
+  `map`, `session_import_chrome`, `session_inspect`, and `session_list`.
+- Direct wrapper execution returned valid envelopes with commands `batch`,
+  `map`, `crawl`, and `artifacts.list`; `doctor --quick --check binary`
+  returned `ok: true`.
+
+Review note:
+
+- A focused review subagent was spawned for AGENT-001 but did not return before
+  shutdown. Local review found one integration risk: helper exports and tests
+  under `.opencode/tools` could be mistaken for the tool surface. Resolution:
+  move argument builders to `.opencode/lib/aget_args.ts`, move snapshots to
+  `.opencode/tests/aget_args.test.ts`, and keep `.opencode/tools/aget.ts`
+  exporting only actual tools.

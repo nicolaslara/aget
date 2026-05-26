@@ -500,9 +500,18 @@ structured envelopes as terminal usage.
 Available tools:
 
 - `aget_fetch`
+- `aget_batch`
+- `aget_map`
+- `aget_crawl`
+- `aget_artifacts_list`
+- `aget_artifacts_inspect`
+- `aget_doctor`
 - `aget_session_list`
 - `aget_session_inspect`
 - `aget_session_import_chrome`
+
+These wrappers are thin CLI/envelope callers. They do not start a server,
+daemon, MCP layer, or direct Rust API.
 
 Use `AGET_OPENCODE_BIN` to point OpenCode at a development binary:
 

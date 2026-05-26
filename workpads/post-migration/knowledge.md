@@ -190,6 +190,14 @@ the CLI envelope in a thin host-specific tool.
   `cargo install --git https://github.com/nicolaslara/aget --tag v0.1.0 --locked aget`.
   The repository contains another binary package, so omitting `aget` causes
   Cargo to reject the install.
+- AGENT-001 keeps OpenCode integration as thin CLI/envelope wrappers. The
+  wrappers build command arguments for `batch`, `map`, `crawl`,
+  `artifacts list/inspect`, and `doctor`; tests cover generated args rather
+  than invoking OpenCode itself.
+- AGENT-001 helper code should stay outside `.opencode/tools` so project-local
+  tool discovery sees only actual tool exports. Argument builders live in
+  `.opencode/lib/aget_args.ts`; deterministic snapshots live in
+  `.opencode/tests/aget_args.test.ts`.
 
 ## Execution Order
 
