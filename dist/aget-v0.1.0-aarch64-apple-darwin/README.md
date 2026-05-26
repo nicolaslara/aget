@@ -55,7 +55,7 @@ aget --help
 Source install from GitHub:
 
 ```bash
-cargo install --git https://github.com/nicolaslara/aget --tag v0.1.0 --locked
+cargo install --git https://github.com/nicolaslara/aget --tag v0.1.0 --locked aget
 aget --help
 ```
 

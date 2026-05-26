@@ -14,7 +14,7 @@ Supported install paths for the next release:
 | Target | Audience | Command / Artifact | Notes |
 | --- | --- | --- | --- |
 | Developer checkout | contributors | `cargo install --path .` | Primary local install path before artifact publication. |
-| Git source | contributors/agents | `cargo install --git https://github.com/nicolaslara/aget --tag v0.1.0 --locked` | Source install from the published repository tag. |
+| Git source | contributors/agents | `cargo install --git https://github.com/nicolaslara/aget --tag v0.1.0 --locked aget` | Source install from the published repository tag; package name is explicit because the repo contains more than one binary package. |
 | Source checkout | contributors/agents | `cargo run -- <command>` | Useful for smoke tests and unreleased work. |
 | Release tarball | end users | `aget-<version>-<target>.tar.gz` | Contains one `aget` binary, README, LICENSE, and the Codex skill. |
 | Codex global skill | agent workflows | copy or symlink `skills/aget` to `$CODEX_HOME/skills/aget` | Requires a Codex restart after install or replacement. |

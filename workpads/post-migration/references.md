@@ -622,7 +622,7 @@ Packaging update:
 Current archive SHA-256:
 
 ```text
-142dfd8209d976a3a787a56e4f51433ca2ed5fc3521e53c5c1f7144622aceabd  aget-v0.1.0-aarch64-apple-darwin.tar.gz
+b02a6f348a5adfbfd280b7b915cc485095dd4f67990c04d700871e8b37763182  aget-v0.1.0-aarch64-apple-darwin.tar.gz
 ```
 
 Packaged binary SHA-256:
@@ -710,3 +710,21 @@ Validation result:
 - No-command-path smoke returned `ok: true` with `# No Command Path`.
 - Temp-root `cargo install --path . --locked` installed `aget 0.1.0`; installed
   binary `doctor --quick` returned `ok: true`.
+
+Source install validation after GitHub Release publication:
+
+```bash
+tmpdir="$(mktemp -d)"
+cargo install --git https://github.com/nicolaslara/aget --tag v0.1.0 --locked --root "$tmpdir/install" aget
+"$tmpdir/install/bin/aget" --version
+AGET_HOME="$tmpdir/aget-home" "$tmpdir/install/bin/aget" --envelope json doctor --quick
+rm -rf "$tmpdir"
+```
+
+Validation result:
+
+- Initial smoke without the explicit `aget` package argument failed because the
+  repository also contains the `aget-mock-tools` binary package.
+- The corrected command with the explicit `aget` package installed `aget 0.1.0`
+  from `https://github.com/nicolaslara/aget?tag=v0.1.0#2b750a93`.
+- Installed source binary `doctor --quick` returned `ok: true`.
