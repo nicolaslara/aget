@@ -247,6 +247,11 @@ the CLI envelope in a thin host-specific tool.
   and GitHub Actions releases include the same files: `aget`, README, LICENSE,
   `skills/aget/SKILL.md`, and `scripts/install-codex-skill.sh`, plus
   per-archive SHA-256 files and aggregate `SHA256SUMS`.
+- REL-005 chooses a dedicated tap as the Homebrew path, not Homebrew core for
+  the current maturity level. Publish `nicolaslara/homebrew-aget` after a
+  release has both macOS ARM and macOS Intel assets from the REL-004 workflow.
+  The current formula draft targets the published v0.1.0 macOS ARM artifact
+  only and is retained as a workpad draft, not an active install promise.
 
 ## Execution Order
 

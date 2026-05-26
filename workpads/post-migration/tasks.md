@@ -637,7 +637,7 @@ Status note:
   `--version`, packaged `doctor --quick`, packaged README/LICENSE/skill/helper
   presence, and checksum verification.
 
-### 📋 Task REL-005: Define Homebrew tap/formula path
+### ✅ Task REL-005: Define Homebrew tap/formula path
 
 Depends on: REL-003.
 
@@ -652,8 +652,15 @@ Acceptance criteria:
 
 Status note:
 
-- Pending. `v0.1.0` is published as a GitHub Release, but there is no Homebrew
-  formula or tap path yet.
+- Completed with the decision to use a dedicated future tap,
+  `nicolaslara/homebrew-aget`, rather than Homebrew core for the current
+  pre-1.0 project. Actual tap publication is deferred until a release has both
+  macOS ARM and macOS Intel artifacts from the REL-004 release workflow. A
+  formula draft lives at `workpads/post-migration/homebrew/aget.rb` for the
+  published v0.1.0 macOS ARM artifact with SHA-256 verification, installs the
+  CLI plus README/LICENSE/skill/helper files, and includes `aget --version` and
+  `doctor --quick` smoke tests. Formula Ruby syntax validates; local path-based
+  `brew audit` is unavailable in the installed Homebrew version.
 
 ### 📋 Task REL-006: Decide crates.io publish policy
 
@@ -710,6 +717,27 @@ Status note:
   updates, temporary copy/symlink validation, and a local global symlink install
   at `/Users/nicolas/.codex/skills/aget`. Codex must be restarted before a
   running session sees a newly installed or replaced global skill.
+
+### 📋 Task REL-009: Publish Homebrew tap after multi-target macOS release
+
+Depends on: REL-004, REL-005.
+
+Acceptance criteria:
+
+- Run the release workflow for a tag that publishes both macOS ARM and macOS
+  Intel tarballs.
+- Update the draft formula with the matching release URLs and SHA-256 values.
+- Create or update the dedicated tap repository `nicolaslara/homebrew-aget`
+  with `Formula/aget.rb`.
+- Run `brew audit` by formula name from the tap, then smoke
+  `brew install nicolaslara/aget/aget`, `aget --version`, and
+  `aget --envelope json doctor --quick`.
+- Document the final tap install command in README and release notes.
+
+Status note:
+
+- Pending. REL-005 defines the path and draft formula; publishing waits for a
+  multi-target macOS release.
 
 ### 📋 Task DEBUG-001: Add screenshots and debug traces
 
