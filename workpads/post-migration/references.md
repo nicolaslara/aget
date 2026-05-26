@@ -1443,3 +1443,44 @@ Review result:
   action model, consent/private-content boundaries, audit/redaction, timeout and
   confirmation rules, generic-only scope, envelope/artifact/failure semantics,
   and deterministic test strategy. No implementation code was added.
+
+## ACT-002 Interact Action Schema And Redaction: 2026-05-26
+
+Implemented surfaces:
+
+- `src/interact.rs`
+- `aget::parse_action_plan_json`
+- `aget::validate_action_plan`
+- `aget::redacted_action_request`
+- `aget::write_redacted_action_request`
+- `aget::ActionPlanValidationOptions`
+
+Behavior covered:
+
+- Parses `aget.actions.v1` JSON for `wait`, `click`, `type`, `select`,
+  `submit`, `capture`, and `extract`.
+- Rejects unknown top-level/action fields, missing required selector fields,
+  invalid CSS selectors, duplicate capture names, plans over 50 actions,
+  invalid wait/select shapes, sensitive typing without
+  `allow_sensitive_input`, and submit without both `confirm=true` and
+  `allow_submit`.
+- Writes normalized redacted request JSON and replaces literal sensitive typed
+  text with `<redacted>` plus metadata before writing `actions-request.json`.
+- Keeps real CLI command wiring and browser action execution deferred to
+  ACT-003 and later tasks.
+
+Focused validation:
+
+```bash
+cargo fmt --check
+cargo test --lib interact
+cargo check --tests
+cargo test
+```
+
+Validation result:
+
+- `cargo test --lib interact` passed 11 unit tests covering supported actions,
+  validation failures, consent checks, redaction, and artifact writing.
+- `cargo check --tests` passed after exporting the new interact module.
+- Full `cargo test` passed after the ACT-002 implementation.

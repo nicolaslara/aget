@@ -822,7 +822,7 @@ Status note:
   shape, failure codes, and deterministic fake-browser/local-page test
   strategy. No browser action implementation was added in this design pass.
 
-### 📋 Task ACT-002: Add interact action schema and audit redaction
+### ✅ Task ACT-002: Add interact action schema and audit redaction
 
 Depends on: ACT-001.
 
@@ -839,7 +839,14 @@ Acceptance criteria:
 
 Status note:
 
-- Pending implementation task.
+- Completed with a standalone `src/interact.rs` schema/validation module and
+  public library exports. It parses `aget.actions.v1`, rejects unknown fields,
+  invalid selectors, duplicate capture names, too many actions, invalid wait
+  and select shapes, sensitive typing without consent, and submit without
+  confirmation/consent. Redacted request artifact helpers write
+  `actions-request.json` without literal sensitive typed values. Focused unit
+  tests, `cargo fmt --check`, `cargo check --tests`, and full `cargo test`
+  pass.
 
 ### 📋 Task ACT-003: Add interact CLI envelope and fake executor seam
 

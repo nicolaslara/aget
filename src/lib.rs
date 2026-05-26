@@ -6,6 +6,7 @@ pub mod aget_extractor;
 pub mod cli;
 pub mod error;
 pub mod extraction;
+pub mod interact;
 pub(crate) mod process;
 pub mod session;
 
@@ -31,6 +32,13 @@ pub use error::{AgetError, ErrorCode, ErrorResponse, ENVELOPE_SCHEMA_VERSION};
 pub use extraction::{
     get_url, AgetExtractorBackend, CacheMetadata, CacheStatus, DebugArtifact, DebugArtifacts,
     DebugCaptureOptions, GetOptions, GetSuccess, TimingMs, UsageMetrics,
+};
+pub use interact::{
+    parse_action_plan_json, redacted_action_request, validate_action_plan,
+    write_redacted_action_request, ActionDefinition, ActionPlan, ActionPlanDefaults,
+    ActionPlanError, ActionPlanValidationOptions, CaptureAction, ClickAction, ExtractAction,
+    SelectAction, SelectorMatch, SubmitAction, TypeAction, WaitAction, WaitLoadState,
+    ACTIONS_SCHEMA_VERSION,
 };
 pub use session::{
     cancel_login_session, complete_login_session, compose_session, finish_login_session,

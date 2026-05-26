@@ -284,6 +284,14 @@ the CLI envelope in a thin host-specific tool.
 - Interact implementation should proceed in slices: schema/redaction first,
   then CLI envelope plus fake-browser executor seam, then CDP mutation actions,
   then capture/extract artifacts, then README/skill/OpenCode wrappers.
+- ACT-002 keeps interact parsing independent from CLI/browser execution. The
+  `src/interact.rs` module owns `aget.actions.v1` parsing, validation, redacted
+  request JSON, and private artifact-file writing; `ACT-003` should consume
+  this module rather than reimplementing action validation in the CLI layer.
+- ACT-002 intentionally uses existing `usage_error`-style validation messages
+  through `ActionPlanError`; action-specific stable envelope codes such as
+  `selector_not_found` and `unsafe_action` remain for the executor/failure
+  envelope work in ACT-003 and later.
 
 ## Execution Order
 
