@@ -706,7 +706,7 @@ Status note:
 - Pending. REL-006 prepared metadata and package boundaries but intentionally
   deferred registry publication.
 
-### 📋 Task REL-007: Add Windows artifact only after a real smoke path
+### ✅ Task REL-007: Add Windows artifact only after a real smoke path
 
 Depends on: REL-004.
 
@@ -721,7 +721,12 @@ Acceptance criteria:
 
 Status note:
 
-- Pending. `v0.1.0` intentionally publishes no Windows artifact.
+- Completed as a release guardrail in
+  `workpads/post-migration/windows-release-smoke.md`. Windows artifacts remain
+  unpublished until `x86_64-pc-windows-msvc` builds on a GitHub Windows runner,
+  ZIP packaging exists, and version, `doctor --quick`, static `get`, artifact
+  commands, no-command-path behavior, and package smoke all pass under
+  PowerShell. `scripts/package-release.sh` still rejects Windows targets.
 
 ### ✅ Task REL-008: Simplify global Codex skill installation
 

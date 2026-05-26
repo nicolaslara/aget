@@ -1270,3 +1270,48 @@ Validation result:
 - Final `cargo package --allow-dirty --locked` passed: 393 files, 1.2 MiB
   unpacked, 224.2 KiB compressed, and package verification compiled
   successfully.
+
+## REL-007 Windows Release Smoke Gate: 2026-05-26
+
+Design artifact:
+
+- `workpads/post-migration/windows-release-smoke.md`
+
+Primary source reviewed:
+
+- GitHub-hosted runners reference:
+  `https://docs.github.com/actions/reference/runners/github-hosted-runners`
+
+Decision:
+
+- Keep Windows artifacts unpublished until a real Windows runner proves the
+  packaging and smoke path.
+- First target is `x86_64-pc-windows-msvc` on `windows-2025`.
+- Package shape should be `.zip`, not the Unix `.tar.gz` path.
+- Future Windows ARM evaluation can use `windows-11-arm` only after x64
+  packaging is proven.
+
+Required future smoke coverage:
+
+- `aget.exe --version`
+- `aget --envelope json doctor --quick`
+- Static `raw:` fetch with a minimal Windows `PATH`.
+- `artifacts list` and `artifacts inspect` against a run created under a
+  Windows `AGET_HOME`.
+- Unzip final `.zip` artifact and rerun version, doctor, static get, and
+  artifact inspect against the packaged `aget.exe`.
+
+Local validation:
+
+```bash
+git diff --check
+rg -n 'windows-2025|x86_64-pc-windows-msvc|doctor --quick|No Command Path|artifacts inspect|package-release.sh' \
+  workpads/post-migration/windows-release-smoke.md workpads/post-migration/tasks.md workpads/post-migration/references.md
+```
+
+Validation result:
+
+- Documentation references the required runner, target, smoke commands, and
+  remaining blockers.
+- No Windows build was run in this session; this task is the publish/no-publish
+  gate, not Windows artifact enablement.

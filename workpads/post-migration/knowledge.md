@@ -260,6 +260,11 @@ the CLI envelope in a thin host-specific tool.
   repo because a dirty dry run included workpads/tooling and unrelated local
   browser-profile files. `Cargo.toml` now uses a root-anchored `include` list
   for Cargo/package source files and tests only.
+- REL-007 keeps Windows release artifacts deferred until a real Windows smoke
+  path passes. The minimum first target is `x86_64-pc-windows-msvc` on a GitHub
+  Windows runner with ZIP packaging, PowerShell smoke for version, doctor,
+  static get, artifacts, no-command-path behavior, and package unzip/re-smoke.
+  Windows ARM can be evaluated later after x64 packaging is proven.
 
 ## Execution Order
 
