@@ -5,6 +5,7 @@ import {
   buildBatchArgs,
   buildCrawlArgs,
   buildDoctorArgs,
+  buildExtractArgs,
   buildFetchArgs,
   buildMapArgs,
   buildSearchPageArgs,
@@ -233,6 +234,21 @@ export const search_page = tool({
   },
   async execute(args, context) {
     return runAget(buildSearchPageArgs(args), context)
+  },
+})
+
+export const extract = tool({
+  description:
+    "Extract deterministic structured data from an existing aget page artifact or batch/crawl manifest. Use this for tables, links, headings, definition lists, metadata fields, JSON paths, or explicit HTML selector schemas after content has already been fetched.",
+  args: {
+    artifact: tool.schema.string().optional().describe("Internal aget get run ID to extract from."),
+    manifest: tool.schema.string().optional().describe("Batch or crawl manifest JSON path to extract from."),
+    schema: tool.schema.string().optional().describe("Optional JSON extraction schema path."),
+    fields: tool.schema.array(tool.schema.enum(["headings", "links", "tables", "definitions", "metadata"])).optional().describe("Built-in deterministic fields to extract."),
+    allow_private_content: tool.schema.boolean().optional().describe("Allow structured values from artifacts marked sensitive after user approval."),
+  },
+  async execute(args, context) {
+    return runAget(buildExtractArgs(args), context)
   },
 })
 

@@ -19,12 +19,12 @@ pub use cli::{
     ArtifactsCommand, ArtifactsSubcommand, AuthorizeSessionCommand, BatchCommand, BrowserChoice,
     CacheCommandOptions, CachePolicy, Cli, Command, ComposeSessionCommand, CrawlCommand,
     CurrentTabCommand, DeleteArtifactCommand, DeleteSessionCommand, DoctorCheck, DoctorCommand,
-    EnvelopeFormat, ExtractorOption, GetCommand, GlobalOptions, ImportBrowserSessionCommand,
-    ImportChromeSessionCommand, ImportCmuxSessionCommand, ImportSessionCommand,
-    ImportSessionSource, InlineContent, InspectArtifactCommand, InspectSessionCommand,
-    LoginCancelCommand, LoginFinishCommand, LoginSessionCommand, LoginSessionSubcommand,
-    LoginStartCommand, MapCommand, MapOutput, OutputFormat, PruneArtifactsCommand,
-    SearchPageCommand, SearchPageOutput, SessionCommand, SessionSubcommand,
+    EnvelopeFormat, ExtractCommand, ExtractOutput, ExtractorOption, GetCommand, GlobalOptions,
+    ImportBrowserSessionCommand, ImportChromeSessionCommand, ImportCmuxSessionCommand,
+    ImportSessionCommand, ImportSessionSource, InlineContent, InspectArtifactCommand,
+    InspectSessionCommand, LoginCancelCommand, LoginFinishCommand, LoginSessionCommand,
+    LoginSessionSubcommand, LoginStartCommand, MapCommand, MapOutput, OutputFormat,
+    PruneArtifactsCommand, SearchPageCommand, SearchPageOutput, SessionCommand, SessionSubcommand,
 };
 pub use error::{AgetError, ErrorCode, ErrorResponse, ENVELOPE_SCHEMA_VERSION};
 pub use extraction::{

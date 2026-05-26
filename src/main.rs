@@ -9,6 +9,7 @@ mod main_batch;
 mod main_crawl;
 mod main_doctor;
 mod main_envelope;
+mod main_extract;
 mod main_map;
 mod main_search_page;
 mod main_session;
@@ -113,6 +114,10 @@ fn run(cli: Cli) -> Result<ExitCode, ErrorResponse> {
         Command::SearchPage(search_page) => {
             main_search_page::run_search_page(search_page, structured_output, cli.global.quiet)
                 .map_err(|error| error.with_command("search-page"))
+        }
+        Command::Extract(extract) => {
+            main_extract::run_extract(extract, structured_output, cli.global.quiet)
+                .map_err(|error| error.with_command("extract"))
         }
         Command::CurrentTab(current_tab) => (|| {
             let aget = Aget::from_env()

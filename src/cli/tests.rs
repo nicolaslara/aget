@@ -3,6 +3,7 @@ mod batch;
 mod crawl;
 mod current_tab;
 mod doctor;
+mod extract;
 mod get;
 mod global;
 mod map;

@@ -224,6 +224,20 @@ the CLI envelope in a thin host-specific tool.
 - SEARCH-001 treats snippets from sensitive artifacts as private content. A
   sensitive source artifact requires `--allow-private-content` before snippets
   are emitted in human output or JSON envelopes.
+- EXTRACT-001 adds artifact-first structured extraction through `aget extract`.
+  Built-in fields are deterministic and local: headings, links, tables,
+  definitions, and metadata. Schema files add HTML selector fields and JSON
+  path fields; LLM interpretation remains outside `aget`.
+- EXTRACT-001 keeps source reads bounded. `extract --artifact` accepts only
+  successful internal `get` run content and refuses caller-owned external
+  `--output` paths. `extract --manifest` requires per-item `aget` metadata
+  under `AGET_HOME/runs`, requires manifest item content to match metadata, and
+  keeps item content under the manifest directory. Sensitive source artifacts
+  require `--allow-private-content`.
+- EXTRACT-001 review accepted two privacy findings before closure: manifest
+  extraction must not fall back to unsigned manifest fields, and extraction
+  must not trust external artifact content paths. Both findings were fixed and
+  covered by regression tests.
 
 ## Execution Order
 

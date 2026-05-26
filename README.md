@@ -19,6 +19,8 @@ Normal use does not require external scraper or browser-control tools.
   manifest and per-page artifacts.
 - `aget search-page --artifact <run-id> --query <text>` for deterministic local
   snippet search over existing page artifacts.
+- `aget extract --artifact <run-id> ...` and `aget extract --manifest <path> ...`
+  for deterministic structured extraction from existing artifacts.
 - `aget doctor` for local readiness diagnostics.
 - `aget artifacts ...` for listing, inspecting, deleting, and pruning local run
   artifacts under `AGET_HOME`.
@@ -180,6 +182,13 @@ Search a prior page artifact:
 aget --envelope json search-page --artifact run-123 --query "install instructions"
 ```
 
+Extract structured values from prior artifacts:
+
+```bash
+aget --envelope json extract --artifact run-123 --field tables --field links
+aget --envelope json extract --manifest /tmp/aget-crawl/manifest.json --field headings
+```
+
 ## Command Reference
 
 Top-level commands:
@@ -191,6 +200,8 @@ aget map <url>
 aget map --artifact <run-id>
 aget crawl <url> --limit <n>
 aget search-page --artifact <run-id> --query <text>
+aget extract --artifact <run-id> --field <name>
+aget extract --manifest <path> --schema <path>
 aget current-tab --cdp-port <port> --allow-private-content
 aget session <command>
 aget artifacts <command>
@@ -330,6 +341,30 @@ aget search-page --artifact <run-id> --query <text>
 sections by heading and keyword matches, and writes `search-results.json` plus
 `search-results.md` under a fresh local run directory. Sensitive artifacts
 require `--allow-private-content` before snippets are emitted.
+
+`aget extract`:
+
+```text
+aget extract --artifact <run-id>
+aget extract --manifest <path>
+  [--schema <path>]
+  [--field <headings|links|tables|definitions|metadata>...]
+  [--allow-private-content]
+  [--output <json|markdown>]
+  [--envelope <json|none>]
+```
+
+`aget extract` reads existing successful `get` artifacts or successful items in
+a batch/crawl manifest. Built-in fields extract headings, links, tables,
+definition lists, and metadata without refetching or calling an LLM. Schema
+files can add `selector` fields for HTML artifacts and `json` fields for JSON
+content paths. Sensitive source artifacts require `--allow-private-content`
+before structured values are emitted. Results are written to
+`extract-results.json`, `extract-results.md`, and `metadata.json` under a fresh
+local run directory. Artifact mode reads only internal run content; it refuses
+caller-owned external `--output` paths. Manifest mode requires each item to
+carry matching `aget` item metadata and keeps content reads inside the manifest
+directory.
 
 `aget current-tab`:
 
@@ -568,6 +603,7 @@ Available tools:
 - `aget_map`
 - `aget_crawl`
 - `aget_search_page`
+- `aget_extract`
 - `aget_artifacts_list`
 - `aget_artifacts_inspect`
 - `aget_doctor`

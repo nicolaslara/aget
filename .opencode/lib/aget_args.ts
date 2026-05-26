@@ -193,6 +193,24 @@ export function buildSearchPageArgs(input: SearchPageArgs): string[] {
   return cliArgs
 }
 
+export type ExtractArgs = {
+  artifact?: string
+  manifest?: string
+  schema?: string
+  fields?: string[]
+  allow_private_content?: boolean
+}
+
+export function buildExtractArgs(input: ExtractArgs): string[] {
+  const cliArgs = ["extract"]
+  addOptional(cliArgs, "--artifact", input.artifact)
+  addOptional(cliArgs, "--manifest", input.manifest)
+  addOptional(cliArgs, "--schema", input.schema)
+  addRepeated(cliArgs, "--field", input.fields)
+  addFlag(cliArgs, "--allow-private-content", input.allow_private_content)
+  return cliArgs
+}
+
 export function buildArtifactsListArgs(): string[] {
   return ["artifacts", "list"]
 }

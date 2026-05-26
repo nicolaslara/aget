@@ -9,6 +9,7 @@ mod batch;
 mod crawl;
 mod current_tab;
 mod doctor;
+mod extract;
 mod get;
 mod map;
 mod search_page;
@@ -24,6 +25,7 @@ pub use batch::BatchCommand;
 pub use crawl::CrawlCommand;
 pub use current_tab::CurrentTabCommand;
 pub use doctor::{DoctorCheck, DoctorCommand};
+pub use extract::{ExtractCommand, ExtractOutput};
 pub use get::GetCommand;
 pub use map::{MapCommand, MapOutput};
 pub use search_page::{SearchPageCommand, SearchPageOutput};
@@ -92,6 +94,8 @@ pub enum Command {
     Crawl(CrawlCommand),
     /// Search snippets from an existing page artifact.
     SearchPage(SearchPageCommand),
+    /// Extract structured values from page or crawl artifacts.
+    Extract(ExtractCommand),
     /// Extract the selected tab from an existing local browser CDP port.
     CurrentTab(CurrentTabCommand),
     /// Manage local auth/session state.
@@ -209,6 +213,7 @@ fn alias_url_index(args: &[OsString]) -> Option<usize> {
                 | "map"
                 | "crawl"
                 | "search-page"
+                | "extract"
                 | "current-tab"
                 | "session"
                 | "artifacts"

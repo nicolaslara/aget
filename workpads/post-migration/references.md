@@ -1023,3 +1023,71 @@ Review note:
   fixes: write `metadata.json` for search runs so artifact lifecycle commands
   can inspect/prune them, and include source URL/finality/sensitivity metadata
   without embedding full source content in the search envelope.
+
+## EXTRACT-001 Structured Artifact Extraction: 2026-05-26
+
+Implemented surfaces:
+
+- `aget extract --artifact <run-id>`
+- `aget extract --manifest <path>`
+- `--field <headings|links|tables|definitions|metadata>`
+- `--schema <path>` for selector, JSON path, and metadata path fields
+- `--allow-private-content`
+- `--output <json|markdown>`
+- OpenCode wrapper `aget_extract`
+
+Design decisions:
+
+- Extraction is artifact-first. It reads existing successful page artifacts or
+  successful batch/crawl manifest items; it does not refetch pages or call an
+  LLM.
+- Built-in primitives are deterministic: headings, links, tables, definition
+  lists, and metadata. Schema fields add HTML selectors and JSON paths.
+- Sensitive source artifacts require `--allow-private-content` before
+  structured values are emitted.
+- `extract --artifact` reads only internal run content and refuses
+  caller-owned external `--output` paths.
+- `extract --manifest` requires per-item metadata under `AGET_HOME/runs`,
+  requires manifest content paths to match item metadata, and keeps content
+  reads inside the manifest directory.
+
+Focused validation:
+
+```bash
+cargo test --lib cli::tests::extract
+cargo test --test cli extract
+cd .opencode && bun test tests/aget_args.test.ts
+cargo run --quiet -- extract --help | rg -- '--artifact|--manifest|--schema|--field|--allow-private-content'
+```
+
+Final validation gate:
+
+```bash
+cargo fmt --check
+git diff --check
+cargo test
+rg -n 'Crawl4AI|crawl4ai|agent-browser|AGET_CRAWL4AI_COMMAND|AGET_AGENT_BROWSER_COMMAND|AgentBrowser|agent_browser' \
+  README.md skills/aget/SKILL.md .opencode/tools/aget.ts src tests scripts -S
+cargo run --quiet -- --help | rg 'extract|search-page'
+cargo run --quiet -- extract --help | rg -- '--artifact|--manifest|--schema|--field|--allow-private-content'
+```
+
+Validation result:
+
+- Parser tests cover artifact and manifest input shapes.
+- CLI integration tests cover table extraction, selector extraction, batch
+  manifest extraction, crawl manifest extraction, schema JSON and metadata
+  path extraction, malformed schema/input errors, sensitive artifact consent,
+  sensitive manifest-item consent, external artifact refusal, and mismatched
+  manifest content-path refusal.
+- OpenCode argument snapshots cover `extract`.
+- `cargo fmt --check`, `git diff --check`, full `cargo test`, stale
+  dependency-surface grep, and help smoke passed.
+
+Review note:
+
+- Focused review found that the first implementation allowed manifest fallback
+  metadata and trusted external artifact content paths. Accepted fixes removed
+  fallback metadata, required `AGET_HOME/runs` item metadata, required content
+  path matching, bounded manifest content reads to the manifest directory, and
+  made `extract --artifact` refuse caller-owned external `--output` paths.

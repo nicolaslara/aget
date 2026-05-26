@@ -5,6 +5,7 @@ import {
   buildBatchArgs,
   buildCrawlArgs,
   buildDoctorArgs,
+  buildExtractArgs,
   buildMapArgs,
   buildSearchPageArgs,
 } from "../lib/aget_args"
@@ -119,6 +120,25 @@ test("builds artifact and doctor args", () => {
     "install instructions",
     "--max-results",
     "4",
+    "--allow-private-content",
+  ])
+  expect(
+    buildExtractArgs({
+      manifest: "/tmp/crawl/manifest.json",
+      schema: "/tmp/schema.json",
+      fields: ["tables", "links"],
+      allow_private_content: true,
+    }),
+  ).toEqual([
+    "extract",
+    "--manifest",
+    "/tmp/crawl/manifest.json",
+    "--schema",
+    "/tmp/schema.json",
+    "--field",
+    "tables",
+    "--field",
+    "links",
     "--allow-private-content",
   ])
   expect(buildDoctorArgs({ quick: true, checks: ["binary", "opencode"] })).toEqual([

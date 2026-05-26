@@ -133,6 +133,20 @@ fn search_page_help_is_available() {
 }
 
 #[test]
+fn extract_help_is_available() {
+    let mut cmd = Command::cargo_bin("aget").unwrap();
+
+    cmd.args(["extract", "--help"]).assert().success().stdout(
+        predicate::str::contains("Usage: aget extract")
+            .and(predicate::str::contains("--artifact"))
+            .and(predicate::str::contains("--manifest"))
+            .and(predicate::str::contains("--schema"))
+            .and(predicate::str::contains("--field"))
+            .and(predicate::str::contains("--allow-private-content")),
+    );
+}
+
+#[test]
 fn get_rejects_invalid_format() {
     let mut cmd = Command::cargo_bin("aget").unwrap();
 

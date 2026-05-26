@@ -71,6 +71,10 @@ Before running `aget`, choose these deliberately.
   `aget search-page --artifact <run-id> --query <text>` after fetching the page.
   Use `--allow-private-content` only when the user has approved snippets from a
   sensitive artifact.
+- **Need structured data from existing artifacts**: use `aget extract` with
+  `--artifact <run-id>` or `--manifest <path>`. Prefer built-in `--field`
+  values for headings, links, tables, definitions, and metadata; use a schema
+  file for HTML selectors or JSON paths.
 - **Need prior run metadata or local files**: use `aget artifacts list` and
   `aget artifacts inspect <run-id>` before reading large or sensitive files.
 - **Tool or environment looks broken**: use `aget doctor --quick` before
@@ -146,6 +150,13 @@ Error shape:
 ```
 
 For `get` and `current-tab`, artifact paths are in `data.artifacts`, selected sessions are in `data.sessions`, cache state is in `data.cache`, rough byte/token accounting is in `data.usage`, and extracted page content is in `data.content` only when `--inline-content` includes it. The default `--inline-content auto` omits `data.content` for session-backed/sensitive fetches and current-tab output; read the local artifact path instead, or use `--inline-content always` only when the user explicitly wants authenticated content embedded in the envelope.
+
+For `search-page` and `extract`, outputs come from existing local artifacts.
+Sensitive source artifacts require `--allow-private-content` before snippets or
+structured values are emitted. Use `extract --field tables --field links` for
+common deterministic fields, or `extract --schema schema.json` for selector and
+JSON-path fields. `extract --artifact` reads internal run content only; it
+refuses caller-owned external `--output` paths.
 
 ## Basic Fetch
 

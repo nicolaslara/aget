@@ -8,6 +8,8 @@ mod crawl;
 mod current_tab;
 #[path = "cli/doctor.rs"]
 mod doctor;
+#[path = "cli/extract.rs"]
+mod extract;
 #[path = "cli/get.rs"]
 mod get;
 #[path = "cli/help.rs"]

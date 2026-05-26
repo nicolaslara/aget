@@ -577,7 +577,7 @@ Status note:
   without failure, and requires `--allow-private-content` before emitting
   snippets from sensitive artifacts. OpenCode exposes `aget_search_page`.
 
-### 📋 Task EXTRACT-001: Add structured extraction from artifacts
+### ✅ Task EXTRACT-001: Add structured extraction from artifacts
 
 Depends on: ART-002, SEARCH-001.
 
@@ -596,8 +596,17 @@ Acceptance criteria:
 
 Status note:
 
-- Pending. Current `--content-format json` wraps extracted content, but it does
-  not provide task-specific structured data extraction.
+- Completed with `aget extract` for page artifacts and batch/crawl manifests.
+  The command supports deterministic built-in fields for headings, links,
+  tables, definitions, and metadata, plus schema fields for HTML selectors and
+  JSON/metadata paths. It writes JSON, markdown, and metadata artifacts under a
+  fresh run directory. Sensitive sources require `--allow-private-content`;
+  artifact mode refuses caller-owned external `--output` paths; manifest mode
+  requires matching per-item metadata under `AGET_HOME/runs` and content paths
+  inside the manifest directory. Tests cover table extraction, selector
+  extraction, batch and crawl manifest extraction, malformed schema/input
+  errors, private artifact and manifest behavior, JSON/metadata schema paths,
+  and content-path tampering.
 
 ### 📋 Task REL-004: Automate CI and multi-target release builds
 
