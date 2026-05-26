@@ -132,6 +132,8 @@ where
                 exclude_selector: None,
                 wait_for_selector: None,
                 max_chars: None,
+                cache_policy: crate::cli::CachePolicy::Auto,
+                cache_ttl: Duration::from_secs(24 * 60 * 60),
                 backend_options: Vec::new(),
             },
         }

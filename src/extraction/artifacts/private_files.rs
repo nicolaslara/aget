@@ -15,6 +15,12 @@ pub(in crate::extraction) fn write_private_file(path: &Path, bytes: &[u8]) -> io
     Ok(())
 }
 
+pub(in crate::extraction) fn write_private_bytes(path: &Path, bytes: &[u8]) -> io::Result<()> {
+    let mut file = create_private_file(path)?;
+    file.write_all(bytes)?;
+    Ok(())
+}
+
 pub(in crate::extraction) fn create_private_dir(path: &Path) -> io::Result<()> {
     fs::create_dir_all(path)?;
     set_private_dir_permissions(path)

@@ -524,7 +524,7 @@ Status note:
   smoke exercised `doctor`, `batch`, `map`, `crawl`, and `artifacts list`
   against `target/release/aget`.
 
-### 📋 Task CACHE-001: Add cache, freshness, and token/cost metadata
+### ✅ Task CACHE-001: Add cache, freshness, and token/cost metadata
 
 Depends on: ART-002, BATCH-001, MAP-001, CRAWL-001.
 
@@ -543,8 +543,12 @@ Acceptance criteria:
 
 Status note:
 
-- Pending. Current artifacts preserve outputs, but there is no reusable cache
-  policy or token/cost metadata beyond basic timing and truncation fields.
+- Completed with cache storage under `AGET_HOME/cache`, shared `--fresh`,
+  `--cache-policy`, and `--cache-ttl` controls for `get`, `batch`, `map`, and
+  `crawl`; cache/usage metadata in envelopes, artifacts, and multi-URL
+  manifests; and privacy boundaries that keep session-backed, current-tab,
+  `raw:`, and `file://` content out of reusable cache entries. Tests cover
+  hit/miss, stale refresh, metadata shape, and session-backed ineligibility.
 
 ### 📋 Task SEARCH-001: Add objective and keyword narrowing
 
@@ -662,6 +666,27 @@ Acceptance criteria:
 Status note:
 
 - Pending. `v0.1.0` intentionally publishes no Windows artifact.
+
+### ✅ Task REL-008: Simplify global Codex skill installation
+
+Depends on: REL-003.
+
+Acceptance criteria:
+
+- Add a checkout-friendly helper for installing `skills/aget` into
+  `$CODEX_HOME/skills/aget`.
+- Keep release-tarball skill installation documented and compatible with the
+  packaged `skills/aget/SKILL.md`.
+- Verify the helper with a temporary `CODEX_HOME`.
+- Install the local checkout skill into the user's Codex skill directory and
+  verify `SKILL.md` resolves there.
+
+Status note:
+
+- Completed with `scripts/install-codex-skill.sh`, README/skill/release-plan
+  updates, temporary copy/symlink validation, and a local global symlink install
+  at `/Users/nicolas/.codex/skills/aget`. Codex must be restarted before a
+  running session sees a newly installed or replaced global skill.
 
 ### 📋 Task DEBUG-001: Add screenshots and debug traces
 

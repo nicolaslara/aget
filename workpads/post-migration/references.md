@@ -777,6 +777,37 @@ Validation result:
 - Fresh `CARGO_HOME` source install from `v0.1.0` installed `aget 0.1.0` from
   commit `b88ff890` and `doctor --quick` returned `ok: true`.
 
+## REL-008 Global Skill Install Helper: 2026-05-26
+
+Implemented surface:
+
+- `scripts/install-codex-skill.sh`
+
+Validation commands:
+
+```bash
+bash -n scripts/install-codex-skill.sh
+tmpdir="$(mktemp -d)"
+scripts/install-codex-skill.sh --codex-home "$tmpdir/codex-copy"
+test -f "$tmpdir/codex-copy/skills/aget/SKILL.md"
+scripts/install-codex-skill.sh --codex-home "$tmpdir/codex-link" --symlink
+test "$(readlink "$tmpdir/codex-link/skills/aget")" = "$(pwd)/skills/aget"
+rm -rf "$tmpdir"
+scripts/install-codex-skill.sh --codex-home "$HOME/.codex" --symlink --force
+readlink "$HOME/.codex/skills/aget"
+test -f "$HOME/.codex/skills/aget/SKILL.md"
+```
+
+Validation result:
+
+- The helper shell syntax is valid.
+- Temporary copy-mode install produced `skills/aget/SKILL.md`.
+- Temporary symlink-mode install pointed at the checkout's `skills/aget`.
+- Local global install now points
+  `/Users/nicolas/.codex/skills/aget -> /Users/nicolas/devel/aget/skills/aget`.
+- Codex must be restarted before a running session sees a newly installed or
+  replaced global skill.
+
 ## AGENT-001 OpenCode/Skill Integration: 2026-05-26
 
 Implemented surfaces:
@@ -851,3 +882,84 @@ Review note:
   move argument builders to `.opencode/lib/aget_args.ts`, move snapshots to
   `.opencode/tests/aget_args.test.ts`, and keep `.opencode/tools/aget.ts`
   exporting only actual tools.
+
+## CACHE-001 Cache/Freshness/Usage Metadata: 2026-05-26
+
+Implemented surfaces:
+
+- `aget get|batch|map|crawl --fresh`
+- `aget get|batch|map|crawl --cache-policy <auto|refresh|off>`
+- `aget get|batch|map|crawl --cache-ttl <seconds>`
+- `AGET_HOME/cache/<key>/metadata.json`
+- `AGET_HOME/cache/<key>/content`
+- `data.cache` and `data.usage` in `get` envelopes and artifact metadata
+- per-item/source cache and usage metadata in `batch`, `map`, and `crawl`
+  manifests where those commands fetch through `get`
+
+Design decisions:
+
+- Cache eligibility is limited to public unauthenticated HTTP(S) fetches.
+  Session-backed, current-tab, `raw:`, and `file://` inputs do not read or
+  write reusable cache entries.
+- Cache keys include URL, output format, selectors/waits, and normalized backend
+  options. Keys intentionally ignore `--output` and `--max-chars`.
+- Cache entries store full untruncated extracted content. Each run still writes
+  fresh run artifacts and applies its own `--max-chars`.
+- Cache metadata statuses are `miss`, `hit`, `stale`, `refresh`, `disabled`,
+  and `ineligible`.
+- Usage metadata is approximate and intended for agent budgeting:
+  `fetched_bytes`, `content_bytes`, `estimated_tokens`, and
+  `estimated_tokens_saved`.
+
+Focused validation:
+
+```bash
+cargo test --lib cache
+cargo test --lib cli::tests
+cargo test --test get_cli cache
+cd .opencode && bun test tests/aget_args.test.ts
+cargo run --quiet -- get --help | rg -- '--fresh|--cache-policy|--cache-ttl'
+cargo run --quiet -- batch --help | rg -- '--fresh|--cache-policy|--cache-ttl'
+cargo run --quiet -- map --help | rg -- '--fresh|--cache-policy|--cache-ttl'
+cargo run --quiet -- crawl --help | rg -- '--fresh|--cache-policy|--cache-ttl'
+```
+
+Final validation gate:
+
+```bash
+cargo fmt --check
+git diff --check
+cargo test
+rg -n 'Crawl4AI|crawl4ai|agent-browser|AGET_CRAWL4AI_COMMAND|AGET_AGENT_BROWSER_COMMAND|AgentBrowser|agent_browser' \
+  README.md skills/aget/SKILL.md .opencode/tools/aget.ts src tests scripts -S
+cargo build
+tmpdir="$(mktemp -d)"
+env -i PATH="/usr/bin:/bin:/usr/sbin:/sbin" \
+  AGET_HOME="$tmpdir/aget-home" \
+  target/debug/aget --envelope json get 'raw:<main><h1>No Command Path</h1></main>'
+rm -rf "$tmpdir"
+```
+
+Validation result:
+
+- Focused cache tests covered miss-to-hit behavior, stale refresh,
+  `--fresh`, cache/usage metadata shape, exact cache-hit content, and
+  session-backed ineligibility.
+- CLI parser tests covered `--fresh`, `--cache-policy off`, `--cache-ttl`, and
+  conflicting `--fresh` plus `--cache-policy`.
+- OpenCode argument snapshots include cache controls for `batch`, `map`, and
+  `crawl`.
+- Help output for `get`, `batch`, `map`, and `crawl` includes `--fresh`,
+  `--cache-policy`, and `--cache-ttl`.
+- `cargo fmt --check`, `git diff --check`, and full `cargo test` passed.
+- Stale dependency-surface grep returned no active matches.
+- No-command-path smoke returned `ok: true`; raw input reported
+  `cache.status = ineligible` and included usage metadata.
+
+Review note:
+
+- Local review focused on cache privacy, content consistency, and cache
+  robustness. Accepted fixes: write cache content without appending artifact
+  newlines, normalize backend-option order in cache keys, expose cache/usage
+  metadata through multi-URL manifests, and treat malformed cache entries as
+  misses instead of blocking fresh fetches.

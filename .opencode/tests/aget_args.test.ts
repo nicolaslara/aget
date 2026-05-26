@@ -14,6 +14,8 @@ test("builds batch args with repeated sessions and output directory", () => {
       urls: ["https://example.com/a", "https://example.com/b"],
       sessions: ["docs"],
       content_format: "markdown",
+      fresh: true,
+      cache_ttl: 60,
       concurrency: 3,
       output_dir: "/tmp/aget-batch",
       fail_fast: true,
@@ -26,6 +28,9 @@ test("builds batch args with repeated sessions and output directory", () => {
     "docs",
     "--content-format",
     "markdown",
+    "--fresh",
+    "--cache-ttl",
+    "60",
     "--concurrency",
     "3",
     "--output-dir",
@@ -41,6 +46,7 @@ test("builds map args for artifact-first link discovery", () => {
       any_path: true,
       include: ["*/docs/*"],
       content_types: ["text/html"],
+      cache_policy: "off",
       max_links: 50,
     }),
   ).toEqual([
@@ -52,6 +58,8 @@ test("builds map args for artifact-first link discovery", () => {
     "*/docs/*",
     "--max-links",
     "50",
+    "--cache-policy",
+    "off",
     "--content-type",
     "text/html",
   ])
@@ -67,6 +75,7 @@ test("builds crawl args with required limit and traversal bounds", () => {
       allow_domains: ["cdn.example.com"],
       sessions: ["docs"],
       content_format: "html",
+      cache_policy: "refresh",
       output_dir: "/tmp/aget-crawl",
     }),
   ).toEqual([
@@ -84,6 +93,8 @@ test("builds crawl args with required limit and traversal bounds", () => {
     "docs",
     "--content-format",
     "html",
+    "--cache-policy",
+    "refresh",
     "--output-dir",
     "/tmp/aget-crawl",
   ])

@@ -27,6 +27,8 @@ Normal use does not require external scraper or browser-control tools.
 - `--output <path>` for writing extracted content to a chosen file.
 - CSS `--selector`, `--exclude-selector`, and `--wait-for-selector` shaping.
 - `--max-chars` deterministic post-extraction truncation.
+- `--fresh`, `--cache-policy`, and `--cache-ttl` for reusable public HTTP(S)
+  fetches.
 - Repeated `--session <name>` for explicit named-session replay and composition.
 - Replay-time checks that reject sessions outside the requested URL's saved
   scope.
@@ -82,10 +84,7 @@ install -m 755 aget-v0.1.0-aarch64-apple-darwin/aget "$HOME/.local/bin/aget"
 Install the Codex skill globally from a checkout:
 
 ```bash
-CODEX_HOME="${CODEX_HOME:-$HOME/.codex}"
-mkdir -p "$CODEX_HOME/skills"
-rm -rf "$CODEX_HOME/skills/aget"
-ln -s "$PWD/skills/aget" "$CODEX_HOME/skills/aget"
+scripts/install-codex-skill.sh --symlink --force
 ```
 
 Install the Codex skill globally from the release tarball:
@@ -97,6 +96,8 @@ rm -rf "$CODEX_HOME/skills/aget"
 cp -R aget-v0.1.0-aarch64-apple-darwin/skills/aget "$CODEX_HOME/skills/aget"
 ```
 
+The helper defaults to copying the skill. Use `--symlink` from a development
+checkout when you want local skill edits to be picked up after a Codex restart.
 Restart Codex after installing or replacing a global skill. Release artifact
 naming and smoke gates are tracked in `workpads/post-migration/release-plan.md`.
 
@@ -201,8 +202,15 @@ aget get <url>
   [--exclude-selector <css>]
   [--wait-for-selector <css>]
   [--max-chars <n>]
+  [--fresh]
+  [--cache-policy <auto|refresh|off>]
+  [--cache-ttl <seconds>]
   [--backend-option <aget.key=value>...]
 ```
+
+Cache reuse applies only to eligible public HTTP(S) fetches. Session-backed,
+current-tab, `raw:`, and `file://` inputs record cache metadata but do not
+read or write reusable cache entries.
 
 `aget batch`:
 
@@ -219,6 +227,9 @@ aget batch <url> [<url>...]
   [--exclude-selector <css>]
   [--wait-for-selector <css>]
   [--max-chars <n>]
+  [--fresh]
+  [--cache-policy <auto|refresh|off>]
+  [--cache-ttl <seconds>]
   [--backend-option <aget.key=value>...]
   [--concurrency <1-8>]
   [--fail-fast]
@@ -246,6 +257,9 @@ aget map --artifact <run-id>
   [--include <pattern>...]
   [--exclude <pattern>...]
   [--max-links <n>]
+  [--fresh]
+  [--cache-policy <auto|refresh|off>]
+  [--cache-ttl <seconds>]
   [--content-type <type>...]
   [--output <markdown|json>]
   [--backend-option <aget.key=value>...]
@@ -278,6 +292,9 @@ aget crawl <url> --limit <n>
   [--exclude-selector <css>]
   [--wait-for-selector <css>]
   [--max-chars <n>]
+  [--fresh]
+  [--cache-policy <auto|refresh|off>]
+  [--cache-ttl <seconds>]
   [--backend-option <aget.key=value>...]
 ```
 
@@ -356,6 +373,21 @@ default content format.
       "content": "/Users/me/.aget/runs/abc123/output.md",
       "metadata": "/Users/me/.aget/runs/abc123/metadata.json"
     },
+    "cache": {
+      "status": "miss",
+      "policy": "auto",
+      "eligible": true,
+      "key": "0123456789abcdef",
+      "ttl_seconds": 86400,
+      "age_seconds": null,
+      "reason": "cache entry not found"
+    },
+    "usage": {
+      "fetched_bytes": 12000,
+      "content_bytes": 2400,
+      "estimated_tokens": 600,
+      "estimated_tokens_saved": 2400
+    },
     "sessions": [],
     "sensitive": false
   },
@@ -384,6 +416,13 @@ Error envelopes use the same schema:
 omits it for session-backed or current-tab output. Use `--output` and read the
 artifact path for large or private content. Use `--inline-content always` only
 when private content should be embedded in the JSON envelope.
+
+`data.cache.status` is one of `miss`, `hit`, `stale`, `refresh`, `disabled`,
+or `ineligible`. Cache entries live under `AGET_HOME/cache`, are keyed by URL
+and extraction-shaping options, and store the full untruncated extracted
+content so each run can still apply its own `--max-chars`. `data.usage`
+reports fetched bytes when known, final content bytes, and rough token
+estimates for agent-side budgeting.
 
 ## Sessions And Auth
 

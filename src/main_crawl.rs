@@ -5,7 +5,10 @@ use std::process::ExitCode;
 use std::time::{Instant, SystemTime, UNIX_EPOCH};
 
 use aget::error::ErrorBody;
-use aget::{Aget, CrawlCommand, ErrorCode, ErrorResponse, GetSuccess, OutputFormat};
+use aget::{
+    Aget, CacheMetadata, CrawlCommand, ErrorCode, ErrorResponse, GetSuccess, OutputFormat,
+    UsageMetrics,
+};
 use scraper::{Html, Selector};
 use serde::Serialize;
 use url::Url;
@@ -218,6 +221,9 @@ fn run_get(
             if let Some(max_chars) = command.max_chars {
                 request = request.max_chars(max_chars);
             }
+            request = request
+                .cache_policy(command.cache.policy())
+                .cache_ttl(command.cache.cache_ttl);
             for option in &command.backend_options {
                 request = request.backend_option(option.key.clone(), option.value.clone());
             }
@@ -562,6 +568,10 @@ struct CrawlItem {
     #[serde(skip_serializing_if = "Option::is_none")]
     artifacts: Option<CrawlItemArtifacts>,
     #[serde(skip_serializing_if = "Option::is_none")]
+    cache: Option<CacheMetadata>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    usage: Option<UsageMetrics>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     error: Option<ErrorBody>,
 }
 
@@ -579,6 +589,8 @@ impl CrawlItem {
                 metadata: PathBuf::from(content.artifacts.metadata),
                 source_html: PathBuf::from(html.artifacts.content),
             }),
+            cache: Some(content.cache),
+            usage: Some(content.usage),
             error: None,
         }
     }
@@ -592,6 +604,8 @@ impl CrawlItem {
             source_url: candidate.source_url,
             status: CrawlItemStatus::Failed,
             artifacts: None,
+            cache: None,
+            usage: None,
             error: Some(error),
         }
     }

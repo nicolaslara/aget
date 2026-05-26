@@ -186,6 +186,10 @@ the CLI envelope in a thin host-specific tool.
   README documents checkout and tarball skill installation into
   `$CODEX_HOME/skills/aget`, and Codex restart remains required after install
   or replacement.
+- Global Codex skill installation should be script-backed for checkouts rather
+  than relying only on copy/paste blocks. `scripts/install-codex-skill.sh`
+  defaults to copying the skill, supports `--symlink` for local development,
+  and is the preferred local checkout install path.
 - REL-003 source install needs an explicit package argument:
   `cargo install --git https://github.com/nicolaslara/aget --tag v0.1.0 --locked aget`.
   The repository contains another binary package, so omitting `aget` causes
@@ -198,6 +202,21 @@ the CLI envelope in a thin host-specific tool.
   tool discovery sees only actual tool exports. Argument builders live in
   `.opencode/lib/aget_args.ts`; deterministic snapshots live in
   `.opencode/tests/aget_args.test.ts`.
+- CACHE-001 makes cache reuse a `get`-pipeline behavior. Only public
+  unauthenticated HTTP(S) inputs are reusable; session-backed, current-tab,
+  `raw:`, and `file://` inputs record cache metadata but do not read/write
+  cache entries.
+- CACHE-001 cache keys include URL, output format, extraction-shaping options,
+  and normalized backend options. They intentionally ignore caller output paths
+  and `--max-chars` because cache entries store full untruncated extracted
+  content and each run applies its own output limits.
+- CACHE-001 propagates cache controls through `batch`, `map`, and `crawl`.
+  Batch and crawl manifests record per-item cache/usage metadata; map URL mode
+  records source cache/usage metadata. Corrupt or unreadable cache entries are
+  treated as misses so cache state does not block a fresh fetch.
+- CACHE-001 usage metadata is approximate budgeting data, not tokenizer-exact
+  accounting. It reports fetched bytes when known, final content bytes, rough
+  token estimates, and rough token-saved estimates.
 
 ## Execution Order
 

@@ -119,5 +119,13 @@ pub(crate) fn extract_owned_rendered_html(
     options: &GetOptions,
 ) -> Result<OwnedPageExtraction, AgetError> {
     let owned_options = validate_owned_extraction_options(options)?;
-    extract_owned_html(final_url, html, options, None, &owned_options)
+    let source_bytes = html.len();
+    extract_owned_html(
+        final_url,
+        html,
+        options,
+        None,
+        &owned_options,
+        Some(source_bytes),
+    )
 }

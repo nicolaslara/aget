@@ -20,6 +20,7 @@ fn aliases_top_level_url_to_get_command() {
             exclude_selector: None,
             wait_for_selector: None,
             max_chars: None,
+            cache: CacheCommandOptions::default(),
             backend_options: Vec::new(),
         })
     );

@@ -1,6 +1,6 @@
 use std::path::PathBuf;
 
-use crate::cli::{ExtractorOption, OutputFormat};
+use crate::cli::{CachePolicy, ExtractorOption, OutputFormat};
 use crate::error::AgetError;
 use crate::extraction::{
     BrowserFallbackBackend, ExtractionSessionStore, ExtractorBackend, GetOptions, GetSuccess,
@@ -51,6 +51,16 @@ where
 
     pub fn max_chars(mut self, max_chars: usize) -> Self {
         self.options.max_chars = Some(max_chars);
+        self
+    }
+
+    pub fn cache_policy(mut self, policy: CachePolicy) -> Self {
+        self.options.cache_policy = policy;
+        self
+    }
+
+    pub fn cache_ttl(mut self, ttl: std::time::Duration) -> Self {
+        self.options.cache_ttl = ttl;
         self
     }
 

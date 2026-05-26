@@ -6,7 +6,10 @@ use std::process::ExitCode;
 use std::time::{Instant, SystemTime, UNIX_EPOCH};
 
 use aget::error::ErrorBody;
-use aget::{Aget, BatchCommand, ErrorCode, ErrorResponse, GetSuccess, ENVELOPE_SCHEMA_VERSION};
+use aget::{
+    Aget, BatchCommand, CacheMetadata, ErrorCode, ErrorResponse, GetSuccess, UsageMetrics,
+    ENVELOPE_SCHEMA_VERSION,
+};
 use serde::Serialize;
 
 const MAX_BATCH_CONCURRENCY: usize = 8;
@@ -233,6 +236,9 @@ fn fetch_item(mut item: BatchItem, config: &BatchFetchConfig) -> BatchItem {
             if let Some(max_chars) = config.max_chars {
                 request = request.max_chars(max_chars);
             }
+            request = request
+                .cache_policy(config.cache_policy)
+                .cache_ttl(config.cache_ttl);
             for option in &config.backend_options {
                 request = request.backend_option(option.key.clone(), option.value.clone());
             }
@@ -312,6 +318,8 @@ struct BatchFetchConfig {
     exclude_selector: Option<String>,
     wait_for_selector: Option<String>,
     max_chars: Option<usize>,
+    cache_policy: aget::CachePolicy,
+    cache_ttl: std::time::Duration,
     backend_options: Vec<aget::ExtractorOption>,
     output_dir: PathBuf,
 }
@@ -325,6 +333,8 @@ impl BatchFetchConfig {
             exclude_selector: command.exclude_selector.clone(),
             wait_for_selector: command.wait_for_selector.clone(),
             max_chars: command.max_chars,
+            cache_policy: command.cache.policy(),
+            cache_ttl: command.cache.cache_ttl,
             backend_options: command.backend_options.clone(),
             output_dir,
         }
@@ -370,6 +380,10 @@ struct BatchItem {
     #[serde(skip_serializing_if = "Option::is_none")]
     artifacts: Option<BatchItemArtifacts>,
     #[serde(skip_serializing_if = "Option::is_none")]
+    cache: Option<CacheMetadata>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    usage: Option<UsageMetrics>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     error: Option<ErrorBody>,
 }
 
@@ -381,6 +395,8 @@ impl BatchItem {
             status: BatchItemStatus::Pending,
             reason: None,
             artifacts: None,
+            cache: None,
+            usage: None,
             error: None,
         }
     }
@@ -392,6 +408,8 @@ impl BatchItem {
             status: BatchItemStatus::Skipped,
             reason: Some(reason),
             artifacts: None,
+            cache: None,
+            usage: None,
             error: None,
         }
     }
@@ -402,6 +420,8 @@ impl BatchItem {
             content: PathBuf::from(success.artifacts.content),
             metadata: PathBuf::from(success.artifacts.metadata),
         });
+        self.cache = Some(success.cache);
+        self.usage = Some(success.usage);
     }
 
     fn fail(&mut self, error: ErrorBody) {

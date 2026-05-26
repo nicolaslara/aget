@@ -40,6 +40,7 @@ fn parses_map_command() {
             include: vec!["*/docs/*".to_string()],
             exclude: vec!["*/logout".to_string()],
             max_links: 20,
+            cache: CacheCommandOptions::default(),
             content_types: vec!["text/html".to_string()],
             output: MapOutput::Json,
             backend_options: Vec::new(),

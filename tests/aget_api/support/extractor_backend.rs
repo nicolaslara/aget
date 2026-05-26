@@ -38,6 +38,7 @@ impl ExtractorBackend for InspectingExtractor {
             content: Some("typed extractor content".to_string()),
             page_metadata: Default::default(),
             warnings: vec!["custom extractor".to_string()],
+            source_bytes: Some("typed extractor content".len()),
             error: None,
         })
     }
@@ -121,6 +122,7 @@ impl ExtractorBackend for AuthorizationExtractor {
             content: Some(content.clone()),
             page_metadata: Default::default(),
             warnings: Vec::new(),
+            source_bytes: Some(content.len()),
             error: None,
         })
     }

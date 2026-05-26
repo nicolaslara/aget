@@ -4,7 +4,10 @@ use std::path::{Path, PathBuf};
 use std::process::ExitCode;
 use std::time::{Instant, SystemTime, UNIX_EPOCH};
 
-use aget::{Aget, ErrorCode, ErrorResponse, MapCommand, MapOutput, OutputFormat, SessionStore};
+use aget::{
+    Aget, CacheMetadata, ErrorCode, ErrorResponse, MapCommand, MapOutput, OutputFormat,
+    SessionStore, UsageMetrics,
+};
 use scraper::{Html, Selector};
 use serde::Serialize;
 use serde_json::Value;
@@ -45,6 +48,8 @@ pub(super) fn run_map(
             url: source.url,
             final_url: source.final_url,
             artifact: source.artifact,
+            cache: source.cache,
+            usage: source.usage,
         },
         artifacts: MapArtifacts {
             json: output_dir.join("links.json"),
@@ -120,6 +125,9 @@ fn fetch_source(
     for option in &command.backend_options {
         request = request.backend_option(option.key.clone(), option.value.clone());
     }
+    request = request
+        .cache_policy(command.cache.policy())
+        .cache_ttl(command.cache.cache_ttl);
 
     let success = request.run().map_err(super::error_response)?;
     Ok(SourceDocument {
@@ -127,6 +135,8 @@ fn fetch_source(
         final_url: success.final_url,
         content: success.content,
         artifact: None,
+        cache: Some(success.cache),
+        usage: Some(success.usage),
     })
 }
 
@@ -166,6 +176,8 @@ fn artifact_source(store: &SessionStore, run_id: &str) -> Result<SourceDocument,
             .to_string(),
         content,
         artifact: Some(run_id.to_string()),
+        cache: None,
+        usage: None,
     })
 }
 
@@ -364,6 +376,8 @@ fn write_outputs(result: &MapResult) -> Result<(), ErrorResponse> {
         "final_url": result.source.final_url,
         "artifacts": result.artifacts,
         "summary": result.summary,
+        "cache": result.source.cache,
+        "usage": result.source.usage,
     });
     let metadata_path = result
         .artifacts
@@ -447,6 +461,8 @@ struct SourceDocument {
     final_url: String,
     content: String,
     artifact: Option<String>,
+    cache: Option<CacheMetadata>,
+    usage: Option<UsageMetrics>,
 }
 
 #[derive(Debug, Serialize)]
@@ -470,6 +486,10 @@ struct MapSource {
     final_url: String,
     #[serde(skip_serializing_if = "Option::is_none")]
     artifact: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    cache: Option<CacheMetadata>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    usage: Option<UsageMetrics>,
 }
 
 #[derive(Debug, Serialize)]

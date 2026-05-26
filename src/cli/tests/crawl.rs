@@ -48,6 +48,7 @@ fn parses_crawl_command() {
             exclude_selector: None,
             wait_for_selector: None,
             max_chars: None,
+            cache: CacheCommandOptions::default(),
             output_dir: None,
             backend_options: Vec::new(),
         })

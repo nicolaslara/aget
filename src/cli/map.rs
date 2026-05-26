@@ -1,6 +1,6 @@
 use clap::{Args, ValueEnum};
 
-use super::{parse_backend_option, ExtractorOption};
+use super::{parse_backend_option, CacheCommandOptions, ExtractorOption};
 
 #[derive(Debug, Args, PartialEq, Eq)]
 pub struct MapCommand {
@@ -54,6 +54,9 @@ pub struct MapCommand {
     /// Maximum number of links to emit.
     #[arg(long, default_value_t = 500)]
     pub max_links: usize,
+
+    #[command(flatten)]
+    pub cache: CacheCommandOptions,
 
     /// Keep only links with an inferred content type such as text/html or application/pdf.
     #[arg(long = "content-type")]

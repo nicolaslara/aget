@@ -49,6 +49,7 @@ pub(crate) fn run_owned_extractor_backend(
         content: Some(extraction.content.clone()),
         page_metadata: extraction.page_metadata,
         warnings: extraction.warnings,
+        source_bytes: extraction.source_bytes,
         error: None,
     };
     write_private_file(request.content_path, extraction.content.as_bytes())
@@ -81,5 +82,6 @@ pub(crate) fn run_owned_browser_fallback(
         page_metadata: extraction.page_metadata,
         warnings,
         extractor: OWNED_BROWSER_FALLBACK.to_string(),
+        source_bytes: extraction.source_bytes,
     })
 }

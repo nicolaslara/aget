@@ -17,7 +17,7 @@ Supported install paths for the next release:
 | Git source | contributors/agents | `cargo install --git https://github.com/nicolaslara/aget --tag v0.1.0 --locked aget` | Source install from the published repository tag; package name is explicit because the repo contains more than one binary package. |
 | Source checkout | contributors/agents | `cargo run -- <command>` | Useful for smoke tests and unreleased work. |
 | Release tarball | end users | `aget-<version>-<target>.tar.gz` | Contains one `aget` binary, README, LICENSE, and the Codex skill. |
-| Codex global skill | agent workflows | copy or symlink `skills/aget` to `$CODEX_HOME/skills/aget` | Requires a Codex restart after install or replacement. |
+| Codex global skill | agent workflows | `scripts/install-codex-skill.sh --symlink --force` from a checkout, or copy `skills/aget` from a release tarball | Requires a Codex restart after install or replacement. |
 
 Initial binary artifact targets:
 
@@ -46,12 +46,14 @@ aget
 README.md
 LICENSE
 skills/aget/SKILL.md
+scripts/install-codex-skill.sh
 ```
 
 The unpacked executable should be named `aget` on Unix targets. If Windows is
 added later, use `aget.exe` inside `aget-v<semver>-x86_64-pc-windows-msvc.zip`.
 The unpacked skill should be installable by copying `skills/aget` into
-`$CODEX_HOME/skills/aget` and restarting Codex.
+`$CODEX_HOME/skills/aget`, or by running the packaged helper with `--copy`, and
+restarting Codex.
 
 ## Version Policy
 
@@ -174,6 +176,7 @@ target/release/aget doctor --help
 - [ ] Per-archive `.sha256` files and `SHA256SUMS` are generated.
 - [ ] Archives contain `aget`, `README.md`, `LICENSE`, and
       `skills/aget/SKILL.md`.
+- [ ] Archives contain `scripts/install-codex-skill.sh`.
 - [ ] Release notes include known limitations: Chrome/CDP required for
       browser-backed flows, cmux optional, no server/MCP layer, no notarized
       app bundle.

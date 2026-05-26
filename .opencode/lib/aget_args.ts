@@ -26,6 +26,12 @@ type ExtractionArgs = {
   backend_options?: string[]
 }
 
+type CacheArgs = {
+  fresh?: boolean
+  cache_policy?: "auto" | "refresh" | "off"
+  cache_ttl?: number
+}
+
 function addExtractionArgs(args: string[], input: ExtractionArgs): void {
   addRepeated(args, "--session", input.sessions)
   if (input.content_format) {
@@ -38,7 +44,15 @@ function addExtractionArgs(args: string[], input: ExtractionArgs): void {
   addRepeated(args, "--backend-option", input.backend_options)
 }
 
-export type FetchArgs = ExtractionArgs & {
+function addCacheArgs(args: string[], input: CacheArgs): void {
+  addFlag(args, "--fresh", input.fresh)
+  if (!input.fresh) {
+    addOptional(args, "--cache-policy", input.cache_policy)
+  }
+  addOptional(args, "--cache-ttl", input.cache_ttl)
+}
+
+export type FetchArgs = ExtractionArgs & CacheArgs & {
   url: string
   inline_content?: "auto" | "always" | "never"
   timeout?: number
@@ -53,12 +67,13 @@ export function buildFetchArgs(input: FetchArgs): string[] {
     ...input,
     content_format: input.content_format || "markdown",
   })
+  addCacheArgs(cliArgs, input)
   addOptional(cliArgs, "--inline-content", input.inline_content)
   addOptional(cliArgs, "--output", input.output)
   return cliArgs
 }
 
-export type BatchArgs = ExtractionArgs & {
+export type BatchArgs = ExtractionArgs & CacheArgs & {
   urls?: string[]
   file?: string
   timeout?: number
@@ -76,6 +91,7 @@ export function buildBatchArgs(input: BatchArgs): string[] {
   }
   addOptional(cliArgs, "--file", input.file)
   addExtractionArgs(cliArgs, input)
+  addCacheArgs(cliArgs, input)
   addOptional(cliArgs, "--concurrency", input.concurrency)
   addOptional(cliArgs, "--output-dir", input.output_dir)
   addFlag(cliArgs, "--fail-fast", input.fail_fast)
@@ -99,7 +115,7 @@ export type MapArgs = {
   max_links?: number
   content_types?: string[]
   backend_options?: string[]
-}
+} & CacheArgs
 
 export function buildMapArgs(input: MapArgs): string[] {
   const cliArgs: string[] = []
@@ -120,12 +136,13 @@ export function buildMapArgs(input: MapArgs): string[] {
   addRepeated(cliArgs, "--include", input.include)
   addRepeated(cliArgs, "--exclude", input.exclude)
   addOptional(cliArgs, "--max-links", input.max_links)
+  addCacheArgs(cliArgs, input)
   addRepeated(cliArgs, "--content-type", input.content_types)
   addRepeated(cliArgs, "--backend-option", input.backend_options)
   return cliArgs
 }
 
-export type CrawlArgs = ExtractionArgs & {
+export type CrawlArgs = ExtractionArgs & CacheArgs & {
   url: string
   limit: number
   max_depth?: number
@@ -155,6 +172,7 @@ export function buildCrawlArgs(input: CrawlArgs): string[] {
   addRepeated(cliArgs, "--include", input.include)
   addRepeated(cliArgs, "--exclude", input.exclude)
   addExtractionArgs(cliArgs, input)
+  addCacheArgs(cliArgs, input)
   addOptional(cliArgs, "--output-dir", input.output_dir)
   return cliArgs
 }

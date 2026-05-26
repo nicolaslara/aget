@@ -1,3 +1,5 @@
+#[path = "get_cli/cache.rs"]
+mod cache;
 #[path = "get_cli/output.rs"]
 mod output;
 #[path = "get_cli/session.rs"]

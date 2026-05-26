@@ -82,6 +82,9 @@ fn run(cli: Cli) -> Result<ExitCode, ErrorResponse> {
             if let Some(max_chars) = get.max_chars {
                 request = request.max_chars(max_chars);
             }
+            request = request
+                .cache_policy(get.cache.policy())
+                .cache_ttl(get.cache.cache_ttl);
             for backend_option in get.backend_options {
                 request = request.backend_option(backend_option.key, backend_option.value);
             }

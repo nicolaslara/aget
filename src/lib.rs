@@ -17,16 +17,20 @@ pub use aget_browser::AgetBrowser;
 pub use aget_extractor::AgetExtractor;
 pub use cli::{
     ArtifactsCommand, ArtifactsSubcommand, AuthorizeSessionCommand, BatchCommand, BrowserChoice,
-    Cli, Command, ComposeSessionCommand, CrawlCommand, CurrentTabCommand, DeleteArtifactCommand,
-    DeleteSessionCommand, DoctorCheck, DoctorCommand, EnvelopeFormat, ExtractorOption, GetCommand,
-    GlobalOptions, ImportBrowserSessionCommand, ImportChromeSessionCommand,
-    ImportCmuxSessionCommand, ImportSessionCommand, ImportSessionSource, InlineContent,
-    InspectArtifactCommand, InspectSessionCommand, LoginCancelCommand, LoginFinishCommand,
-    LoginSessionCommand, LoginSessionSubcommand, LoginStartCommand, MapCommand, MapOutput,
-    OutputFormat, PruneArtifactsCommand, SessionCommand, SessionSubcommand,
+    CacheCommandOptions, CachePolicy, Cli, Command, ComposeSessionCommand, CrawlCommand,
+    CurrentTabCommand, DeleteArtifactCommand, DeleteSessionCommand, DoctorCheck, DoctorCommand,
+    EnvelopeFormat, ExtractorOption, GetCommand, GlobalOptions, ImportBrowserSessionCommand,
+    ImportChromeSessionCommand, ImportCmuxSessionCommand, ImportSessionCommand,
+    ImportSessionSource, InlineContent, InspectArtifactCommand, InspectSessionCommand,
+    LoginCancelCommand, LoginFinishCommand, LoginSessionCommand, LoginSessionSubcommand,
+    LoginStartCommand, MapCommand, MapOutput, OutputFormat, PruneArtifactsCommand, SessionCommand,
+    SessionSubcommand,
 };
 pub use error::{AgetError, ErrorCode, ErrorResponse, ENVELOPE_SCHEMA_VERSION};
-pub use extraction::{get_url, AgetExtractorBackend, GetOptions, GetSuccess, TimingMs};
+pub use extraction::{
+    get_url, AgetExtractorBackend, CacheMetadata, CacheStatus, GetOptions, GetSuccess, TimingMs,
+    UsageMetrics,
+};
 pub use session::{
     cancel_login_session, complete_login_session, compose_session, finish_login_session,
     import_chrome_session, import_cmux_session, merge_login_session, start_login_session,

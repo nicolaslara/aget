@@ -2,7 +2,7 @@ use std::path::PathBuf;
 
 use clap::Args;
 
-use super::{parse_backend_option, ExtractorOption, OutputFormat};
+use super::{parse_backend_option, CacheCommandOptions, ExtractorOption, OutputFormat};
 
 #[derive(Debug, Args, PartialEq, Eq)]
 pub struct CrawlCommand {
@@ -72,6 +72,9 @@ pub struct CrawlCommand {
     /// Deterministically truncate each extracted content item to this many characters.
     #[arg(long)]
     pub max_chars: Option<usize>,
+
+    #[command(flatten)]
+    pub cache: CacheCommandOptions,
 
     /// Write crawl manifest and per-page artifacts to this directory.
     #[arg(long)]

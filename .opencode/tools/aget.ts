@@ -98,6 +98,20 @@ export const fetch = tool({
       .min(0)
       .optional()
       .describe("Optional deterministic content character limit."),
+    fresh: tool.schema
+      .boolean()
+      .optional()
+      .describe("Bypass eligible cache entries and refresh cache storage."),
+    cache_policy: tool.schema
+      .enum(["auto", "refresh", "off"])
+      .optional()
+      .describe("Cache behavior for eligible public HTTP(S) fetches. Do not combine with fresh."),
+    cache_ttl: tool.schema
+      .number()
+      .int()
+      .min(0)
+      .optional()
+      .describe("Freshness window for cache reuse, in seconds."),
     timeout: tool.schema
       .number()
       .int()
@@ -130,6 +144,9 @@ export const batch = tool({
     exclude_selector: tool.schema.string().optional().describe("Optional CSS selector to exclude for each item."),
     wait_for_selector: tool.schema.string().optional().describe("Optional CSS selector to wait for before extraction."),
     max_chars: tool.schema.number().int().min(0).optional().describe("Optional deterministic character limit per item."),
+    fresh: tool.schema.boolean().optional().describe("Bypass eligible cache entries and refresh cache storage for each item."),
+    cache_policy: tool.schema.enum(["auto", "refresh", "off"]).optional().describe("Cache behavior for eligible public HTTP(S) item fetches. Do not combine with fresh."),
+    cache_ttl: tool.schema.number().int().min(0).optional().describe("Freshness window for cache reuse, in seconds."),
     timeout: tool.schema.number().int().positive().optional().describe("Optional timeout in seconds."),
     concurrency: tool.schema.number().int().positive().optional().describe("Maximum number of URLs to fetch concurrently. Defaults to aget's CLI default."),
     output_dir: tool.schema.string().optional().describe("Optional local directory for the batch manifest and per-item artifacts."),
@@ -159,6 +176,9 @@ export const map = tool({
     include: tool.schema.array(tool.schema.string()).optional().describe("Simple include glob patterns. Repeatable."),
     exclude: tool.schema.array(tool.schema.string()).optional().describe("Simple exclude glob patterns. Repeatable."),
     max_links: tool.schema.number().int().positive().optional().describe("Maximum number of links to emit."),
+    fresh: tool.schema.boolean().optional().describe("Bypass eligible cache entries when map fetches a URL input."),
+    cache_policy: tool.schema.enum(["auto", "refresh", "off"]).optional().describe("Cache behavior for eligible public HTTP(S) URL input fetches. Do not combine with fresh."),
+    cache_ttl: tool.schema.number().int().min(0).optional().describe("Freshness window for cache reuse, in seconds."),
     content_types: tool.schema.array(tool.schema.string()).optional().describe("Inferred content types to keep, such as text/html or application/pdf."),
     backend_options: tool.schema.array(tool.schema.string()).optional().describe("Optional unstable backend key=value strings. Prefer first-class CLI flags when available."),
   },
@@ -189,6 +209,9 @@ export const crawl = tool({
     exclude_selector: tool.schema.string().optional().describe("Optional CSS selector to remove."),
     wait_for_selector: tool.schema.string().optional().describe("Optional CSS selector to wait for before extraction."),
     max_chars: tool.schema.number().int().min(0).optional().describe("Optional deterministic character limit per page."),
+    fresh: tool.schema.boolean().optional().describe("Bypass eligible cache entries and refresh cache storage for each fetched page."),
+    cache_policy: tool.schema.enum(["auto", "refresh", "off"]).optional().describe("Cache behavior for eligible public HTTP(S) page fetches. Do not combine with fresh."),
+    cache_ttl: tool.schema.number().int().min(0).optional().describe("Freshness window for cache reuse, in seconds."),
     output_dir: tool.schema.string().optional().describe("Optional local directory for crawl manifest and per-page artifacts."),
     backend_options: tool.schema.array(tool.schema.string()).optional().describe("Optional unstable backend key=value strings. Prefer first-class CLI flags when available."),
   },

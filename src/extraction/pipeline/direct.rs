@@ -5,7 +5,7 @@ use std::time::Instant;
 use crate::error::{AgetError, ErrorCode};
 use crate::session::SessionStore;
 
-use super::finalization::finalize_success;
+use super::finalization::{disabled_cache_metadata, finalize_success};
 use super::SuccessfulExtraction;
 use crate::extraction::output::output_options;
 use crate::extraction::{create_private_dir, io_aget_error, run_id, GetOptions, GetSuccess};
@@ -17,6 +17,7 @@ pub(crate) fn finish_direct_extraction(
     warnings: Vec<String>,
     extractor: impl Into<String>,
     sensitive: bool,
+    source_bytes: Option<usize>,
     started: Instant,
 ) -> Result<GetSuccess, AgetError> {
     if options.home.is_none() {
@@ -45,12 +46,14 @@ pub(crate) fn finish_direct_extraction(
         Vec::new(),
         sensitive,
         output_options,
+        disabled_cache_metadata(&options),
         SuccessfulExtraction {
             final_url,
             content,
             page_metadata: BTreeMap::new(),
             warnings,
             extractor: extractor.into(),
+            source_bytes,
         },
         started,
     )

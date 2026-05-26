@@ -7,7 +7,7 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
 use super::output::OutputOptions;
-use crate::cli::{ExtractorOption, OutputFormat};
+use crate::cli::{CachePolicy, ExtractorOption, OutputFormat};
 use crate::error::AgetError;
 use crate::session::{PlaywrightState, Session, SessionStore};
 
@@ -23,6 +23,8 @@ pub struct GetOptions {
     pub exclude_selector: Option<String>,
     pub wait_for_selector: Option<String>,
     pub max_chars: Option<usize>,
+    pub cache_policy: CachePolicy,
+    pub cache_ttl: Duration,
     pub backend_options: Vec<ExtractorOption>,
 }
 
@@ -41,6 +43,8 @@ pub struct GetSuccess {
     pub warnings: Vec<String>,
     pub timing_ms: TimingMs,
     pub limits: Limits,
+    pub cache: CacheMetadata,
+    pub usage: UsageMetrics,
     pub output_options: OutputOptions,
 }
 
@@ -53,6 +57,36 @@ pub struct Artifacts {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TimingMs {
     pub total: u128,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct CacheMetadata {
+    pub status: CacheStatus,
+    pub policy: CachePolicy,
+    pub eligible: bool,
+    pub key: Option<String>,
+    pub ttl_seconds: u64,
+    pub age_seconds: Option<u64>,
+    pub reason: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum CacheStatus {
+    Hit,
+    Miss,
+    Stale,
+    Refresh,
+    Disabled,
+    Ineligible,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct UsageMetrics {
+    pub fetched_bytes: Option<usize>,
+    pub content_bytes: usize,
+    pub estimated_tokens: usize,
+    pub estimated_tokens_saved: Option<usize>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -88,6 +122,8 @@ pub struct ExtractorBackendResult {
     #[serde(default)]
     pub warnings: Vec<String>,
     #[serde(default)]
+    pub source_bytes: Option<usize>,
+    #[serde(default)]
     pub error: Option<String>,
 }
 
@@ -117,6 +153,7 @@ pub struct BrowserFallbackResult {
     pub page_metadata: BTreeMap<String, Value>,
     pub warnings: Vec<String>,
     pub extractor: String,
+    pub source_bytes: Option<usize>,
 }
 
 pub trait BrowserFallbackBackend {

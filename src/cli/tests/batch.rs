@@ -35,6 +35,7 @@ fn parses_batch_command() {
             wait_for_selector: None,
             max_chars: None,
             backend_options: Vec::new(),
+            cache: CacheCommandOptions::default(),
             concurrency: 3,
             output_dir: None,
             fail_fast: true,

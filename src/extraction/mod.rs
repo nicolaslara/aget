@@ -1,5 +1,6 @@
 mod artifacts;
 mod backends;
+mod cache;
 mod html_clean;
 mod http;
 mod markdown;
@@ -19,6 +20,7 @@ use self::artifacts::{
     sensitive_values, write_error_metadata, write_metadata, write_private_file,
 };
 pub use self::backends::AgetExtractorBackend;
+use self::cache::{CacheContext, CacheLookup};
 use self::output::output_options;
 pub use self::output::OutputOptions;
 pub(crate) use self::owned::{
@@ -34,8 +36,8 @@ use self::replay_scope::domain_matches_host;
 use self::replay_scope::enforce_replay_scope;
 pub use self::types::{
     Artifacts, BrowserFallbackBackend, BrowserFallbackRequest, BrowserFallbackResult,
-    ExtractionSessionStore, ExtractorBackend, ExtractorBackendResult, ExtractorRequest, GetOptions,
-    GetSuccess, Limits, TimingMs,
+    CacheMetadata, CacheStatus, ExtractionSessionStore, ExtractorBackend, ExtractorBackendResult,
+    ExtractorRequest, GetOptions, GetSuccess, Limits, TimingMs, UsageMetrics,
 };
 
 use crate::aget::AgetBrowserBackend;
@@ -100,6 +102,26 @@ pub fn get_url_with_session_store(
     }
     let metadata_path = run_dir.join("metadata.json");
 
+    let cache_context = match CacheContext::lookup(store.home(), &options, sensitive)? {
+        CacheLookup::Hit {
+            extraction,
+            metadata,
+        } => {
+            return finalize_success(
+                &options,
+                &content_path,
+                &metadata_path,
+                selected_session_names,
+                sensitive,
+                output_options,
+                metadata,
+                extraction,
+                started,
+            );
+        }
+        CacheLookup::Fetch(context) => context,
+    };
+
     let extraction = match run_primary_extractor(
         &options,
         &state,
@@ -141,6 +163,7 @@ pub fn get_url_with_session_store(
         sanitize_backend_artifacts(&metadata_path, &sensitive_values);
     }
 
+    cache_context.store(&options, &extraction)?;
     finalize_success(
         &options,
         &content_path,
@@ -148,6 +171,7 @@ pub fn get_url_with_session_store(
         selected_session_names,
         sensitive,
         output_options,
+        cache_context.metadata(),
         extraction,
         started,
     )

@@ -2,7 +2,7 @@ use std::path::PathBuf;
 
 use clap::Args;
 
-use super::{parse_backend_option, ExtractorOption, OutputFormat};
+use super::{parse_backend_option, CacheCommandOptions, ExtractorOption, OutputFormat};
 
 #[derive(Debug, Args, PartialEq, Eq)]
 pub struct BatchCommand {
@@ -44,6 +44,9 @@ pub struct BatchCommand {
     /// Advanced unstable backend option in key=value form.
     #[arg(long = "backend-option", value_parser = parse_backend_option)]
     pub backend_options: Vec<ExtractorOption>,
+
+    #[command(flatten)]
+    pub cache: CacheCommandOptions,
 
     /// Maximum number of items to fetch concurrently.
     #[arg(long, default_value_t = 2)]

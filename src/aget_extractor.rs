@@ -75,6 +75,8 @@ mod tests {
             exclude_selector: None,
             wait_for_selector: None,
             max_chars: None,
+            cache_policy: crate::cli::CachePolicy::Off,
+            cache_ttl: Duration::from_secs(0),
             backend_options: Vec::new(),
         };
 
@@ -131,6 +133,8 @@ mod tests {
             exclude_selector: Some("p.ad".to_string()),
             wait_for_selector: None,
             max_chars: None,
+            cache_policy: crate::cli::CachePolicy::Off,
+            cache_ttl: Duration::from_secs(0),
             backend_options: vec![ExtractorOption {
                 key: "aget.target_elements".to_string(),
                 value: "h1,p".to_string(),

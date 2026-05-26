@@ -60,12 +60,14 @@ pub(super) fn extract_owned_rendered_page_with_url(
         wait_for_timeout: owned_options.wait_for_timeout,
         timeout,
     })?;
+    let source_bytes = rendered.html.len();
     let mut extraction = extract_owned_html(
         final_url_override.unwrap_or(rendered.final_url),
         rendered.html,
         options,
         fallback_selector,
         owned_options,
+        Some(source_bytes),
     )?;
     extraction.warnings.extend(rendered.warnings);
     Ok(extraction)

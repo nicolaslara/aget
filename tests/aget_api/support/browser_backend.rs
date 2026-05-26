@@ -31,6 +31,7 @@ impl BrowserFallbackBackend for TestBrowserBackend {
         assert!(state.contains("fallback-secret"));
         assert_eq!(request.state.cookies[0].value, "fallback-secret");
         assert!(request.tmp_dir.ends_with("tmp"));
+        let source_bytes = content.len();
 
         Ok(BrowserFallbackResult {
             final_url: request.url.to_string(),
@@ -38,6 +39,7 @@ impl BrowserFallbackBackend for TestBrowserBackend {
             page_metadata: Default::default(),
             warnings: vec!["custom browser fallback".to_string()],
             extractor: "test-browser-fallback".to_string(),
+            source_bytes: Some(source_bytes),
         })
     }
 }

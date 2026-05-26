@@ -23,6 +23,7 @@ pub(crate) struct OwnedPageExtraction {
     pub(crate) content: String,
     pub(crate) page_metadata: BTreeMap<String, Value>,
     pub(crate) warnings: Vec<String>,
+    pub(crate) source_bytes: Option<usize>,
 }
 
 pub(super) fn extract_owned_page_response(
@@ -31,12 +32,14 @@ pub(super) fn extract_owned_page_response(
     fallback_selector: Option<&str>,
     owned_options: &OwnedExtractorOptions,
 ) -> Result<OwnedPageExtraction, AgetError> {
+    let source_bytes = response.body.len();
     extract_owned_html(
         response.final_url,
         response.body,
         options,
         fallback_selector,
         owned_options,
+        Some(source_bytes),
     )
 }
 
@@ -46,6 +49,7 @@ pub(crate) fn extract_owned_html(
     options: &GetOptions,
     fallback_selector: Option<&str>,
     owned_options: &OwnedExtractorOptions,
+    source_bytes: Option<usize>,
 ) -> Result<OwnedPageExtraction, AgetError> {
     let mut document = Html::parse_document(&body);
     let page_metadata = extract_page_metadata(&document)?;
@@ -155,6 +159,7 @@ pub(crate) fn extract_owned_html(
         content,
         page_metadata,
         warnings: Vec::new(),
+        source_bytes,
     })
 }
 

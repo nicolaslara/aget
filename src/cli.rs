@@ -2,6 +2,7 @@ use std::ffi::OsString;
 use std::time::Duration;
 
 use clap::{Args, Parser, Subcommand, ValueEnum};
+use serde::{Deserialize, Serialize};
 
 mod artifacts;
 mod batch;
@@ -110,7 +111,7 @@ pub enum InlineContent {
     Never,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, ValueEnum, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, ValueEnum, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum OutputFormat {
     Markdown,
@@ -127,6 +128,59 @@ impl std::fmt::Display for OutputFormat {
             OutputFormat::Text => "text",
             OutputFormat::Json => "json",
         })
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, ValueEnum, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum CachePolicy {
+    Auto,
+    Refresh,
+    Off,
+}
+
+impl std::fmt::Display for CachePolicy {
+    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        formatter.write_str(match self {
+            CachePolicy::Auto => "auto",
+            CachePolicy::Refresh => "refresh",
+            CachePolicy::Off => "off",
+        })
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Args)]
+pub struct CacheCommandOptions {
+    /// Bypass any cache entry and refresh eligible cache storage.
+    #[arg(long, conflicts_with = "cache_policy")]
+    pub fresh: bool,
+
+    /// Cache behavior for eligible public HTTP(S) fetches.
+    #[arg(long = "cache-policy", value_enum, default_value_t = CachePolicy::Auto)]
+    pub cache_policy: CachePolicy,
+
+    /// Freshness window for cache reuse, in seconds.
+    #[arg(long = "cache-ttl", value_parser = parse_duration_secs, default_value = "86400")]
+    pub cache_ttl: Duration,
+}
+
+impl CacheCommandOptions {
+    pub fn policy(&self) -> CachePolicy {
+        if self.fresh {
+            CachePolicy::Refresh
+        } else {
+            self.cache_policy
+        }
+    }
+}
+
+impl Default for CacheCommandOptions {
+    fn default() -> Self {
+        Self {
+            fresh: false,
+            cache_policy: CachePolicy::Auto,
+            cache_ttl: Duration::from_secs(24 * 60 * 60),
+        }
     }
 }
 

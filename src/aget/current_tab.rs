@@ -72,6 +72,8 @@ where
             exclude_selector: options.exclude_selector.take(),
             wait_for_selector: options.wait_for_selector.take(),
             max_chars: options.max_chars,
+            cache_policy: crate::cli::CachePolicy::Off,
+            cache_ttl: Duration::from_secs(0),
             backend_options: options.backend_options,
         };
         let owned_options = validate_owned_extraction_options(&get_options)?;
@@ -112,6 +114,7 @@ where
             warnings,
             CURRENT_TAB_EXTRACTOR,
             true,
+            extraction.source_bytes,
             started,
         )
     }

@@ -36,6 +36,21 @@ pub(in crate::extraction) fn write_error_metadata(
         "sensitive": sensitive,
         "warnings": [],
         "timing_ms": {"total": started.elapsed().as_millis()},
+        "cache": {
+            "status": "disabled",
+            "policy": options.cache_policy,
+            "eligible": false,
+            "key": null,
+            "ttl_seconds": options.cache_ttl.as_secs(),
+            "age_seconds": null,
+            "reason": "request failed before cacheable content was available",
+        },
+        "usage": {
+            "fetched_bytes": null,
+            "content_bytes": 0,
+            "estimated_tokens": 0,
+            "estimated_tokens_saved": null,
+        },
         "limits": {
             "max_chars": options.max_chars,
             "truncated": false,
@@ -70,6 +85,8 @@ pub(in crate::extraction) fn write_metadata(
     metadata.insert("warnings", serde_json::json!(success.warnings));
     metadata.insert("timing_ms", serde_json::json!(success.timing_ms));
     metadata.insert("limits", serde_json::json!(success.limits));
+    metadata.insert("cache", serde_json::json!(success.cache));
+    metadata.insert("usage", serde_json::json!(success.usage));
     metadata.insert("output_options", serde_json::json!(success.output_options));
     let bytes = serde_json::to_vec_pretty(&metadata).map_err(|error| AgetError::Stable {
         code: ErrorCode::IoError,

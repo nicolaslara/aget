@@ -25,10 +25,7 @@ cargo run --quiet -- --help
 Install this skill into Codex from a checkout:
 
 ```bash
-CODEX_HOME="${CODEX_HOME:-$HOME/.codex}"
-mkdir -p "$CODEX_HOME/skills"
-rm -rf "$CODEX_HOME/skills/aget"
-ln -s "$PWD/skills/aget" "$CODEX_HOME/skills/aget"
+scripts/install-codex-skill.sh --symlink --force
 ```
 
 Install from an unpacked release tarball:
@@ -40,6 +37,8 @@ rm -rf "$CODEX_HOME/skills/aget"
 cp -R aget-v0.1.0-aarch64-apple-darwin/skills/aget "$CODEX_HOME/skills/aget"
 ```
 
+The helper defaults to copying the skill. Use `--symlink` from a development
+checkout when local skill edits should be reflected after restarting Codex.
 Restart Codex after installing or replacing the global skill.
 
 ## Safety Rules
@@ -108,7 +107,17 @@ Do not infer access state from command success alone. `aget` is a generic fetche
 - **Need bounded context for quick inspection**: use `--max-chars`, commonly `4000`, `12000`, or another task-appropriate limit.
 - **When writing to a file for later analysis**: avoid `--max-chars` unless the user asked for a sample or bounded extract.
 
-### 5. Content Format And Extraction
+### 5. Cache And Freshness
+
+- **Stable public HTTP(S) page**: keep default cache behavior and inspect `data.cache.status` plus `data.usage`.
+- **Pricing, changelog, time-sensitive docs, or suspected stale result**: use `--fresh` or `--cache-policy refresh`.
+- **Do not want reuse for a public fetch**: use `--cache-policy off`.
+- **Need a shorter or longer freshness window**: use `--cache-ttl <seconds>`.
+- **Session-backed, current-tab, raw, and file inputs**: expect cache status `ineligible` or `disabled`; do not try to force reusable cache entries for private content.
+
+Cache hits still create fresh run artifacts. Cache entries store untruncated extracted content, so a later run can apply its own `--max-chars`.
+
+### 6. Content Format And Extraction
 
 - Default to `--content-format markdown`.
 - Use `--content-format text` for grep-like text extraction.
@@ -132,7 +141,7 @@ Error shape:
 {"ok": false, "schema_version": "aget.envelope.v1", "command": "get", "error": {"code": "requires_user_action", "message": "..."}}
 ```
 
-For `get` and `current-tab`, artifact paths are in `data.artifacts`, selected sessions are in `data.sessions`, and extracted page content is in `data.content` only when `--inline-content` includes it. The default `--inline-content auto` omits `data.content` for session-backed/sensitive fetches and current-tab output; read the local artifact path instead, or use `--inline-content always` only when the user explicitly wants authenticated content embedded in the envelope.
+For `get` and `current-tab`, artifact paths are in `data.artifacts`, selected sessions are in `data.sessions`, cache state is in `data.cache`, rough byte/token accounting is in `data.usage`, and extracted page content is in `data.content` only when `--inline-content` includes it. The default `--inline-content auto` omits `data.content` for session-backed/sensitive fetches and current-tab output; read the local artifact path instead, or use `--inline-content always` only when the user explicitly wants authenticated content embedded in the envelope.
 
 ## Basic Fetch
 
