@@ -2,12 +2,14 @@ use std::collections::HashSet;
 use std::fs::{self, OpenOptions};
 use std::io::{self, Write};
 use std::path::Path;
+use std::time::Duration;
 
 use scraper::Selector;
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 
 use crate::cli::OutputFormat;
+use crate::error::{AgetError, ErrorBody};
 
 pub const ACTIONS_SCHEMA_VERSION: &str = "aget.actions.v1";
 const MAX_ACTIONS: usize = 50;
@@ -42,6 +44,64 @@ impl std::error::Error for ActionPlanError {}
 pub struct ActionPlanValidationOptions {
     pub allow_sensitive_input: bool,
     pub allow_submit: bool,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct BrowserActionExecution {
+    pub final_url: Option<String>,
+    pub action_results: Vec<BrowserActionResult>,
+    pub warnings: Vec<String>,
+    pub error: Option<ErrorBody>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct BrowserActionResult {
+    pub index: usize,
+    pub action_type: &'static str,
+    pub status: BrowserActionStatus,
+    pub elapsed_ms: u128,
+    pub error: Option<ErrorBody>,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "snake_case")]
+pub enum BrowserActionStatus {
+    Ok,
+    DryRun,
+    Failed,
+}
+
+pub enum BrowserActionRunSource<'a> {
+    Url { url: &'a str, tmp_dir: &'a Path },
+    CurrentTab { port: u16 },
+}
+
+pub struct BrowserActionRunOptions {
+    pub timeout: Duration,
+    pub default_action_timeout: Duration,
+    pub page_timeout: Duration,
+}
+
+pub fn execute_browser_action_plan(
+    plan: &ActionPlan,
+    source: BrowserActionRunSource<'_>,
+    options: BrowserActionRunOptions,
+) -> Result<BrowserActionExecution, AgetError> {
+    let source = match source {
+        BrowserActionRunSource::Url { url, tmp_dir } => {
+            crate::browser_cdp::BrowserActionSource::Url { url, tmp_dir }
+        }
+        BrowserActionRunSource::CurrentTab { port } => {
+            crate::browser_cdp::BrowserActionSource::CurrentTab { port }
+        }
+    };
+    crate::browser_cdp::execute_browser_action_plan(crate::browser_cdp::BrowserActionPlanRequest {
+        source,
+        plan,
+        timeout: options.timeout,
+        default_action_timeout: options.default_action_timeout,
+        page_timeout: options.page_timeout,
+    })
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]

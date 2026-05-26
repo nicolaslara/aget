@@ -877,7 +877,7 @@ Status note:
   Focused tests and full `cargo test` pass. Real CDP action execution remains
   deferred to ACT-004.
 
-### 📋 Task ACT-004: Implement mutation-safe browser actions
+### ✅ Task ACT-004: Implement mutation-safe browser actions
 
 Depends on: ACT-003.
 
@@ -892,7 +892,18 @@ Acceptance criteria:
 
 Status note:
 
-- Pending implementation task.
+- Completed with CDP-backed `aget interact` execution for URL and current-tab
+  sources when no named session replay is requested. The executor runs
+  `wait`, `click`, `type`, `select`, and `submit`, writes action audit
+  artifacts, reports stable action failure codes, preserves partial action
+  results, and keeps session-backed interact explicitly deferred. Mutation
+  action scripts require unique selectors, block credential/file form targets,
+  block submit without prior CLI/schema consent, block DOM download links,
+  browser dialogs, popups, and cross-origin navigation within the action
+  boundary, and re-check same-origin after mutations. Focused mock-CDP and
+  script-boundary tests plus `cargo check --tests`, `git diff --check`, and
+  full `cargo test` pass. Follow-up ACT-007 tracks deeper CDP event-level
+  hardening for delayed browser events and non-DOM download responses.
 
 ### 📋 Task ACT-005: Implement interact capture and extract actions
 
@@ -928,3 +939,27 @@ Acceptance criteria:
 Status note:
 
 - Pending documentation/integration task.
+
+### 📋 Task ACT-007: Harden interact browser event boundaries
+
+Depends on: ACT-004.
+
+Acceptance criteria:
+
+- Evaluate CDP event-level guards for downloads, popups/new targets,
+  JavaScript dialogs, and delayed cross-origin navigations that occur after the
+  current action settle window.
+- Decide whether to add Browser/Page download-deny behavior, explicit event
+  collection, or a documented product boundary for delayed browser events.
+- Add deterministic tests for external `form=` submit controls, delayed popup
+  or cross-origin behavior, browser download events where feasible, and
+  post-action CDP failure at action index greater than zero.
+- Preserve current-tab safety without leaving persistent page monkeypatches
+  behind after the command exits.
+
+Status note:
+
+- Pending hardening task from the ACT-004 review. ACT-004 blocks direct DOM
+  mutation hazards and short delayed events, but event-level browser
+  enforcement needs a separate CDP-focused slice before claiming broader
+  delayed-download/new-target coverage.

@@ -34,11 +34,12 @@ pub use extraction::{
     DebugCaptureOptions, GetOptions, GetSuccess, TimingMs, UsageMetrics,
 };
 pub use interact::{
-    parse_action_plan_json, redacted_action_request, validate_action_plan,
-    write_redacted_action_request, ActionDefinition, ActionPlan, ActionPlanDefaults,
-    ActionPlanError, ActionPlanValidationOptions, CaptureAction, ClickAction, ExtractAction,
-    SelectAction, SelectorMatch, SubmitAction, TypeAction, WaitAction, WaitLoadState,
-    ACTIONS_SCHEMA_VERSION,
+    execute_browser_action_plan, parse_action_plan_json, redacted_action_request,
+    validate_action_plan, write_redacted_action_request, ActionDefinition, ActionPlan,
+    ActionPlanDefaults, ActionPlanError, ActionPlanValidationOptions, BrowserActionExecution,
+    BrowserActionResult, BrowserActionRunOptions, BrowserActionRunSource, BrowserActionStatus,
+    CaptureAction, ClickAction, ExtractAction, SelectAction, SelectorMatch, SubmitAction,
+    TypeAction, WaitAction, WaitLoadState, ACTIONS_SCHEMA_VERSION,
 };
 pub use session::{
     cancel_login_session, complete_login_session, compose_session, finish_login_session,

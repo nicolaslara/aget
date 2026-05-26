@@ -130,6 +130,7 @@ fn run(cli: Cli) -> Result<ExitCode, ErrorResponse> {
             interact,
             structured_output,
             cli.global.quiet,
+            cli.global.timeout,
             std::time::Instant::now(),
         )
         .map_err(|error| error.with_command("interact")),

@@ -11,6 +11,13 @@ fn all_error_codes_serialize_to_stable_strings() {
         (ErrorCode::ExtractionFailed, "extraction_failed"),
         (ErrorCode::SessionConflict, "session_conflict"),
         (ErrorCode::PrivacyPolicyBlocked, "privacy_policy_blocked"),
+        (ErrorCode::ActionTimeout, "action_timeout"),
+        (ErrorCode::SelectorNotFound, "selector_not_found"),
+        (ErrorCode::SelectorAmbiguous, "selector_ambiguous"),
+        (ErrorCode::RequiresConfirmation, "requires_confirmation"),
+        (ErrorCode::UnsafeAction, "unsafe_action"),
+        (ErrorCode::NavigationBlocked, "navigation_blocked"),
+        (ErrorCode::ActionNotSupported, "action_not_supported"),
         (ErrorCode::IoError, "io_error"),
     ];
 

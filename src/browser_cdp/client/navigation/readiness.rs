@@ -193,4 +193,29 @@ impl CdpClient {
             .unwrap_or_default()
             .to_string())
     }
+
+    pub(in crate::browser_cdp) fn evaluate_string_await(
+        &mut self,
+        session_id: &str,
+        expression: &str,
+        timeout: Duration,
+    ) -> Result<String, AgetError> {
+        let result = self.send(
+            "Runtime.evaluate",
+            Some(json!({
+                "expression": expression,
+                "returnByValue": true,
+                "awaitPromise": true,
+            })),
+            self.session_param(session_id),
+            timeout,
+        )?;
+        fail_on_runtime_evaluation_exception(&result)?;
+        Ok(result
+            .get("result")
+            .and_then(|result| result.get("value"))
+            .and_then(Value::as_str)
+            .unwrap_or_default()
+            .to_string())
+    }
 }

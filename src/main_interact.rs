@@ -2,12 +2,14 @@ use std::fs::{self, OpenOptions};
 use std::io::{self, Write};
 use std::path::{Path, PathBuf};
 use std::process::ExitCode;
-use std::time::{Instant, SystemTime, UNIX_EPOCH};
+use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 
 use aget::error::ErrorBody;
 use aget::{
-    parse_action_plan_json, ActionDefinition, ActionPlan, ActionPlanValidationOptions, ErrorCode,
-    ErrorResponse, InteractCommand, SessionStore, ENVELOPE_SCHEMA_VERSION,
+    execute_browser_action_plan, parse_action_plan_json, ActionDefinition, ActionPlan,
+    ActionPlanValidationOptions, BrowserActionExecution, BrowserActionRunOptions,
+    BrowserActionRunSource, BrowserActionStatus, ErrorCode, ErrorResponse, InteractCommand,
+    SessionStore, ENVELOPE_SCHEMA_VERSION,
 };
 use serde::Serialize;
 
@@ -15,12 +17,15 @@ pub(super) fn run_interact(
     command: InteractCommand,
     json: bool,
     quiet: bool,
+    timeout: Option<Duration>,
     started: Instant,
 ) -> Result<ExitCode, ErrorResponse> {
     let executor: Box<dyn InteractExecutor> = if command.dry_run {
         Box::new(DryRunInteractExecutor)
     } else {
-        Box::new(UnsupportedInteractExecutor)
+        Box::new(CdpInteractExecutor {
+            timeout: timeout.unwrap_or(Duration::from_secs(60)),
+        })
     };
     run_interact_with_executor(command, json, quiet, started, executor.as_ref())
 }
@@ -63,7 +68,7 @@ fn run_interact_with_executor(
         .map_err(|error| usage_error(error.message()))?;
 
     let sensitive = source_sensitive(&command);
-    let execution = executor.execute(&command, &plan);
+    let execution = executor.execute(&command, &plan, &run_dir);
     let actions = InteractActionSummary::from_results(
         plan.actions.len(),
         artifacts.actions_result.clone(),
@@ -127,13 +132,23 @@ fn run_interact_with_executor(
 }
 
 trait InteractExecutor {
-    fn execute(&self, command: &InteractCommand, plan: &ActionPlan) -> InteractExecution;
+    fn execute(
+        &self,
+        command: &InteractCommand,
+        plan: &ActionPlan,
+        run_dir: &Path,
+    ) -> InteractExecution;
 }
 
 struct DryRunInteractExecutor;
 
 impl InteractExecutor for DryRunInteractExecutor {
-    fn execute(&self, command: &InteractCommand, plan: &ActionPlan) -> InteractExecution {
+    fn execute(
+        &self,
+        command: &InteractCommand,
+        plan: &ActionPlan,
+        _run_dir: &Path,
+    ) -> InteractExecution {
         InteractExecution {
             final_url: Some(command.source.clone()),
             action_results: plan
@@ -151,27 +166,123 @@ impl InteractExecutor for DryRunInteractExecutor {
     }
 }
 
-struct UnsupportedInteractExecutor;
+struct CdpInteractExecutor {
+    timeout: Duration,
+}
 
-impl InteractExecutor for UnsupportedInteractExecutor {
-    fn execute(&self, _command: &InteractCommand, plan: &ActionPlan) -> InteractExecution {
-        let error = ErrorBody {
-            code: ErrorCode::BackendUnavailable,
-            message:
-                "interact browser execution is not implemented yet; use --dry-run to validate the plan"
-                    .to_string(),
-            retry: Some("Rerun with --dry-run, or wait for ACT-004 browser action support.".to_string()),
+impl InteractExecutor for CdpInteractExecutor {
+    fn execute(
+        &self,
+        command: &InteractCommand,
+        plan: &ActionPlan,
+        run_dir: &Path,
+    ) -> InteractExecution {
+        if !command.session.is_empty() {
+            return unsupported_session_interact(plan);
+        }
+
+        let browser_tmp;
+        let source = if command.source == "current-tab" {
+            BrowserActionRunSource::CurrentTab {
+                port: command
+                    .cdp_port
+                    .expect("current-tab CDP port was validated before execution"),
+            }
+        } else {
+            browser_tmp = run_dir.join("browser");
+            BrowserActionRunSource::Url {
+                url: &command.source,
+                tmp_dir: &browser_tmp,
+            }
         };
-        let action_results = plan
-            .actions
-            .first()
-            .map(|action| vec![InteractActionResult::failed(0, action, error.clone())])
-            .unwrap_or_default();
-        InteractExecution {
-            final_url: None,
-            action_results,
-            warnings: Vec::new(),
-            error: Some(error),
+        let page_timeout = plan
+            .defaults
+            .navigation_timeout_ms
+            .map(Duration::from_millis)
+            .unwrap_or(self.timeout);
+
+        match execute_browser_action_plan(
+            plan,
+            source,
+            BrowserActionRunOptions {
+                timeout: self.timeout,
+                default_action_timeout: Duration::from_secs(5),
+                page_timeout,
+            },
+        ) {
+            Ok(execution) => execution.into(),
+            Err(error) => execution_from_startup_error(plan, error),
+        }
+    }
+}
+
+fn unsupported_session_interact(plan: &ActionPlan) -> InteractExecution {
+    let error = ErrorBody {
+        code: ErrorCode::ActionNotSupported,
+        message: "session-backed interact execution is deferred until browser session replay is wired into the interact executor".to_string(),
+        retry: Some("Use current-tab with an explicitly approved --cdp-port, or rerun with --dry-run to validate the plan.".to_string()),
+    };
+    InteractExecution {
+        final_url: None,
+        action_results: first_failed_action(plan, error.clone()),
+        warnings: Vec::new(),
+        error: Some(error),
+    }
+}
+
+fn execution_from_startup_error(plan: &ActionPlan, error: aget::AgetError) -> InteractExecution {
+    let body = match error {
+        aget::AgetError::Stable { code, message } => ErrorBody {
+            code,
+            message,
+            retry: Some(
+                "Check Chrome/CDP availability, --cdp-port, and the action plan source, or rerun with --dry-run."
+                    .to_string(),
+            ),
+        },
+    };
+    InteractExecution {
+        final_url: None,
+        action_results: first_failed_action(plan, body.clone()),
+        warnings: Vec::new(),
+        error: Some(body),
+    }
+}
+
+fn first_failed_action(plan: &ActionPlan, error: ErrorBody) -> Vec<InteractActionResult> {
+    plan.actions
+        .first()
+        .map(|action| vec![InteractActionResult::failed(0, action, error)])
+        .unwrap_or_default()
+}
+
+impl From<BrowserActionExecution> for InteractExecution {
+    fn from(execution: BrowserActionExecution) -> Self {
+        Self {
+            final_url: execution.final_url,
+            action_results: execution
+                .action_results
+                .into_iter()
+                .map(InteractActionResult::from)
+                .collect(),
+            warnings: execution.warnings,
+            error: execution.error,
+        }
+    }
+}
+
+impl From<aget::BrowserActionResult> for InteractActionResult {
+    fn from(result: aget::BrowserActionResult) -> Self {
+        Self {
+            index: result.index,
+            action_type: result.action_type,
+            status: match result.status {
+                BrowserActionStatus::Ok => InteractActionStatus::Ok,
+                BrowserActionStatus::DryRun => InteractActionStatus::DryRun,
+                BrowserActionStatus::Failed => InteractActionStatus::Failed,
+            },
+            elapsed_ms: result.elapsed_ms,
+            error: result.error,
         }
     }
 }
@@ -281,6 +392,7 @@ impl InteractActionResult {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "snake_case")]
 enum InteractActionStatus {
+    Ok,
     DryRun,
     Failed,
 }
@@ -487,7 +599,8 @@ mod tests {
     #[test]
     fn dry_run_executor_preserves_action_sequence() {
         let plan = plan();
-        let execution = DryRunInteractExecutor.execute(&command(), &plan);
+        let temp = tempfile::tempdir().unwrap();
+        let execution = DryRunInteractExecutor.execute(&command(), &plan, temp.path());
 
         assert!(execution.error.is_none());
         assert_eq!(execution.action_results.len(), 2);

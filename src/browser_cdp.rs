@@ -1,6 +1,7 @@
 mod chrome_process;
 mod client;
 mod discovery;
+mod interact;
 mod login;
 mod page_scripts;
 mod process;
@@ -14,6 +15,9 @@ use std::path::Path;
 use std::time::Duration;
 
 pub(crate) use self::discovery::discover_cdp_ws_url;
+pub(crate) use self::interact::{
+    execute_browser_action_plan, BrowserActionPlanRequest, BrowserActionSource,
+};
 pub(crate) use self::login::{
     close_login_browser, export_login_browser_state, start_login_browser, BrowserLoginCloseRequest,
     BrowserLoginStartRequest, BrowserLoginStateExportRequest,

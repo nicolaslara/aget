@@ -14,6 +14,13 @@ pub enum ErrorCode {
     ExtractionFailed,
     SessionConflict,
     PrivacyPolicyBlocked,
+    ActionTimeout,
+    SelectorNotFound,
+    SelectorAmbiguous,
+    RequiresConfirmation,
+    UnsafeAction,
+    NavigationBlocked,
+    ActionNotSupported,
     IoError,
 }
 

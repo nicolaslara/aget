@@ -302,6 +302,25 @@ the CLI envelope in a thin host-specific tool.
 - `artifacts inspect` recognizes `actions-request` and `actions-result` files
   from interact runs. Future capture support should reuse the same artifact
   inspection path by adding capture entries under `artifacts.captures`.
+- ACT-004 wires real CDP mutation actions into `aget interact` for URL and
+  current-tab sources. Session-backed interact remains explicitly deferred
+  because replaying named sessions into an action browser needs a separate
+  session/browser wiring slice.
+- ACT-004 action scripts require unique mutation selectors and block direct DOM
+  hazards before acting: credential-equivalent inputs, credential/file-bearing
+  forms, unconfirmed file chooser/download links, popup/window APIs, browser
+  dialogs, and cross-origin link/form targets. Runtime action failures map to
+  stable action codes in the envelope and `actions-result.json`.
+- ACT-004 review accepted and fixed two safety findings before closure:
+  credential-bearing forms must be inspected before submit/click actions, and
+  post-action CDP failures must be attributed to the current action index while
+  preserving earlier successes. Follow-up review also caught external
+  `form=` submit controls; submit now uses `element.form || closest("form")`.
+- ACT-004 currently enforces delayed dialog/popup/cross-origin hazards through
+  an awaited action boundary plus a one-second same-origin settle check. This
+  is sufficient for the deterministic mutation slice but not a full browser
+  event firewall; ACT-007 tracks CDP event-level hardening for delayed events,
+  browser download responses, and no-persistent-monkeypatch guarantees.
 
 ## Execution Order
 
@@ -317,4 +336,4 @@ Follow this order unless the user redirects:
 8. BACKLOG-001, then BATCH-001, MAP-001, CRAWL-001
 9. REL-003, REL-008, AGENT-001, CACHE-001, SEARCH-001, EXTRACT-001, REL-004,
    REL-005, REL-006, REL-007, DEBUG-001
-10. ACT-001 through ACT-006 for safe generic interact/actions
+10. ACT-001 through ACT-007 for safe generic interact/actions

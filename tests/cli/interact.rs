@@ -2,6 +2,8 @@ use std::fs;
 
 use assert_cmd::Command;
 
+use super::support::mock_current_tab_interact_cdp_server;
+
 #[test]
 fn interact_dry_run_writes_audit_artifacts() {
     let temp = tempfile::tempdir().unwrap();
@@ -84,7 +86,7 @@ fn interact_dry_run_writes_audit_artifacts() {
 }
 
 #[test]
-fn interact_unimplemented_executor_writes_failure_artifacts() {
+fn interact_session_backed_executor_writes_deferred_failure_artifacts() {
     let temp = tempfile::tempdir().unwrap();
     let actions = temp.path().join("actions.json");
     fs::write(
@@ -104,7 +106,12 @@ fn interact_unimplemented_executor_writes_failure_artifacts() {
             "--actions",
         ])
         .arg(&actions)
-        .arg("--allow-actions")
+        .args([
+            "--allow-actions",
+            "--session",
+            "app",
+            "--allow-private-content",
+        ])
         .assert()
         .failure()
         .get_output()
@@ -113,7 +120,7 @@ fn interact_unimplemented_executor_writes_failure_artifacts() {
 
     let envelope: serde_json::Value = serde_json::from_slice(&output).unwrap();
     assert_eq!(envelope["ok"], false);
-    assert_eq!(envelope["error"]["code"], "backend_unavailable");
+    assert_eq!(envelope["error"]["code"], "action_not_supported");
     assert_eq!(envelope["data"]["actions"]["failed_index"], 0);
 
     let result_path = envelope["data"]["artifacts"]["actions_result"]
@@ -123,6 +130,139 @@ fn interact_unimplemented_executor_writes_failure_artifacts() {
         serde_json::from_str(&fs::read_to_string(result_path).unwrap()).unwrap();
     assert_eq!(result["ok"], false);
     assert_eq!(result["actions"][0]["status"], "failed");
+}
+
+#[test]
+fn interact_current_tab_executes_mock_cdp_actions() {
+    let temp = tempfile::tempdir().unwrap();
+    let actions = temp.path().join("actions.json");
+    fs::write(
+        &actions,
+        r#"{
+          "schema_version": "aget.actions.v1",
+          "actions": [
+            {"type": "wait", "duration_ms": 1},
+            {"type": "click", "selector": "button#open"},
+            {"type": "type", "selector": "input[name=q]", "text": "docs"},
+            {"type": "select", "selector": "select[name=version]", "value": "stable"},
+            {"type": "submit", "selector": "form#search", "confirm": true}
+          ]
+        }"#,
+    )
+    .unwrap();
+    let (port, server) = mock_current_tab_interact_cdp_server(
+        "https://example.com/app",
+        vec![
+            serde_json::json!({"ok": true}),
+            serde_json::json!({"ok": true}),
+            serde_json::json!({"ok": true}),
+            serde_json::json!({"ok": true}),
+        ],
+    );
+
+    let output = Command::cargo_bin("aget")
+        .unwrap()
+        .env("AGET_HOME", temp.path().join("home"))
+        .args([
+            "--envelope",
+            "json",
+            "interact",
+            "current-tab",
+            "--cdp-port",
+            &port.to_string(),
+            "--actions",
+        ])
+        .arg(&actions)
+        .args([
+            "--allow-actions",
+            "--allow-private-content",
+            "--allow-submit",
+        ])
+        .assert()
+        .success()
+        .get_output()
+        .stdout
+        .clone();
+
+    let envelope: serde_json::Value = serde_json::from_slice(&output).unwrap();
+    assert_eq!(envelope["ok"], true);
+    assert_eq!(envelope["command"], "interact");
+    assert_eq!(envelope["data"]["actions"]["total"], 5);
+    assert_eq!(envelope["data"]["actions"]["succeeded"], 5);
+    assert_eq!(envelope["data"]["final_url"], "https://example.com/app");
+
+    let result_path = envelope["data"]["artifacts"]["actions_result"]
+        .as_str()
+        .unwrap();
+    let result: serde_json::Value =
+        serde_json::from_str(&fs::read_to_string(result_path).unwrap()).unwrap();
+    let statuses = result["actions"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|action| action["status"].as_str().unwrap())
+        .collect::<Vec<_>>();
+    assert_eq!(statuses, vec!["ok", "ok", "ok", "ok", "ok"]);
+    server.join().unwrap();
+}
+
+#[test]
+fn interact_current_tab_reports_action_failure_from_cdp() {
+    let temp = tempfile::tempdir().unwrap();
+    let actions = temp.path().join("actions.json");
+    fs::write(
+        &actions,
+        r#"{
+          "schema_version": "aget.actions.v1",
+          "actions": [
+            {"type": "click", "selector": "button#missing"}
+          ]
+        }"#,
+    )
+    .unwrap();
+    let (port, server) = mock_current_tab_interact_cdp_server(
+        "https://example.com/app",
+        vec![serde_json::json!({
+            "ok": false,
+            "code": "selector_not_found",
+            "message": "click selector matched no elements"
+        })],
+    );
+
+    let output = Command::cargo_bin("aget")
+        .unwrap()
+        .env("AGET_HOME", temp.path().join("home"))
+        .args([
+            "--envelope",
+            "json",
+            "interact",
+            "current-tab",
+            "--cdp-port",
+            &port.to_string(),
+            "--actions",
+        ])
+        .arg(&actions)
+        .args(["--allow-actions", "--allow-private-content"])
+        .assert()
+        .failure()
+        .get_output()
+        .stdout
+        .clone();
+
+    let envelope: serde_json::Value = serde_json::from_slice(&output).unwrap();
+    assert_eq!(envelope["ok"], false);
+    assert_eq!(envelope["error"]["code"], "selector_not_found");
+    assert_eq!(envelope["data"]["actions"]["failed_index"], 0);
+
+    let result_path = envelope["data"]["artifacts"]["actions_result"]
+        .as_str()
+        .unwrap();
+    let result: serde_json::Value =
+        serde_json::from_str(&fs::read_to_string(result_path).unwrap()).unwrap();
+    assert_eq!(result["ok"], false);
+    assert_eq!(result["actions"][0]["status"], "failed");
+    assert_eq!(result["actions"][0]["error"]["code"], "selector_not_found");
+    server.join().unwrap();
 }
 
 #[test]

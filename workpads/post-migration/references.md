@@ -1541,3 +1541,67 @@ Validation result:
   changes.
 - Help smoke shows the current interact command flags.
 - Full `cargo test` passed after the ACT-003 implementation.
+
+## ACT-004 CDP Mutation Actions: 2026-05-26
+
+Implemented surfaces:
+
+- `src/browser_cdp/interact.rs`
+- `src/main_interact.rs`
+- `src/interact.rs`
+- `src/main.rs`
+- `tests/cli/interact.rs`
+- `tests/cli/support.rs`
+- `tests/error_serialization.rs`
+
+Behavior covered:
+
+- `aget interact` now uses CDP execution for non-dry-run URL and current-tab
+  sources when no named session replay is requested.
+- The CDP executor runs `wait`, `click`, `type`, `select`, and `submit`.
+- Mutation actions require unique selector resolution in the generated action
+  scripts.
+- Action scripts block credential-equivalent inputs, credential/file-bearing
+  forms including external `form=` submit controls, DOM download links, popup
+  and dialog APIs, and cross-origin link/form targets.
+- The executor checks same-origin after mutation actions and records stable
+  action failure codes in `actions-result.json` and the JSON envelope.
+- Session-backed interact returns `action_not_supported` with audit artifacts
+  until browser session replay is wired into the interact executor.
+- `capture` and `extract` actions remain `action_not_supported` until ACT-005.
+
+Focused validation:
+
+```bash
+cargo fmt --check
+cargo test --lib browser_cdp::interact
+cargo test --bin aget main_interact
+cargo test --test cli interact
+cargo check --tests
+git diff --check
+cargo test
+```
+
+Validation result:
+
+- Browser CDP unit tests cover action error-code mapping, same-origin
+  comparison, and generated mutation-script safety boundaries.
+- Binary interact unit tests still cover dry-run action sequencing and partial
+  failure summaries.
+- CLI integration tests cover dry-run artifacts, session-backed deferred
+  failure artifacts, current-tab mock-CDP success for wait/click/type/select/
+  submit, current-tab mock-CDP action failure propagation, consent rejection,
+  and help text.
+- `cargo check --tests`, `git diff --check`, and full `cargo test` pass after
+  the ACT-004 implementation.
+
+Review result:
+
+- Focused review found credential-bearing form submission gaps and post-action
+  failure attribution risk; both were fixed before marking ACT-004 complete.
+- Follow-up review confirmed partial action results are preserved and caught an
+  external `form=` submit-control gap; submit now resolves `element.form` before
+  falling back to `closest("form")`.
+- Delayed browser events and non-DOM download responses require deeper CDP
+  event-level enforcement. This is recorded as ACT-007 instead of broadening
+  ACT-004 beyond its deterministic mutation-action slice.
