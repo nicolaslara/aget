@@ -14,6 +14,8 @@ mod extract;
 mod get;
 #[path = "cli/help.rs"]
 mod help;
+#[path = "cli/interact.rs"]
+mod interact;
 #[path = "cli/map.rs"]
 mod map;
 #[path = "cli/search_page.rs"]

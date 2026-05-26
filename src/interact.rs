@@ -67,6 +67,20 @@ impl ActionPlan {
     }
 }
 
+impl ActionDefinition {
+    pub fn kind(&self) -> &'static str {
+        match self {
+            Self::Wait(_) => "wait",
+            Self::Click(_) => "click",
+            Self::Type(_) => "type",
+            Self::Select(_) => "select",
+            Self::Submit(_) => "submit",
+            Self::Capture(_) => "capture",
+            Self::Extract(_) => "extract",
+        }
+    }
+}
+
 #[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct ActionPlanDefaults {

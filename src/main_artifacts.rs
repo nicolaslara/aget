@@ -376,6 +376,7 @@ fn inspect_data(run: &RunSummary) -> Result<InspectResult, ErrorResponse> {
     let metadata_value = if run.metadata.valid {
         let value = read_metadata(&run.metadata.path).map_err(super::io_error)?;
         files.extend(debug_file_entries(&run.run_dir, &value));
+        files.extend(action_file_entries(&run.run_dir, &value));
         Some(redacted_metadata(value, run.sensitive))
     } else {
         None
@@ -500,6 +501,47 @@ fn debug_file_entries(run_dir: &Path, metadata: &Value) -> Vec<FileEntry> {
         });
     }
     files
+}
+
+fn action_file_entries(run_dir: &Path, metadata: &Value) -> Vec<FileEntry> {
+    let mut files = Vec::new();
+    for (pointer, kind) in [
+        ("/artifacts/actions_request", "actions-request"),
+        ("/artifacts/actions_result", "actions-result"),
+    ] {
+        let Some(path) = metadata.pointer(pointer).and_then(Value::as_str) else {
+            continue;
+        };
+        files.push(file_entry(run_dir, PathBuf::from(path), kind));
+    }
+
+    if let Some(captures) = metadata
+        .pointer("/artifacts/captures")
+        .and_then(Value::as_array)
+    {
+        for capture in captures {
+            let Some(path) = capture.get("path").and_then(Value::as_str) else {
+                continue;
+            };
+            files.push(file_entry(run_dir, PathBuf::from(path), "capture"));
+        }
+    }
+    files
+}
+
+fn file_entry(run_dir: &Path, path: PathBuf, kind: &'static str) -> FileEntry {
+    let ownership = if path.starts_with(run_dir) {
+        "internal"
+    } else {
+        "external"
+    };
+    FileEntry {
+        size_bytes: file_size(&path),
+        exists: path.exists(),
+        path,
+        kind,
+        ownership,
+    }
 }
 
 fn redacted_metadata(mut value: Value, sensitive: bool) -> Value {

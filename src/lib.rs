@@ -23,10 +23,10 @@ pub use cli::{
     DoctorCheck, DoctorCommand, EnvelopeFormat, ExtractCommand, ExtractOutput, ExtractorOption,
     GetCommand, GlobalOptions, ImportBrowserSessionCommand, ImportChromeSessionCommand,
     ImportCmuxSessionCommand, ImportSessionCommand, ImportSessionSource, InlineContent,
-    InspectArtifactCommand, InspectSessionCommand, LoginCancelCommand, LoginFinishCommand,
-    LoginSessionCommand, LoginSessionSubcommand, LoginStartCommand, MapCommand, MapOutput,
-    OutputFormat, PruneArtifactsCommand, SearchPageCommand, SearchPageOutput, SessionCommand,
-    SessionSubcommand,
+    InspectArtifactCommand, InspectSessionCommand, InteractCommand, LoginCancelCommand,
+    LoginFinishCommand, LoginSessionCommand, LoginSessionSubcommand, LoginStartCommand, MapCommand,
+    MapOutput, OutputFormat, PruneArtifactsCommand, SearchPageCommand, SearchPageOutput,
+    SessionCommand, SessionSubcommand,
 };
 pub use error::{AgetError, ErrorCode, ErrorResponse, ENVELOPE_SCHEMA_VERSION};
 pub use extraction::{

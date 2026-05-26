@@ -64,6 +64,10 @@ pub(crate) fn command_name_from_args(args: &[OsString]) -> &'static str {
         return "extract";
     }
 
+    if tokens.contains(&"interact") {
+        return "interact";
+    }
+
     if tokens.contains(&"get")
         || tokens
             .iter()

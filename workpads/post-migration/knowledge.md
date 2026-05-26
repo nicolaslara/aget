@@ -292,6 +292,16 @@ the CLI envelope in a thin host-specific tool.
   through `ActionPlanError`; action-specific stable envelope codes such as
   `selector_not_found` and `unsafe_action` remain for the executor/failure
   envelope work in ACT-003 and later.
+- ACT-003 exposes `aget interact` without pretending real browser actions are
+  implemented. `--dry-run` validates plans and writes audit artifacts; the
+  default executor writes a structured `backend_unavailable` failure with
+  partial run metadata until ACT-004 adds CDP-backed mutation actions.
+- Interact failure envelopes now use a command-specific printer with a `data`
+  object for run id and artifact paths, preserving the shared top-level error
+  shell without changing every command's `ErrorResponse` shape.
+- `artifacts inspect` recognizes `actions-request` and `actions-result` files
+  from interact runs. Future capture support should reuse the same artifact
+  inspection path by adding capture entries under `artifacts.captures`.
 
 ## Execution Order
 

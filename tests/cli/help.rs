@@ -9,6 +9,7 @@ fn top_level_help_includes_global_flags() {
         predicate::str::contains("--envelope")
             .and(predicate::str::contains("--timeout"))
             .and(predicate::str::contains("get"))
+            .and(predicate::str::contains("interact"))
             .and(predicate::str::contains("search-page")),
     );
 }
@@ -147,6 +148,22 @@ fn extract_help_is_available() {
             .and(predicate::str::contains("--schema"))
             .and(predicate::str::contains("--field"))
             .and(predicate::str::contains("--allow-private-content")),
+    );
+}
+
+#[test]
+fn interact_help_is_available() {
+    let mut cmd = Command::cargo_bin("aget").unwrap();
+
+    cmd.args(["interact", "--help"]).assert().success().stdout(
+        predicate::str::contains("Usage: aget interact")
+            .and(predicate::str::contains("--actions"))
+            .and(predicate::str::contains("--allow-actions"))
+            .and(predicate::str::contains("--allow-private-content"))
+            .and(predicate::str::contains("--allow-sensitive-input"))
+            .and(predicate::str::contains("--allow-submit"))
+            .and(predicate::str::contains("--capture-screenshot"))
+            .and(predicate::str::contains("--dry-run")),
     );
 }
 

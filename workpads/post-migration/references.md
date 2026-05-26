@@ -1484,3 +1484,60 @@ Validation result:
   validation failures, consent checks, redaction, and artifact writing.
 - `cargo check --tests` passed after exporting the new interact module.
 - Full `cargo test` passed after the ACT-002 implementation.
+
+## ACT-003 Interact CLI Envelope And Fake Executor: 2026-05-26
+
+Implemented surfaces:
+
+- `src/cli/interact.rs`
+- `src/main_interact.rs`
+- `src/main.rs`
+- `src/main_args.rs`
+- `src/main_artifacts.rs`
+- `tests/cli/interact.rs`
+- `src/cli/tests/interact.rs`
+
+Behavior covered:
+
+- Adds `aget interact <source> --actions <path> --allow-actions`.
+- Supports `current-tab` command shape with `--cdp-port` and
+  `--allow-private-content`.
+- Supports `--dry-run` as the no-browser executor path for validating action
+  plans and writing audit artifacts.
+- Writes internal `metadata.json`, `actions-request.json`, and
+  `actions-result.json` artifacts for dry-run success and unimplemented real
+  executor failure.
+- Emits structured success envelopes through the shared success envelope path.
+- Emits structured failure envelopes with command-specific `data` for run id
+  and partial artifact paths while preserving the existing top-level error
+  shell.
+- Keeps real browser/CDP actions deferred to ACT-004 by returning
+  `backend_unavailable` when `--dry-run` is not present.
+- Extends `artifacts inspect` file entries to include `actions-request`,
+  `actions-result`, and future capture files.
+
+Focused validation:
+
+```bash
+cargo fmt --check
+cargo test --bin aget main_interact
+cargo test --lib cli::tests::interact
+cargo test --test cli interact
+cargo check --tests
+cargo run --quiet -- interact --help | rg -- \
+  '--actions|--allow-actions|--allow-private-content|--allow-sensitive-input|--allow-submit|--capture-screenshot|--dry-run'
+cargo test
+```
+
+Validation result:
+
+- Binary unit tests cover dry-run sequencing and timeout partial-failure
+  summaries through the fake executor seam.
+- Library CLI parser tests cover URL and current-tab interact command shapes.
+- Integration CLI tests cover dry-run artifact writing and redaction,
+  unimplemented-executor failure artifacts, consent rejection, interact help,
+  and `artifacts inspect` visibility for action audit files.
+- `cargo check --tests` passed after the CLI skeleton and artifact inspection
+  changes.
+- Help smoke shows the current interact command flags.
+- Full `cargo test` passed after the ACT-003 implementation.

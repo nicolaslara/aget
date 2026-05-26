@@ -848,7 +848,7 @@ Status note:
   tests, `cargo fmt --check`, `cargo check --tests`, and full `cargo test`
   pass.
 
-### 📋 Task ACT-003: Add interact CLI envelope and fake executor seam
+### ✅ Task ACT-003: Add interact CLI envelope and fake executor seam
 
 Depends on: ACT-002.
 
@@ -867,7 +867,15 @@ Acceptance criteria:
 
 Status note:
 
-- Pending implementation task.
+- Completed with an `aget interact` CLI skeleton, dry-run executor, unsupported
+  real executor failure path, structured success/failure envelopes, internal
+  `metadata.json`, `actions-request.json`, and `actions-result.json` artifacts,
+  and artifact-inspect support for action audit files. The fake executor seam
+  is covered by unit tests for action sequencing and timeout partial-failure
+  summaries; binary CLI tests cover dry-run success, unimplemented-executor
+  failure artifacts, consent rejection, help text, and artifact inspection.
+  Focused tests and full `cargo test` pass. Real CDP action execution remains
+  deferred to ACT-004.
 
 ### 📋 Task ACT-004: Implement mutation-safe browser actions
 

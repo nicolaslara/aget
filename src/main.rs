@@ -10,6 +10,7 @@ mod main_crawl;
 mod main_doctor;
 mod main_envelope;
 mod main_extract;
+mod main_interact;
 mod main_map;
 mod main_search_page;
 mod main_session;
@@ -125,6 +126,13 @@ fn run(cli: Cli) -> Result<ExitCode, ErrorResponse> {
             main_extract::run_extract(extract, structured_output, cli.global.quiet)
                 .map_err(|error| error.with_command("extract"))
         }
+        Command::Interact(interact) => main_interact::run_interact(
+            interact,
+            structured_output,
+            cli.global.quiet,
+            std::time::Instant::now(),
+        )
+        .map_err(|error| error.with_command("interact")),
         Command::CurrentTab(current_tab) => (|| {
             let aget = Aget::from_env()
                 .map_err(io_error)?

@@ -11,6 +11,7 @@ mod current_tab;
 mod doctor;
 mod extract;
 mod get;
+mod interact;
 mod map;
 mod search_page;
 mod session;
@@ -28,6 +29,7 @@ pub use current_tab::CurrentTabCommand;
 pub use doctor::{DoctorCheck, DoctorCommand};
 pub use extract::{ExtractCommand, ExtractOutput};
 pub use get::GetCommand;
+pub use interact::InteractCommand;
 pub use map::{MapCommand, MapOutput};
 pub use search_page::{SearchPageCommand, SearchPageOutput};
 pub use session::{
@@ -97,6 +99,8 @@ pub enum Command {
     SearchPage(SearchPageCommand),
     /// Extract structured values from page or crawl artifacts.
     Extract(ExtractCommand),
+    /// Run a bounded local browser action plan.
+    Interact(InteractCommand),
     /// Extract the selected tab from an existing local browser CDP port.
     CurrentTab(CurrentTabCommand),
     /// Manage local auth/session state.
@@ -235,6 +239,7 @@ fn alias_url_index(args: &[OsString]) -> Option<usize> {
                 | "crawl"
                 | "search-page"
                 | "extract"
+                | "interact"
                 | "current-tab"
                 | "session"
                 | "artifacts"
