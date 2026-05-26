@@ -63,12 +63,30 @@ fn run_interact_with_executor(
         metadata: run_dir.join("metadata.json"),
         actions_request: run_dir.join("actions-request.json"),
         actions_result: run_dir.join("actions-result.json"),
+        captures: Vec::new(),
+        extracts: Vec::new(),
     };
     plan.write_redacted_request(&artifacts.actions_request)
         .map_err(|error| usage_error(error.message()))?;
 
-    let sensitive = source_sensitive(&command);
+    let source_is_sensitive = source_sensitive(&command);
     let execution = executor.execute(&command, &plan, &run_dir);
+    let action_artifacts = collect_action_artifacts(&execution.action_results);
+    let sensitive =
+        source_is_sensitive || action_artifacts.iter().any(|artifact| artifact.sensitive);
+    let artifacts = InteractArtifacts {
+        captures: action_artifacts
+            .iter()
+            .filter(|artifact| artifact.kind.starts_with("capture"))
+            .cloned()
+            .collect(),
+        extracts: action_artifacts
+            .iter()
+            .filter(|artifact| artifact.kind == "extract")
+            .cloned()
+            .collect(),
+        ..artifacts
+    };
     let actions = InteractActionSummary::from_results(
         plan.actions.len(),
         artifacts.actions_result.clone(),
@@ -80,7 +98,8 @@ fn run_interact_with_executor(
         } else {
             "url"
         },
-        url: (command.source != "current-tab").then(|| command.source.clone()),
+        url: (command.source != "current-tab")
+            .then(|| redact_url_for_interact(&command.source, sensitive)),
         cdp_port: command.cdp_port,
         sessions: command.session.clone(),
         sensitive,
@@ -88,8 +107,11 @@ fn run_interact_with_executor(
     let data = InteractRunData {
         run_id,
         source,
-        initial_url: command.source.clone(),
-        final_url: execution.final_url.clone(),
+        initial_url: redact_url_for_interact(&command.source, sensitive),
+        final_url: execution
+            .final_url
+            .as_deref()
+            .map(|url| redact_url_for_interact(url, sensitive)),
         actions,
         artifacts,
         sensitive,
@@ -208,6 +230,8 @@ impl InteractExecutor for CdpInteractExecutor {
                 timeout: self.timeout,
                 default_action_timeout: Duration::from_secs(5),
                 page_timeout,
+                artifact_dir: run_dir.to_path_buf(),
+                sensitive: source_sensitive(command),
             },
         ) {
             Ok(execution) => execution.into(),
@@ -282,9 +306,33 @@ impl From<aget::BrowserActionResult> for InteractActionResult {
                 BrowserActionStatus::Failed => InteractActionStatus::Failed,
             },
             elapsed_ms: result.elapsed_ms,
+            artifacts: result
+                .artifacts
+                .into_iter()
+                .map(InteractArtifact::from)
+                .collect(),
             error: result.error,
         }
     }
+}
+
+impl From<aget::BrowserActionArtifact> for InteractArtifact {
+    fn from(artifact: aget::BrowserActionArtifact) -> Self {
+        Self {
+            name: artifact.name,
+            kind: artifact.kind,
+            path: artifact.path,
+            media_type: artifact.media_type,
+            sensitive: artifact.sensitive,
+        }
+    }
+}
+
+fn collect_action_artifacts(results: &[InteractActionResult]) -> Vec<InteractArtifact> {
+    results
+        .iter()
+        .flat_map(|result| result.artifacts.iter().cloned())
+        .collect()
 }
 
 #[derive(Debug)]
@@ -323,6 +371,19 @@ struct InteractArtifacts {
     metadata: PathBuf,
     actions_request: PathBuf,
     actions_result: PathBuf,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    captures: Vec<InteractArtifact>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    extracts: Vec<InteractArtifact>,
+}
+
+#[derive(Debug, Clone, Serialize)]
+struct InteractArtifact {
+    name: String,
+    kind: &'static str,
+    path: PathBuf,
+    media_type: &'static str,
+    sensitive: bool,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -363,6 +424,8 @@ struct InteractActionResult {
     action_type: &'static str,
     status: InteractActionStatus,
     elapsed_ms: u128,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    artifacts: Vec<InteractArtifact>,
     #[serde(skip_serializing_if = "Option::is_none")]
     error: Option<ErrorBody>,
 }
@@ -374,6 +437,7 @@ impl InteractActionResult {
             action_type: action.kind(),
             status: InteractActionStatus::DryRun,
             elapsed_ms: 0,
+            artifacts: Vec::new(),
             error: None,
         }
     }
@@ -384,6 +448,7 @@ impl InteractActionResult {
             action_type: action.kind(),
             status: InteractActionStatus::Failed,
             elapsed_ms: 0,
+            artifacts: Vec::new(),
             error: Some(error),
         }
     }
@@ -443,6 +508,22 @@ fn validate_capture_consent(
 
 fn source_sensitive(command: &InteractCommand) -> bool {
     command.source == "current-tab" || !command.session.is_empty()
+}
+
+fn redact_url_for_interact(value: &str, sensitive: bool) -> String {
+    if !sensitive || value == "current-tab" {
+        return value.to_string();
+    }
+    let Ok(mut url) = url::Url::parse(value) else {
+        return "<redacted>".to_string();
+    };
+    if url.query().is_some() {
+        url.set_query(Some("<redacted>"));
+    }
+    if url.fragment().is_some() {
+        url.set_fragment(Some("<redacted>"));
+    }
+    url.to_string()
 }
 
 fn interact_run_id() -> String {

@@ -1,3 +1,5 @@
+use std::fs::{self, OpenOptions};
+use std::io::{self, Write};
 use std::path::Path;
 use std::thread;
 use std::time::{Duration, Instant};
@@ -5,12 +7,15 @@ use std::time::{Duration, Instant};
 use serde_json::{json, Value};
 
 use super::chrome_process::ChromeProcess;
-use super::client::{CdpClient, PageSession};
+use super::client::{CdpClient, PageSession, ScreenshotClip};
 use super::{discover_cdp_ws_url, CHROME_SHUTDOWN_WAIT};
+use crate::cli::{CachePolicy, OutputFormat};
 use crate::error::{AgetError, ErrorCode, ErrorResponse};
+use crate::extraction::{extract_owned_rendered_html, DebugCaptureOptions, GetOptions};
 use crate::interact::{
-    ActionDefinition, ActionPlan, BrowserActionExecution, BrowserActionResult, BrowserActionStatus,
-    ClickAction, SelectAction, SubmitAction, TypeAction, WaitAction, WaitLoadState,
+    ActionDefinition, ActionPlan, BrowserActionArtifact, BrowserActionExecution,
+    BrowserActionResult, BrowserActionStatus, CaptureAction, ClickAction, ExtractAction,
+    SelectAction, SelectorMatch, SubmitAction, TypeAction, WaitAction, WaitLoadState,
 };
 
 const ACTION_BOUNDARY_SETTLE: Duration = Duration::from_millis(1_000);
@@ -26,6 +31,8 @@ pub(crate) struct BrowserActionPlanRequest<'a> {
     pub(crate) timeout: Duration,
     pub(crate) default_action_timeout: Duration,
     pub(crate) page_timeout: Duration,
+    pub(crate) artifact_dir: &'a Path,
+    pub(crate) sensitive: bool,
 }
 
 pub(crate) fn execute_browser_action_plan(
@@ -93,12 +100,15 @@ fn execute_attached_actions(
         match execute_action(
             client,
             page,
+            index,
             action,
             timeout,
             request.page_timeout,
             &initial_url,
+            request.artifact_dir,
+            request.sensitive,
         ) {
-            Ok(()) => {
+            Ok(artifacts) => {
                 match client.evaluate_string(
                     &page.session_id,
                     "location.href",
@@ -111,6 +121,7 @@ fn execute_attached_actions(
                             action_type: action.kind(),
                             status: BrowserActionStatus::Ok,
                             elapsed_ms: started.elapsed().as_millis(),
+                            artifacts,
                             error: None,
                         });
                     }
@@ -122,6 +133,7 @@ fn execute_attached_actions(
                             action_type: action.kind(),
                             status: BrowserActionStatus::Failed,
                             elapsed_ms: started.elapsed().as_millis(),
+                            artifacts,
                             error: Some(body),
                         });
                         break;
@@ -135,6 +147,7 @@ fn execute_attached_actions(
                     action_type: action.kind(),
                     status: BrowserActionStatus::Failed,
                     elapsed_ms: started.elapsed().as_millis(),
+                    artifacts: Vec::new(),
                     error: Some(body),
                 });
                 break;
@@ -153,33 +166,51 @@ fn execute_attached_actions(
 fn execute_action(
     client: &mut CdpClient,
     page: &PageSession,
+    action_index: usize,
     action: &ActionDefinition,
     timeout: Duration,
     page_timeout: Duration,
     initial_url: &str,
-) -> Result<(), crate::error::ErrorBody> {
+    artifact_dir: &Path,
+    sensitive: bool,
+) -> Result<Vec<BrowserActionArtifact>, crate::error::ErrorBody> {
     match action {
-        ActionDefinition::Wait(action) => execute_wait(client, page, action, timeout),
+        ActionDefinition::Wait(action) => {
+            execute_wait(client, page, action, timeout)?;
+            Ok(Vec::new())
+        }
         ActionDefinition::Click(action) => {
             run_action_script(client, page, &click_script(action), timeout)?;
-            enforce_same_origin(client, page, initial_url, page_timeout)
+            enforce_same_origin(client, page, initial_url, page_timeout)?;
+            Ok(Vec::new())
         }
         ActionDefinition::Type(action) => {
             run_action_script(client, page, &type_script(action), timeout)?;
-            enforce_same_origin(client, page, initial_url, page_timeout)
+            enforce_same_origin(client, page, initial_url, page_timeout)?;
+            Ok(Vec::new())
         }
         ActionDefinition::Select(action) => {
             run_action_script(client, page, &select_script(action), timeout)?;
-            enforce_same_origin(client, page, initial_url, page_timeout)
+            enforce_same_origin(client, page, initial_url, page_timeout)?;
+            Ok(Vec::new())
         }
         ActionDefinition::Submit(action) => {
             run_action_script(client, page, &submit_script(action), timeout)?;
-            enforce_same_origin(client, page, initial_url, page_timeout)
+            enforce_same_origin(client, page, initial_url, page_timeout)?;
+            Ok(Vec::new())
         }
-        ActionDefinition::Capture(_) | ActionDefinition::Extract(_) => Err(error_body(
-            ErrorCode::ActionNotSupported,
-            format!("{} actions are implemented in ACT-005", action.kind()),
-        )),
+        ActionDefinition::Capture(action) => {
+            execute_capture(client, page, action, page_timeout, artifact_dir, sensitive)
+        }
+        ActionDefinition::Extract(action) => execute_extract(
+            client,
+            page,
+            action_index,
+            action,
+            page_timeout,
+            artifact_dir,
+            sensitive,
+        ),
     }
 }
 
@@ -202,6 +233,265 @@ fn execute_wait(
         return wait_for_load_state(client, &page.session_id, load_state, timeout);
     }
     Ok(())
+}
+
+fn execute_capture(
+    client: &mut CdpClient,
+    page: &PageSession,
+    action: &CaptureAction,
+    page_timeout: Duration,
+    artifact_dir: &Path,
+    source_sensitive: bool,
+) -> Result<Vec<BrowserActionArtifact>, crate::error::ErrorBody> {
+    let capture_dir = artifact_dir.join("captures");
+    let sensitive = source_sensitive || action.sensitive;
+    let mut pending = Vec::new();
+    if action.html {
+        let html = capture_html_for_action(
+            client,
+            &page.session_id,
+            action.selector.as_deref(),
+            action.match_mode,
+            page_timeout,
+        )?;
+        let path = capture_dir.join(format!("{}.html", action.name));
+        let artifact = BrowserActionArtifact {
+            name: action.name.clone(),
+            kind: "capture-html",
+            path,
+            media_type: "text/html",
+            sensitive,
+        };
+        pending.push((artifact, html.into_bytes()));
+    }
+    if action.screenshot {
+        let clip = if action.selector.is_some() {
+            Some(capture_clip_for_action(
+                client,
+                &page.session_id,
+                action.selector.as_deref(),
+                action.match_mode,
+                page_timeout,
+            )?)
+        } else {
+            None
+        };
+        let bytes = client
+            .capture_screenshot_png_with_clip(&page.session_id, clip, page_timeout)
+            .map_err(error_body_from_aget)?;
+        let path = capture_dir.join(format!("{}.png", action.name));
+        let artifact = BrowserActionArtifact {
+            name: action.name.clone(),
+            kind: "capture-screenshot",
+            path,
+            media_type: "image/png",
+            sensitive,
+        };
+        pending.push((artifact, bytes));
+    }
+
+    let mut artifacts = Vec::new();
+    for (artifact, bytes) in pending {
+        write_private_bytes(&artifact.path, &bytes).map_err(error_body_from_io)?;
+        artifacts.push(artifact);
+    }
+    Ok(artifacts)
+}
+
+fn execute_extract(
+    client: &mut CdpClient,
+    page: &PageSession,
+    action_index: usize,
+    action: &ExtractAction,
+    page_timeout: Duration,
+    artifact_dir: &Path,
+    source_sensitive: bool,
+) -> Result<Vec<BrowserActionArtifact>, crate::error::ErrorBody> {
+    let final_url = client
+        .evaluate_string(&page.session_id, "location.href", page_timeout)
+        .map_err(error_body_from_aget)?;
+    let html = extract_html_for_action(client, page, action, page_timeout)?;
+    let options = extraction_options(&final_url, action);
+    let extraction =
+        extract_owned_rendered_html(final_url, html, &options).map_err(error_body_from_aget)?;
+    let name = safe_artifact_name(action.name.as_deref(), &format!("extract-{action_index}"));
+    let file_stem = format!("{}-{name}", action_index);
+    let path = artifact_dir.join("extracts").join(format!(
+        "{file_stem}.{}",
+        extension_for_format(action.content_format)
+    ));
+    write_private_bytes(&path, extraction.content.as_bytes()).map_err(error_body_from_io)?;
+    Ok(vec![BrowserActionArtifact {
+        name,
+        kind: "extract",
+        path,
+        media_type: media_type_for_format(action.content_format),
+        sensitive: source_sensitive || action.sensitive,
+    }])
+}
+
+fn extraction_options(final_url: &str, action: &ExtractAction) -> GetOptions {
+    GetOptions {
+        url: final_url.to_string(),
+        sessions: Vec::new(),
+        output: None,
+        home: None,
+        timeout: None,
+        content_format: action.content_format,
+        selector: None,
+        exclude_selector: None,
+        wait_for_selector: None,
+        max_chars: None,
+        cache_policy: CachePolicy::Off,
+        cache_ttl: Duration::from_secs(0),
+        debug: DebugCaptureOptions::default(),
+        backend_options: Vec::new(),
+    }
+}
+
+fn extract_html_for_action(
+    client: &mut CdpClient,
+    page: &PageSession,
+    action: &ExtractAction,
+    page_timeout: Duration,
+) -> Result<String, crate::error::ErrorBody> {
+    if let Some(selector) = action.selector.as_deref() {
+        return capture_html_for_action(
+            client,
+            &page.session_id,
+            Some(selector),
+            action.match_mode,
+            page_timeout,
+        );
+    }
+    client
+        .evaluate_string(
+            &page.session_id,
+            "document.documentElement.outerHTML || ''",
+            page_timeout,
+        )
+        .map_err(error_body_from_aget)
+}
+
+fn capture_html_for_action(
+    client: &mut CdpClient,
+    session_id: &str,
+    selector: Option<&str>,
+    match_mode: Option<SelectorMatch>,
+    timeout: Duration,
+) -> Result<String, crate::error::ErrorBody> {
+    let Some(selector) = selector else {
+        return client
+            .evaluate_string(
+                session_id,
+                "document.documentElement.outerHTML || ''",
+                timeout,
+            )
+            .map_err(error_body_from_aget);
+    };
+    let value = evaluate_action_value(
+        client,
+        session_id,
+        &capture_html_script(selector, match_mode),
+        timeout,
+    )?;
+    value
+        .get("html")
+        .and_then(Value::as_str)
+        .map(ToString::to_string)
+        .ok_or_else(|| {
+            error_body(
+                ErrorCode::ExtractionFailed,
+                "capture html action returned no html",
+            )
+        })
+}
+
+fn capture_clip_for_action(
+    client: &mut CdpClient,
+    session_id: &str,
+    selector: Option<&str>,
+    match_mode: Option<SelectorMatch>,
+    timeout: Duration,
+) -> Result<ScreenshotClip, crate::error::ErrorBody> {
+    let Some(selector) = selector else {
+        return Err(error_body(
+            ErrorCode::ExtractionFailed,
+            "capture screenshot clip requires a selector",
+        ));
+    };
+    let value = evaluate_action_value(
+        client,
+        session_id,
+        &capture_html_script(selector, match_mode),
+        timeout,
+    )?;
+    screenshot_clip_from_value(&value)
+}
+
+fn screenshot_clip_from_value(value: &Value) -> Result<ScreenshotClip, crate::error::ErrorBody> {
+    let clip = value.get("clip").ok_or_else(|| {
+        error_body(
+            ErrorCode::ExtractionFailed,
+            "capture screenshot action returned no clip",
+        )
+    })?;
+    let x = clip.get("x").and_then(Value::as_f64).unwrap_or(0.0);
+    let y = clip.get("y").and_then(Value::as_f64).unwrap_or(0.0);
+    let width = clip.get("width").and_then(Value::as_f64).unwrap_or(0.0);
+    let height = clip.get("height").and_then(Value::as_f64).unwrap_or(0.0);
+    let scale = clip.get("scale").and_then(Value::as_f64).unwrap_or(1.0);
+    if !x.is_finite()
+        || !y.is_finite()
+        || !width.is_finite()
+        || !height.is_finite()
+        || !scale.is_finite()
+        || width <= 0.0
+        || height <= 0.0
+        || scale <= 0.0
+    {
+        return Err(error_body(
+            ErrorCode::ExtractionFailed,
+            "capture screenshot selector has no visible box",
+        ));
+    }
+    Ok(ScreenshotClip {
+        x,
+        y,
+        width,
+        height,
+        scale,
+    })
+}
+
+fn evaluate_action_value(
+    client: &mut CdpClient,
+    session_id: &str,
+    expression: &str,
+    timeout: Duration,
+) -> Result<Value, crate::error::ErrorBody> {
+    let raw = client
+        .evaluate_string_await(session_id, expression, timeout)
+        .map_err(error_body_from_aget)?;
+    let value: Value = serde_json::from_str(&raw).map_err(|error| {
+        error_body(
+            ErrorCode::ExtractionFailed,
+            format!("interact action returned invalid JSON: {error}"),
+        )
+    })?;
+    if value.get("ok").and_then(Value::as_bool).unwrap_or(false) {
+        return Ok(value);
+    }
+    let code = value
+        .get("code")
+        .and_then(Value::as_str)
+        .map(action_error_code)
+        .unwrap_or(ErrorCode::ExtractionFailed);
+    let message = value
+        .get("message")
+        .and_then(Value::as_str)
+        .unwrap_or("interact action failed");
+    Err(error_body(code, message))
 }
 
 fn wait_for_load_state(
@@ -420,6 +710,45 @@ fn submit_script(action: &SubmitAction) -> String {
     ))
 }
 
+fn capture_html_script(selector: &str, match_mode: Option<SelectorMatch>) -> String {
+    let resolver = if matches!(match_mode, Some(SelectorMatch::First)) {
+        format!(
+            r#"
+          const element = document.querySelector({});
+          if (!element) return JSON.stringify({{ ok: false, code: "selector_not_found", message: "capture selector matched no elements" }});
+        "#,
+            js_string(selector)
+        )
+    } else {
+        format!(
+            r#"
+          const result = agetResolveUnique({}, "capture");
+          if (!result.ok) return JSON.stringify(result);
+          const element = result.element;
+        "#,
+            js_string(selector)
+        )
+    };
+    with_prelude(format!(
+        r#"(() => {{
+          {}
+          const rect = element.getBoundingClientRect();
+          return JSON.stringify({{
+            ok: true,
+            html: element.outerHTML || "",
+            clip: {{
+              x: Math.max(0, rect.left + window.scrollX),
+              y: Math.max(0, rect.top + window.scrollY),
+              width: rect.width,
+              height: rect.height,
+              scale: 1
+            }}
+          }});
+        }})()"#,
+        resolver
+    ))
+}
+
 fn action_timeout(action: &ActionDefinition, request: &BrowserActionPlanRequest<'_>) -> Duration {
     let millis = match action {
         ActionDefinition::Wait(action) => action.timeout_ms,
@@ -459,6 +788,13 @@ fn error_body_from_aget(error: AgetError) -> crate::error::ErrorBody {
             error_body(code, message)
         }
     }
+}
+
+fn error_body_from_io(error: io::Error) -> crate::error::ErrorBody {
+    error_body(
+        ErrorCode::IoError,
+        format!("interact artifact write failed: {error}"),
+    )
 }
 
 fn error_body(code: ErrorCode, message: impl Into<String>) -> crate::error::ErrorBody {
@@ -578,6 +914,87 @@ fn with_prelude(body: String) -> String {
     format!("(() => {{{}\nreturn {};}})()", action_prelude(), body)
 }
 
+fn extension_for_format(format: OutputFormat) -> &'static str {
+    match format {
+        OutputFormat::Markdown => "md",
+        OutputFormat::Html => "html",
+        OutputFormat::Text => "txt",
+        OutputFormat::Json => "json",
+    }
+}
+
+fn media_type_for_format(format: OutputFormat) -> &'static str {
+    match format {
+        OutputFormat::Markdown => "text/markdown",
+        OutputFormat::Html => "text/html",
+        OutputFormat::Text => "text/plain",
+        OutputFormat::Json => "application/json",
+    }
+}
+
+fn safe_artifact_name(name: Option<&str>, fallback: &str) -> String {
+    let raw = name.unwrap_or(fallback);
+    let mut safe = raw
+        .chars()
+        .map(|ch| {
+            if ch.is_ascii_alphanumeric() || matches!(ch, '-' | '_' | '.') {
+                ch
+            } else {
+                '_'
+            }
+        })
+        .collect::<String>();
+    if safe.is_empty() {
+        safe.push_str(fallback);
+    }
+    safe.truncate(80);
+    safe
+}
+
+fn write_private_bytes(path: &Path, bytes: &[u8]) -> io::Result<()> {
+    if let Some(parent) = path.parent() {
+        fs::create_dir_all(parent)?;
+        set_private_dir_permissions(parent)?;
+    }
+    let mut options = OpenOptions::new();
+    options.create(true).truncate(true).write(true);
+    set_private_file_mode(&mut options);
+    let mut file = options.open(path)?;
+    file.write_all(bytes)?;
+    set_private_file_permissions(path)
+}
+
+#[cfg(unix)]
+fn set_private_dir_permissions(path: &Path) -> io::Result<()> {
+    use std::os::unix::fs::PermissionsExt;
+    fs::set_permissions(path, fs::Permissions::from_mode(0o700))
+}
+
+#[cfg(not(unix))]
+fn set_private_dir_permissions(_path: &Path) -> io::Result<()> {
+    Ok(())
+}
+
+#[cfg(unix)]
+fn set_private_file_mode(options: &mut OpenOptions) {
+    use std::os::unix::fs::OpenOptionsExt;
+    options.mode(0o600);
+}
+
+#[cfg(not(unix))]
+fn set_private_file_mode(_options: &mut OpenOptions) {}
+
+#[cfg(unix)]
+fn set_private_file_permissions(path: &Path) -> io::Result<()> {
+    use std::os::unix::fs::PermissionsExt;
+    fs::set_permissions(path, fs::Permissions::from_mode(0o600))
+}
+
+#[cfg(not(unix))]
+fn set_private_file_permissions(_path: &Path) -> io::Result<()> {
+    Ok(())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -630,6 +1047,17 @@ mod tests {
         assert!(combined.contains("window.prompt"));
         assert!(combined.contains("window.confirm"));
         assert!(combined.contains("requestSubmit"));
+    }
+
+    #[test]
+    fn capture_script_resolves_selector_clip_for_screenshots() {
+        let script = capture_html_script(".result", Some(SelectorMatch::First));
+
+        assert!(script.contains("document.querySelector"));
+        assert!(script.contains("getBoundingClientRect"));
+        assert!(script.contains("window.scrollX"));
+        assert!(script.contains("window.scrollY"));
+        assert!(script.contains("clip"));
     }
 
     #[test]

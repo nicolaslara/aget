@@ -14,7 +14,7 @@ mod page;
 mod runtime;
 mod state;
 mod transport;
-pub(super) use page::PageSession;
+pub(super) use page::{PageSession, ScreenshotClip};
 pub(super) use runtime::fail_on_runtime_evaluation_exception;
 #[cfg(test)]
 pub(in crate::browser_cdp) use transport::cdp_websocket_config;

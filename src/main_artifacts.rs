@@ -526,6 +526,17 @@ fn action_file_entries(run_dir: &Path, metadata: &Value) -> Vec<FileEntry> {
             files.push(file_entry(run_dir, PathBuf::from(path), "capture"));
         }
     }
+    if let Some(extracts) = metadata
+        .pointer("/artifacts/extracts")
+        .and_then(Value::as_array)
+    {
+        for extract in extracts {
+            let Some(path) = extract.get("path").and_then(Value::as_str) else {
+                continue;
+            };
+            files.push(file_entry(run_dir, PathBuf::from(path), "extract"));
+        }
+    }
     files
 }
 

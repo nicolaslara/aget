@@ -321,6 +321,25 @@ the CLI envelope in a thin host-specific tool.
   is sufficient for the deterministic mutation slice but not a full browser
   event firewall; ACT-007 tracks CDP event-level hardening for delayed events,
   browser download responses, and no-persistent-monkeypatch guarantees.
+- ACT-005 implements `capture` and `extract` as artifact-first interact
+  actions. Capture writes HTML and screenshot files under the interact run
+  directory; extract runs the owned extraction pipeline against the current DOM
+  and writes extracted content under `extracts/` instead of embedding private
+  page content in the envelope.
+- ACT-005 read-like selector actions enforce the interact selector contract:
+  selector-backed capture and extract fail on zero or ambiguous matches by
+  default, while `match: "first"` is available for read actions. Screenshot
+  captures with a selector now resolve a CDP screenshot clip from the selected
+  element instead of silently capturing the whole page.
+- ACT-005 treats sensitive interact URLs as audit data. When a run is sensitive
+  because it uses current-tab/session content or sensitive action artifacts,
+  success/failure envelopes and metadata redact URL query strings and
+  fragments before writing them.
+- ACT-005 review accepted and fixed the capture screenshot selector gap,
+  extract selector fallback gap, sensitive URL redaction gap, and unstable
+  focused test fixture. The partial-artifact concern was reduced by collecting
+  capture bytes before writing files and preserving action artifacts if the
+  post-action URL read fails.
 
 ## Execution Order
 

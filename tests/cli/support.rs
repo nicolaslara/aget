@@ -80,9 +80,25 @@ pub fn mock_current_tab_interact_cdp_server(
     final_url: &str,
     action_results: Vec<serde_json::Value>,
 ) -> (u16, JoinHandle<()>) {
+    mock_current_tab_interact_cdp_server_with_page(
+        final_url,
+        "<html><body><main>Mock interact page</main></body></html>",
+        None,
+        action_results,
+    )
+}
+
+pub fn mock_current_tab_interact_cdp_server_with_page(
+    final_url: &str,
+    html: &str,
+    screenshot_base64: Option<&str>,
+    action_results: Vec<serde_json::Value>,
+) -> (u16, JoinHandle<()>) {
     let listener = TcpListener::bind("127.0.0.1:0").unwrap();
     let port = listener.local_addr().unwrap().port();
     let final_url = final_url.to_string();
+    let html = html.to_string();
+    let screenshot_base64 = screenshot_base64.map(str::to_string);
     let handle = thread::spawn(move || {
         let (mut stream, _) = listener.accept().unwrap();
         let mut request = [0; 512];
@@ -98,7 +114,13 @@ pub fn mock_current_tab_interact_cdp_server(
         let (stream, _) = listener.accept().unwrap();
         let _ = stream.set_read_timeout(Some(Duration::from_secs(2)));
         let mut websocket = tungstenite::accept(stream).unwrap();
-        serve_interact_cdp(&mut websocket, &final_url, action_results);
+        serve_interact_cdp(
+            &mut websocket,
+            &final_url,
+            &html,
+            screenshot_base64.as_deref(),
+            action_results,
+        );
         let _ = websocket.close(None);
     });
     (port, handle)
@@ -194,6 +216,8 @@ fn serve_attached_page_cdp(
 fn serve_interact_cdp(
     websocket: &mut tungstenite::WebSocket<std::net::TcpStream>,
     final_url: &str,
+    html: &str,
+    screenshot_base64: Option<&str>,
     action_results: Vec<serde_json::Value>,
 ) {
     let request = read_cdp_request(websocket);
@@ -246,6 +270,14 @@ fn serve_interact_cdp(
             Some(request) => request,
             None => break,
         };
+        if request["method"] == "Page.captureScreenshot" {
+            reply_ok(
+                websocket,
+                &request,
+                serde_json::json!({ "data": screenshot_base64.unwrap_or("cGl4ZWxz") }),
+            );
+            continue;
+        }
         assert_eq!(request["method"], "Runtime.evaluate");
         let expression = request["params"]["expression"].as_str().unwrap_or("");
         if expression == "location.href" {
@@ -260,8 +292,15 @@ fn serve_interact_cdp(
                 &request,
                 serde_json::json!({ "result": { "type": "string", "value": "complete" } }),
             );
+        } else if expression == "document.documentElement.outerHTML || ''" {
+            reply_ok(
+                websocket,
+                &request,
+                serde_json::json!({ "result": { "type": "string", "value": html } }),
+            );
         } else if expression.contains("agetResolveUnique")
             || expression.contains("document.querySelectorAll")
+            || expression.contains("document.querySelector(")
         {
             let result = action_results
                 .next()

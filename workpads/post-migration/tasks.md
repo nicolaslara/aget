@@ -905,7 +905,7 @@ Status note:
   full `cargo test` pass. Follow-up ACT-007 tracks deeper CDP event-level
   hardening for delayed browser events and non-DOM download responses.
 
-### 📋 Task ACT-005: Implement interact capture and extract actions
+### ✅ Task ACT-005: Implement interact capture and extract actions
 
 Depends on: ACT-003, ACT-004.
 
@@ -921,7 +921,14 @@ Acceptance criteria:
 
 Status note:
 
-- Pending implementation task.
+- Completed with CDP-backed capture and extract actions. Capture writes
+  selector-aware HTML/screenshot artifacts under the run directory; extract
+  enforces read-action selector semantics and writes owned-pipeline output under
+  `extracts/`. Sensitive interact runs redact URL query/fragment data in
+  envelopes and metadata. Tests cover capture artifacts, extraction output,
+  sensitivity metadata, selector ambiguity, `match: "first"`, and lifecycle
+  delete cleanup. Focused review findings were fixed, and `git diff --check`
+  plus full `cargo test` pass.
 
 ### 📋 Task ACT-006: Document and expose implemented interact wrappers
 

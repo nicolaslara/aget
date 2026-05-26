@@ -1,7 +1,7 @@
 use std::collections::HashSet;
 use std::fs::{self, OpenOptions};
 use std::io::{self, Write};
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::time::Duration;
 
 use scraper::Selector;
@@ -60,7 +60,18 @@ pub struct BrowserActionResult {
     pub action_type: &'static str,
     pub status: BrowserActionStatus,
     pub elapsed_ms: u128,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub artifacts: Vec<BrowserActionArtifact>,
     pub error: Option<ErrorBody>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct BrowserActionArtifact {
+    pub name: String,
+    pub kind: &'static str,
+    pub path: PathBuf,
+    pub media_type: &'static str,
+    pub sensitive: bool,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
@@ -80,6 +91,8 @@ pub struct BrowserActionRunOptions {
     pub timeout: Duration,
     pub default_action_timeout: Duration,
     pub page_timeout: Duration,
+    pub artifact_dir: PathBuf,
+    pub sensitive: bool,
 }
 
 pub fn execute_browser_action_plan(
@@ -101,6 +114,8 @@ pub fn execute_browser_action_plan(
         timeout: options.timeout,
         default_action_timeout: options.default_action_timeout,
         page_timeout: options.page_timeout,
+        artifact_dir: &options.artifact_dir,
+        sensitive: options.sensitive,
     })
 }
 

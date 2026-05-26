@@ -1605,3 +1605,68 @@ Review result:
 - Delayed browser events and non-DOM download responses require deeper CDP
   event-level enforcement. This is recorded as ACT-007 instead of broadening
   ACT-004 beyond its deterministic mutation-action slice.
+
+## ACT-005 Capture And Extract Actions: 2026-05-26
+
+Implemented surfaces:
+
+- `src/browser_cdp/interact.rs`
+- `src/browser_cdp/client/page/mod.rs`
+- `src/interact.rs`
+- `src/main_interact.rs`
+- `src/main_artifacts.rs`
+- `tests/cli/interact.rs`
+- `tests/cli/support.rs`
+
+Behavior covered:
+
+- `capture` actions write named HTML and PNG artifacts under the interact run
+  directory and inherit source/action sensitivity metadata.
+- Selector-backed screenshot capture resolves the selected element first and
+  passes a CDP `clip` to `Page.captureScreenshot`; zero or ambiguous selector
+  matches fail before screenshot capture.
+- `extract` actions read the current DOM, enforce selector zero/ambiguity
+  semantics before extraction, run the owned extraction pipeline, and write the
+  output under `extracts/`.
+- Sensitive interact runs redact URL query strings and fragments in success and
+  failure envelopes plus `metadata.json`.
+- `artifacts inspect` reports capture and extract files, and lifecycle delete
+  removes those internal run artifacts.
+
+Focused validation:
+
+```bash
+scripts/install-codex-skill.sh --symlink --force
+cargo fmt --check
+cargo test --lib browser_cdp::interact
+cargo test --bin aget main_interact
+cargo test --test cli interact
+cargo check --tests
+git diff --check
+cargo test
+```
+
+Validation result:
+
+- Local global Codex skill install points
+  `/Users/nicolas/.codex/skills/aget -> /Users/nicolas/devel/aget/skills/aget`.
+- Browser CDP unit tests cover action code mapping, same-origin comparison,
+  mutation-script safety boundaries, and capture selector clip generation.
+- Binary interact unit tests still cover dry-run action sequencing and partial
+  failure summaries.
+- CLI integration tests cover capture artifacts, extract artifacts, sensitivity
+  metadata, sensitive URL redaction, screenshot selector ambiguity failure,
+  extract selector ambiguity failure, extract `match: "first"`, lifecycle
+  delete cleanup for capture/extract artifacts, mock-CDP mutation actions, and
+  consent/help behavior.
+- `cargo check --tests`, `git diff --check`, and full `cargo test` passed after
+  the ACT-005 implementation.
+
+Review result:
+
+- Focused review found screenshot selector scoping, extract selector fallback,
+  sensitive URL redaction, partial artifact tracking, and unstable focused
+  fixture risks. Screenshot and extract selectors now enforce the read-action
+  contract, sensitive URLs are redacted before envelope/metadata writes, the
+  fixture is stable, and capture files are collected before writes while
+  post-action URL read failures preserve recorded artifacts.
