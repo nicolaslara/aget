@@ -94,6 +94,22 @@ pub fn mock_current_tab_interact_cdp_server_with_page(
     screenshot_base64: Option<&str>,
     action_results: Vec<serde_json::Value>,
 ) -> (u16, JoinHandle<()>) {
+    mock_current_tab_interact_cdp_server_with_page_and_location_error(
+        final_url,
+        html,
+        screenshot_base64,
+        action_results,
+        None,
+    )
+}
+
+pub fn mock_current_tab_interact_cdp_server_with_page_and_location_error(
+    final_url: &str,
+    html: &str,
+    screenshot_base64: Option<&str>,
+    action_results: Vec<serde_json::Value>,
+    location_error_after: Option<usize>,
+) -> (u16, JoinHandle<()>) {
     let listener = TcpListener::bind("127.0.0.1:0").unwrap();
     let port = listener.local_addr().unwrap().port();
     let final_url = final_url.to_string();
@@ -120,6 +136,7 @@ pub fn mock_current_tab_interact_cdp_server_with_page(
             &html,
             screenshot_base64.as_deref(),
             action_results,
+            location_error_after,
         );
         let _ = websocket.close(None);
     });
@@ -219,6 +236,7 @@ fn serve_interact_cdp(
     html: &str,
     screenshot_base64: Option<&str>,
     action_results: Vec<serde_json::Value>,
+    location_error_after: Option<usize>,
 ) {
     let request = read_cdp_request(websocket);
     assert_eq!(request["method"], "Target.setDiscoverTargets");
@@ -264,7 +282,18 @@ fn serve_interact_cdp(
     assert_eq!(request["method"], "Target.setAutoAttach");
     reply_ok(websocket, &request, serde_json::json!({}));
 
+    for expected_method in [
+        "Target.setDiscoverTargets",
+        "Browser.setDownloadBehavior",
+        "Page.setInterceptFileChooserDialog",
+    ] {
+        let request = read_cdp_request(websocket);
+        assert_eq!(request["method"], expected_method);
+        reply_ok(websocket, &request, serde_json::json!({}));
+    }
+
     let mut action_results = action_results.into_iter();
+    let mut location_reads = 0usize;
     loop {
         let request = match read_optional_cdp_request(websocket) {
             Some(request) => request,
@@ -281,6 +310,11 @@ fn serve_interact_cdp(
         assert_eq!(request["method"], "Runtime.evaluate");
         let expression = request["params"]["expression"].as_str().unwrap_or("");
         if expression == "location.href" {
+            location_reads += 1;
+            if location_error_after.is_some_and(|after| location_reads >= after) {
+                reply_error(websocket, &request, -32000, "location unavailable");
+                continue;
+            }
             reply_ok(
                 websocket,
                 &request,
@@ -305,6 +339,7 @@ fn serve_interact_cdp(
             let result = action_results
                 .next()
                 .expect("unexpected extra action Runtime.evaluate call");
+            let result = emit_action_events(websocket, result);
             reply_ok(
                 websocket,
                 &request,
@@ -319,6 +354,43 @@ fn serve_interact_cdp(
             panic!("unexpected Runtime.evaluate expression: {expression}");
         }
     }
+}
+
+fn reply_error(
+    websocket: &mut tungstenite::WebSocket<std::net::TcpStream>,
+    request: &serde_json::Value,
+    code: i64,
+    message: &str,
+) {
+    let id = request
+        .get("id")
+        .and_then(serde_json::Value::as_u64)
+        .unwrap();
+    websocket
+        .send(tungstenite::Message::Text(
+            serde_json::json!({ "id": id, "error": { "code": code, "message": message } })
+                .to_string()
+                .into(),
+        ))
+        .unwrap();
+}
+
+fn emit_action_events(
+    websocket: &mut tungstenite::WebSocket<std::net::TcpStream>,
+    result: serde_json::Value,
+) -> serde_json::Value {
+    let Some(events) = result.get("__events").and_then(serde_json::Value::as_array) else {
+        return result;
+    };
+    for event in events {
+        websocket
+            .send(tungstenite::Message::Text(event.to_string().into()))
+            .unwrap();
+    }
+    result
+        .get("__result")
+        .cloned()
+        .unwrap_or_else(|| serde_json::json!({ "ok": true }))
 }
 
 fn read_cdp_request(

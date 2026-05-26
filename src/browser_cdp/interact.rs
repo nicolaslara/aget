@@ -57,7 +57,8 @@ fn execute_current_tab(
             message: "owned browser interact CDP attach found no page targets".to_string(),
         })?;
     client.enable_page_domains(&page.session_id, request.page_timeout)?;
-    execute_attached_actions(&mut client, &page, request)
+    let warnings = install_interact_event_guards(&mut client, &page, request.page_timeout);
+    execute_attached_actions(&mut client, &page, request, warnings)
 }
 
 fn execute_url(
@@ -76,7 +77,8 @@ fn execute_url(
         super::PageWaitUntil::DomContentLoaded,
         request.page_timeout,
     )?;
-    let execution = execute_attached_actions(&mut client, &page, request);
+    let warnings = install_interact_event_guards(&mut client, &page, request.page_timeout);
+    let execution = execute_attached_actions(&mut client, &page, request, warnings);
     let _ = client.close_page(&page, Duration::from_secs(1));
     let _ = client.close_browser(Duration::from_secs(1));
     chrome.wait_or_kill(CHROME_SHUTDOWN_WAIT);
@@ -87,6 +89,7 @@ fn execute_attached_actions(
     client: &mut CdpClient,
     page: &PageSession,
     request: BrowserActionPlanRequest<'_>,
+    warnings: Vec<String>,
 ) -> Result<BrowserActionExecution, AgetError> {
     let initial_url =
         client.evaluate_string(&page.session_id, "location.href", request.page_timeout)?;
@@ -109,12 +112,44 @@ fn execute_attached_actions(
             request.sensitive,
         ) {
             Ok(artifacts) => {
+                if let Err(body) = fail_on_interact_hazard_events(
+                    &client.take_hazard_events(),
+                    &initial_url,
+                    &page.target_id,
+                ) {
+                    error = Some(body.clone());
+                    action_results.push(BrowserActionResult {
+                        index,
+                        action_type: action.kind(),
+                        status: BrowserActionStatus::Failed,
+                        elapsed_ms: started.elapsed().as_millis(),
+                        artifacts,
+                        error: Some(body),
+                    });
+                    break;
+                }
                 match client.evaluate_string(
                     &page.session_id,
                     "location.href",
                     request.page_timeout,
                 ) {
                     Ok(url) => {
+                        if let Err(body) = fail_on_interact_hazard_events(
+                            &client.take_hazard_events(),
+                            &initial_url,
+                            &page.target_id,
+                        ) {
+                            error = Some(body.clone());
+                            action_results.push(BrowserActionResult {
+                                index,
+                                action_type: action.kind(),
+                                status: BrowserActionStatus::Failed,
+                                elapsed_ms: started.elapsed().as_millis(),
+                                artifacts,
+                                error: Some(body),
+                            });
+                            break;
+                        }
                         final_url = url;
                         action_results.push(BrowserActionResult {
                             index,
@@ -158,9 +193,49 @@ fn execute_attached_actions(
     Ok(BrowserActionExecution {
         final_url: Some(final_url),
         action_results,
-        warnings: Vec::new(),
+        warnings,
         error,
     })
+}
+
+fn install_interact_event_guards(
+    client: &mut CdpClient,
+    page: &PageSession,
+    timeout: Duration,
+) -> Vec<String> {
+    let mut warnings = Vec::new();
+    let guard_timeout = timeout.min(Duration::from_secs(1));
+    if let Err(error) = client.send(
+        "Target.setDiscoverTargets",
+        Some(json!({ "discover": true })),
+        None,
+        guard_timeout,
+    ) {
+        warnings.push(format!("interact target event guard unavailable: {error}"));
+    }
+    if let Err(error) = client.send(
+        "Browser.setDownloadBehavior",
+        Some(json!({
+            "behavior": "deny",
+            "eventsEnabled": true,
+        })),
+        None,
+        guard_timeout,
+    ) {
+        warnings.push(format!(
+            "interact download event guard unavailable: {error}"
+        ));
+    }
+    if let Err(error) = client.send(
+        "Page.setInterceptFileChooserDialog",
+        Some(json!({ "enabled": true })),
+        session_param(page),
+        guard_timeout,
+    ) {
+        warnings.push(format!("interact file chooser guard unavailable: {error}"));
+    }
+    let _ = client.take_hazard_events();
+    warnings
 }
 
 fn execute_action(
@@ -181,22 +256,22 @@ fn execute_action(
         }
         ActionDefinition::Click(action) => {
             run_action_script(client, page, &click_script(action), timeout)?;
-            enforce_same_origin(client, page, initial_url, page_timeout)?;
+            enforce_interact_boundary(client, page, initial_url, page_timeout)?;
             Ok(Vec::new())
         }
         ActionDefinition::Type(action) => {
             run_action_script(client, page, &type_script(action), timeout)?;
-            enforce_same_origin(client, page, initial_url, page_timeout)?;
+            enforce_interact_boundary(client, page, initial_url, page_timeout)?;
             Ok(Vec::new())
         }
         ActionDefinition::Select(action) => {
             run_action_script(client, page, &select_script(action), timeout)?;
-            enforce_same_origin(client, page, initial_url, page_timeout)?;
+            enforce_interact_boundary(client, page, initial_url, page_timeout)?;
             Ok(Vec::new())
         }
         ActionDefinition::Submit(action) => {
             run_action_script(client, page, &submit_script(action), timeout)?;
-            enforce_same_origin(client, page, initial_url, page_timeout)?;
+            enforce_interact_boundary(client, page, initial_url, page_timeout)?;
             Ok(Vec::new())
         }
         ActionDefinition::Capture(action) => {
@@ -553,7 +628,7 @@ fn run_action_script(
     Err(error_body(code, message))
 }
 
-fn enforce_same_origin(
+fn enforce_interact_boundary(
     client: &mut CdpClient,
     page: &PageSession,
     initial_url: &str,
@@ -561,6 +636,7 @@ fn enforce_same_origin(
 ) -> Result<(), crate::error::ErrorBody> {
     let deadline = Instant::now() + ACTION_BOUNDARY_SETTLE.min(timeout);
     loop {
+        fail_on_interact_hazard_events(&client.take_hazard_events(), initial_url, &page.target_id)?;
         let final_url = client
             .evaluate_string(
                 &page.session_id,
@@ -568,6 +644,7 @@ fn enforce_same_origin(
                 timeout.min(Duration::from_secs(1)),
             )
             .map_err(error_body_from_aget)?;
+        fail_on_interact_hazard_events(&client.take_hazard_events(), initial_url, &page.target_id)?;
         if !origins_match(initial_url, &final_url) {
             return Err(error_body(
                 ErrorCode::NavigationBlocked,
@@ -580,6 +657,97 @@ fn enforce_same_origin(
             return Ok(());
         }
         thread::sleep(Duration::from_millis(50));
+    }
+}
+
+fn fail_on_interact_hazard_events(
+    events: &[Value],
+    initial_url: &str,
+    current_target_id: &str,
+) -> Result<(), crate::error::ErrorBody> {
+    if let Some(body) = interact_hazard_error(events, initial_url, current_target_id) {
+        return Err(body);
+    }
+    Ok(())
+}
+
+fn interact_hazard_error(
+    events: &[Value],
+    initial_url: &str,
+    current_target_id: &str,
+) -> Option<crate::error::ErrorBody> {
+    for event in events {
+        let method = event
+            .get("method")
+            .and_then(Value::as_str)
+            .unwrap_or_default();
+        let params = event.get("params").unwrap_or(&Value::Null);
+        match method {
+            "Browser.downloadWillBegin" | "Browser.downloadProgress" => {
+                return Some(error_body(
+                    ErrorCode::RequiresConfirmation,
+                    "interact blocked browser download event",
+                ));
+            }
+            "Page.fileChooserOpened" => {
+                return Some(error_body(
+                    ErrorCode::RequiresConfirmation,
+                    "interact blocked file chooser event",
+                ));
+            }
+            "Page.javascriptDialogOpening" => {
+                return Some(error_body(
+                    ErrorCode::RequiresConfirmation,
+                    "interact blocked browser dialog event",
+                ));
+            }
+            "Page.windowOpen" => {
+                return Some(error_body(
+                    ErrorCode::RequiresConfirmation,
+                    "interact blocked popup/new window event",
+                ));
+            }
+            "Page.frameScheduledNavigation" => {
+                let url = params
+                    .get("url")
+                    .and_then(Value::as_str)
+                    .unwrap_or_default();
+                if !url.is_empty() && !origins_match(initial_url, url) {
+                    return Some(error_body(
+                        ErrorCode::NavigationBlocked,
+                        format!("interact blocked delayed cross-origin navigation to {url}"),
+                    ));
+                }
+            }
+            "Target.targetCreated" | "Target.attachedToTarget" => {
+                let target_info = params.get("targetInfo").unwrap_or(params);
+                let target_type = target_info
+                    .get("type")
+                    .and_then(Value::as_str)
+                    .unwrap_or_default();
+                let target_id = target_info
+                    .get("targetId")
+                    .and_then(Value::as_str)
+                    .unwrap_or_default();
+                if target_type == "page" && !target_id.is_empty() && target_id != current_target_id
+                {
+                    return Some(error_body(
+                        ErrorCode::RequiresConfirmation,
+                        "interact blocked popup/new page target event",
+                    ));
+                }
+            }
+            _ => {}
+        }
+    }
+    None
+}
+
+fn session_param(page: &PageSession) -> Option<&str> {
+    if page.session_id.is_empty() {
+        None
+    } else {
+        Some(page.session_id.as_str())
     }
 }
 
@@ -1047,6 +1215,24 @@ mod tests {
         assert!(combined.contains("window.prompt"));
         assert!(combined.contains("window.confirm"));
         assert!(combined.contains("requestSubmit"));
+        assert!(combined.contains("finally"));
+        assert!(combined.contains("window.open = oldOpen"));
+        assert!(combined.contains("HTMLAnchorElement.prototype.click = oldAnchorClick"));
+    }
+
+    #[test]
+    fn submit_script_uses_external_form_owner_for_form_controls() {
+        let script = submit_script(&SubmitAction {
+            name: None,
+            selector: "button[form=\"search\"]".to_string(),
+            confirm: true,
+            timeout_ms: None,
+        });
+
+        assert!(script.contains("element.form ||"));
+        assert!(script.contains("agetUnsafeForm(form)"));
+        assert!(script.contains("agetBlockedNavigation(form || element)"));
+        assert!(script.contains("form.requestSubmit(element)"));
     }
 
     #[test]
@@ -1096,5 +1282,42 @@ mod tests {
             "https://example.com/app",
             "https://other.example/app"
         ));
+    }
+
+    #[test]
+    fn interact_hazard_events_map_to_action_errors() {
+        let download = serde_json::json!({"method": "Browser.downloadWillBegin", "params": {"url": "https://example.com/file"}});
+        assert_eq!(
+            interact_hazard_error(&[download], "https://example.com/app", "page-1")
+                .unwrap()
+                .code,
+            ErrorCode::RequiresConfirmation
+        );
+
+        let popup = serde_json::json!({"method": "Target.targetCreated", "params": {"targetInfo": {"targetId": "page-2", "type": "page"}}});
+        assert_eq!(
+            interact_hazard_error(&[popup], "https://example.com/app", "page-1")
+                .unwrap()
+                .code,
+            ErrorCode::RequiresConfirmation
+        );
+
+        let same_target = serde_json::json!({"method": "Target.targetCreated", "params": {"targetInfo": {"targetId": "page-1", "type": "page"}}});
+        assert!(
+            interact_hazard_error(&[same_target], "https://example.com/app", "page-1").is_none()
+        );
+
+        let cross_origin = serde_json::json!({"method": "Page.frameScheduledNavigation", "params": {"url": "https://other.example/app"}});
+        assert_eq!(
+            interact_hazard_error(&[cross_origin], "https://example.com/app", "page-1")
+                .unwrap()
+                .code,
+            ErrorCode::NavigationBlocked
+        );
+
+        let same_origin = serde_json::json!({"method": "Page.frameScheduledNavigation", "params": {"url": "https://example.com/next"}});
+        assert!(
+            interact_hazard_error(&[same_origin], "https://example.com/app", "page-1").is_none()
+        );
     }
 }

@@ -131,10 +131,35 @@ impl CdpClient {
         let Ok(message) = serde_json::from_str::<Value>(text) else {
             return Ok(None);
         };
+        self.record_hazard_event_if_needed(&message);
         if self.auto_handle_dialog_if_needed(&message)? {
             return Ok(None);
         }
         Ok(Some(message))
+    }
+
+    pub(in crate::browser_cdp) fn take_hazard_events(&mut self) -> Vec<Value> {
+        std::mem::take(&mut self.hazard_events)
+    }
+
+    fn record_hazard_event_if_needed(&mut self, message: &Value) {
+        let Some(method) = message.get("method").and_then(Value::as_str) else {
+            return;
+        };
+        if matches!(
+            method,
+            "Browser.downloadWillBegin"
+                | "Browser.downloadProgress"
+                | "Page.fileChooserOpened"
+                | "Page.frameScheduledNavigation"
+                | "Page.javascriptDialogOpening"
+                | "Page.windowOpen"
+                | "Target.attachedToTarget"
+                | "Target.targetCreated"
+        ) && self.hazard_events.len() < 64
+        {
+            self.hazard_events.push(message.clone());
+        }
     }
 
     fn auto_handle_dialog_if_needed(&mut self, message: &Value) -> Result<bool, AgetError> {

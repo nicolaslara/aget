@@ -4,6 +4,7 @@ use assert_cmd::Command;
 
 use super::support::{
     mock_current_tab_interact_cdp_server, mock_current_tab_interact_cdp_server_with_page,
+    mock_current_tab_interact_cdp_server_with_page_and_location_error,
 };
 
 #[test]
@@ -264,6 +265,279 @@ fn interact_current_tab_reports_action_failure_from_cdp() {
     assert_eq!(result["ok"], false);
     assert_eq!(result["actions"][0]["status"], "failed");
     assert_eq!(result["actions"][0]["error"]["code"], "selector_not_found");
+    server.join().unwrap();
+}
+
+#[test]
+fn interact_current_tab_blocks_delayed_popup_target_event() {
+    let temp = tempfile::tempdir().unwrap();
+    let actions = temp.path().join("actions.json");
+    fs::write(
+        &actions,
+        r#"{
+          "schema_version": "aget.actions.v1",
+          "actions": [
+            {"type": "click", "selector": "button#open"}
+          ]
+        }"#,
+    )
+    .unwrap();
+    let (port, server) = mock_current_tab_interact_cdp_server(
+        "https://example.com/app",
+        vec![serde_json::json!({
+            "__events": [
+                {"method": "Target.targetCreated", "params": {"targetInfo": {"targetId": "page-2", "type": "page", "url": "https://example.com/popup"}}}
+            ],
+            "__result": {"ok": true}
+        })],
+    );
+
+    let output = Command::cargo_bin("aget")
+        .unwrap()
+        .env("AGET_HOME", temp.path().join("home"))
+        .args([
+            "--envelope",
+            "json",
+            "interact",
+            "current-tab",
+            "--cdp-port",
+            &port.to_string(),
+            "--actions",
+        ])
+        .arg(&actions)
+        .args(["--allow-actions", "--allow-private-content"])
+        .assert()
+        .failure()
+        .get_output()
+        .stdout
+        .clone();
+
+    let envelope: serde_json::Value = serde_json::from_slice(&output).unwrap();
+    assert_eq!(envelope["error"]["code"], "requires_confirmation");
+    assert_eq!(envelope["data"]["actions"]["failed_index"], 0);
+    assert!(envelope["error"]["message"]
+        .as_str()
+        .unwrap()
+        .contains("popup"));
+    server.join().unwrap();
+}
+
+#[test]
+fn interact_current_tab_blocks_download_event() {
+    let temp = tempfile::tempdir().unwrap();
+    let actions = temp.path().join("actions.json");
+    fs::write(
+        &actions,
+        r#"{
+          "schema_version": "aget.actions.v1",
+          "actions": [
+            {"type": "click", "selector": "button#download"}
+          ]
+        }"#,
+    )
+    .unwrap();
+    let (port, server) = mock_current_tab_interact_cdp_server(
+        "https://example.com/app",
+        vec![serde_json::json!({
+            "__events": [
+                {"method": "Browser.downloadWillBegin", "params": {"url": "https://example.com/file.csv"}}
+            ],
+            "__result": {"ok": true}
+        })],
+    );
+
+    let output = Command::cargo_bin("aget")
+        .unwrap()
+        .env("AGET_HOME", temp.path().join("home"))
+        .args([
+            "--envelope",
+            "json",
+            "interact",
+            "current-tab",
+            "--cdp-port",
+            &port.to_string(),
+            "--actions",
+        ])
+        .arg(&actions)
+        .args(["--allow-actions", "--allow-private-content"])
+        .assert()
+        .failure()
+        .get_output()
+        .stdout
+        .clone();
+
+    let envelope: serde_json::Value = serde_json::from_slice(&output).unwrap();
+    assert_eq!(envelope["error"]["code"], "requires_confirmation");
+    assert_eq!(envelope["data"]["actions"]["failed_index"], 0);
+    assert!(envelope["error"]["message"]
+        .as_str()
+        .unwrap()
+        .contains("download"));
+    server.join().unwrap();
+}
+
+#[test]
+fn interact_current_tab_blocks_capture_hazard_event() {
+    let temp = tempfile::tempdir().unwrap();
+    let actions = temp.path().join("actions.json");
+    fs::write(
+        &actions,
+        r#"{
+          "schema_version": "aget.actions.v1",
+          "actions": [
+            {"type": "capture", "name": "main", "selector": "main", "html": true}
+          ]
+        }"#,
+    )
+    .unwrap();
+    let (port, server) = mock_current_tab_interact_cdp_server_with_page(
+        "https://example.com/app",
+        "<html><body><main><h1>Saved before hazard</h1></main></body></html>",
+        None,
+        vec![serde_json::json!({
+            "__events": [
+                {"method": "Page.windowOpen", "params": {"url": "https://example.com/popup"}}
+            ],
+            "__result": {"ok": true, "html": "<main><h1>Saved before hazard</h1></main>"}
+        })],
+    );
+
+    let output = Command::cargo_bin("aget")
+        .unwrap()
+        .env("AGET_HOME", temp.path().join("home"))
+        .args([
+            "--envelope",
+            "json",
+            "interact",
+            "current-tab",
+            "--cdp-port",
+            &port.to_string(),
+            "--actions",
+        ])
+        .arg(&actions)
+        .args(["--allow-actions", "--allow-private-content"])
+        .assert()
+        .failure()
+        .get_output()
+        .stdout
+        .clone();
+
+    let envelope: serde_json::Value = serde_json::from_slice(&output).unwrap();
+    assert_eq!(envelope["error"]["code"], "requires_confirmation");
+    assert_eq!(envelope["data"]["actions"]["failed_index"], 0);
+    let result_path = envelope["data"]["artifacts"]["actions_result"]
+        .as_str()
+        .unwrap();
+    let result: serde_json::Value =
+        serde_json::from_str(&fs::read_to_string(result_path).unwrap()).unwrap();
+    assert_eq!(result["actions"][0]["status"], "failed");
+    assert_eq!(result["actions"][0]["artifacts"][0]["kind"], "capture-html");
+    server.join().unwrap();
+}
+
+#[test]
+fn interact_current_tab_blocks_delayed_cross_origin_navigation_event() {
+    let temp = tempfile::tempdir().unwrap();
+    let actions = temp.path().join("actions.json");
+    fs::write(
+        &actions,
+        r#"{
+          "schema_version": "aget.actions.v1",
+          "actions": [
+            {"type": "click", "selector": "button#next"}
+          ]
+        }"#,
+    )
+    .unwrap();
+    let (port, server) = mock_current_tab_interact_cdp_server(
+        "https://example.com/app",
+        vec![serde_json::json!({
+            "__events": [
+                {"method": "Page.frameScheduledNavigation", "params": {"url": "https://other.example/app"}}
+            ],
+            "__result": {"ok": true}
+        })],
+    );
+
+    let output = Command::cargo_bin("aget")
+        .unwrap()
+        .env("AGET_HOME", temp.path().join("home"))
+        .args([
+            "--envelope",
+            "json",
+            "interact",
+            "current-tab",
+            "--cdp-port",
+            &port.to_string(),
+            "--actions",
+        ])
+        .arg(&actions)
+        .args(["--allow-actions", "--allow-private-content"])
+        .assert()
+        .failure()
+        .get_output()
+        .stdout
+        .clone();
+
+    let envelope: serde_json::Value = serde_json::from_slice(&output).unwrap();
+    assert_eq!(envelope["error"]["code"], "navigation_blocked");
+    assert_eq!(envelope["data"]["actions"]["failed_index"], 0);
+    server.join().unwrap();
+}
+
+#[test]
+fn interact_current_tab_attributes_post_action_cdp_failure_to_current_index() {
+    let temp = tempfile::tempdir().unwrap();
+    let actions = temp.path().join("actions.json");
+    fs::write(
+        &actions,
+        r#"{
+          "schema_version": "aget.actions.v1",
+          "actions": [
+            {"type": "wait", "duration_ms": 1},
+            {"type": "click", "selector": "button#next"}
+          ]
+        }"#,
+    )
+    .unwrap();
+    let (port, server) = mock_current_tab_interact_cdp_server_with_page_and_location_error(
+        "https://example.com/app",
+        "<html><body><button id=\"next\">Next</button></body></html>",
+        None,
+        vec![serde_json::json!({"ok": true})],
+        Some(3),
+    );
+
+    let output = Command::cargo_bin("aget")
+        .unwrap()
+        .env("AGET_HOME", temp.path().join("home"))
+        .args([
+            "--envelope",
+            "json",
+            "interact",
+            "current-tab",
+            "--cdp-port",
+            &port.to_string(),
+            "--actions",
+        ])
+        .arg(&actions)
+        .args(["--allow-actions", "--allow-private-content"])
+        .assert()
+        .failure()
+        .get_output()
+        .stdout
+        .clone();
+
+    let envelope: serde_json::Value = serde_json::from_slice(&output).unwrap();
+    assert_eq!(envelope["error"]["code"], "extraction_failed");
+    assert_eq!(envelope["data"]["actions"]["failed_index"], 1);
+    let result_path = envelope["data"]["artifacts"]["actions_result"]
+        .as_str()
+        .unwrap();
+    let result: serde_json::Value =
+        serde_json::from_str(&fs::read_to_string(result_path).unwrap()).unwrap();
+    assert_eq!(result["actions"][0]["status"], "ok");
+    assert_eq!(result["actions"][1]["status"], "failed");
     server.join().unwrap();
 }
 

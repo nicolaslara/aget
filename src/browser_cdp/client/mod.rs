@@ -1,6 +1,7 @@
 use std::net::TcpStream;
 use std::time::{Duration, Instant};
 
+use serde_json::Value;
 use tungstenite::stream::MaybeTlsStream;
 use tungstenite::WebSocket;
 
@@ -25,4 +26,5 @@ pub(super) struct CdpClient {
     direct_page_connection: bool,
     keepalive_interval: Duration,
     last_keepalive: Instant,
+    hazard_events: Vec<Value>,
 }

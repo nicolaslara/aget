@@ -351,6 +351,19 @@ the CLI envelope in a thin host-specific tool.
   OpenCode tools, scripts, tests, and source identifiers. The ACT-006 cleanup
   renamed remaining owned HTML-cleaning constants to `AGET_*` names; historical
   source-project notes remain in workpads/references only.
+- ACT-007 adds CDP event collection as the browser-side safety layer for
+  interact. The command best-effort enables target discovery, download deny
+  events, and file-chooser interception, then treats download, file chooser,
+  dialog, popup/new-target, and delayed cross-origin navigation events as
+  action failures with stable envelope codes.
+- ACT-007 keeps DOM monkeypatches scoped to each action script with `finally`
+  restoration and adds event checks after every action, including read-like
+  capture/extract actions, so queued CDP hazards cannot be missed just because
+  the action itself did not run a mutation boundary.
+- ACT-007 records unsupported browser guard setup as warnings instead of
+  aborting immediately. This preserves current-tab diagnostics on older or
+  narrower CDP surfaces while still failing if a guarded hazard event is
+  observed during the action run.
 
 ## Execution Order
 

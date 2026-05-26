@@ -25,6 +25,7 @@ impl CdpClient {
             direct_page_connection: is_direct_page_ws_url(ws_url),
             keepalive_interval: CDP_KEEPALIVE_INTERVAL,
             last_keepalive: Instant::now(),
+            hazard_events: Vec::new(),
         })
     }
 }

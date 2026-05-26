@@ -954,7 +954,7 @@ Status note:
   source-project names. `bun test`, OpenCode bundle build, help grep,
   `git diff --check`, and full `cargo test` pass.
 
-### 📋 Task ACT-007: Harden interact browser event boundaries
+### ✅ Task ACT-007: Harden interact browser event boundaries
 
 Depends on: ACT-004.
 
@@ -973,7 +973,16 @@ Acceptance criteria:
 
 Status note:
 
-- Pending hardening task from the ACT-004 review. ACT-004 blocks direct DOM
-  mutation hazards and short delayed events, but event-level browser
-  enforcement needs a separate CDP-focused slice before claiming broader
-  delayed-download/new-target coverage.
+- Completed with CDP event-level hardening for interact actions. The executor
+  best-effort installs target discovery, download-deny events, and file chooser
+  interception; records hazard events from CDP; and converts download,
+  file-chooser, dialog, popup/new-target, and delayed cross-origin navigation
+  events into stable action failures. Action scripts restore temporary
+  monkeypatches in `finally`, submit guards account for external `form=`
+  controls, and queued hazards are checked after every action so capture/extract
+  paths are covered too. Focused tests cover delayed popup, browser download,
+  delayed cross-origin navigation, capture-time hazards, post-action CDP
+  failure attribution at index greater than zero, external form owner handling,
+  and hazard error mapping. Validation: `cargo fmt --check`, focused
+  interact library/CLI/binary tests, `cargo check --tests`,
+  `git diff --check`, and full `cargo test` pass.
