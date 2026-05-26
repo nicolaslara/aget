@@ -67,6 +67,10 @@ Before running `aget`, choose these deliberately.
 - **Need a bounded section of a site**: use `aget crawl <url> --limit <n>`.
   Keep same-origin/same-path defaults unless the user explicitly approves a
   wider scope.
+- **Need relevant sections inside one fetched page**: use
+  `aget search-page --artifact <run-id> --query <text>` after fetching the page.
+  Use `--allow-private-content` only when the user has approved snippets from a
+  sensitive artifact.
 - **Need prior run metadata or local files**: use `aget artifacts list` and
   `aget artifacts inspect <run-id>` before reading large or sensitive files.
 - **Tool or environment looks broken**: use `aget doctor --quick` before

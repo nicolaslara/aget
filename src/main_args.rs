@@ -56,6 +56,10 @@ pub(crate) fn command_name_from_args(args: &[OsString]) -> &'static str {
         return "crawl";
     }
 
+    if tokens.contains(&"search-page") {
+        return "search-page";
+    }
+
     if tokens.contains(&"get")
         || tokens
             .iter()

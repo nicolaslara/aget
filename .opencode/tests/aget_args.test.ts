@@ -6,6 +6,7 @@ import {
   buildCrawlArgs,
   buildDoctorArgs,
   buildMapArgs,
+  buildSearchPageArgs,
 } from "../lib/aget_args"
 
 test("builds batch args with repeated sessions and output directory", () => {
@@ -103,6 +104,23 @@ test("builds crawl args with required limit and traversal bounds", () => {
 test("builds artifact and doctor args", () => {
   expect(buildArtifactsListArgs()).toEqual(["artifacts", "list"])
   expect(buildArtifactsInspectArgs("run-456")).toEqual(["artifacts", "inspect", "run-456"])
+  expect(
+    buildSearchPageArgs({
+      artifact: "run-789",
+      query: "install instructions",
+      max_results: 4,
+      allow_private_content: true,
+    }),
+  ).toEqual([
+    "search-page",
+    "--artifact",
+    "run-789",
+    "--query",
+    "install instructions",
+    "--max-results",
+    "4",
+    "--allow-private-content",
+  ])
   expect(buildDoctorArgs({ quick: true, checks: ["binary", "opencode"] })).toEqual([
     "doctor",
     "--quick",

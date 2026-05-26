@@ -7,6 +7,7 @@ import {
   buildDoctorArgs,
   buildFetchArgs,
   buildMapArgs,
+  buildSearchPageArgs,
 } from "../lib/aget_args"
 
 type ToolContext = {
@@ -217,6 +218,21 @@ export const crawl = tool({
   },
   async execute(args, context) {
     return runAget(buildCrawlArgs(args), context)
+  },
+})
+
+export const search_page = tool({
+  description:
+    "Search snippets from an existing aget get artifact with deterministic local keyword/heading scoring. Use this after fetching a large page when the agent needs relevant sections without reading the full artifact.",
+  args: {
+    artifact: tool.schema.string().describe("Internal aget get run ID to search."),
+    query: tool.schema.string().describe("Keyword or objective text to search for."),
+    max_results: tool.schema.number().int().positive().optional().describe("Maximum snippets to emit."),
+    context_chars: tool.schema.number().int().positive().optional().describe("Approximate characters to keep around each match."),
+    allow_private_content: tool.schema.boolean().optional().describe("Allow snippets from artifacts marked sensitive after user approval."),
+  },
+  async execute(args, context) {
+    return runAget(buildSearchPageArgs(args), context)
   },
 })
 

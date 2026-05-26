@@ -8,7 +8,8 @@ fn top_level_help_includes_global_flags() {
     cmd.arg("--help").assert().success().stdout(
         predicate::str::contains("--envelope")
             .and(predicate::str::contains("--timeout"))
-            .and(predicate::str::contains("get")),
+            .and(predicate::str::contains("get"))
+            .and(predicate::str::contains("search-page")),
     );
 }
 
@@ -113,6 +114,22 @@ fn crawl_help_is_available() {
             .and(predicate::str::contains("--allow-domain"))
             .and(predicate::str::contains("--output-dir")),
     );
+}
+
+#[test]
+fn search_page_help_is_available() {
+    let mut cmd = Command::cargo_bin("aget").unwrap();
+
+    cmd.args(["search-page", "--help"])
+        .assert()
+        .success()
+        .stdout(
+            predicate::str::contains("Usage: aget search-page")
+                .and(predicate::str::contains("--artifact"))
+                .and(predicate::str::contains("--query"))
+                .and(predicate::str::contains("--max-results"))
+                .and(predicate::str::contains("--allow-private-content")),
+        );
 }
 
 #[test]

@@ -6,4 +6,5 @@ mod doctor;
 mod get;
 mod global;
 mod map;
+mod search_page;
 mod session;

@@ -17,6 +17,8 @@ Normal use does not require external scraper or browser-control tools.
   discovery without recursive fetching.
 - `aget crawl <url> --limit <n>` for same-origin/path-bounded traversal with a
   manifest and per-page artifacts.
+- `aget search-page --artifact <run-id> --query <text>` for deterministic local
+  snippet search over existing page artifacts.
 - `aget doctor` for local readiness diagnostics.
 - `aget artifacts ...` for listing, inspecting, deleting, and pruning local run
   artifacts under `AGET_HOME`.
@@ -172,6 +174,12 @@ aget --envelope json crawl https://example.com/docs/ \
   --concurrency 2
 ```
 
+Search a prior page artifact:
+
+```bash
+aget --envelope json search-page --artifact run-123 --query "install instructions"
+```
+
 ## Command Reference
 
 Top-level commands:
@@ -182,6 +190,7 @@ aget batch <url> [<url>...]
 aget map <url>
 aget map --artifact <run-id>
 aget crawl <url> --limit <n>
+aget search-page --artifact <run-id> --query <text>
 aget current-tab --cdp-port <port> --allow-private-content
 aget session <command>
 aget artifacts <command>
@@ -305,6 +314,22 @@ per-page artifacts under `--output-dir` or a local `AGET_HOME` run directory.
 Traversal defaults to the start URL's origin and path prefix; `--any-origin`,
 `--any-path`, and `--allow-domain` must be explicit. Crawl records partial
 failures in the manifest and returns a non-zero exit code when any page fails.
+
+`aget search-page`:
+
+```text
+aget search-page --artifact <run-id> --query <text>
+  [--max-results <n>]
+  [--context-chars <n>]
+  [--allow-private-content]
+  [--output <markdown|json>]
+  [--envelope <json|none>]
+```
+
+`aget search-page` reads an existing successful `get` artifact, scores local
+sections by heading and keyword matches, and writes `search-results.json` plus
+`search-results.md` under a fresh local run directory. Sensitive artifacts
+require `--allow-private-content` before snippets are emitted.
 
 `aget current-tab`:
 
@@ -542,6 +567,7 @@ Available tools:
 - `aget_batch`
 - `aget_map`
 - `aget_crawl`
+- `aget_search_page`
 - `aget_artifacts_list`
 - `aget_artifacts_inspect`
 - `aget_doctor`

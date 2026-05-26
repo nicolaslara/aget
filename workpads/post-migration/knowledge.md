@@ -217,6 +217,13 @@ the CLI envelope in a thin host-specific tool.
 - CACHE-001 usage metadata is approximate budgeting data, not tokenizer-exact
   accounting. It reports fetched bytes when known, final content bytes, rough
   token estimates, and rough token-saved estimates.
+- SEARCH-001 starts as artifact-first deterministic narrowing through
+  `aget search-page --artifact <run-id> --query <text>`. It does not refetch
+  pages or call an LLM; it scores existing local artifact sections by headings,
+  phrase/keyword matches, and structured lines such as links, lists, and tables.
+- SEARCH-001 treats snippets from sensitive artifacts as private content. A
+  sensitive source artifact requires `--allow-private-content` before snippets
+  are emitted in human output or JSON envelopes.
 
 ## Execution Order
 

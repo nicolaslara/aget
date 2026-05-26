@@ -23,8 +23,8 @@ pub use cli::{
     ImportChromeSessionCommand, ImportCmuxSessionCommand, ImportSessionCommand,
     ImportSessionSource, InlineContent, InspectArtifactCommand, InspectSessionCommand,
     LoginCancelCommand, LoginFinishCommand, LoginSessionCommand, LoginSessionSubcommand,
-    LoginStartCommand, MapCommand, MapOutput, OutputFormat, PruneArtifactsCommand, SessionCommand,
-    SessionSubcommand,
+    LoginStartCommand, MapCommand, MapOutput, OutputFormat, PruneArtifactsCommand,
+    SearchPageCommand, SearchPageOutput, SessionCommand, SessionSubcommand,
 };
 pub use error::{AgetError, ErrorCode, ErrorResponse, ENVELOPE_SCHEMA_VERSION};
 pub use extraction::{

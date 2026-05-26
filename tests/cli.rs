@@ -14,5 +14,7 @@ mod get;
 mod help;
 #[path = "cli/map.rs"]
 mod map;
+#[path = "cli/search_page.rs"]
+mod search_page;
 #[path = "cli/support.rs"]
 mod support;

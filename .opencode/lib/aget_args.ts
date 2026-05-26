@@ -177,6 +177,22 @@ export function buildCrawlArgs(input: CrawlArgs): string[] {
   return cliArgs
 }
 
+export type SearchPageArgs = {
+  artifact: string
+  query: string
+  max_results?: number
+  context_chars?: number
+  allow_private_content?: boolean
+}
+
+export function buildSearchPageArgs(input: SearchPageArgs): string[] {
+  const cliArgs = ["search-page", "--artifact", input.artifact, "--query", input.query]
+  addOptional(cliArgs, "--max-results", input.max_results)
+  addOptional(cliArgs, "--context-chars", input.context_chars)
+  addFlag(cliArgs, "--allow-private-content", input.allow_private_content)
+  return cliArgs
+}
+
 export function buildArtifactsListArgs(): string[] {
   return ["artifacts", "list"]
 }

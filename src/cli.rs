@@ -11,6 +11,7 @@ mod current_tab;
 mod doctor;
 mod get;
 mod map;
+mod search_page;
 mod session;
 #[cfg(test)]
 mod tests;
@@ -25,6 +26,7 @@ pub use current_tab::CurrentTabCommand;
 pub use doctor::{DoctorCheck, DoctorCommand};
 pub use get::GetCommand;
 pub use map::{MapCommand, MapOutput};
+pub use search_page::{SearchPageCommand, SearchPageOutput};
 pub use session::{
     AuthorizeSessionCommand, BrowserChoice, ComposeSessionCommand, DeleteSessionCommand,
     ImportBrowserSessionCommand, ImportChromeSessionCommand, ImportCmuxSessionCommand,
@@ -88,6 +90,8 @@ pub enum Command {
     Map(MapCommand),
     /// Traverse and fetch pages with explicit bounded limits.
     Crawl(CrawlCommand),
+    /// Search snippets from an existing page artifact.
+    SearchPage(SearchPageCommand),
     /// Extract the selected tab from an existing local browser CDP port.
     CurrentTab(CurrentTabCommand),
     /// Manage local auth/session state.
@@ -200,7 +204,15 @@ fn alias_url_index(args: &[OsString]) -> Option<usize> {
         let arg = arg.to_string_lossy();
         if matches!(
             arg.as_ref(),
-            "get" | "batch" | "map" | "crawl" | "current-tab" | "session" | "artifacts" | "doctor"
+            "get"
+                | "batch"
+                | "map"
+                | "crawl"
+                | "search-page"
+                | "current-tab"
+                | "session"
+                | "artifacts"
+                | "doctor"
         ) {
             saw_command = true;
         }

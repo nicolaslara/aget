@@ -550,7 +550,7 @@ Status note:
   `raw:`, and `file://` content out of reusable cache entries. Tests cover
   hit/miss, stale refresh, metadata shape, and session-backed ineligibility.
 
-### 📋 Task SEARCH-001: Add objective and keyword narrowing
+### ✅ Task SEARCH-001: Add objective and keyword narrowing
 
 Depends on: ART-002.
 
@@ -570,8 +570,12 @@ Acceptance criteria:
 
 Status note:
 
-- Pending. `--selector` and `--max-chars` exist, but agents still lack a
-  first-class way to find relevant sections by objective or keyword.
+- Completed with artifact-first `aget search-page --artifact <run-id> --query
+  <text>`. The command uses deterministic local section scoring over existing
+  page artifacts, writes JSON/markdown search result artifacts, returns
+  snippets with section IDs and character offsets, handles no-match output
+  without failure, and requires `--allow-private-content` before emitting
+  snippets from sensitive artifacts. OpenCode exposes `aget_search_page`.
 
 ### 📋 Task EXTRACT-001: Add structured extraction from artifacts
 

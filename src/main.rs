@@ -10,6 +10,7 @@ mod main_crawl;
 mod main_doctor;
 mod main_envelope;
 mod main_map;
+mod main_search_page;
 mod main_session;
 
 use main_args::{args_request_json_envelope, command_name_from_args};
@@ -109,6 +110,10 @@ fn run(cli: Cli) -> Result<ExitCode, ErrorResponse> {
             .map_err(|error| error.with_command("map")),
         Command::Crawl(crawl) => main_crawl::run_crawl(crawl, structured_output, cli.global.quiet)
             .map_err(|error| error.with_command("crawl")),
+        Command::SearchPage(search_page) => {
+            main_search_page::run_search_page(search_page, structured_output, cli.global.quiet)
+                .map_err(|error| error.with_command("search-page"))
+        }
         Command::CurrentTab(current_tab) => (|| {
             let aget = Aget::from_env()
                 .map_err(io_error)?

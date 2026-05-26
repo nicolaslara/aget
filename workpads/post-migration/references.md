@@ -963,3 +963,63 @@ Review note:
   newlines, normalize backend-option order in cache keys, expose cache/usage
   metadata through multi-URL manifests, and treat malformed cache entries as
   misses instead of blocking fresh fetches.
+
+## SEARCH-001 Artifact Page Search: 2026-05-26
+
+Implemented surfaces:
+
+- `aget search-page --artifact <run-id> --query <text>`
+- `--max-results <n>`
+- `--context-chars <n>`
+- `--allow-private-content`
+- `--output <markdown|json>`
+- OpenCode wrapper `aget_search_page`
+
+Design decisions:
+
+- Search is artifact-first and reads an existing successful `get` run. It does
+  not fetch URLs, run browser automation, or call an LLM.
+- Ranking is deterministic and local. It scores markdown-ish sections by
+  heading phrase matches, body phrase matches, keyword counts, and structured
+  lines such as links, lists, and table rows.
+- Results include section IDs, heading context, snippets, scores, and character
+  offsets. Full source artifact content is not embedded in the search envelope.
+- Sensitive artifacts require `--allow-private-content` before snippets are
+  emitted.
+
+Focused validation:
+
+```bash
+cargo test --lib cli::tests::search_page
+cargo test --test cli search_page
+cd .opencode && bun test tests/aget_args.test.ts
+cd .opencode && bun -e 'import("./tools/aget.ts").then((m) => console.log(Object.keys(m).sort().join("\n")))'
+cargo run --quiet -- search-page --help | rg -- '--artifact|--query|--max-results|--allow-private-content'
+```
+
+Final validation gate:
+
+```bash
+cargo fmt --check
+git diff --check
+cargo test
+rg -n 'Crawl4AI|crawl4ai|agent-browser|AGET_CRAWL4AI_COMMAND|AGET_AGENT_BROWSER_COMMAND|AgentBrowser|agent_browser' \
+  README.md skills/aget/SKILL.md .opencode/tools/aget.ts src tests scripts -S
+```
+
+Validation result:
+
+- Parser and help tests cover the `search-page` CLI surface.
+- CLI integration tests cover heading/keyword ranking, empty no-match output,
+  and sensitive artifact consent before snippet emission.
+- OpenCode argument snapshots cover `search-page`, and tool export smoke shows
+  `search_page` as an actual wrapper.
+- `cargo fmt --check`, `git diff --check`, and full `cargo test` passed.
+- Stale dependency-surface grep returned no active matches.
+
+Review note:
+
+- Local review focused on privacy and artifact lifecycle compatibility. Accepted
+  fixes: write `metadata.json` for search runs so artifact lifecycle commands
+  can inspect/prune them, and include source URL/finality/sensitivity metadata
+  without embedding full source content in the search envelope.
