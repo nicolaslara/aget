@@ -796,7 +796,7 @@ Status note:
   Static extraction emits a warning instead of launching Chrome solely for a
   screenshot. Focused tests and the full `cargo test` gate pass.
 
-### 📋 Task ACT-001: Design safe generic interact/actions model
+### ✅ Task ACT-001: Design safe generic interact/actions model
 
 Depends on: SEARCH-001, DEBUG-001.
 
@@ -814,5 +814,102 @@ Acceptance criteria:
 
 Status note:
 
-- Pending design task. Interact/actions are high value for authenticated app
-  flows, but they need a stricter safety and audit model before implementation.
+- Completed in `workpads/post-migration/interact-actions-design.md`. The
+  design chooses a file-driven `aget interact` command with required
+  `--allow-actions`, layered private-content and sensitive-input consent,
+  redacted action audit artifacts, bounded action/time limits, confirmation
+  boundaries for mutating or cross-origin behavior, JSON envelope and artifact
+  shape, failure codes, and deterministic fake-browser/local-page test
+  strategy. No browser action implementation was added in this design pass.
+
+### 📋 Task ACT-002: Add interact action schema and audit redaction
+
+Depends on: ACT-001.
+
+Acceptance criteria:
+
+- Add the `aget.actions.v1` JSON schema/parser for `wait`, `click`, `type`,
+  `select`, `submit`, `capture`, and `extract` action definitions.
+- Validate action count, unknown fields, invalid selectors, duplicate capture
+  names, missing required fields, submit confirmation, and sensitive typing
+  consent.
+- Write normalized redacted `actions-request.json` artifacts without storing
+  literal sensitive typed values.
+- Add deterministic unit tests for validation and redaction behavior.
+
+Status note:
+
+- Pending implementation task.
+
+### 📋 Task ACT-003: Add interact CLI envelope and fake executor seam
+
+Depends on: ACT-002.
+
+Acceptance criteria:
+
+- Add the `aget interact` command shape and structured `--envelope json`
+  output without requiring real CDP actions yet.
+- Persist `metadata.json`, `actions-request.json`, and `actions-result.json`
+  under internal run artifacts for success and failure cases.
+- Define how interact failure envelopes carry partial run metadata, either by
+  extending shared error responses with optional data or by adding a
+  command-specific failure printer.
+- Introduce a fake-browser action executor seam for CLI-level tests of action
+  sequencing, timeout handling, confirmation boundaries, and partial failures.
+- Ensure `artifacts inspect/delete/prune` understands action audit artifacts.
+
+Status note:
+
+- Pending implementation task.
+
+### 📋 Task ACT-004: Implement mutation-safe browser actions
+
+Depends on: ACT-003.
+
+Acceptance criteria:
+
+- Implement CDP-backed `wait`, `click`, `type`, `select`, and `submit` actions
+  against deterministic local pages.
+- Enforce unique selector rules for mutation actions.
+- Enforce submit, password-field, dialog, popup, download, and cross-origin
+  confirmation boundaries.
+- Add focused local-browser or mock-CDP tests for success and failure paths.
+
+Status note:
+
+- Pending implementation task.
+
+### 📋 Task ACT-005: Implement interact capture and extract actions
+
+Depends on: ACT-003, ACT-004.
+
+Acceptance criteria:
+
+- Implement `capture` actions using existing screenshot/debug artifact policy.
+- Implement `extract` actions through the owned extraction pipeline against the
+  current page DOM.
+- Apply existing inline-content defaults so sensitive runs write artifacts
+  rather than embedding private content by default.
+- Add tests for capture artifacts, extraction output, sensitivity metadata, and
+  lifecycle cleanup.
+
+Status note:
+
+- Pending implementation task.
+
+### 📋 Task ACT-006: Document and expose implemented interact wrappers
+
+Depends on: ACT-005.
+
+Acceptance criteria:
+
+- Update README and `skills/aget/SKILL.md` with safe `aget interact` guidance.
+- Add OpenCode wrapper support only as a thin CLI/envelope caller after the CLI
+  exists.
+- Keep guidance generic and avoid site-specific login/paywall/CAPTCHA advice.
+- Verify examples against current CLI help and run stale dependency-surface
+  grep.
+
+Status note:
+
+- Pending documentation/integration task.

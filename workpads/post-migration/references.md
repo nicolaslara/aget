@@ -1388,3 +1388,58 @@ Validation result:
 - Local review found no material follow-up findings. Privacy-sensitive behavior
   is covered by opt-in flags, trace content omission, sensitive metadata flags,
   and artifact lifecycle tests.
+
+## ACT-001 Safe Generic Interact / Actions Design: 2026-05-26
+
+Design artifact:
+
+- `workpads/post-migration/interact-actions-design.md`
+
+Current local surfaces reviewed:
+
+- `src/browser_cdp/render/mod.rs` and `src/browser_cdp/render/capture.rs` for
+  existing page capture, wait, screenshot, and current-tab CDP primitives.
+- `src/browser_cdp/client/page/mod.rs` and `src/browser_cdp/client/runtime.rs`
+  for current CDP command/error handling boundaries.
+- `src/aget/current_tab.rs` for current-tab private-content consent and
+  browser-backed extraction wiring.
+- `src/extraction/types.rs` and `src/extraction/artifacts/metadata.rs` for
+  envelope, artifact, debug-artifact, cache, usage, and metadata shapes.
+- `src/main_envelope.rs` for the structured envelope shell.
+- `workpads/post-migration/debug-artifacts-policy.md` for trace/screenshot
+  sensitivity and artifact lifecycle policy.
+
+Design decisions:
+
+- `aget interact` should be CLI-first and action-file driven. Every run requires
+  `--allow-actions`; current-tab and session-backed runs require
+  `--allow-private-content`.
+- The first action set is `wait`, `click`, `type`, `select`, `submit`,
+  `capture`, and `extract`.
+- Do not add arbitrary JavaScript, site-specific login/paywall/CAPTCHA logic,
+  hosted service APIs, daemon mode, or MCP.
+- Always write redacted `actions-request.json` and `actions-result.json`
+  artifacts. Sensitive typed values, cookies, localStorage, headers, and page
+  content must not appear in audit artifacts by default.
+- Partial-failure metadata needs explicit envelope support because the current
+  shared `ErrorResponse` has no `data` field.
+- Implementation should start with schema/redaction and a fake-browser CLI seam
+  before real CDP mutation actions.
+
+Validation:
+
+```bash
+git diff --check
+rg -n 'aget interact|allow-actions|actions-request|actions-result|unsafe_action|ACT-00' \
+  workpads/post-migration/interact-actions-design.md \
+  workpads/post-migration/tasks.md \
+  workpads/post-migration/knowledge.md \
+  workpads/post-migration/references.md
+```
+
+Review result:
+
+- Local design review found the acceptance criteria represented in the design:
+  action model, consent/private-content boundaries, audit/redaction, timeout and
+  confirmation rules, generic-only scope, envelope/artifact/failure semantics,
+  and deterministic test strategy. No implementation code was added.

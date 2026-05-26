@@ -271,6 +271,19 @@ the CLI envelope in a thin host-specific tool.
   extraction does not launch Chrome just to satisfy screenshot capture.
   Screenshot and trace artifact metadata inherits source sensitivity, and
   lifecycle commands continue to manage these files as internal run artifacts.
+- ACT-001 keeps interact/actions behind an explicit design gate. The approved
+  direction is a file-driven `aget interact` CLI command with required
+  `--allow-actions`, layered `--allow-private-content`,
+  `--allow-sensitive-input`, and `--allow-submit` consent, no arbitrary
+  JavaScript, and no site-specific login/paywall/CAPTCHA behavior.
+- Interact action plans should be auditable without leaking secrets. Future
+  runs should always write redacted `actions-request.json` and
+  `actions-result.json` artifacts; sensitive typed values, cookies,
+  localStorage, headers, and extracted page content must not appear in those
+  audit files by default.
+- Interact implementation should proceed in slices: schema/redaction first,
+  then CLI envelope plus fake-browser executor seam, then CDP mutation actions,
+  then capture/extract artifacts, then README/skill/OpenCode wrappers.
 
 ## Execution Order
 
@@ -284,3 +297,6 @@ Follow this order unless the user redirects:
 6. REL-001 and REL-002
 7. ART-001 and ART-002
 8. BACKLOG-001, then BATCH-001, MAP-001, CRAWL-001
+9. REL-003, REL-008, AGENT-001, CACHE-001, SEARCH-001, EXTRACT-001, REL-004,
+   REL-005, REL-006, REL-007, DEBUG-001
+10. ACT-001 through ACT-006 for safe generic interact/actions
