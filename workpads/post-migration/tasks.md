@@ -296,7 +296,7 @@ Status note:
   README install instructions name the produced artifact, and release-binary
   `doctor --quick` passed with `ok: true`.
 
-### 🚧 Task REL-003: Publish v0.1.0 GitHub release and define install path
+### ✅ Task REL-003: Publish v0.1.0 GitHub release and define install path
 
 Depends on: REL-002.
 
@@ -348,9 +348,15 @@ rm -rf "$tmpdir"
 
 Status note:
 
-- In progress. Start by updating install/skill guidance, regenerating the
-  macOS ARM artifact from the release commit, smoking the tarball path, then
-  publishing the GitHub Release with recorded evidence.
+- Completed with the published `v0.1.0` GitHub Release:
+  `https://github.com/nicolaslara/aget/releases/tag/v0.1.0`. The release
+  targets commit `b88ff890f0eb114ffdef380b85cd6637cdc5ccaa` and attaches the
+  macOS ARM tarball plus checksum files. The tarball includes `aget`,
+  `README.md`, `LICENSE`, and `skills/aget/SKILL.md`; SHA-256 is
+  `b02a6f348a5adfbfd280b7b915cc485095dd4f67990c04d700871e8b37763182`.
+  Downloaded-asset checksum, tarball `aget --version`, tarball
+  `doctor --quick`, packaged-skill install, local `cargo install --path`, and
+  fresh `cargo install --git ... aget` source-install smokes passed.
 
 ### ✅ Task ART-001: Design artifact lifecycle commands
 
@@ -597,6 +603,59 @@ Acceptance criteria:
 Status note:
 
 - Pending. Current release artifacts are produced manually on the local host.
+
+### 📋 Task REL-005: Define Homebrew tap/formula path
+
+Depends on: REL-003.
+
+Acceptance criteria:
+
+- Decide whether to publish a dedicated tap, contribute to an existing tap, or
+  defer Homebrew until multi-target automation exists.
+- Draft a formula for the published release artifact with SHA-256 verification.
+- Include install and smoke commands for `aget --version` and
+  `aget --envelope json doctor --quick`.
+- Record the decision and evidence in `references.md`.
+
+Status note:
+
+- Pending. `v0.1.0` is published as a GitHub Release, but there is no Homebrew
+  formula or tap path yet.
+
+### 📋 Task REL-006: Decide crates.io publish policy
+
+Depends on: REL-003.
+
+Acceptance criteria:
+
+- Decide whether `aget` should be published to crates.io now, later, or never.
+- Check package metadata needed for crates.io, including description, README,
+  license, repository, include/exclude rules, and workspace package shape.
+- If publishing is deferred, document the reason and keep `cargo install --git`
+  as the supported source install path.
+- Record the decision and any package dry-run evidence in `references.md`.
+
+Status note:
+
+- Pending. `cargo install --git ... aget` is verified for `v0.1.0`; crates.io
+  remains undecided.
+
+### 📋 Task REL-007: Add Windows artifact only after a real smoke path
+
+Depends on: REL-004.
+
+Acceptance criteria:
+
+- Define a Windows build and smoke environment for `aget --version`,
+  `doctor --quick`, static `get`, artifact commands, and no-command-path
+  behavior.
+- Keep Windows release artifacts unpublished until that smoke path passes.
+- If Windows support remains deferred, document the concrete blocker and the
+  minimum test matrix needed to publish confidently.
+
+Status note:
+
+- Pending. `v0.1.0` intentionally publishes no Windows artifact.
 
 ### 📋 Task DEBUG-001: Add screenshots and debug traces
 

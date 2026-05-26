@@ -186,6 +186,10 @@ the CLI envelope in a thin host-specific tool.
   README documents checkout and tarball skill installation into
   `$CODEX_HOME/skills/aget`, and Codex restart remains required after install
   or replacement.
+- REL-003 source install needs an explicit package argument:
+  `cargo install --git https://github.com/nicolaslara/aget --tag v0.1.0 --locked aget`.
+  The repository contains another binary package, so omitting `aget` causes
+  Cargo to reject the install.
 
 ## Execution Order
 

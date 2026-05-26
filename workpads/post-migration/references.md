@@ -726,5 +726,53 @@ Validation result:
 - Initial smoke without the explicit `aget` package argument failed because the
   repository also contains the `aget-mock-tools` binary package.
 - The corrected command with the explicit `aget` package installed `aget 0.1.0`
-  from `https://github.com/nicolaslara/aget?tag=v0.1.0#2b750a93`.
+  from `https://github.com/nicolaslara/aget?tag=v0.1.0#b88ff890`.
 - Installed source binary `doctor --quick` returned `ok: true`.
+
+Published release verification:
+
+```bash
+gh release view v0.1.0 --json url,tagName,targetCommitish,assets,isDraft,isPrerelease,name
+git ls-remote --tags origin v0.1.0
+tmpdir="$(mktemp -d)"
+gh release download v0.1.0 -D "$tmpdir/download"
+(cd "$tmpdir/download" && shasum -a 256 -c aget-v0.1.0-aarch64-apple-darwin.tar.gz.sha256)
+(cd "$tmpdir/download" && shasum -a 256 -c SHA256SUMS)
+tar -xzf "$tmpdir/download/aget-v0.1.0-aarch64-apple-darwin.tar.gz" -C "$tmpdir"
+"$tmpdir/aget-v0.1.0-aarch64-apple-darwin/aget" --version
+AGET_HOME="$tmpdir/aget-home" \
+  "$tmpdir/aget-v0.1.0-aarch64-apple-darwin/aget" --envelope json doctor --quick
+rg -n "cargo install --git" "$tmpdir/aget-v0.1.0-aarch64-apple-darwin/README.md"
+mkdir -p "$tmpdir/codex-home/skills"
+cp -R "$tmpdir/aget-v0.1.0-aarch64-apple-darwin/skills/aget" "$tmpdir/codex-home/skills/aget"
+test -f "$tmpdir/codex-home/skills/aget/SKILL.md"
+rm -rf "$tmpdir"
+tmpdir="$(mktemp -d)"
+CARGO_HOME="$tmpdir/cargo-home" \
+  cargo install --git https://github.com/nicolaslara/aget --tag v0.1.0 --locked --root "$tmpdir/install" aget
+"$tmpdir/install/bin/aget" --version
+AGET_HOME="$tmpdir/aget-home" "$tmpdir/install/bin/aget" --envelope json doctor --quick
+rm -rf "$tmpdir"
+```
+
+Validation result:
+
+- GitHub Release URL:
+  `https://github.com/nicolaslara/aget/releases/tag/v0.1.0`.
+- Release is published, not draft or prerelease.
+- Release target and remote `v0.1.0` tag both resolve to
+  `b88ff890f0eb114ffdef380b85cd6637cdc5ccaa`.
+- Uploaded assets are:
+  `aget-v0.1.0-aarch64-apple-darwin.tar.gz`,
+  `aget-v0.1.0-aarch64-apple-darwin.tar.gz.sha256`, and `SHA256SUMS`.
+- GitHub asset digest for the tarball is
+  `sha256:b02a6f348a5adfbfd280b7b915cc485095dd4f67990c04d700871e8b37763182`.
+- Downloaded checksums verified.
+- Downloaded tarball binary reported `aget 0.1.0` and `doctor --quick`
+  returned `ok: true`.
+- Downloaded tarball README contains the corrected source install command:
+  `cargo install --git https://github.com/nicolaslara/aget --tag v0.1.0 --locked aget`.
+- Downloaded tarball skill copied successfully into a temporary
+  `$CODEX_HOME/skills/aget`.
+- Fresh `CARGO_HOME` source install from `v0.1.0` installed `aget 0.1.0` from
+  commit `b88ff890` and `doctor --quick` returned `ok: true`.
