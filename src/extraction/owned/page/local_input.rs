@@ -108,6 +108,7 @@ mod tests {
             max_chars: None,
             cache_policy: crate::cli::CachePolicy::Off,
             cache_ttl: std::time::Duration::from_secs(0),
+            debug: Default::default(),
             backend_options: Vec::new(),
         };
         assert!(!should_route_local_input_through_browser(
@@ -137,6 +138,7 @@ mod tests {
             max_chars: None,
             cache_policy: crate::cli::CachePolicy::Off,
             cache_ttl: std::time::Duration::from_secs(0),
+            debug: Default::default(),
             backend_options: Vec::new(),
         };
 

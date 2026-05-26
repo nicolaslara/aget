@@ -134,6 +134,7 @@ where
                 max_chars: None,
                 cache_policy: crate::cli::CachePolicy::Auto,
                 cache_ttl: Duration::from_secs(24 * 60 * 60),
+                debug: Default::default(),
                 backend_options: Vec::new(),
             },
         }

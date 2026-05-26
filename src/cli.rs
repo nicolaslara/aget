@@ -17,6 +17,7 @@ mod session;
 #[cfg(test)]
 mod tests;
 
+pub use crate::extraction::DebugCaptureOptions;
 pub use artifacts::{
     ArtifactsCommand, ArtifactsSubcommand, DeleteArtifactCommand, InspectArtifactCommand,
     PruneArtifactsCommand,
@@ -170,6 +171,26 @@ pub struct CacheCommandOptions {
     /// Freshness window for cache reuse, in seconds.
     #[arg(long = "cache-ttl", value_parser = parse_duration_secs, default_value = "86400")]
     pub cache_ttl: Duration,
+}
+
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Args)]
+pub struct DebugCaptureCommandOptions {
+    /// Capture a browser screenshot artifact when extraction uses Chrome/CDP.
+    #[arg(long = "capture-screenshot")]
+    pub screenshot: bool,
+
+    /// Write a redacted extraction trace JSON artifact.
+    #[arg(long = "capture-trace")]
+    pub trace: bool,
+}
+
+impl From<DebugCaptureCommandOptions> for DebugCaptureOptions {
+    fn from(options: DebugCaptureCommandOptions) -> Self {
+        Self {
+            screenshot: options.screenshot,
+            trace: options.trace,
+        }
+    }
 }
 
 impl CacheCommandOptions {

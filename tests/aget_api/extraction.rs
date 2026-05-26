@@ -63,6 +63,42 @@ fn aget_with_static_backends_uses_custom_browser_fallback_after_extractor_failur
 }
 
 #[test]
+fn aget_browser_fallback_writes_opt_in_screenshot_artifact() {
+    let temp = tempfile::tempdir().unwrap();
+    let home = temp.path().join("aget-home");
+    let store = MemorySessionStore::new(&home);
+    store
+        .save(&cookie_session("auth", "example.com", "fallback-secret"))
+        .unwrap();
+
+    let result = Aget::new(&home)
+        .with_session_store_backend(store)
+        .with_extractor_backend(FailingExtractor)
+        .with_browser_automation_backend(TestBrowserBackend {
+            fallback_content: Some("browser fallback content".to_string()),
+            fallback_screenshot_png: Some(b"png bytes".to_vec()),
+            ..TestBrowserBackend::default()
+        })
+        .get("https://example.com/private?token=secret")
+        .session("auth")
+        .capture_screenshot()
+        .capture_trace()
+        .run()
+        .unwrap();
+
+    let screenshot = result.artifacts.debug.screenshot.unwrap();
+    assert!(screenshot.sensitive);
+    assert_eq!(fs::read(&screenshot.path).unwrap(), b"png bytes");
+    let trace = result.artifacts.debug.trace.unwrap();
+    assert!(trace.sensitive);
+    let trace: serde_json::Value =
+        serde_json::from_str(&fs::read_to_string(trace.path).unwrap()).unwrap();
+    assert_eq!(trace["capture"]["screenshot_captured"], true);
+    assert!(trace.get("content").is_none());
+    assert!(!trace["url"].as_str().unwrap().contains("secret"));
+}
+
+#[test]
 fn aget_session_failure_metadata_redacts_sensitive_backend_error() {
     let temp = tempfile::tempdir().unwrap();
     let home = temp.path().join("aget-home");

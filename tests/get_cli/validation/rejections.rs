@@ -64,6 +64,45 @@ fn get_owned_extractor_rejects_javascript_wait_before_fetch() {
     );
 }
 
+#[test]
+fn get_failure_writes_opt_in_debug_trace_without_content() {
+    let temp = tempfile::tempdir().unwrap();
+    let aget_home = temp.path().join("aget-home");
+
+    Command::cargo_bin("aget")
+        .unwrap()
+        .env("AGET_HOME", &aget_home)
+        .args([
+            "--envelope",
+            "json",
+            "get",
+            "https://example.com/unsupported-option",
+            "--backend-option",
+            "aget.js_code=alert(1)",
+            "--capture-trace",
+        ])
+        .assert()
+        .failure();
+
+    let metadata_files = metadata_files(&aget_home);
+    assert_eq!(metadata_files.len(), 1);
+    let metadata: serde_json::Value =
+        serde_json::from_str(&fs::read_to_string(&metadata_files[0]).unwrap()).unwrap();
+    assert_eq!(metadata["ok"], false);
+    let trace_path = metadata["artifacts"]["debug"]["trace"]["path"]
+        .as_str()
+        .unwrap();
+    let trace: serde_json::Value =
+        serde_json::from_str(&fs::read_to_string(trace_path).unwrap()).unwrap();
+    assert_eq!(trace["ok"], false);
+    assert_eq!(trace["capture"]["trace_requested"], true);
+    assert!(trace["error"]["message"]
+        .as_str()
+        .unwrap()
+        .contains("aget.js_code"));
+    assert!(trace.get("content").is_none());
+}
+
 fn assert_failure_error_contains(
     output: &[u8],
     aget_home: &Path,

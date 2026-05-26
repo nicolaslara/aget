@@ -24,6 +24,7 @@ pub(crate) struct OwnedPageExtraction {
     pub(crate) page_metadata: BTreeMap<String, Value>,
     pub(crate) warnings: Vec<String>,
     pub(crate) source_bytes: Option<usize>,
+    pub(crate) screenshot_png: Option<Vec<u8>>,
 }
 
 pub(super) fn extract_owned_page_response(
@@ -160,6 +161,7 @@ pub(crate) fn extract_owned_html(
         page_metadata,
         warnings: Vec::new(),
         source_bytes,
+        screenshot_png: None,
     })
 }
 

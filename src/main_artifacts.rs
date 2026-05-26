@@ -375,6 +375,7 @@ fn inspect_data(run: &RunSummary) -> Result<InspectResult, ErrorResponse> {
     });
     let metadata_value = if run.metadata.valid {
         let value = read_metadata(&run.metadata.path).map_err(super::io_error)?;
+        files.extend(debug_file_entries(&run.run_dir, &value));
         Some(redacted_metadata(value, run.sensitive))
     } else {
         None
@@ -473,6 +474,32 @@ fn content_summary(run_dir: &Path, metadata: Option<&Value>) -> ContentSummary {
         path,
         ownership,
     }
+}
+
+fn debug_file_entries(run_dir: &Path, metadata: &Value) -> Vec<FileEntry> {
+    let mut files = Vec::new();
+    for (pointer, kind) in [
+        ("/artifacts/debug/screenshot/path", "debug-screenshot"),
+        ("/artifacts/debug/trace/path", "debug-trace"),
+    ] {
+        let Some(path) = metadata.pointer(pointer).and_then(Value::as_str) else {
+            continue;
+        };
+        let path = PathBuf::from(path);
+        let ownership = if path.starts_with(run_dir) {
+            "internal"
+        } else {
+            "external"
+        };
+        files.push(FileEntry {
+            size_bytes: file_size(&path),
+            exists: path.exists(),
+            path,
+            kind,
+            ownership,
+        });
+    }
+    files
 }
 
 fn redacted_metadata(mut value: Value, sensitive: bool) -> Value {

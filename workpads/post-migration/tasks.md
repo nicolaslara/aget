@@ -770,7 +770,7 @@ Status note:
 - Pending. REL-005 defines the path and draft formula; publishing waits for a
   multi-target macOS release.
 
-### 📋 Task DEBUG-001: Add screenshots and debug traces
+### ✅ Task DEBUG-001: Add screenshots and debug traces
 
 Depends on: ART-002, DR-002.
 
@@ -788,8 +788,13 @@ Acceptance criteria:
 
 Status note:
 
-- Pending. Browser/CDP extraction exists, but visual/debug artifacts are not yet
-  exposed.
+- Completed with opt-in `--capture-trace` and `--capture-screenshot` flags for
+  `get` and `current-tab`. Trace artifacts are diagnostic JSON without page
+  content; screenshots are captured only from browser/CDP paths and inherit
+  source sensitivity. Debug files are stored under internal run directories,
+  reported by `artifacts inspect`, and removed by lifecycle deletion/pruning.
+  Static extraction emits a warning instead of launching Chrome solely for a
+  screenshot. Focused tests and the full `cargo test` gate pass.
 
 ### 📋 Task ACT-001: Design safe generic interact/actions model
 

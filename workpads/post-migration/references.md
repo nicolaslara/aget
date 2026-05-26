@@ -1315,3 +1315,76 @@ Validation result:
   remaining blockers.
 - No Windows build was run in this session; this task is the publish/no-publish
   gate, not Windows artifact enablement.
+
+## DEBUG-001 Screenshots And Debug Traces: 2026-05-26
+
+Design artifact:
+
+- `workpads/post-migration/debug-artifacts-policy.md`
+
+Implemented surfaces:
+
+- `aget get --capture-trace`
+- `aget get --capture-screenshot`
+- `aget current-tab --capture-trace`
+- `aget current-tab --capture-screenshot`
+- `data.artifacts.debug.trace`
+- `data.artifacts.debug.screenshot`
+- `aget artifacts inspect` file entries for `debug-trace` and
+  `debug-screenshot`
+
+Policy decisions:
+
+- Debug artifacts are never captured by default.
+- Trace artifacts contain diagnostic control-plane data only, not extracted page
+  content or browser storage values.
+- Sensitive traces redact source query and fragment details.
+- Screenshot capture is best-effort and browser/CDP-only. Static extraction
+  emits a warning and writes no screenshot instead of launching Chrome only for
+  a screenshot side effect.
+- Failed extractions can still write `debug-trace.json` when `--capture-trace`
+  is requested.
+
+Focused validation:
+
+```bash
+cargo fmt --check
+cargo check --tests
+cargo test --test aget_api aget_browser_fallback_writes_opt_in_screenshot_artifact
+cargo test --test get_cli get_writes_opt_in_trace_and_reports_static_screenshot_skip
+cargo test --test get_cli get_failure_writes_opt_in_debug_trace_without_content
+cargo test --test cli current_tab_writes_opt_in_debug_artifacts
+cargo test --test cli artifacts_inspect_reports_debug_artifact_files
+cargo test --test cli artifacts_delete_removes_internal_debug_artifacts
+cargo test --lib cli::tests::get
+cargo test --lib cli::tests::current_tab
+cargo test
+git diff --check
+cargo run --quiet -- get --help | rg -- '--capture-trace|--capture-screenshot'
+cargo run --quiet -- current-tab --help | rg -- '--capture-trace|--capture-screenshot'
+rg -n '(Crawl4AI|crawl4ai|agent-browser|AGET_CRAWL4AI_COMMAND|AGET_AGENT_BROWSER_COMMAND)' \
+  README.md skills/aget/SKILL.md .opencode/tools/aget.ts src tests scripts -S || true
+rg -n '(^|[[:space:]])--json([[:space:]]|$)|(^|[[:space:]])--out([[:space:]]|$)|backend\.key' \
+  README.md skills/aget/SKILL.md .opencode/tools/aget.ts src tests scripts -S || true
+```
+
+Validation result:
+
+- Full `cargo test` passed after the debug-artifacts implementation.
+- Help smoke shows both `--capture-trace` and `--capture-screenshot` on `get`
+  and `current-tab`.
+- Stale dependency-surface grep returned no active README/skill/OpenCode/source
+  matches for the removed Crawl4AI/agent-browser surfaces or old public flags.
+- Current-tab CDP mock returned a base64 screenshot; `aget` wrote
+  `screenshot.png`, wrote `debug-trace.json`, omitted inline private content
+  when requested, and marked the screenshot sensitive in metadata.
+- Browser fallback API coverage writes an opt-in screenshot artifact and
+  sensitive trace without embedding content.
+- Static `raw:` extraction with screenshot requested wrote a trace and emitted a
+  no-browser-rendered-screenshot warning without creating a screenshot.
+- `artifacts inspect` reports debug trace files as internal artifacts.
+- `artifacts delete --yes` removes internal debug trace files with the run
+  directory.
+- Local review found no material follow-up findings. Privacy-sensitive behavior
+  is covered by opt-in flags, trace content omission, sensitive metadata flags,
+  and artifact lifecycle tests.

@@ -265,6 +265,12 @@ the CLI envelope in a thin host-specific tool.
   Windows runner with ZIP packaging, PowerShell smoke for version, doctor,
   static get, artifacts, no-command-path behavior, and package unzip/re-smoke.
   Windows ARM can be evaluated later after x64 packaging is proven.
+- DEBUG-001 keeps debug artifacts opt-in and local. `--capture-trace` writes
+  control-plane diagnostics without page content; `--capture-screenshot` writes
+  a PNG only when extraction actually uses a browser/CDP path. Static
+  extraction does not launch Chrome just to satisfy screenshot capture.
+  Screenshot and trace artifact metadata inherits source sensitivity, and
+  lifecycle commands continue to manage these files as internal run artifacts.
 
 ## Execution Order
 

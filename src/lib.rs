@@ -18,18 +18,19 @@ pub use aget_extractor::AgetExtractor;
 pub use cli::{
     ArtifactsCommand, ArtifactsSubcommand, AuthorizeSessionCommand, BatchCommand, BrowserChoice,
     CacheCommandOptions, CachePolicy, Cli, Command, ComposeSessionCommand, CrawlCommand,
-    CurrentTabCommand, DeleteArtifactCommand, DeleteSessionCommand, DoctorCheck, DoctorCommand,
-    EnvelopeFormat, ExtractCommand, ExtractOutput, ExtractorOption, GetCommand, GlobalOptions,
-    ImportBrowserSessionCommand, ImportChromeSessionCommand, ImportCmuxSessionCommand,
-    ImportSessionCommand, ImportSessionSource, InlineContent, InspectArtifactCommand,
-    InspectSessionCommand, LoginCancelCommand, LoginFinishCommand, LoginSessionCommand,
-    LoginSessionSubcommand, LoginStartCommand, MapCommand, MapOutput, OutputFormat,
-    PruneArtifactsCommand, SearchPageCommand, SearchPageOutput, SessionCommand, SessionSubcommand,
+    CurrentTabCommand, DebugCaptureCommandOptions, DeleteArtifactCommand, DeleteSessionCommand,
+    DoctorCheck, DoctorCommand, EnvelopeFormat, ExtractCommand, ExtractOutput, ExtractorOption,
+    GetCommand, GlobalOptions, ImportBrowserSessionCommand, ImportChromeSessionCommand,
+    ImportCmuxSessionCommand, ImportSessionCommand, ImportSessionSource, InlineContent,
+    InspectArtifactCommand, InspectSessionCommand, LoginCancelCommand, LoginFinishCommand,
+    LoginSessionCommand, LoginSessionSubcommand, LoginStartCommand, MapCommand, MapOutput,
+    OutputFormat, PruneArtifactsCommand, SearchPageCommand, SearchPageOutput, SessionCommand,
+    SessionSubcommand,
 };
 pub use error::{AgetError, ErrorCode, ErrorResponse, ENVELOPE_SCHEMA_VERSION};
 pub use extraction::{
-    get_url, AgetExtractorBackend, CacheMetadata, CacheStatus, GetOptions, GetSuccess, TimingMs,
-    UsageMetrics,
+    get_url, AgetExtractorBackend, CacheMetadata, CacheStatus, DebugArtifact, DebugArtifacts,
+    DebugCaptureOptions, GetOptions, GetSuccess, TimingMs, UsageMetrics,
 };
 pub use session::{
     cancel_login_session, complete_login_session, compose_session, finish_login_session,

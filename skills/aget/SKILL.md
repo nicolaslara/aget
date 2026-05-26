@@ -75,6 +75,13 @@ Before running `aget`, choose these deliberately.
   `--artifact <run-id>` or `--manifest <path>`. Prefer built-in `--field`
   values for headings, links, tables, definitions, and metadata; use a schema
   file for HTML selectors or JSON paths.
+- **Need debugging provenance without page content**: add `--capture-trace` and
+  inspect the local `debug-trace.json` path. The trace records options,
+  warnings, timing, cache, usage, and errors; it does not include extracted page
+  content.
+- **Need visual evidence for a browser-rendered page**: add
+  `--capture-screenshot` only after the user approves capturing the page
+  visually. Screenshots are local run artifacts and may contain private content.
 - **Need prior run metadata or local files**: use `aget artifacts list` and
   `aget artifacts inspect <run-id>` before reading large or sensitive files.
 - **Tool or environment looks broken**: use `aget doctor --quick` before
@@ -150,6 +157,10 @@ Error shape:
 ```
 
 For `get` and `current-tab`, artifact paths are in `data.artifacts`, selected sessions are in `data.sessions`, cache state is in `data.cache`, rough byte/token accounting is in `data.usage`, and extracted page content is in `data.content` only when `--inline-content` includes it. The default `--inline-content auto` omits `data.content` for session-backed/sensitive fetches and current-tab output; read the local artifact path instead, or use `--inline-content always` only when the user explicitly wants authenticated content embedded in the envelope.
+
+Debug artifacts appear under `data.artifacts.debug` only when explicitly
+requested. Prefer `--capture-trace` before `--capture-screenshot`; traces avoid
+page content, while screenshots can expose visible private data.
 
 For `search-page` and `extract`, outputs come from existing local artifacts.
 Sensitive source artifacts require `--allow-private-content` before snippets or

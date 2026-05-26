@@ -4,7 +4,9 @@ use std::time::Instant;
 
 use crate::error::{AgetError, ErrorCode};
 
-use super::super::{io_aget_error, GetOptions, GetSuccess, OutputOptions};
+use super::super::{
+    io_aget_error, Artifacts, DebugArtifacts, GetOptions, GetSuccess, OutputOptions,
+};
 use super::private_files::write_private_file;
 
 #[allow(clippy::too_many_arguments)]
@@ -17,21 +19,24 @@ pub(in crate::extraction) fn write_error_metadata(
     sensitive: bool,
     output_options: &OutputOptions,
     options: &GetOptions,
+    debug_artifacts: &DebugArtifacts,
     error: &AgetError,
     started: Instant,
 ) -> Result<(), AgetError> {
     let (code, message) = match error {
         AgetError::Stable { code, message } => (code, message),
     };
+    let artifacts = Artifacts {
+        content: content_path.to_string_lossy().into_owned(),
+        metadata: path.to_string_lossy().into_owned(),
+        debug: debug_artifacts.clone(),
+    };
     let metadata = serde_json::json!({
         "ok": false,
         "url": url,
         "content_format": options.content_format.to_string(),
         "extractor": extractor,
-        "artifacts": {
-            "content": content_path.to_string_lossy(),
-            "metadata": path.to_string_lossy(),
-        },
+        "artifacts": artifacts,
         "sessions": sessions,
         "sensitive": sensitive,
         "warnings": [],

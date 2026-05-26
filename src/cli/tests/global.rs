@@ -21,6 +21,7 @@ fn aliases_top_level_url_to_get_command() {
             wait_for_selector: None,
             max_chars: None,
             cache: CacheCommandOptions::default(),
+            debug: DebugCaptureCommandOptions::default(),
             backend_options: Vec::new(),
         })
     );

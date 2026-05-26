@@ -40,6 +40,7 @@ impl ExtractorBackend for InspectingExtractor {
             warnings: vec!["custom extractor".to_string()],
             source_bytes: Some("typed extractor content".len()),
             error: None,
+            screenshot_png: None,
         })
     }
 }
@@ -124,6 +125,7 @@ impl ExtractorBackend for AuthorizationExtractor {
             warnings: Vec::new(),
             source_bytes: Some(content.len()),
             error: None,
+            screenshot_png: None,
         })
     }
 }

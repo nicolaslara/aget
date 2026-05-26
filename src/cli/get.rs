@@ -3,7 +3,8 @@ use std::path::PathBuf;
 use clap::Args;
 
 use super::{
-    parse_backend_option, CacheCommandOptions, ExtractorOption, InlineContent, OutputFormat,
+    parse_backend_option, CacheCommandOptions, DebugCaptureCommandOptions, ExtractorOption,
+    InlineContent, OutputFormat,
 };
 
 #[derive(Debug, Args, PartialEq, Eq)]
@@ -45,6 +46,9 @@ pub struct GetCommand {
 
     #[command(flatten)]
     pub cache: CacheCommandOptions,
+
+    #[command(flatten)]
+    pub debug: DebugCaptureCommandOptions,
 
     /// Advanced unstable backend option in key=value form.
     #[arg(long = "backend-option", value_parser = parse_backend_option)]

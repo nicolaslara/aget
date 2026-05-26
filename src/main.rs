@@ -87,6 +87,12 @@ fn run(cli: Cli) -> Result<ExitCode, ErrorResponse> {
             request = request
                 .cache_policy(get.cache.policy())
                 .cache_ttl(get.cache.cache_ttl);
+            if get.debug.screenshot {
+                request = request.capture_screenshot();
+            }
+            if get.debug.trace {
+                request = request.capture_trace();
+            }
             for backend_option in get.backend_options {
                 request = request.backend_option(backend_option.key, backend_option.value);
             }
@@ -135,6 +141,7 @@ fn run(cli: Cli) -> Result<ExitCode, ErrorResponse> {
                     exclude_selector: current_tab.exclude_selector,
                     wait_for_selector: current_tab.wait_for_selector,
                     max_chars: current_tab.max_chars,
+                    debug: current_tab.debug.into(),
                     backend_options: current_tab.backend_options,
                 })
                 .map_err(error_response)?;

@@ -25,6 +25,7 @@ pub struct GetOptions {
     pub max_chars: Option<usize>,
     pub cache_policy: CachePolicy,
     pub cache_ttl: Duration,
+    pub debug: DebugCaptureOptions,
     pub backend_options: Vec<ExtractorOption>,
 }
 
@@ -52,6 +53,35 @@ pub struct GetSuccess {
 pub struct Artifacts {
     pub content: String,
     pub metadata: String,
+    #[serde(default, skip_serializing_if = "DebugArtifacts::is_empty")]
+    pub debug: DebugArtifacts,
+}
+
+#[derive(Debug, Clone, Copy, Default, Serialize, Deserialize, PartialEq, Eq)]
+pub struct DebugCaptureOptions {
+    pub screenshot: bool,
+    pub trace: bool,
+}
+
+#[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq, Eq)]
+pub struct DebugArtifacts {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub screenshot: Option<DebugArtifact>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub trace: Option<DebugArtifact>,
+}
+
+impl DebugArtifacts {
+    pub fn is_empty(&self) -> bool {
+        self.screenshot.is_none() && self.trace.is_none()
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct DebugArtifact {
+    pub path: String,
+    pub media_type: String,
+    pub sensitive: bool,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -125,6 +155,8 @@ pub struct ExtractorBackendResult {
     pub source_bytes: Option<usize>,
     #[serde(default)]
     pub error: Option<String>,
+    #[serde(default, skip_serializing, skip_deserializing)]
+    pub screenshot_png: Option<Vec<u8>>,
 }
 
 pub trait ExtractorBackend {
@@ -154,6 +186,7 @@ pub struct BrowserFallbackResult {
     pub warnings: Vec<String>,
     pub extractor: String,
     pub source_bytes: Option<usize>,
+    pub screenshot_png: Option<Vec<u8>>,
 }
 
 pub trait BrowserFallbackBackend {

@@ -30,6 +30,7 @@ pub(crate) struct BrowserRenderRequest<'a> {
     pub(crate) page_timeout: Duration,
     pub(crate) wait_for_timeout: Option<Duration>,
     pub(crate) timeout: Duration,
+    pub(crate) capture_screenshot: bool,
 }
 
 // Current-tab CLI/API wiring is still a follow-up; this owned renderer is the
@@ -50,6 +51,7 @@ pub(crate) struct BrowserAttachedPageRenderRequest<'a> {
     pub(crate) page_timeout: Duration,
     pub(crate) wait_for_timeout: Option<Duration>,
     pub(crate) timeout: Duration,
+    pub(crate) capture_screenshot: bool,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -74,6 +76,7 @@ pub(crate) struct RenderedPage {
     pub(crate) final_url: String,
     pub(crate) html: String,
     pub(crate) warnings: Vec<String>,
+    pub(crate) screenshot_png: Option<Vec<u8>>,
 }
 
 pub(crate) fn render_page(request: BrowserRenderRequest<'_>) -> Result<RenderedPage, AgetError> {
@@ -116,6 +119,7 @@ pub(crate) fn render_page(request: BrowserRenderRequest<'_>) -> Result<RenderedP
             settle_delay: request.settle_delay,
             page_timeout: request.page_timeout,
             wait_for_timeout: request.wait_for_timeout,
+            capture_screenshot: request.capture_screenshot,
         },
     )?;
     let _ = client.close_page(&page, Duration::from_secs(1));
@@ -162,6 +166,7 @@ pub(crate) fn render_attached_page(
             settle_delay: request.settle_delay,
             page_timeout: request.page_timeout,
             wait_for_timeout: request.wait_for_timeout,
+            capture_screenshot: request.capture_screenshot,
         },
     )
 }

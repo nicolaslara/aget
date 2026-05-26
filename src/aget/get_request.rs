@@ -64,6 +64,16 @@ where
         self
     }
 
+    pub fn capture_screenshot(mut self) -> Self {
+        self.options.debug.screenshot = true;
+        self
+    }
+
+    pub fn capture_trace(mut self) -> Self {
+        self.options.debug.trace = true;
+        self
+    }
+
     pub fn backend_option(mut self, key: impl Into<String>, value: impl Into<String>) -> Self {
         self.options.backend_options.push(ExtractorOption {
             key: key.into(),

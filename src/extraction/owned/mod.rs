@@ -51,6 +51,7 @@ pub(crate) fn run_owned_extractor_backend(
         warnings: extraction.warnings,
         source_bytes: extraction.source_bytes,
         error: None,
+        screenshot_png: extraction.screenshot_png,
     };
     write_private_file(request.content_path, extraction.content.as_bytes())
         .map_err(io_aget_error)?;
@@ -83,5 +84,6 @@ pub(crate) fn run_owned_browser_fallback(
         warnings,
         extractor: OWNED_BROWSER_FALLBACK.to_string(),
         source_bytes: extraction.source_bytes,
+        screenshot_png: extraction.screenshot_png,
     })
 }

@@ -24,6 +24,8 @@ Normal use does not require external scraper or browser-control tools.
 - `aget doctor` for local readiness diagnostics.
 - `aget artifacts ...` for listing, inspecting, deleting, and pruning local run
   artifacts under `AGET_HOME`.
+- Opt-in debug artifacts with `--capture-trace` and browser-backed
+  `--capture-screenshot`.
 - `aget session ...` commands for listing, inspecting, deleting, composing,
   importing, authorizing, and bootstrapping local sessions.
 - `--envelope json` for stable agent/tool output.
@@ -225,8 +227,15 @@ aget get <url>
   [--fresh]
   [--cache-policy <auto|refresh|off>]
   [--cache-ttl <seconds>]
+  [--capture-trace]
+  [--capture-screenshot]
   [--backend-option <aget.key=value>...]
 ```
+
+`--capture-trace` writes a redacted `debug-trace.json` under the run directory.
+`--capture-screenshot` writes `screenshot.png` only when the request uses a
+browser/CDP rendering path; static extraction emits a warning instead of
+capturing visual content.
 
 Cache reuse applies only to eligible public HTTP(S) fetches. Session-backed,
 current-tab, `raw:`, and `file://` inputs record cache metadata but do not
@@ -380,6 +389,8 @@ aget current-tab --cdp-port <port>
   [--exclude-selector <css>]
   [--wait-for-selector <css>]
   [--max-chars <n>]
+  [--capture-trace]
+  [--capture-screenshot]
   [--backend-option <aget.key=value>...]
 ```
 
@@ -431,7 +442,14 @@ default content format.
     "content": "# Example\n...",
     "artifacts": {
       "content": "/Users/me/.aget/runs/abc123/output.md",
-      "metadata": "/Users/me/.aget/runs/abc123/metadata.json"
+      "metadata": "/Users/me/.aget/runs/abc123/metadata.json",
+      "debug": {
+        "trace": {
+          "path": "/Users/me/.aget/runs/abc123/debug-trace.json",
+          "media_type": "application/json",
+          "sensitive": false
+        }
+      }
     },
     "cache": {
       "status": "miss",
@@ -483,6 +501,12 @@ and extraction-shaping options, and store the full untruncated extracted
 content so each run can still apply its own `--max-chars`. `data.usage`
 reports fetched bytes when known, final content bytes, and rough token
 estimates for agent-side budgeting.
+
+Debug artifacts are never captured by default. `debug-trace.json` records
+control-plane diagnostics such as options, cache state, warnings, timings, and
+errors; it does not include extracted page content. Screenshot artifacts can
+contain visual page content and are marked sensitive when the source is
+session-backed or `current-tab`.
 
 ## Sessions And Auth
 
@@ -573,6 +597,9 @@ explicit local CDP port and `--allow-private-content`.
 - Session replay is rejected when selected sessions are outside the request host
   scope.
 - Run artifacts live under `~/.aget/runs`.
+- Debug traces and screenshots are opt-in run artifacts. Treat screenshots as
+  page content; for sensitive sources, inspect only the local path needed for
+  the task and avoid embedding visual/private content into model context.
 - `artifacts delete` and `artifacts prune` remove only internal run directories
   under `AGET_HOME/runs`; caller-provided `--output` files outside those run
   directories are preserved.

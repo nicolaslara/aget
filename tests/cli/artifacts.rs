@@ -43,6 +43,33 @@ fn artifacts_list_and_inspect_report_run_metadata() {
 }
 
 #[test]
+fn artifacts_inspect_reports_debug_artifact_files() {
+    let temp = tempfile::tempdir().unwrap();
+    let aget_home = temp.path().join("aget-home");
+    let run_id = create_run_with_args(&aget_home, None, &["--capture-trace"]);
+
+    let inspect = artifact_command(&aget_home)
+        .args(["--envelope", "json", "artifacts", "inspect", &run_id])
+        .assert()
+        .success()
+        .get_output()
+        .stdout
+        .clone();
+    let inspect = success_data(&inspect, "artifacts.inspect");
+    assert!(inspect["files"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .any(|file| file["kind"] == "debug-trace" && file["ownership"] == "internal"));
+    let trace_path = PathBuf::from(
+        inspect["metadata"]["value"]["artifacts"]["debug"]["trace"]["path"]
+            .as_str()
+            .unwrap(),
+    );
+    assert!(trace_path.exists());
+}
+
+#[test]
 fn artifacts_delete_requires_yes_and_preserves_external_output() {
     let temp = tempfile::tempdir().unwrap();
     let aget_home = temp.path().join("aget-home");
@@ -88,6 +115,42 @@ fn artifacts_delete_requires_yes_and_preserves_external_output() {
         fs::read_to_string(&external_output).unwrap(),
         "# Artifact\n"
     );
+}
+
+#[test]
+fn artifacts_delete_removes_internal_debug_artifacts() {
+    let temp = tempfile::tempdir().unwrap();
+    let aget_home = temp.path().join("aget-home");
+    let run_id = create_run_with_args(&aget_home, None, &["--capture-trace"]);
+    let inspect = artifact_command(&aget_home)
+        .args(["--envelope", "json", "artifacts", "inspect", &run_id])
+        .assert()
+        .success()
+        .get_output()
+        .stdout
+        .clone();
+    let inspect = success_data(&inspect, "artifacts.inspect");
+    let trace_path = PathBuf::from(
+        inspect["metadata"]["value"]["artifacts"]["debug"]["trace"]["path"]
+            .as_str()
+            .unwrap(),
+    );
+    assert!(trace_path.exists());
+
+    artifact_command(&aget_home)
+        .args([
+            "--envelope",
+            "json",
+            "artifacts",
+            "delete",
+            &run_id,
+            "--yes",
+        ])
+        .assert()
+        .success();
+
+    assert!(!trace_path.exists());
+    assert!(!aget_home.join("runs").join(run_id).exists());
 }
 
 #[test]
@@ -184,11 +247,20 @@ fn artifact_command(aget_home: &Path) -> Command {
 }
 
 fn create_run(aget_home: &Path, external_output: Option<&Path>) -> String {
+    create_run_with_args(aget_home, external_output, &[])
+}
+
+fn create_run_with_args(
+    aget_home: &Path,
+    external_output: Option<&Path>,
+    extra_args: &[&str],
+) -> String {
     let mut command = artifact_command(aget_home);
     command.args(["--envelope", "json", "get", &artifact_url()]);
     if let Some(output) = external_output {
         command.args(["--output", output.to_str().unwrap()]);
     }
+    command.args(extra_args);
     let output = command.assert().success().get_output().stdout.clone();
     let json = success_data(&output, "get");
     let metadata = PathBuf::from(json["artifacts"]["metadata"].as_str().unwrap());

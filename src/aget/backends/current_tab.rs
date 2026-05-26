@@ -18,6 +18,7 @@ pub struct BrowserCurrentTabRequest {
     pub page_timeout: Duration,
     pub wait_for_timeout: Option<Duration>,
     pub timeout: Duration,
+    pub capture_screenshot: bool,
 }
 
 pub struct BrowserCurrentTabResult {
@@ -25,6 +26,7 @@ pub struct BrowserCurrentTabResult {
     pub final_url: String,
     pub html: String,
     pub warnings: Vec<String>,
+    pub screenshot_png: Option<Vec<u8>>,
 }
 
 pub trait BrowserCurrentTabBackend {

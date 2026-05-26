@@ -107,6 +107,7 @@ fn browser_cdp_render_attached_page_reports_runtime_evaluation_exception() {
         page_timeout: Duration::from_secs(2),
         wait_for_timeout: None,
         timeout: Duration::from_secs(2),
+        capture_screenshot: false,
     })
     .unwrap_err();
 

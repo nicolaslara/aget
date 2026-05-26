@@ -18,6 +18,7 @@ pub(crate) fn finish_direct_extraction(
     extractor: impl Into<String>,
     sensitive: bool,
     source_bytes: Option<usize>,
+    screenshot_png: Option<Vec<u8>>,
     started: Instant,
 ) -> Result<GetSuccess, AgetError> {
     if options.home.is_none() {
@@ -54,6 +55,7 @@ pub(crate) fn finish_direct_extraction(
             warnings,
             extractor: extractor.into(),
             source_bytes,
+            screenshot_png,
         },
         started,
     )

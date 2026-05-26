@@ -37,10 +37,19 @@ pub fn local_server(body: &str) -> (String, JoinHandle<()>) {
 }
 
 pub fn mock_current_tab_cdp_server(final_url: &str, html: &str) -> (u16, JoinHandle<()>) {
+    mock_current_tab_cdp_server_with_screenshot(final_url, html, None)
+}
+
+pub fn mock_current_tab_cdp_server_with_screenshot(
+    final_url: &str,
+    html: &str,
+    screenshot_base64: Option<&str>,
+) -> (u16, JoinHandle<()>) {
     let listener = TcpListener::bind("127.0.0.1:0").unwrap();
     let port = listener.local_addr().unwrap().port();
     let final_url = final_url.to_string();
     let html = html.to_string();
+    let screenshot_base64 = screenshot_base64.map(str::to_string);
     let handle = thread::spawn(move || {
         let (mut stream, _) = listener.accept().unwrap();
         let mut request = [0; 512];
@@ -56,7 +65,12 @@ pub fn mock_current_tab_cdp_server(final_url: &str, html: &str) -> (u16, JoinHan
 
         let (stream, _) = listener.accept().unwrap();
         let mut websocket = tungstenite::accept(stream).unwrap();
-        serve_attached_page_cdp(&mut websocket, &final_url, &html);
+        serve_attached_page_cdp(
+            &mut websocket,
+            &final_url,
+            &html,
+            screenshot_base64.as_deref(),
+        );
         let _ = websocket.close(None);
     });
     (port, handle)
@@ -66,6 +80,7 @@ fn serve_attached_page_cdp(
     websocket: &mut tungstenite::WebSocket<std::net::TcpStream>,
     final_url: &str,
     html: &str,
+    screenshot_base64: Option<&str>,
 ) {
     let request = read_cdp_request(websocket);
     assert_eq!(request["method"], "Target.setDiscoverTargets");
@@ -139,6 +154,13 @@ fn serve_attached_page_cdp(
         &request,
         serde_json::json!({ "result": { "type": "string", "value": html } }),
     );
+
+    if let Some(data) = screenshot_base64 {
+        let request = read_cdp_request(websocket);
+        assert_eq!(request["method"], "Page.captureScreenshot");
+        assert_eq!(request["params"]["format"], "png");
+        reply_ok(websocket, &request, serde_json::json!({ "data": data }));
+    }
 }
 
 fn read_cdp_request(

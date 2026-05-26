@@ -59,6 +59,7 @@ pub(super) fn extract_owned_rendered_page_with_url(
         page_timeout: owned_options.page_timeout.unwrap_or(timeout),
         wait_for_timeout: owned_options.wait_for_timeout,
         timeout,
+        capture_screenshot: options.debug.screenshot,
     })?;
     let source_bytes = rendered.html.len();
     let mut extraction = extract_owned_html(
@@ -70,6 +71,7 @@ pub(super) fn extract_owned_rendered_page_with_url(
         Some(source_bytes),
     )?;
     extraction.warnings.extend(rendered.warnings);
+    extraction.screenshot_png = rendered.screenshot_png;
     Ok(extraction)
 }
 

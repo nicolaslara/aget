@@ -54,6 +54,7 @@ pub(in crate::extraction) fn run_primary_extractor(
         warnings: backend.warnings,
         extractor: extractor_backend.name().to_string(),
         source_bytes: backend.source_bytes,
+        screenshot_png: backend.screenshot_png,
     })
 }
 
@@ -89,5 +90,6 @@ pub(in crate::extraction) fn try_session_fallback(
             warnings: fallback.warnings,
             extractor: fallback.extractor,
             source_bytes: fallback.source_bytes,
+            screenshot_png: fallback.screenshot_png,
         })
 }

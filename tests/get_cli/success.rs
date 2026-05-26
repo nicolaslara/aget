@@ -123,6 +123,54 @@ fn get_inline_content_can_be_omitted_for_public_fetches() {
 }
 
 #[test]
+fn get_writes_opt_in_trace_and_reports_static_screenshot_skip() {
+    let temp = tempfile::tempdir().unwrap();
+    let aget_home = temp.path().join("aget-home");
+
+    let mut cmd = Command::cargo_bin("aget").unwrap();
+    let output = cmd
+        .env("AGET_HOME", &aget_home)
+        .args([
+            "--envelope",
+            "json",
+            "get",
+            "raw:<main><h1>Debug</h1><p>Trace only.</p></main>",
+            "--capture-screenshot",
+            "--capture-trace",
+        ])
+        .assert()
+        .success()
+        .get_output()
+        .stdout
+        .clone();
+
+    let envelope = success_envelope(&output, "get");
+    assert!(envelope["warnings"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .any(|warning| warning
+            .as_str()
+            .unwrap()
+            .contains("no browser-rendered screenshot")));
+    let json = &envelope["data"];
+    assert!(json["artifacts"]["debug"].get("screenshot").is_none());
+    let trace_path = PathBuf::from(
+        json["artifacts"]["debug"]["trace"]["path"]
+            .as_str()
+            .unwrap(),
+    );
+    assert!(trace_path.starts_with(aget_home.join("runs")));
+    let trace: serde_json::Value =
+        serde_json::from_str(&fs::read_to_string(&trace_path).unwrap()).unwrap();
+    assert_eq!(trace["schema_version"], "aget.debug_trace.v1");
+    assert_eq!(trace["ok"], true);
+    assert_eq!(trace["capture"]["screenshot_requested"], true);
+    assert_eq!(trace["capture"]["screenshot_captured"], false);
+    assert!(trace.get("content").is_none());
+}
+
+#[test]
 fn get_raw_html_handles_edge_case_inputs() {
     let temp = tempfile::tempdir().unwrap();
     let aget_home = temp.path().join("aget-home");

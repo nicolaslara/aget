@@ -39,6 +39,7 @@ pub(crate) struct AttachedPageRequest<'a> {
     pub(crate) page_timeout: Duration,
     pub(crate) wait_for_timeout: Option<Duration>,
     pub(crate) timeout: Duration,
+    pub(crate) capture_screenshot: bool,
 }
 
 #[derive(Debug, Clone)]
@@ -47,6 +48,7 @@ pub(crate) struct AttachedPageResult {
     pub(crate) final_url: String,
     pub(crate) html: String,
     pub(crate) warnings: Vec<String>,
+    pub(crate) screenshot_png: Option<Vec<u8>>,
 }
 
 #[derive(Debug, Clone)]
@@ -69,6 +71,7 @@ pub(crate) struct CurrentTabRequest<'a> {
     pub(crate) page_timeout: Duration,
     pub(crate) wait_for_timeout: Option<Duration>,
     pub(crate) timeout: Duration,
+    pub(crate) capture_screenshot: bool,
 }
 
 #[derive(Debug, Clone)]
@@ -78,6 +81,7 @@ pub(crate) struct CurrentTabResult {
     pub(crate) final_url: String,
     pub(crate) html: String,
     pub(crate) warnings: Vec<String>,
+    pub(crate) screenshot_png: Option<Vec<u8>>,
 }
 
 impl AgetBrowser {
@@ -114,12 +118,14 @@ impl AgetBrowser {
             page_timeout: request.page_timeout,
             wait_for_timeout: request.wait_for_timeout,
             timeout: request.timeout,
+            capture_screenshot: request.capture_screenshot,
         })?;
         Ok(CurrentTabResult {
             cdp_ws_url: endpoint.ws_url,
             final_url: rendered.final_url,
             html: rendered.html,
             warnings: rendered.warnings,
+            screenshot_png: rendered.screenshot_png,
         })
     }
 
@@ -143,11 +149,13 @@ impl AgetBrowser {
             page_timeout: request.page_timeout,
             wait_for_timeout: request.wait_for_timeout,
             timeout: request.timeout,
+            capture_screenshot: request.capture_screenshot,
         })?;
         Ok(AttachedPageResult {
             final_url: rendered.final_url,
             html: rendered.html,
             warnings: rendered.warnings,
+            screenshot_png: rendered.screenshot_png,
         })
     }
 }

@@ -13,6 +13,7 @@ name = "aget"
 version = "0.1.0"
 dependencies = [
  "assert_cmd",
+ "base64",
  "clap",
  "ego-tree",
  "html5ever",

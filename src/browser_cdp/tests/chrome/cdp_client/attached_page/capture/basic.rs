@@ -124,6 +124,7 @@ fn browser_cdp_render_attached_page_reads_current_url_and_html_without_navigatio
         page_timeout: Duration::from_secs(2),
         wait_for_timeout: None,
         timeout: Duration::from_secs(2),
+        capture_screenshot: false,
     })
     .unwrap();
 

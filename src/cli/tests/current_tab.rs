@@ -22,6 +22,8 @@ fn parses_current_tab_command() {
         ".ready",
         "--max-chars",
         "456",
+        "--capture-screenshot",
+        "--capture-trace",
         "--backend-option",
         "aget.wait_for_images=true",
     ])
@@ -39,6 +41,10 @@ fn parses_current_tab_command() {
             exclude_selector: Some("nav".to_string()),
             wait_for_selector: Some(".ready".to_string()),
             max_chars: Some(456),
+            debug: DebugCaptureCommandOptions {
+                screenshot: true,
+                trace: true,
+            },
             backend_options: vec![ExtractorOption {
                 key: "aget.wait_for_images".to_string(),
                 value: "true".to_string(),

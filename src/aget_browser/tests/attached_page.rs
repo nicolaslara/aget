@@ -37,6 +37,7 @@ fn renders_attached_page_without_aget_facade_or_command_backend() {
             page_timeout: Duration::from_secs(2),
             wait_for_timeout: None,
             timeout: Duration::from_secs(2),
+            capture_screenshot: false,
         })
         .unwrap();
 

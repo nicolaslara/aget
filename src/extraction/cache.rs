@@ -70,6 +70,21 @@ impl CacheContext {
             }));
         }
 
+        if options.debug.screenshot {
+            return Ok(CacheLookup::Fetch(Self {
+                metadata: metadata(
+                    CacheStatus::Ineligible,
+                    options.cache_policy,
+                    false,
+                    None,
+                    ttl_seconds,
+                    None,
+                    Some("screenshot capture requires a live extraction".to_string()),
+                ),
+                entry_dir: None,
+            }));
+        }
+
         if !cacheable_url(&options.url) {
             return Ok(CacheLookup::Fetch(Self {
                 metadata: metadata(
@@ -142,6 +157,7 @@ impl CacheContext {
                 warnings: entry.warnings,
                 extractor: entry.extractor,
                 source_bytes: entry.source_bytes,
+                screenshot_png: None,
             },
             metadata: metadata(
                 CacheStatus::Hit,
@@ -371,6 +387,7 @@ mod tests {
             max_chars: None,
             cache_policy: CachePolicy::Auto,
             cache_ttl: Duration::from_secs(60),
+            debug: Default::default(),
             backend_options: Vec::new(),
         }
     }

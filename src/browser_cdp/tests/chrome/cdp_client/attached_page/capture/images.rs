@@ -139,6 +139,7 @@ fn browser_cdp_render_attached_page_keeps_wait_for_timeout_out_of_image_wait() {
         page_timeout: Duration::from_secs(2),
         wait_for_timeout: Some(Duration::from_millis(1)),
         timeout: Duration::from_secs(2),
+        capture_screenshot: false,
     })
     .unwrap();
 

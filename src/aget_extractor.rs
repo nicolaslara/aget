@@ -77,6 +77,7 @@ mod tests {
             max_chars: None,
             cache_policy: crate::cli::CachePolicy::Off,
             cache_ttl: Duration::from_secs(0),
+            debug: Default::default(),
             backend_options: Vec::new(),
         };
 
@@ -135,6 +136,7 @@ mod tests {
             max_chars: None,
             cache_policy: crate::cli::CachePolicy::Off,
             cache_ttl: Duration::from_secs(0),
+            debug: Default::default(),
             backend_options: vec![ExtractorOption {
                 key: "aget.target_elements".to_string(),
                 value: "h1,p".to_string(),

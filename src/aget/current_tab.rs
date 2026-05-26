@@ -26,6 +26,7 @@ pub struct CurrentTabOptions {
     pub exclude_selector: Option<String>,
     pub wait_for_selector: Option<String>,
     pub max_chars: Option<usize>,
+    pub debug: crate::extraction::DebugCaptureOptions,
     pub backend_options: Vec<ExtractorOption>,
 }
 
@@ -41,6 +42,7 @@ impl CurrentTabOptions {
             exclude_selector: None,
             wait_for_selector: None,
             max_chars: None,
+            debug: Default::default(),
             backend_options: Vec::new(),
         }
     }
@@ -74,6 +76,7 @@ where
             max_chars: options.max_chars,
             cache_policy: crate::cli::CachePolicy::Off,
             cache_ttl: Duration::from_secs(0),
+            debug: options.debug,
             backend_options: options.backend_options,
         };
         let owned_options = validate_owned_extraction_options(&get_options)?;
@@ -95,6 +98,7 @@ where
                 page_timeout: owned_options.page_timeout.unwrap_or(timeout),
                 wait_for_timeout: owned_options.wait_for_timeout,
                 timeout,
+                capture_screenshot: get_options.debug.screenshot,
             })?;
         let mut extraction =
             extract_owned_rendered_html(rendered.final_url, rendered.html, &get_options)?;
@@ -115,6 +119,7 @@ where
             CURRENT_TAB_EXTRACTOR,
             true,
             extraction.source_bytes,
+            rendered.screenshot_png,
             started,
         )
     }

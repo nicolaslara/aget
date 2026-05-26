@@ -26,6 +26,8 @@ fn get_help_is_available() {
             .and(predicate::str::contains("--exclude-selector"))
             .and(predicate::str::contains("--wait-for-selector"))
             .and(predicate::str::contains("--max-chars"))
+            .and(predicate::str::contains("--capture-screenshot"))
+            .and(predicate::str::contains("--capture-trace"))
             .and(predicate::str::contains("--backend-option")),
     );
 }
@@ -42,7 +44,9 @@ fn current_tab_help_is_available() {
                 .and(predicate::str::contains("--cdp-port"))
                 .and(predicate::str::contains("--allow-private-content"))
                 .and(predicate::str::contains("--content-format"))
-                .and(predicate::str::contains("--inline-content")),
+                .and(predicate::str::contains("--inline-content"))
+                .and(predicate::str::contains("--capture-screenshot"))
+                .and(predicate::str::contains("--capture-trace")),
         );
 }
 

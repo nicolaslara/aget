@@ -2,7 +2,9 @@ use std::path::PathBuf;
 
 use clap::Args;
 
-use super::{parse_backend_option, ExtractorOption, InlineContent, OutputFormat};
+use super::{
+    parse_backend_option, DebugCaptureCommandOptions, ExtractorOption, InlineContent, OutputFormat,
+};
 
 #[derive(Debug, Args, PartialEq, Eq)]
 pub struct CurrentTabCommand {
@@ -41,6 +43,9 @@ pub struct CurrentTabCommand {
     /// Deterministically truncate extracted content to this many Unicode scalar values.
     #[arg(long)]
     pub max_chars: Option<usize>,
+
+    #[command(flatten)]
+    pub debug: DebugCaptureCommandOptions,
 
     /// Advanced unstable backend option in key=value form.
     #[arg(long = "backend-option", value_parser = parse_backend_option)]

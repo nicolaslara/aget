@@ -20,4 +20,5 @@ pub(super) struct SuccessfulExtraction {
     pub(super) warnings: Vec<String>,
     pub(super) extractor: String,
     pub(super) source_bytes: Option<usize>,
+    pub(super) screenshot_png: Option<Vec<u8>>,
 }

@@ -48,6 +48,7 @@ fn renders_current_tab_from_explicit_cdp_port_without_aget_facade_or_command_bac
             page_timeout: Duration::from_secs(2),
             wait_for_timeout: None,
             timeout: Duration::from_secs(2),
+            capture_screenshot: false,
         })
         .unwrap();
 

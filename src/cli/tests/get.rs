@@ -21,6 +21,7 @@ fn parses_get_command() {
             wait_for_selector: None,
             max_chars: None,
             cache: CacheCommandOptions::default(),
+            debug: DebugCaptureCommandOptions::default(),
             backend_options: Vec::new(),
         })
     );
@@ -44,6 +45,7 @@ fn parses_get_output_path() {
             wait_for_selector: None,
             max_chars: None,
             cache: CacheCommandOptions::default(),
+            debug: DebugCaptureCommandOptions::default(),
             backend_options: Vec::new(),
         })
     );
@@ -66,6 +68,7 @@ fn parses_get_local_content_input() {
             wait_for_selector: None,
             max_chars: None,
             cache: CacheCommandOptions::default(),
+            debug: DebugCaptureCommandOptions::default(),
             backend_options: Vec::new(),
         })
     );
@@ -97,6 +100,7 @@ fn parses_repeated_get_sessions() {
             wait_for_selector: None,
             max_chars: None,
             cache: CacheCommandOptions::default(),
+            debug: DebugCaptureCommandOptions::default(),
             backend_options: Vec::new(),
         })
     );
@@ -120,6 +124,8 @@ fn parses_get_output_shaping_options() {
         "css:.ready",
         "--max-chars",
         "123",
+        "--capture-screenshot",
+        "--capture-trace",
         "--backend-option",
         "aget.cache=bypass",
     ])
@@ -138,6 +144,10 @@ fn parses_get_output_shaping_options() {
             wait_for_selector: Some("css:.ready".to_string()),
             max_chars: Some(123),
             cache: CacheCommandOptions::default(),
+            debug: DebugCaptureCommandOptions {
+                screenshot: true,
+                trace: true,
+            },
             backend_options: vec![ExtractorOption {
                 key: "aget.cache".to_string(),
                 value: "bypass".to_string(),

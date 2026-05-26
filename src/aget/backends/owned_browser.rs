@@ -70,12 +70,14 @@ impl BrowserCurrentTabBackend for AgetBrowserBackend {
             page_timeout: request.page_timeout,
             wait_for_timeout: request.wait_for_timeout,
             timeout: request.timeout,
+            capture_screenshot: request.capture_screenshot,
         })?;
         Ok(BrowserCurrentTabResult {
             cdp_ws_url: rendered.cdp_ws_url,
             final_url: rendered.final_url,
             html: rendered.html,
             warnings: rendered.warnings,
+            screenshot_png: rendered.screenshot_png,
         })
     }
 }

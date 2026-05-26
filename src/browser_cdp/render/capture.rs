@@ -18,6 +18,7 @@ pub(super) struct AttachedPageCaptureOptions<'a> {
     pub(super) settle_delay: Duration,
     pub(super) page_timeout: Duration,
     pub(super) wait_for_timeout: Option<Duration>,
+    pub(super) capture_screenshot: bool,
 }
 
 pub(super) fn capture_attached_page(
@@ -72,10 +73,24 @@ pub(super) fn capture_attached_page(
     let final_url =
         client.evaluate_string(&page.session_id, "location.href", options.page_timeout)?;
     let html = capture_page_html(client, &page.session_id, &mut warnings, &options)?;
+    let screenshot_png = if options.capture_screenshot {
+        match client.capture_screenshot_png(&page.session_id, options.page_timeout) {
+            Ok(bytes) => Some(bytes),
+            Err(error) => {
+                warnings.push(format!(
+                    "screenshot capture failed; continuing without screenshot artifact: {error}"
+                ));
+                None
+            }
+        }
+    } else {
+        None
+    };
     Ok(RenderedPage {
         final_url,
         html,
         warnings,
+        screenshot_png,
     })
 }
 

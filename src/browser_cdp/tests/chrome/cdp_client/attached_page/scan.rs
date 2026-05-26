@@ -125,6 +125,7 @@ fn browser_cdp_render_attached_page_scans_full_page_before_capture() {
         page_timeout: Duration::from_secs(2),
         wait_for_timeout: None,
         timeout: Duration::from_secs(2),
+        capture_screenshot: false,
     })
     .unwrap();
 

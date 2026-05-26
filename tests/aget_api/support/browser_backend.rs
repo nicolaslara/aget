@@ -14,6 +14,7 @@ use super::session::pending_login;
 #[derive(Clone, Default)]
 pub(crate) struct TestBrowserBackend {
     pub(crate) fallback_content: Option<String>,
+    pub(crate) fallback_screenshot_png: Option<Vec<u8>>,
     pub(crate) login_session: Option<Session>,
     pub(crate) import_error: Option<(ErrorCode, String)>,
     pub(crate) login_starts: Rc<RefCell<Vec<LoginStartOptions>>>,
@@ -40,6 +41,7 @@ impl BrowserFallbackBackend for TestBrowserBackend {
             warnings: vec!["custom browser fallback".to_string()],
             extractor: "test-browser-fallback".to_string(),
             source_bytes: Some(source_bytes),
+            screenshot_png: self.fallback_screenshot_png.clone(),
         })
     }
 }

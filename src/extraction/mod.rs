@@ -17,7 +17,8 @@ use std::time::{Duration, Instant};
 use self::artifacts::redact_values;
 use self::artifacts::{
     create_private_dir, run_id, sanitize_backend_artifacts, sanitize_backend_error,
-    sensitive_values, write_error_metadata, write_metadata, write_private_file,
+    sensitive_values, write_error_metadata, write_metadata, write_private_bytes,
+    write_private_file,
 };
 pub use self::backends::AgetExtractorBackend;
 use self::cache::{CacheContext, CacheLookup};
@@ -36,8 +37,9 @@ use self::replay_scope::domain_matches_host;
 use self::replay_scope::enforce_replay_scope;
 pub use self::types::{
     Artifacts, BrowserFallbackBackend, BrowserFallbackRequest, BrowserFallbackResult,
-    CacheMetadata, CacheStatus, ExtractionSessionStore, ExtractorBackend, ExtractorBackendResult,
-    ExtractorRequest, GetOptions, GetSuccess, Limits, TimingMs, UsageMetrics,
+    CacheMetadata, CacheStatus, DebugArtifact, DebugArtifacts, DebugCaptureOptions,
+    ExtractionSessionStore, ExtractorBackend, ExtractorBackendResult, ExtractorRequest, GetOptions,
+    GetSuccess, Limits, TimingMs, UsageMetrics,
 };
 
 use crate::aget::AgetBrowserBackend;
