@@ -1221,3 +1221,52 @@ Validation result:
   was attempted, but this Homebrew version rejects path-based audit with:
   `Calling brew audit [path ...] is disabled! Use brew audit [name ...] instead.`
   Developer mode was turned back off afterward with `brew developer off`.
+
+## REL-006 crates.io Publish Policy: 2026-05-26
+
+Primary sources reviewed:
+
+- Cargo manifest package metadata:
+  `https://doc.rust-lang.org/cargo/reference/manifest.html#package-metadata`
+- Cargo publishing guide:
+  `https://doc.rust-lang.org/cargo/reference/publishing.html`
+
+Decision:
+
+- Defer crates.io publishing. Keep
+  `cargo install --git https://github.com/nicolaslara/aget --tag v0.1.0 --locked aget`
+  as the supported source install path for now.
+- Add package metadata and a package boundary now, but keep
+  `publish = false` until a future crates.io publication task explicitly
+  removes it.
+- Reason for deferral: published crates are immutable, `aget` is still
+  pre-1.0 with fast-moving CLI and skill/release surfaces, and crates.io
+  install would not install the Codex skill that the release tarball currently
+  carries.
+
+Metadata/package updates:
+
+- `description = "Local-first auth-aware agent web context CLI"`
+- `readme = "README.md"`
+- `publish = false`
+- Root-anchored `include` entries for Cargo metadata, README, LICENSE,
+  CHANGELOG, `src/**`, and `tests/**`.
+
+Dry-run evidence:
+
+```bash
+cargo package --list --allow-dirty
+cargo package --allow-dirty --locked
+cargo package --list --allow-dirty | rg 'aget-hi|dist/|references/|\.opencode|CLAUDE_REVIEW|workpads/' || true
+```
+
+Validation result:
+
+- Initial dry-run before the include list was unsafe: it included workpads,
+  `.opencode` files, tracked `dist/` artifacts, reference repos, untracked
+  `CLAUDE_REVIEW.md`, and untracked `aget-hi/` browser-profile files.
+- After adding root-anchored package metadata/include rules, forbidden path
+  grep returned no matches.
+- Final `cargo package --allow-dirty --locked` passed: 393 files, 1.2 MiB
+  unpacked, 224.2 KiB compressed, and package verification compiled
+  successfully.

@@ -2,8 +2,20 @@
 name = "aget"
 version = "0.1.0"
 edition = "2021"
+description = "Local-first auth-aware agent web context CLI"
 license = "MIT"
 repository = "https://github.com/nicolaslara/aget"
+readme = "README.md"
+publish = false
+include = [
+    "/Cargo.toml",
+    "/Cargo.lock",
+    "/LICENSE",
+    "/README.md",
+    "/CHANGELOG.md",
+    "/src/**",
+    "/tests/**",
+]
 
 [dependencies]
 clap = { version = "4.5", features = ["derive"] }

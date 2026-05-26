@@ -662,7 +662,7 @@ Status note:
   `doctor --quick` smoke tests. Formula Ruby syntax validates; local path-based
   `brew audit` is unavailable in the installed Homebrew version.
 
-### 📋 Task REL-006: Decide crates.io publish policy
+### ✅ Task REL-006: Decide crates.io publish policy
 
 Depends on: REL-003.
 
@@ -677,8 +677,34 @@ Acceptance criteria:
 
 Status note:
 
-- Pending. `cargo install --git ... aget` is verified for `v0.1.0`; crates.io
-  remains undecided.
+- Completed with the decision to defer crates.io publication and keep
+  `cargo install --git ... aget` as the supported source install path. Added
+  package metadata (`description`, `readme`), an explicit `publish = false`
+  guardrail, and a root-anchored Cargo `include` list. Dry-run packaging first
+  exposed an unsafe default boundary that included workpads/tooling, tracked
+  release artifacts, reference repos, and unrelated untracked local browser
+  data; after the include-list fix, forbidden path grep returned no matches and
+  `cargo package --allow-dirty --locked` passed with a 224.2 KiB compressed
+  package.
+
+### 📋 Task REL-010: Publish crates.io package after explicit release decision
+
+Depends on: REL-006.
+
+Acceptance criteria:
+
+- Decide the exact version to publish and remove `publish = false`.
+- Re-run `cargo package --list`, forbidden-path grep, and
+  `cargo package --locked`.
+- Confirm package metadata, README rendering, license, and repository links.
+- Publish with `cargo publish --locked` only after explicit user approval.
+- Document `cargo install aget` in README and release notes if publication
+  succeeds.
+
+Status note:
+
+- Pending. REL-006 prepared metadata and package boundaries but intentionally
+  deferred registry publication.
 
 ### 📋 Task REL-007: Add Windows artifact only after a real smoke path
 

@@ -252,6 +252,14 @@ the CLI envelope in a thin host-specific tool.
   release has both macOS ARM and macOS Intel assets from the REL-004 workflow.
   The current formula draft targets the published v0.1.0 macOS ARM artifact
   only and is retained as a workpad draft, not an active install promise.
+- REL-006 defers crates.io publishing. `cargo install --git ... aget` remains
+  the supported source install path. Cargo metadata is now closer to publish
+  ready, but `publish = false` prevents accidental registry publication until a
+  future task explicitly removes it.
+- REL-006 found that the default Cargo package boundary was unsafe for this
+  repo because a dirty dry run included workpads/tooling and unrelated local
+  browser-profile files. `Cargo.toml` now uses a root-anchored `include` list
+  for Cargo/package source files and tests only.
 
 ## Execution Order
 
