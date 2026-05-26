@@ -14,8 +14,10 @@ Supported install paths for the next release:
 | Target | Audience | Command / Artifact | Notes |
 | --- | --- | --- | --- |
 | Developer checkout | contributors | `cargo install --path .` | Primary local install path before artifact publication. |
+| Git source | contributors/agents | `cargo install --git https://github.com/nicolaslara/aget --tag v0.1.0 --locked` | Source install from the published repository tag. |
 | Source checkout | contributors/agents | `cargo run -- <command>` | Useful for smoke tests and unreleased work. |
-| Release tarball | end users | `aget-<version>-<target>.tar.gz` | Contains one `aget` binary plus README, LICENSE, and checksum reference. |
+| Release tarball | end users | `aget-<version>-<target>.tar.gz` | Contains one `aget` binary, README, LICENSE, and the Codex skill. |
+| Codex global skill | agent workflows | copy or symlink `skills/aget` to `$CODEX_HOME/skills/aget` | Requires a Codex restart after install or replacement. |
 
 Initial binary artifact targets:
 
@@ -43,10 +45,13 @@ Archive contents:
 aget
 README.md
 LICENSE
+skills/aget/SKILL.md
 ```
 
 The unpacked executable should be named `aget` on Unix targets. If Windows is
 added later, use `aget.exe` inside `aget-v<semver>-x86_64-pc-windows-msvc.zip`.
+The unpacked skill should be installable by copying `skills/aget` into
+`$CODEX_HOME/skills/aget` and restarting Codex.
 
 ## Version Policy
 
@@ -72,8 +77,8 @@ added later, use `aget.exe` inside `aget-v<semver>-x86_64-pc-windows-msvc.zip`.
 Generate one SHA-256 file per archive:
 
 ```bash
-shasum -a 256 "dist/aget-v${version}-${target}.tar.gz" \
-  > "dist/aget-v${version}-${target}.tar.gz.sha256"
+(cd dist && shasum -a 256 "aget-v${version}-${target}.tar.gz" \
+  > "aget-v${version}-${target}.tar.gz.sha256")
 ```
 
 For a multi-target release, also generate a manifest:
@@ -167,7 +172,8 @@ target/release/aget doctor --help
 - [ ] `target/release/aget --envelope json doctor --quick` passes.
 - [ ] Release archives are named `aget-v<semver>-<target>.tar.gz`.
 - [ ] Per-archive `.sha256` files and `SHA256SUMS` are generated.
-- [ ] Archives contain `aget`, `README.md`, and `LICENSE`.
+- [ ] Archives contain `aget`, `README.md`, `LICENSE`, and
+      `skills/aget/SKILL.md`.
 - [ ] Release notes include known limitations: Chrome/CDP required for
       browser-backed flows, cmux optional, no server/MCP layer, no notarized
       app bundle.

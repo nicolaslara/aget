@@ -599,3 +599,114 @@ Release artifact refresh after CRAWL-001:
 e95e4ddc16a3bf59128ec02ad92ae83ac73d8e25d74d78338391cf93bb2e832a  dist/aget-v0.1.0-aarch64-apple-darwin.tar.gz
 e6384d95635891b2c72c33b7d454e66d4f41d7859ccb292abfe3bc6f64da0e90  dist/aget-v0.1.0-aarch64-apple-darwin/aget
 ```
+
+## REL-003 Release/Install Prep: 2026-05-26
+
+Release notes draft:
+
+- `workpads/post-migration/release-notes-v0.1.0.md`
+
+Prepared GitHub Release URL:
+
+- `https://github.com/nicolaslara/aget/releases/tag/v0.1.0`
+
+Packaging update:
+
+- The release archive now includes `skills/aget/SKILL.md` so the global Codex
+  skill can be installed from the tarball without a separate source checkout.
+- `Cargo.toml` now records `repository = "https://github.com/nicolaslara/aget"`
+  for package/source-install metadata.
+- README and skill docs include checkout and release-tarball skill install
+  commands for `$CODEX_HOME/skills/aget`, with a Codex restart note.
+
+Current archive SHA-256:
+
+```text
+142dfd8209d976a3a787a56e4f51433ca2ed5fc3521e53c5c1f7144622aceabd  aget-v0.1.0-aarch64-apple-darwin.tar.gz
+```
+
+Packaged binary SHA-256:
+
+```text
+e6384d95635891b2c72c33b7d454e66d4f41d7859ccb292abfe3bc6f64da0e90  dist/aget-v0.1.0-aarch64-apple-darwin/aget
+```
+
+Artifact generation command:
+
+```bash
+cargo build --release
+version=$(sed -n 's/^version = "\(.*\)"/\1/p' Cargo.toml | head -n 1)
+target=$(rustc -vV | sed -n 's/^host: //p')
+name="aget-v${version}-${target}"
+archive="${name}.tar.gz"
+rm -rf dist
+mkdir -p "dist/${name}/skills/aget"
+install -m 755 target/release/aget "dist/${name}/aget"
+install -m 644 README.md "dist/${name}/README.md"
+install -m 644 LICENSE "dist/${name}/LICENSE"
+install -m 644 skills/aget/SKILL.md "dist/${name}/skills/aget/SKILL.md"
+find "dist/${name}" -exec touch -t 202605240000 {} +
+COPYFILE_DISABLE=1 tar --format ustar --uid 0 --gid 0 --uname root --gname wheel -C dist -cf "dist/${name}.tar" "${name}"
+gzip -n "dist/${name}.tar"
+(cd dist && shasum -a 256 "$archive" > "$archive.sha256")
+(cd dist && shasum -a 256 "$archive" > SHA256SUMS)
+```
+
+Local archive validation:
+
+```bash
+tar -tzf dist/aget-v0.1.0-aarch64-apple-darwin.tar.gz | sort
+tmpdir="$(mktemp -d)"
+tar -xzf dist/aget-v0.1.0-aarch64-apple-darwin.tar.gz -C "$tmpdir"
+"$tmpdir/aget-v0.1.0-aarch64-apple-darwin/aget" --version
+AGET_HOME="$tmpdir/aget-home" \
+  "$tmpdir/aget-v0.1.0-aarch64-apple-darwin/aget" --envelope json doctor --quick
+skill_tmp="$tmpdir/codex-home"
+mkdir -p "$skill_tmp/skills"
+cp -R "$tmpdir/aget-v0.1.0-aarch64-apple-darwin/skills/aget" "$skill_tmp/skills/aget"
+test -f "$skill_tmp/skills/aget/SKILL.md"
+rm -rf "$tmpdir"
+(cd dist && shasum -a 256 -c aget-v0.1.0-aarch64-apple-darwin.tar.gz.sha256)
+(cd dist && shasum -a 256 -c SHA256SUMS)
+```
+
+Validation result:
+
+- Archive contents include `aget`, `README.md`, `LICENSE`, and
+  `skills/aget/SKILL.md`.
+- Tarball binary reported `aget 0.1.0`.
+- Tarball `doctor --quick` returned `ok: true` with one non-failing OpenCode
+  PATH warning.
+- Temporary tarball skill install copied `SKILL.md` successfully.
+- Per-archive checksum and `SHA256SUMS` both verified.
+
+Release gate before publication:
+
+```bash
+cargo fmt --check
+git diff --check
+cargo test
+rg -n 'Crawl4AI|crawl4ai|agent-browser|AGET_CRAWL4AI_COMMAND|AGET_AGENT_BROWSER_COMMAND|AgentBrowser|agent_browser' \
+  README.md skills/aget/SKILL.md .opencode/tools/aget.ts src tests scripts -S
+tmpdir="$(mktemp -d)"
+env -i PATH="/usr/bin:/bin:/usr/sbin:/sbin" \
+  AGET_HOME="$tmpdir/aget-home" \
+  target/release/aget --envelope json get 'raw:<main><h1>No Command Path</h1></main>'
+rm -rf "$tmpdir"
+tmpdir="$(mktemp -d)"
+cargo install --path . --locked --root "$tmpdir/install"
+"$tmpdir/install/bin/aget" --version
+AGET_HOME="$tmpdir/aget-home" "$tmpdir/install/bin/aget" --envelope json doctor --quick
+rm -rf "$tmpdir"
+```
+
+Validation result:
+
+- `cargo fmt --check`: passed.
+- `git diff --check`: passed.
+- `cargo test`: passed; 159 lib tests passed with 2 ignored, integration suites
+  passed, and doc tests passed.
+- Stale dependency-surface grep returned no active matches.
+- No-command-path smoke returned `ok: true` with `# No Command Path`.
+- Temp-root `cargo install --path . --locked` installed `aget 0.1.0`; installed
+  binary `doctor --quick` returned `ok: true`.

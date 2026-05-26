@@ -296,6 +296,62 @@ Status note:
   README install instructions name the produced artifact, and release-binary
   `doctor --quick` passed with `ok: true`.
 
+### 🚧 Task REL-003: Publish v0.1.0 GitHub release and define install path
+
+Depends on: REL-002.
+
+Acceptance criteria:
+
+- Publish a GitHub Release for `v0.1.0` from the current release commit.
+- Attach the verified local release artifact and checksums:
+  - `dist/aget-v0.1.0-aarch64-apple-darwin.tar.gz`
+  - `dist/aget-v0.1.0-aarch64-apple-darwin.tar.gz.sha256`
+  - `dist/SHA256SUMS`
+- Release notes summarize user-visible scope:
+  - CLI-only release.
+  - Owned default extractor/browser/session paths.
+  - `doctor`, `artifacts`, `batch`, `map`, and bounded `crawl`.
+  - Auth/session support including explicit session replay and
+    `login start --session <provider>`.
+  - Known limits: Chrome/CDP required for browser-backed flows, cmux optional,
+    macOS ARM artifact only for this first published binary, no server/MCP
+    layer, no notarized app bundle, no Windows artifact yet.
+- Verify installation from the attached tarball, not only from
+  `target/release/aget`:
+
+```bash
+tmpdir="$(mktemp -d)"
+tar -xzf dist/aget-v0.1.0-aarch64-apple-darwin.tar.gz -C "$tmpdir"
+"$tmpdir/aget-v0.1.0-aarch64-apple-darwin/aget" --version
+"$tmpdir/aget-v0.1.0-aarch64-apple-darwin/aget" --envelope json doctor --quick
+rm -rf "$tmpdir"
+```
+
+- Document supported install paths in README and/or release notes:
+  - `cargo install --path .` for local checkout development.
+  - `cargo install --git https://github.com/nicolaslara/aget` for source
+    install from GitHub.
+  - tarball download/unpack for binary install.
+- Document and verify global skill installation:
+  - local checkout install into `$CODEX_HOME/skills/aget` from `skills/aget`.
+  - release/source install instructions for making the `aget` skill globally
+    available to Codex.
+  - note that Codex must be restarted to pick up newly installed skills.
+- Record the release URL, artifact hash, install-smoke commands, and results in
+  `workpads/post-migration/references.md`.
+- Create follow-up tasks if not completed in this task:
+  - GitHub Actions multi-target release builds for macOS ARM, macOS Intel,
+    Linux x86_64, and Linux ARM64.
+  - Homebrew tap/formula.
+  - crates.io publish decision.
+  - Windows artifact only after a real Windows smoke path exists.
+
+Status note:
+
+- In progress. Start by updating install/skill guidance, regenerating the
+  macOS ARM artifact from the release commit, smoking the tarball path, then
+  publishing the GitHub Release with recorded evidence.
+
 ### ✅ Task ART-001: Design artifact lifecycle commands
 
 Depends on: DOC-002.
@@ -432,3 +488,154 @@ Status note:
   manifest and return a non-zero exit code without adding site-specific bypass
   behavior. Tests cover parser/help, required limit and bounds, bounded
   same-path traversal, manifest artifacts, and partial failure output.
+
+## Phase 5: Next Product Backlog
+
+### 📋 Task AGENT-001: Expose current CLI surface in agent integrations
+
+Depends on: BATCH-001, MAP-001, CRAWL-001.
+
+Acceptance criteria:
+
+- Add `.opencode/tools/aget.ts` wrappers for `batch`, `map`, `crawl`,
+  `artifacts list/inspect`, and `doctor`.
+- Update `skills/aget/SKILL.md` with when to choose `get`, `batch`, `map`, and
+  `crawl`, including private-content and artifact-first guidance.
+- Keep the integration CLI-first: no server, MCP, daemon, or direct Rust API
+  dependency.
+- Tests or deterministic command snapshots cover the generated CLI args for new
+  wrappers.
+- README OpenCode/skill guidance names the new multi-URL commands.
+
+Status note:
+
+- Pending. The CLI supports these commands, but the project-local OpenCode tool
+  and skill still primarily teach single-page fetch and session flows.
+
+### 📋 Task CACHE-001: Add cache, freshness, and token/cost metadata
+
+Depends on: ART-002, BATCH-001, MAP-001, CRAWL-001.
+
+Acceptance criteria:
+
+- Define cache storage under `AGET_HOME/cache` with clear keys, TTL/freshness
+  behavior, and privacy boundaries.
+- Add CLI controls such as `--fresh`, `--cache-policy`, or an equivalent
+  current-state design before implementation.
+- Add metadata for cache hit/miss, fetched bytes, content bytes, estimated
+  tokens, and elapsed timing in envelopes and artifact metadata.
+- Ensure authenticated/session-backed content does not become reusable across
+  scopes or users by accident.
+- Add tests for cache hit/miss behavior, stale refresh, metadata shape, and
+  session/privacy boundaries.
+
+Status note:
+
+- Pending. Current artifacts preserve outputs, but there is no reusable cache
+  policy or token/cost metadata beyond basic timing and truncation fields.
+
+### 📋 Task SEARCH-001: Add objective and keyword narrowing
+
+Depends on: ART-002.
+
+Acceptance criteria:
+
+- Define a deterministic local narrowing command or flags, such as
+  `aget search-page --artifact <run-id> --query <text>` or
+  `aget get <url> --objective <text>`.
+- Narrow by headings, anchors, paragraphs, lists, tables, and keyword/snippet
+  scoring without requiring an LLM inside `aget`.
+- Preserve artifact-first operation so large/private pages can be searched from
+  local files without embedding private content in envelopes.
+- Output JSON and markdown snippets with source URL, heading/path context, and
+  character offsets or stable section identifiers where practical.
+- Add tests for heading ranking, keyword matches, no-match output, and sensitive
+  artifact handling.
+
+Status note:
+
+- Pending. `--selector` and `--max-chars` exist, but agents still lack a
+  first-class way to find relevant sections by objective or keyword.
+
+### 📋 Task EXTRACT-001: Add structured extraction from artifacts
+
+Depends on: ART-002, SEARCH-001.
+
+Acceptance criteria:
+
+- Define a CLI surface for structured extraction from a page or crawl artifact,
+  such as `aget extract --artifact <run-id> --schema <path>` or
+  `aget extract --manifest <path> --field <name>`.
+- Support deterministic extraction primitives first: tables, links, headings,
+  definition lists, metadata fields, and JSON/HTML selectors.
+- Keep model/LLM interpretation outside `aget` unless a later task explicitly
+  approves a local-only structured inference backend.
+- Output schema-valid JSON with provenance to source URL/artifact/selector.
+- Add tests for table extraction, selector extraction, crawl-manifest
+  extraction, malformed schema/input errors, and private artifact behavior.
+
+Status note:
+
+- Pending. Current `--content-format json` wraps extracted content, but it does
+  not provide task-specific structured data extraction.
+
+### 📋 Task REL-004: Automate CI and multi-target release builds
+
+Depends on: REL-003.
+
+Acceptance criteria:
+
+- Add GitHub Actions for `cargo fmt --check`, `cargo test`, release build, and
+  stale dependency-surface grep.
+- Add release workflow or documented manual workflow for macOS ARM, macOS Intel,
+  Linux x86_64, and Linux ARM64 tarballs with checksums.
+- Keep Windows artifacts deferred until a real Windows smoke path exists.
+- Ensure generated release artifacts include `aget`, README, LICENSE, and
+  checksum files matching `release-plan.md`.
+- Record CI status and release-build evidence in `references.md`.
+
+Status note:
+
+- Pending. Current release artifacts are produced manually on the local host.
+
+### 📋 Task DEBUG-001: Add screenshots and debug traces
+
+Depends on: ART-002, DR-002.
+
+Acceptance criteria:
+
+- Define screenshot/debug artifact policy for browser-backed extraction,
+  current-tab, and failed extraction diagnostics.
+- Add explicit CLI flags for screenshot or trace capture; do not capture visual
+  private content by default.
+- Store screenshots/traces under run artifacts with sensitivity metadata and
+  artifact lifecycle compatibility.
+- Ensure `artifacts inspect/delete/prune` understands the new files.
+- Add tests for opt-in behavior, metadata shape, lifecycle cleanup, and
+  redaction/sensitivity flags.
+
+Status note:
+
+- Pending. Browser/CDP extraction exists, but visual/debug artifacts are not yet
+  exposed.
+
+### 📋 Task ACT-001: Design safe generic interact/actions model
+
+Depends on: SEARCH-001, DEBUG-001.
+
+Acceptance criteria:
+
+- Design a generic CLI action model for user-authorized local browser flows:
+  click, type, wait, select, submit, extract, and capture.
+- Define consent, audit, redaction, timeout, confirmation, and private-content
+  boundaries before implementation.
+- Keep the binary generic; do not add site-specific login/paywall/CAPTCHA
+  bypass behavior or site-shaped retry advice.
+- Define JSON envelope output, artifact layout, and failure semantics.
+- Include a test strategy using deterministic local pages and fake-browser seams
+  where possible.
+
+Status note:
+
+- Pending design task. Interact/actions are high value for authenticated app
+  flows, but they need a stricter safety and audit model before implementation.

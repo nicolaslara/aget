@@ -175,6 +175,17 @@ the CLI envelope in a thin host-specific tool.
   discovery may require an additional HTML fetch for the same URL; this keeps
   map/crawl behavior source-aligned with `get` rather than adding a separate
   extraction path.
+- 2026-05-26 next-backlog triage: highest value after post-migration closure is
+  distribution and agent usability first (`REL-003`, `AGENT-001`), then
+  artifact leverage (`CACHE-001`, `SEARCH-001`, `EXTRACT-001`), then release
+  automation (`REL-004`), then higher-risk browser features (`DEBUG-001`,
+  `ACT-001`). This order keeps the CLI installable and useful to agents before
+  adding broader browser automation surfaces.
+- REL-003 packaging should treat the Codex skill as part of the release
+  install surface. The macOS ARM tarball now includes `skills/aget/SKILL.md`,
+  README documents checkout and tarball skill installation into
+  `$CODEX_HOME/skills/aget`, and Codex restart remains required after install
+  or replacement.
 
 ## Execution Order
 

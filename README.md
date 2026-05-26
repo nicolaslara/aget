@@ -38,7 +38,7 @@ Planned CLI work is tracked in `workpads/post-migration/tasks.md`.
 
 ## Install And Run
 
-Developer build:
+Developer build from a checkout:
 
 ```bash
 cargo build
@@ -52,7 +52,14 @@ cargo install --path .
 aget --help
 ```
 
-Current local release artifact:
+Source install from GitHub:
+
+```bash
+cargo install --git https://github.com/nicolaslara/aget --tag v0.1.0 --locked
+aget --help
+```
+
+Current release artifact:
 
 ```text
 dist/aget-v0.1.0-aarch64-apple-darwin.tar.gz
@@ -60,15 +67,38 @@ dist/aget-v0.1.0-aarch64-apple-darwin.tar.gz.sha256
 dist/SHA256SUMS
 ```
 
-Install from the local release artifact:
+Install the CLI from a release tarball:
 
 ```bash
-tar -xzf dist/aget-v0.1.0-aarch64-apple-darwin.tar.gz -C /tmp
-/tmp/aget-v0.1.0-aarch64-apple-darwin/aget --help
+curl -fLO https://github.com/nicolaslara/aget/releases/download/v0.1.0/aget-v0.1.0-aarch64-apple-darwin.tar.gz
+curl -fLO https://github.com/nicolaslara/aget/releases/download/v0.1.0/aget-v0.1.0-aarch64-apple-darwin.tar.gz.sha256
+shasum -a 256 -c aget-v0.1.0-aarch64-apple-darwin.tar.gz.sha256
+tar -xzf aget-v0.1.0-aarch64-apple-darwin.tar.gz
+install -d "$HOME/.local/bin"
+install -m 755 aget-v0.1.0-aarch64-apple-darwin/aget "$HOME/.local/bin/aget"
+"$HOME/.local/bin/aget" --help
 ```
 
-Release artifact naming and smoke gates are tracked in
-`workpads/post-migration/release-plan.md`.
+Install the Codex skill globally from a checkout:
+
+```bash
+CODEX_HOME="${CODEX_HOME:-$HOME/.codex}"
+mkdir -p "$CODEX_HOME/skills"
+rm -rf "$CODEX_HOME/skills/aget"
+ln -s "$PWD/skills/aget" "$CODEX_HOME/skills/aget"
+```
+
+Install the Codex skill globally from the release tarball:
+
+```bash
+CODEX_HOME="${CODEX_HOME:-$HOME/.codex}"
+mkdir -p "$CODEX_HOME/skills"
+rm -rf "$CODEX_HOME/skills/aget"
+cp -R aget-v0.1.0-aarch64-apple-darwin/skills/aget "$CODEX_HOME/skills/aget"
+```
+
+Restart Codex after installing or replacing a global skill. Release artifact
+naming and smoke gates are tracked in `workpads/post-migration/release-plan.md`.
 
 Prerequisites:
 
