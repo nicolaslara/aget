@@ -19,7 +19,7 @@ pub(super) use self::urls::{
     remove_owned_internal_links, remove_owned_social_media_links,
 };
 
-const CRAWL4AI_OVERLAY_SELECTORS: &[&str] = &[
+const AGET_OVERLAY_SELECTORS: &[&str] = &[
     r#"button[class*="close" i]"#,
     r#"button[class*="dismiss" i]"#,
     r#"button[aria-label*="close" i]"#,
@@ -39,7 +39,7 @@ const CRAWL4AI_OVERLAY_SELECTORS: &[&str] = &[
     r#"[role="dialog"]"#,
     r#"[role="alertdialog"]"#,
 ];
-const CRAWL4AI_CONSENT_SELECTORS: &[&str] = &[
+const AGET_CONSENT_SELECTORS: &[&str] = &[
     r#"[class*="cookie-consent" i]"#,
     r#"[id*="cookie-consent" i]"#,
     r#"[class*="cookie-banner" i]"#,
@@ -57,7 +57,7 @@ const CRAWL4AI_CONSENT_SELECTORS: &[&str] = &[
     r#"iframe[title*="cookie" i]"#,
     r#"iframe[src*="cookie" i]"#,
 ];
-const CRAWL4AI_SOCIAL_MEDIA_DOMAINS: &[&str] = &[
+const AGET_SOCIAL_MEDIA_DOMAINS: &[&str] = &[
     "facebook.com",
     "twitter.com",
     "x.com",
@@ -80,11 +80,11 @@ pub(super) fn remove_owned_excluded_tags(
 }
 
 pub(super) fn remove_owned_overlay_elements(document: Html) -> Result<Html, AgetError> {
-    remove_selected_elements(document, &CRAWL4AI_OVERLAY_SELECTORS.join(","))
+    remove_selected_elements(document, &AGET_OVERLAY_SELECTORS.join(","))
 }
 
 pub(super) fn remove_owned_consent_popups(document: Html) -> Result<Html, AgetError> {
-    remove_selected_elements(document, &CRAWL4AI_CONSENT_SELECTORS.join(","))
+    remove_selected_elements(document, &AGET_CONSENT_SELECTORS.join(","))
 }
 
 pub(super) fn remove_selected_elements(

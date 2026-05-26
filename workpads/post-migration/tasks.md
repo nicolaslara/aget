@@ -930,7 +930,7 @@ Status note:
   delete cleanup. Focused review findings were fixed, and `git diff --check`
   plus full `cargo test` pass.
 
-### 📋 Task ACT-006: Document and expose implemented interact wrappers
+### ✅ Task ACT-006: Document and expose implemented interact wrappers
 
 Depends on: ACT-005.
 
@@ -945,7 +945,14 @@ Acceptance criteria:
 
 Status note:
 
-- Pending documentation/integration task.
+- Completed with README and skill guidance for `aget interact`, action-plan
+  schema, consent flags, capture/extract artifacts, strict selector semantics,
+  sensitive URL redaction, and the current session-backed execution limit.
+  Added `aget_interact` as a thin OpenCode CLI/envelope wrapper around
+  caller-supplied action-plan files. Active stale dependency-surface grep is
+  clean after renaming remaining owned HTML-clean constants away from
+  source-project names. `bun test`, OpenCode bundle build, help grep,
+  `git diff --check`, and full `cargo test` pass.
 
 ### 📋 Task ACT-007: Harden interact browser event boundaries
 

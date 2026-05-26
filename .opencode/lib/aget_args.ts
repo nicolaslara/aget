@@ -211,6 +211,35 @@ export function buildExtractArgs(input: ExtractArgs): string[] {
   return cliArgs
 }
 
+export type InteractArgs = {
+  source: string
+  actions: string
+  allow_actions?: boolean
+  allow_private_content?: boolean
+  allow_sensitive_input?: boolean
+  allow_submit?: boolean
+  capture_screenshot?: boolean
+  cdp_port?: number
+  sessions?: string[]
+  dry_run?: boolean
+  timeout?: number
+}
+
+export function buildInteractArgs(input: InteractArgs): string[] {
+  const cliArgs: string[] = []
+  addOptional(cliArgs, "--timeout", input.timeout)
+  cliArgs.push("interact", input.source, "--actions", input.actions)
+  addFlag(cliArgs, "--allow-actions", input.allow_actions)
+  addFlag(cliArgs, "--allow-private-content", input.allow_private_content)
+  addFlag(cliArgs, "--allow-sensitive-input", input.allow_sensitive_input)
+  addFlag(cliArgs, "--allow-submit", input.allow_submit)
+  addFlag(cliArgs, "--capture-screenshot", input.capture_screenshot)
+  addOptional(cliArgs, "--cdp-port", input.cdp_port)
+  addRepeated(cliArgs, "--session", input.sessions)
+  addFlag(cliArgs, "--dry-run", input.dry_run)
+  return cliArgs
+}
+
 export function buildArtifactsListArgs(): string[] {
   return ["artifacts", "list"]
 }

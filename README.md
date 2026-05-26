@@ -21,6 +21,8 @@ Normal use does not require external scraper or browser-control tools.
   snippet search over existing page artifacts.
 - `aget extract --artifact <run-id> ...` and `aget extract --manifest <path> ...`
   for deterministic structured extraction from existing artifacts.
+- `aget interact <url|current-tab> --actions <path>` for explicitly approved,
+  file-driven local browser actions with audit, capture, and extract artifacts.
 - `aget doctor` for local readiness diagnostics.
 - `aget artifacts ...` for listing, inspecting, deleting, and pruning local run
   artifacts under `AGET_HOME`.
@@ -191,6 +193,25 @@ aget --envelope json extract --artifact run-123 --field tables --field links
 aget --envelope json extract --manifest /tmp/aget-crawl/manifest.json --field headings
 ```
 
+Validate a browser action plan without executing it:
+
+```bash
+aget --envelope json interact https://example.com/app \
+  --actions /tmp/actions.json \
+  --allow-actions \
+  --dry-run
+```
+
+Run approved actions against an explicitly selected current tab:
+
+```bash
+aget --envelope json interact current-tab \
+  --cdp-port 9222 \
+  --actions /tmp/actions.json \
+  --allow-actions \
+  --allow-private-content
+```
+
 ## Command Reference
 
 Top-level commands:
@@ -204,6 +225,7 @@ aget crawl <url> --limit <n>
 aget search-page --artifact <run-id> --query <text>
 aget extract --artifact <run-id> --field <name>
 aget extract --manifest <path> --schema <path>
+aget interact <url|current-tab> --actions <path> --allow-actions
 aget current-tab --cdp-port <port> --allow-private-content
 aget session <command>
 aget artifacts <command>
@@ -374,6 +396,65 @@ local run directory. Artifact mode reads only internal run content; it refuses
 caller-owned external `--output` paths. Manifest mode requires each item to
 carry matching `aget` item metadata and keeps content reads inside the manifest
 directory.
+
+`aget interact`:
+
+```text
+aget interact <url>
+aget interact current-tab --cdp-port <port>
+  --actions <path>
+  --allow-actions
+  [--allow-private-content]
+  [--allow-sensitive-input]
+  [--allow-submit]
+  [--capture-screenshot]
+  [--session <name>...]
+  [--dry-run]
+  [--timeout <seconds>]
+  [--envelope <json|none>]
+```
+
+`aget interact` executes a local JSON action plan and always writes redacted
+`actions-request.json`, `actions-result.json`, and `metadata.json` under a run
+directory. Non-dry-run execution currently supports URL and current-tab sources
+without named session replay; session-backed action execution returns a
+structured `action_not_supported` result until session replay is wired into the
+interact executor.
+
+Action plans use schema version `aget.actions.v1`:
+
+```json
+{
+  "schema_version": "aget.actions.v1",
+  "actions": [
+    {"type": "wait", "selector": "main"},
+    {"type": "click", "selector": "button.next"},
+    {"type": "capture", "name": "after-click", "html": true},
+    {
+      "type": "extract",
+      "name": "main",
+      "selector": "main",
+      "content_format": "markdown"
+    }
+  ]
+}
+```
+
+Supported action types are `wait`, `click`, `type`, `select`, `submit`,
+`capture`, and `extract`. `--allow-actions` is always required because plans can
+mutate browser state. `current-tab` and session-backed plans require
+`--allow-private-content`; sensitive typed input requires
+`--allow-sensitive-input`; `submit` requires both `confirm: true` in the action
+and `--allow-submit`; screenshot captures require `--capture-screenshot`.
+
+Selectors are strict by default. Mutation actions require one matching element.
+Read actions such as `wait`, `capture`, and `extract` may opt into
+`"match": "first"`; otherwise zero or ambiguous matches fail. `capture` writes
+HTML and screenshot files under `artifacts.captures`; selector-backed
+screenshots capture the selected element region. `extract` runs the owned
+extraction pipeline against the current DOM and writes output under
+`artifacts.extracts`. Sensitive interact runs redact URL query strings and
+fragments in envelopes and metadata.
 
 `aget current-tab`:
 
@@ -631,6 +712,7 @@ Available tools:
 - `aget_crawl`
 - `aget_search_page`
 - `aget_extract`
+- `aget_interact`
 - `aget_artifacts_list`
 - `aget_artifacts_inspect`
 - `aget_doctor`

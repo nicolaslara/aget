@@ -9,7 +9,7 @@ use self::domains::aget_like_domain_from_option;
 use self::elements::{
     remove_excluded_domain_url_elements, remove_external_url_elements, remove_internal_url_elements,
 };
-use super::CRAWL4AI_SOCIAL_MEDIA_DOMAINS;
+use super::AGET_SOCIAL_MEDIA_DOMAINS;
 
 pub(in crate::extraction) fn remove_owned_external_links(
     document: Html,
@@ -62,7 +62,7 @@ pub(in crate::extraction) fn remove_owned_social_media_links(
     base_url: &str,
     custom_social_domains: &[String],
 ) -> Result<Html, AgetError> {
-    let mut excluded_domains = CRAWL4AI_SOCIAL_MEDIA_DOMAINS
+    let mut excluded_domains = AGET_SOCIAL_MEDIA_DOMAINS
         .iter()
         .map(|domain| (*domain).to_string())
         .collect::<Vec<_>>();

@@ -7,6 +7,7 @@ import {
   buildDoctorArgs,
   buildExtractArgs,
   buildFetchArgs,
+  buildInteractArgs,
   buildMapArgs,
   buildSearchPageArgs,
 } from "../lib/aget_args"
@@ -249,6 +250,59 @@ export const extract = tool({
   },
   async execute(args, context) {
     return runAget(buildExtractArgs(args), context)
+  },
+})
+
+export const interact = tool({
+  description:
+    "Run a caller-supplied aget interact action plan through the local CLI. Use only after the user approves browser actions and any private-content or screenshot capture. Returns the structured aget envelope with audit, capture, and extract artifact paths.",
+  args: {
+    source: tool.schema
+      .string()
+      .describe("URL to open, or current-tab for an explicitly selected local browser tab."),
+    actions: tool.schema.string().describe("Local JSON action plan file path."),
+    allow_actions: tool.schema
+      .boolean()
+      .describe("Required consent acknowledging that actions can mutate browser/page state."),
+    allow_private_content: tool.schema
+      .boolean()
+      .optional()
+      .describe("Required for current-tab or session-backed plans that may read private content."),
+    allow_sensitive_input: tool.schema
+      .boolean()
+      .optional()
+      .describe("Permit action plans with sensitive typed input after explicit user approval."),
+    allow_submit: tool.schema
+      .boolean()
+      .optional()
+      .describe("Permit submit actions that also declare confirm=true in the plan."),
+    capture_screenshot: tool.schema
+      .boolean()
+      .optional()
+      .describe("Permit capture actions with screenshot=true after user approval."),
+    cdp_port: tool.schema
+      .number()
+      .int()
+      .positive()
+      .optional()
+      .describe("Chrome DevTools port for source=current-tab."),
+    sessions: tool.schema
+      .array(tool.schema.string())
+      .optional()
+      .describe("Optional local aget session names. Non-dry-run session-backed interact is currently deferred."),
+    dry_run: tool.schema
+      .boolean()
+      .optional()
+      .describe("Validate the action plan and write audit artifacts without executing browser actions."),
+    timeout: tool.schema
+      .number()
+      .int()
+      .positive()
+      .optional()
+      .describe("Optional timeout in seconds."),
+  },
+  async execute(args, context) {
+    return runAget(buildInteractArgs(args), context)
   },
 })
 

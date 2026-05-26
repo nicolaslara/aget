@@ -1,6 +1,6 @@
 use scraper::{Html, Node};
 
-const CRAWL4AI_IMPORTANT_ATTRS: &[&str] = &[
+const AGET_IMPORTANT_ATTRS: &[&str] = &[
     "src", "href", "alt", "title", "width", "height", "class", "id",
 ];
 
@@ -25,5 +25,5 @@ pub(in crate::extraction) fn prune_owned_unwanted_attributes(
 }
 
 fn is_aget_important_attr(name: &str) -> bool {
-    CRAWL4AI_IMPORTANT_ATTRS.contains(&name)
+    AGET_IMPORTANT_ATTRS.contains(&name)
 }

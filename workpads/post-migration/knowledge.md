@@ -340,6 +340,17 @@ the CLI envelope in a thin host-specific tool.
   focused test fixture. The partial-artifact concern was reduced by collecting
   capture bytes before writing files and preserving action artifacts if the
   post-action URL read fails.
+- ACT-006 documents interact as a file-driven, consent-gated CLI surface rather
+  than an agent-auth/login abstraction. README and the aget skill now describe
+  action plans, layered consent flags, artifact-first capture/extract outputs,
+  strict selector semantics, and the current session-backed execution limit.
+- ACT-006 adds `aget_interact` to the OpenCode integration as a thin
+  CLI/envelope wrapper around a caller-supplied action-plan file. The wrapper
+  does not generate plans, run a server, or add an MCP/direct API layer.
+- Active Crawl4AI/`agent-browser` names should remain out of README, skill,
+  OpenCode tools, scripts, tests, and source identifiers. The ACT-006 cleanup
+  renamed remaining owned HTML-cleaning constants to `AGET_*` names; historical
+  source-project notes remain in workpads/references only.
 
 ## Execution Order
 

@@ -75,6 +75,10 @@ Before running `aget`, choose these deliberately.
   `--artifact <run-id>` or `--manifest <path>`. Prefer built-in `--field`
   values for headings, links, tables, definitions, and metadata; use a schema
   file for HTML selectors or JSON paths.
+- **Need controlled browser actions**: use `aget interact` only with a local
+  JSON action plan and explicit user approval for actions, private content,
+  sensitive input, submit, or screenshot capture as applicable. Prefer
+  `--dry-run` before executing a new plan.
 - **Need debugging provenance without page content**: add `--capture-trace` and
   inspect the local `debug-trace.json` path. The trace records options,
   warnings, timing, cache, usage, and errors; it does not include extracted page
@@ -169,6 +173,12 @@ common deterministic fields, or `extract --schema schema.json` for selector and
 JSON-path fields. `extract --artifact` reads internal run content only; it
 refuses caller-owned external `--output` paths.
 
+For `interact`, outputs are artifact-first. Every run writes redacted
+`actions-request.json`, `actions-result.json`, and `metadata.json`. `capture`
+actions write HTML/PNG files under `data.artifacts.captures`; `extract` actions
+write owned-pipeline output under `data.artifacts.extracts`. Sensitive runs
+redact URL query strings and fragments in envelopes and metadata.
+
 ## Basic Fetch
 
 Use an empty session first unless the user already chose a named session:
@@ -198,6 +208,44 @@ aget --envelope json current-tab --cdp-port 9222 --allow-private-content --outpu
 ```
 
 Do not scan ports or profiles. Do not use `--inline-content always` unless the user explicitly wants the selected tab content embedded in the envelope.
+
+## Interact Actions
+
+Use `aget interact` only for a bounded, user-approved action plan. Start with
+`--dry-run` when creating or modifying a plan:
+
+```bash
+aget --envelope json interact "https://example.com/app" --actions /tmp/actions.json --allow-actions --dry-run
+```
+
+For an explicitly selected current tab:
+
+```bash
+aget --envelope json interact current-tab --cdp-port 9222 --actions /tmp/actions.json --allow-actions --allow-private-content
+```
+
+Action files use `schema_version: "aget.actions.v1"` and support `wait`,
+`click`, `type`, `select`, `submit`, `capture`, and `extract`. Keep plans
+small, generic, and goal-directed; do not put arbitrary JavaScript or
+site-specific bypass logic in the plan.
+
+Consent flags are layered:
+
+- `--allow-actions` is always required.
+- `--allow-private-content` is required for `current-tab` or session-backed
+  plans.
+- `--allow-sensitive-input` is required before any `type` action with
+  `"sensitive": true`.
+- `--allow-submit` is required for `submit`, and the action must also contain
+  `"confirm": true`.
+- `--capture-screenshot` is required before any capture action with
+  `"screenshot": true`.
+
+Selectors are strict by default. Mutation actions require one matching element.
+Read actions such as `wait`, `capture`, and `extract` may use
+`"match": "first"` when the first match is intentionally acceptable. Current
+non-dry-run interact supports URL and `current-tab` sources; named session
+replay for interact is currently deferred.
 
 ## Gated Page Flow
 

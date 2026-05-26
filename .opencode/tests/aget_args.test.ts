@@ -6,6 +6,7 @@ import {
   buildCrawlArgs,
   buildDoctorArgs,
   buildExtractArgs,
+  buildInteractArgs,
   buildMapArgs,
   buildSearchPageArgs,
 } from "../lib/aget_args"
@@ -148,5 +149,37 @@ test("builds artifact and doctor args", () => {
     "binary",
     "--check",
     "opencode",
+  ])
+})
+
+test("builds interact args with explicit consent flags", () => {
+  expect(
+    buildInteractArgs({
+      source: "current-tab",
+      actions: "/tmp/actions.json",
+      allow_actions: true,
+      allow_private_content: true,
+      allow_sensitive_input: true,
+      allow_submit: true,
+      capture_screenshot: true,
+      cdp_port: 9222,
+      dry_run: true,
+      timeout: 30,
+    }),
+  ).toEqual([
+    "--timeout",
+    "30",
+    "interact",
+    "current-tab",
+    "--actions",
+    "/tmp/actions.json",
+    "--allow-actions",
+    "--allow-private-content",
+    "--allow-sensitive-input",
+    "--allow-submit",
+    "--capture-screenshot",
+    "--cdp-port",
+    "9222",
+    "--dry-run",
   ])
 })

@@ -1670,3 +1670,52 @@ Review result:
   contract, sensitive URLs are redacted before envelope/metadata writes, the
   fixture is stable, and capture files are collected before writes while
   post-action URL read failures preserve recorded artifacts.
+
+## ACT-006 Interact Docs And OpenCode Wrapper: 2026-05-26
+
+Implemented surfaces:
+
+- `README.md`
+- `skills/aget/SKILL.md`
+- `.opencode/lib/aget_args.ts`
+- `.opencode/tools/aget.ts`
+- `.opencode/tests/aget_args.test.ts`
+- `src/extraction/html_clean/*`
+
+Behavior covered:
+
+- README documents `aget interact`, `aget.actions.v1` action files, consent
+  flags, strict selector semantics, capture/extract artifacts, sensitive URL
+  redaction, and the current non-dry-run session-backed execution limit.
+- The aget skill gives agents routing guidance for interact, recommends
+  `--dry-run` before new plans, and keeps action plans generic and consent
+  gated.
+- OpenCode exposes `aget_interact` as a thin `--envelope json` CLI wrapper that
+  passes a caller-supplied action-plan file and explicit consent flags.
+- Remaining active source identifiers that mentioned Crawl4AI in the owned
+  HTML-cleaning code were renamed to `AGET_*` names.
+
+Validation:
+
+```bash
+bun test
+bun build tools/aget.ts --target=bun --outfile /tmp/aget-opencode-tool.js
+cargo run --quiet -- interact --help | rg -- \
+  '--actions|--allow-actions|--allow-private-content|--allow-sensitive-input|--allow-submit|--capture-screenshot|--cdp-port|--dry-run'
+rg -n 'crawl4ai|agent-browser|AGET_AGENT_BROWSER|CRAWL4AI|crawl4ai\.|agent_browser' \
+  README.md skills/aget/SKILL.md .opencode/tools/aget.ts .opencode/lib/aget_args.ts src tests scripts -S || true
+cargo fmt --check
+cargo test --lib extraction::html_clean
+git diff --check
+cargo test
+```
+
+Validation result:
+
+- OpenCode argument tests passed, including `buildInteractArgs`.
+- OpenCode tool bundle built successfully with Bun.
+- Interact help exposes the documented action and consent flags.
+- Stale dependency-surface grep returned no active matches in README, skill,
+  OpenCode tools/lib, source, tests, or scripts.
+- Focused owned HTML-clean tests passed after the constant rename.
+- `git diff --check` and full `cargo test` passed after the ACT-006 changes.

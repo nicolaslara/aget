@@ -2,7 +2,7 @@ use ego_tree::NodeId;
 use scraper::node::Text;
 use scraper::{ElementRef, Html, Node, StrTendril};
 
-const CRAWL4AI_ONLY_TEXT_ELIGIBLE_TAGS: &[&str] = &[
+const AGET_ONLY_TEXT_ELIGIBLE_TAGS: &[&str] = &[
     "b", "i", "u", "span", "del", "ins", "sub", "sup", "strong", "em", "code", "kbd", "var", "s",
     "q", "abbr", "cite", "dfn", "time", "small", "mark",
 ];
@@ -46,7 +46,7 @@ fn should_replace_with_only_text(
     target_ids: &[NodeId],
 ) -> bool {
     let id = element.id();
-    CRAWL4AI_ONLY_TEXT_ELIGIBLE_TAGS.contains(&element.value().name())
+    AGET_ONLY_TEXT_ELIGIBLE_TAGS.contains(&element.value().name())
         && !root_ids.contains(&id)
         && !target_ids.contains(&id)
         && !has_only_text_eligible_ancestor(element, root_ids, target_ids)
@@ -61,7 +61,7 @@ fn has_only_text_eligible_ancestor(
     element.ancestors().skip(1).any(|ancestor| {
         ElementRef::wrap(ancestor)
             .map(|ancestor| {
-                CRAWL4AI_ONLY_TEXT_ELIGIBLE_TAGS.contains(&ancestor.value().name())
+                AGET_ONLY_TEXT_ELIGIBLE_TAGS.contains(&ancestor.value().name())
                     && !root_ids.contains(&ancestor.id())
                     && !target_ids.contains(&ancestor.id())
             })

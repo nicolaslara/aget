@@ -2,10 +2,10 @@ use ego_tree::NodeId;
 use html5ever::tree_builder::TreeSink;
 use scraper::{ElementRef, Html, HtmlTreeSink};
 
-const CRAWL4AI_EMPTY_ELEMENT_BYPASS_TAGS: &[&str] = &[
+const AGET_EMPTY_ELEMENT_BYPASS_TAGS: &[&str] = &[
     "a", "img", "br", "hr", "input", "meta", "link", "source", "track", "wbr", "tr", "td", "th",
 ];
-const CRAWL4AI_EMPTY_ELEMENT_WORD_THRESHOLD: usize = 1;
+const AGET_EMPTY_ELEMENT_WORD_THRESHOLD: usize = 1;
 
 pub(in crate::extraction) fn remove_owned_empty_elements(
     document: Html,
@@ -26,7 +26,7 @@ pub(in crate::extraction) fn remove_owned_empty_elements(
                 id,
                 root_ids,
                 target_ids,
-                CRAWL4AI_EMPTY_ELEMENT_WORD_THRESHOLD,
+                AGET_EMPTY_ELEMENT_WORD_THRESHOLD,
             )
         };
         if should_remove {
@@ -53,7 +53,7 @@ fn should_remove_owned_empty_element(
         return false;
     }
     let tag = element.value().name();
-    if CRAWL4AI_EMPTY_ELEMENT_BYPASS_TAGS.contains(&tag) || is_descendant_of_code_block(element) {
+    if AGET_EMPTY_ELEMENT_BYPASS_TAGS.contains(&tag) || is_descendant_of_code_block(element) {
         return false;
     }
     if element.child_elements().next().is_some() {
