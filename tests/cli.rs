@@ -20,5 +20,7 @@ mod interact;
 mod map;
 #[path = "cli/search_page.rs"]
 mod search_page;
+#[path = "cli/setup_skills.rs"]
+mod setup_skills;
 #[path = "cli/support.rs"]
 mod support;

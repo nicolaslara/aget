@@ -1,0 +1,25 @@
+---
+description: Use the local aget CLI for agent-ready web context, authenticated local session replay, current-tab extraction, and bounded crawl/map/batch workflows.
+globs:
+alwaysApply: false
+---
+
+# aget
+
+Use `aget` when you need web page content, local browser/current-tab content,
+bounded link discovery, structured extraction, or artifacts from prior web
+fetches.
+
+- Prefer `aget --envelope json ...` for tool-like workflows.
+- Use `aget get` for one known URL, `aget batch` for several known URLs,
+  `aget map` for one-page link discovery, and `aget crawl <url> --limit <n>`
+  for bounded traversal.
+- Use `aget search-page --artifact <run-id>` or `aget extract --artifact
+  <run-id>` when relevant page content already exists in local artifacts.
+- Use `aget interact` only with a local action-plan file and explicit user
+  approval for actions, private content, sensitive input, submit, or screenshot
+  capture as applicable.
+- Do not collect credentials or silently use ambient browser auth. Authenticated
+  content requires explicit user approval and named local sessions.
+- Treat session files, screenshots, current-tab output, and authenticated
+  artifacts as private local data.

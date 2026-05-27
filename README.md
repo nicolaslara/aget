@@ -24,6 +24,8 @@ Normal use does not require external scraper or browser-control tools.
 - `aget interact <url|current-tab> --actions <path>` for explicitly approved,
   file-driven local browser actions with audit, capture, and extract artifacts.
 - `aget doctor` for local readiness diagnostics.
+- `aget setup-skills` for installing global skills and project-local agent
+  adapters from the installed binary.
 - `aget artifacts ...` for listing, inspecting, deleting, and pruning local run
   artifacts under `AGET_HOME`.
 - Opt-in debug artifacts with `--capture-trace` and browser-backed
@@ -62,12 +64,52 @@ cargo install --path .
 aget --help
 ```
 
+Registry install after the crates.io release:
+
+```bash
+cargo install aget --locked
+aget --help
+```
+
 Source install from GitHub:
 
 ```bash
 cargo install --git https://github.com/nicolaslara/aget --tag v0.1.0 --locked aget
 aget --help
 ```
+
+Install agent integrations from the installed binary:
+
+```bash
+aget setup-skills --all --force
+```
+
+That installs global `aget` skills for Codex, Claude Code, Gemini CLI, and
+Windsurf. To also install project-local adapters for OpenCode, Cursor, and
+GitHub Copilot in another repository, pass the target project directory:
+
+```bash
+aget setup-skills --all --project-dir /path/to/repo --force
+```
+
+From a checkout or unpacked release tarball, the helper script provides the
+same setup flow:
+
+```bash
+scripts/install-agent-integrations.sh --all --force
+```
+
+With project-local adapters:
+
+```bash
+scripts/install-agent-integrations.sh --all --project-dir /path/to/repo --force
+```
+
+The helper defaults to copying files. Use `--symlink` from a development
+checkout when local integration edits should be reflected after restarting or
+reloading the agent harness. The installed `aget setup-skills` command copies
+embedded templates and rejects `--symlink`; use the checkout script for symlink
+mode.
 
 Current release artifact:
 
@@ -89,13 +131,13 @@ install -m 755 aget-v0.1.0-aarch64-apple-darwin/aget "$HOME/.local/bin/aget"
 "$HOME/.local/bin/aget" --help
 ```
 
-Install the Codex skill globally from a checkout:
+Install only the Codex skill globally from a checkout:
 
 ```bash
 scripts/install-codex-skill.sh --symlink --force
 ```
 
-Install the Codex skill globally from the release tarball:
+Install only the Codex skill globally from the release tarball:
 
 ```bash
 CODEX_HOME="${CODEX_HOME:-$HOME/.codex}"
@@ -230,6 +272,7 @@ aget current-tab --cdp-port <port> --allow-private-content
 aget session <command>
 aget artifacts <command>
 aget doctor
+aget setup-skills --all [--project-dir <dir>]
 ```
 
 `aget get`:

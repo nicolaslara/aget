@@ -14,10 +14,12 @@ Supported install paths for the next release:
 | Target | Audience | Command / Artifact | Notes |
 | --- | --- | --- | --- |
 | Developer checkout | contributors | `cargo install --path .` | Primary local install path before artifact publication. |
+| crates.io registry | end users/agents | `cargo install aget --locked` | Supported only after REL-010 publishes the crate. |
 | Git source | contributors/agents | `cargo install --git https://github.com/nicolaslara/aget --tag v0.1.0 --locked aget` | Source install from the published repository tag; package name is explicit because the repo contains more than one binary package. |
 | Source checkout | contributors/agents | `cargo run -- <command>` | Useful for smoke tests and unreleased work. |
-| Release tarball | end users | `aget-<version>-<target>.tar.gz` | Contains one `aget` binary, README, LICENSE, and the Codex skill. |
-| Codex global skill | agent workflows | `scripts/install-codex-skill.sh --symlink --force` from a checkout, or copy `skills/aget` from a release tarball | Requires a Codex restart after install or replacement. |
+| Release tarball | end users | `aget-<version>-<target>.tar.gz` | Contains one `aget` binary, README, LICENSE, the aget skill, helper scripts, and project adapter templates. |
+| Agent integrations | agent workflows | `aget setup-skills --all --force` from an installed binary, or `scripts/install-agent-integrations.sh --all --force` from a checkout/unpacked tarball | Installs global skills for Codex, Claude Code, Gemini CLI, and Windsurf. Project-local OpenCode/Cursor/Copilot adapters require `--project-dir`. |
+| Codex global skill | agent workflows | `scripts/install-codex-skill.sh --symlink --force` from a checkout, or copy `skills/aget` from a release tarball | Codex-only fallback. Requires a Codex restart after install or replacement. |
 
 Initial binary artifact targets:
 
@@ -47,13 +49,21 @@ README.md
 LICENSE
 skills/aget/SKILL.md
 scripts/install-codex-skill.sh
+scripts/install-agent-integrations.sh
+integrations/cursor/aget.mdc
+integrations/copilot/aget.instructions.md
+.opencode/tools/aget.ts
+.opencode/lib/aget_args.ts
 ```
 
 The unpacked executable should be named `aget` on Unix targets. If Windows is
 added later, use `aget.exe` inside `aget-v<semver>-x86_64-pc-windows-msvc.zip`.
-The unpacked skill should be installable by copying `skills/aget` into
-`$CODEX_HOME/skills/aget`, or by running the packaged helper with `--copy`, and
-restarting Codex.
+The unpacked skill should be installable by running `aget setup-skills --all
+--force` after putting the binary on `PATH`, by running
+`scripts/install-agent-integrations.sh --all --force` from the unpacked archive,
+by copying `skills/aget` into the target harness skill directory, or by running
+the Codex-only packaged helper with `--copy`. Users must restart or reload the
+relevant harness after installing global skills or project-local adapters.
 
 ## Version Policy
 
@@ -149,8 +159,8 @@ scripts/package-release.sh --target "$(rustc -vV | sed -n 's/^host: //p')"
 ```
 
 The script builds a locked release binary for the requested Unix target,
-packages `aget`, `README.md`, `LICENSE`, `skills/aget/SKILL.md`, and
-`scripts/install-codex-skill.sh`, then writes the per-archive `.sha256` file
+packages `aget`, `README.md`, `LICENSE`, `skills/aget/SKILL.md`, helper
+scripts, and integration templates, then writes the per-archive `.sha256` file
 and `dist/SHA256SUMS`.
 
 GitHub Actions workflows:
@@ -192,6 +202,7 @@ target/release/aget doctor --help
 - [ ] `CHANGELOG.md` has user-visible changes.
 - [ ] Top-level `LICENSE` exists and matches `Cargo.toml`.
 - [ ] README install section matches produced artifact names.
+- [ ] README registry install section matches crates.io publication state.
 - [ ] `skills/aget/SKILL.md` and `.opencode/tools/aget.ts` match current CLI
       vocabulary.
 - [ ] `cargo fmt --check`, `git diff --check`, and `cargo test` pass.
@@ -202,7 +213,9 @@ target/release/aget doctor --help
 - [ ] Per-archive `.sha256` files and `SHA256SUMS` are generated.
 - [ ] Archives contain `aget`, `README.md`, `LICENSE`, and
       `skills/aget/SKILL.md`.
-- [ ] Archives contain `scripts/install-codex-skill.sh`.
+- [ ] Archives contain `scripts/install-codex-skill.sh` and
+      `scripts/install-agent-integrations.sh`.
+- [ ] Archives contain Cursor, Copilot, and OpenCode integration templates.
 - [ ] Release notes include known limitations: Chrome/CDP required for
       browser-backed flows, cmux optional, no server/MCP layer, no notarized
       app bundle.

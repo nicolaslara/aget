@@ -11,6 +11,8 @@ Build and package a Unix aget release tarball. The archive contains:
   LICENSE
   skills/aget/SKILL.md
   scripts/install-codex-skill.sh
+  scripts/install-agent-integrations.sh
+  integrations for Cursor, Copilot, and OpenCode
 USAGE
 }
 
@@ -79,13 +81,24 @@ name="aget-v${version}-${target}"
 archive="${name}.tar.gz"
 mkdir -p "$out_dir"
 rm -rf "$out_dir/$name" "$out_dir/$name.tar" "$out_dir/$archive" "$out_dir/$archive.sha256"
-mkdir -p "$out_dir/$name/skills/aget" "$out_dir/$name/scripts"
+mkdir -p \
+  "$out_dir/$name/skills/aget" \
+  "$out_dir/$name/scripts" \
+  "$out_dir/$name/integrations/cursor" \
+  "$out_dir/$name/integrations/copilot" \
+  "$out_dir/$name/.opencode/tools" \
+  "$out_dir/$name/.opencode/lib"
 
 install -m 755 "$binary" "$out_dir/$name/aget"
 install -m 644 README.md "$out_dir/$name/README.md"
 install -m 644 LICENSE "$out_dir/$name/LICENSE"
 install -m 644 skills/aget/SKILL.md "$out_dir/$name/skills/aget/SKILL.md"
 install -m 755 scripts/install-codex-skill.sh "$out_dir/$name/scripts/install-codex-skill.sh"
+install -m 755 scripts/install-agent-integrations.sh "$out_dir/$name/scripts/install-agent-integrations.sh"
+install -m 644 integrations/cursor/aget.mdc "$out_dir/$name/integrations/cursor/aget.mdc"
+install -m 644 integrations/copilot/aget.instructions.md "$out_dir/$name/integrations/copilot/aget.instructions.md"
+install -m 644 .opencode/tools/aget.ts "$out_dir/$name/.opencode/tools/aget.ts"
+install -m 644 .opencode/lib/aget_args.ts "$out_dir/$name/.opencode/lib/aget_args.ts"
 
 find "$out_dir/$name" -exec touch -t 202605240000 {} +
 

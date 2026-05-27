@@ -10,3 +10,4 @@ mod interact;
 mod map;
 mod search_page;
 mod session;
+mod setup_skills;

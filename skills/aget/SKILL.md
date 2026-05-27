@@ -14,6 +14,12 @@ Prefer an installed release or source binary on `PATH`:
 aget --help
 ```
 
+After the crates.io release, install the binary with:
+
+```bash
+cargo install aget --locked
+```
+
 For unreleased checkout work, use the project binary through Cargo:
 
 ```bash
@@ -22,13 +28,40 @@ cargo run --quiet -- --help
 
 ## Global Skill Install
 
-Install this skill into Codex from a checkout:
+Install agent integrations from the installed binary:
+
+```bash
+aget setup-skills --all --force
+```
+
+This installs global `aget` skills for Codex, Claude Code, Gemini CLI, and
+Windsurf. Add project-local adapters for OpenCode, Cursor, and GitHub Copilot
+by passing the repository that should receive those files:
+
+```bash
+aget setup-skills --all --project-dir /path/to/repo --force
+```
+
+From a checkout or unpacked release tarball, the helper script provides the
+same setup flow:
+
+```bash
+scripts/install-agent-integrations.sh --all --force
+```
+
+With project-local adapters:
+
+```bash
+scripts/install-agent-integrations.sh --all --project-dir /path/to/repo --force
+```
+
+Install only this skill into Codex from a checkout:
 
 ```bash
 scripts/install-codex-skill.sh --symlink --force
 ```
 
-Install from an unpacked release tarball:
+Install only this skill into Codex from an unpacked release tarball:
 
 ```bash
 CODEX_HOME="${CODEX_HOME:-$HOME/.codex}"
@@ -39,7 +72,8 @@ cp -R aget-v0.1.0-aarch64-apple-darwin/skills/aget "$CODEX_HOME/skills/aget"
 
 The helper defaults to copying the skill. Use `--symlink` from a development
 checkout when local skill edits should be reflected after restarting Codex.
-Restart Codex after installing or replacing the global skill.
+Restart or reload each agent harness after installing or replacing global
+skills or project-local adapters.
 
 ## Safety Rules
 

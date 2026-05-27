@@ -14,6 +14,7 @@ mod main_interact;
 mod main_map;
 mod main_search_page;
 mod main_session;
+mod main_setup_skills;
 
 use main_args::{args_request_json_envelope, command_name_from_args};
 use main_envelope::{
@@ -183,5 +184,13 @@ fn run(cli: Cli) -> Result<ExitCode, ErrorResponse> {
             std::time::Instant::now(),
         )
         .map_err(|error| error.with_command("doctor")),
+        Command::SetupSkills(setup_skills) => main_setup_skills::run_setup_skills(
+            setup_skills,
+            structured_output,
+            cli.global.quiet,
+            std::time::Instant::now(),
+        )
+        .map(|()| ExitCode::SUCCESS)
+        .map_err(|error| error.with_command("setup-skills")),
     }
 }

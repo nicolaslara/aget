@@ -1,6 +1,6 @@
 # Changelog
 
-## 0.1.0 - 2026-05-24
+## 0.1.0 - 2026-05-26
 
 - Added the owned `aget get`, `aget current-tab`, `aget session`, and `aget doctor`
   CLI surfaces with JSON envelopes for agent/tool callers.
@@ -14,6 +14,10 @@
   limits, per-page artifacts, and partial-failure manifests.
 - Added `aget search-page` and `aget extract` for deterministic artifact-first
   narrowing and structured extraction.
+- Added `aget interact` for consent-gated browser action plans, capture
+  artifacts, extract artifacts, and CDP event boundary checks.
+- Added `aget setup-skills` plus packaged integration templates for Codex,
+  Claude Code, Gemini CLI, Windsurf, OpenCode, Cursor, and GitHub Copilot.
 - Added local owned extraction and Chrome/CDP-backed browser/session handling.
 - Added explicit session replay scope checks, sensitive-output handling, and
   run artifacts under `AGET_HOME`.

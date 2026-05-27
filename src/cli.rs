@@ -15,6 +15,7 @@ mod interact;
 mod map;
 mod search_page;
 mod session;
+mod setup_skills;
 #[cfg(test)]
 mod tests;
 
@@ -39,6 +40,7 @@ pub use session::{
     LoginFinishCommand, LoginSessionCommand, LoginSessionSubcommand, LoginStartCommand,
     SessionCommand, SessionSubcommand,
 };
+pub use setup_skills::SetupSkillsCommand;
 
 #[derive(Debug, Parser, PartialEq, Eq)]
 #[command(name = "aget", version, about = "Local-first agent web context tool")]
@@ -109,6 +111,8 @@ pub enum Command {
     Artifacts(ArtifactsCommand),
     /// Diagnose local aget CLI readiness.
     Doctor(DoctorCommand),
+    /// Install aget skills and project-local agent adapters.
+    SetupSkills(SetupSkillsCommand),
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, ValueEnum)]

@@ -212,6 +212,93 @@ Review-follow-up docs touched:
 - `skills/aget/SKILL.md`: provider-session guidance and import/custom-profile
   retention guidance.
 
+## REL-011 Agent Integration References: 2026-05-26
+
+Primary docs used to decide installer target locations:
+
+- Codex/OpenAI skills catalog: `https://github.com/openai/skills` documents
+  Agent Skills as folder-based `SKILL.md` capabilities and says Codex should be
+  restarted after installing a skill.
+- Claude Code skills: `https://docs.claude.com/en/docs/claude-code/skills`
+  documents personal skills in `~/.claude/skills/<skill-name>/SKILL.md` and
+  project skills in `.claude/skills/<skill-name>/SKILL.md`.
+- Gemini CLI context and skills:
+  `https://github.com/google-gemini/gemini-cli/blob/main/docs/cli/gemini-md.md`
+  documents `~/.gemini/GEMINI.md`; `https://github.com/google-gemini/gemini-cli/blob/main/docs/cli/cli-reference.md`
+  documents `gemini skills install`; the auto-memory docs describe promoted
+  user skills under `~/.gemini/skills/`.
+- Windsurf Cascade skills:
+  `https://docs.windsurf.com/windsurf/cascade/skills` documents global skills
+  in `~/.codeium/windsurf/skills/<skill-name>/SKILL.md`, workspace skills in
+  `.windsurf/skills/`, and cross-agent discovery of `.agents/skills`.
+- Cursor rules: `https://docs.cursor.com/en/context` documents project rules
+  under `.cursor/rules/*.mdc`, user rules in settings, and `AGENTS.md` as a
+  simple alternative.
+- OpenCode custom tools: `https://opencode.ai/docs/custom-tools/` documents
+  project custom tools loaded from `.opencode/tools/`.
+- GitHub Copilot custom instructions:
+  `https://docs.github.com/en/copilot/how-tos/copilot-cli/customize-copilot/add-custom-instructions`
+  documents repository and path-specific instruction files, plus local
+  `$HOME/.copilot/copilot-instructions.md`.
+
+Decision:
+
+- Use the existing `skills/aget/SKILL.md` for global skill-aware harnesses:
+  Codex, Claude Code, Gemini CLI, and Windsurf.
+- Keep OpenCode, Cursor, and Copilot as explicit project-local adapters because
+  their documented surfaces are project tools/rules/instructions rather than a
+  shared global skill install format.
+- Do not write global Cursor user rules or global Copilot instructions by
+  default, because those are user preference files and overwriting them is
+  higher-risk than installing a named skill directory.
+
+## REL-012 / REL-010 Setup-Skills And Crates.io Prep: 2026-05-26
+
+Validation commands used for the installed-binary setup command:
+
+```bash
+cargo test --lib setup_skills
+cargo test --test cli setup_skills
+cargo run --quiet -- --envelope json setup-skills --all --dry-run \
+  --project-dir "$tmp/project" \
+  --codex-home "$tmp/codex" \
+  --claude-home "$tmp/claude" \
+  --gemini-home "$tmp/gemini" \
+  --windsurf-home "$tmp/windsurf"
+```
+
+Package content checks:
+
+```bash
+cargo package --allow-dirty --list | rg '(^|/)(skills/aget/SKILL.md|integrations/cursor/aget.mdc|integrations/copilot/aget.instructions.md|\.opencode/tools/aget.ts|\.opencode/lib/aget_args.ts|scripts/install-agent-integrations.sh|scripts/install-codex-skill.sh)'
+cargo package --allow-dirty --list | rg -n '^(workpads/|references/|dist/|target/|\.aget/|\.firecrawl/|aget-hi/|CLAUDE_REVIEW\.md$)' || true
+cargo package --allow-dirty --locked
+cargo publish --dry-run --allow-dirty --locked
+```
+
+Crate-name availability check:
+
+```bash
+curl -sSf https://crates.io/api/v1/crates/aget
+```
+
+The crates.io API returned `404` for `aget` on 2026-05-26, so the crate name
+appears available. Do not treat this as a publication result; the real publish
+still requires `cargo publish --locked` with credentials and explicit final
+approval.
+
+Dry-run result:
+
+- `cargo publish --dry-run --allow-dirty --locked` packaged 410 files, produced
+  a 270.5 KiB compressed crate, verified the packaged crate build, and aborted
+  before upload because it was a dry run.
+- Release-tarball smoke rebuilt the exact host target with
+  `cargo build --release --locked --target "$(rustc -vV | sed -n 's/^host: //p')"`
+  before running `scripts/package-release.sh --skip-build`; the unpacked
+  binary's `aget setup-skills --all --dry-run` returned a `setup-skills`
+  envelope with eight planned integrations, and the archive contained the skill,
+  helper script, OpenCode templates, Cursor rule, and Copilot instructions.
+
 ## REL-001 Release Plan: 2026-05-24
 
 Design artifact:

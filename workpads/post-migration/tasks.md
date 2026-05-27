@@ -687,7 +687,7 @@ Status note:
   `cargo package --allow-dirty --locked` passed with a 224.2 KiB compressed
   package.
 
-### 📋 Task REL-010: Publish crates.io package after explicit release decision
+### 🚧 Task REL-010: Publish crates.io package after explicit release decision
 
 Depends on: REL-006.
 
@@ -703,8 +703,43 @@ Acceptance criteria:
 
 Status note:
 
-- Pending. REL-006 prepared metadata and package boundaries but intentionally
-  deferred registry publication.
+- In progress. The `aget` crate name returned 404 from the crates.io API on
+  2026-05-26, so the name appears available. This pass prepares package
+  metadata, README/changelog install docs, embedded setup-skills templates, and
+  publish dry-run evidence. `cargo publish --dry-run --allow-dirty --locked`
+  verifies successfully, and the regenerated release tarball smokes the unpacked
+  binary's `setup-skills --all --dry-run` path. The real
+  `cargo publish --locked` command still requires an explicit final approval.
+
+### ✅ Task REL-012: Add `aget setup-skills` CLI installer
+
+Depends on: REL-011.
+
+Acceptance criteria:
+
+- Add a CLI command such as `aget setup-skills --all` so installed binaries can
+  set up agent integrations without a source checkout.
+- Embed or otherwise ship the same skill/adapters used by
+  `scripts/install-agent-integrations.sh` without requiring a source checkout.
+- Preserve copy/symlink semantics where meaningful; reject symlink mode when
+  the command is running from an installed binary without template source paths.
+- Keep project-local adapters explicit with a `--project-dir` or equivalent
+  flag.
+- Add tests for dry-run/planning output, global skill target paths, project
+  adapter target paths, force/exists behavior, and no-credential/no-browser-data
+  safety.
+
+Status note:
+
+- Completed with an installed-binary `aget setup-skills` command that embeds
+  the aget skill, OpenCode tool templates, Cursor rule, and Copilot
+  instruction template. The command copies embedded templates, supports
+  `--all`, target flags, `--project-dir`, custom harness home directories,
+  `--dry-run`, and `--force`, and rejects `--symlink` with a structured usage
+  error because installed binaries do not have source paths to symlink. Focused
+  parser and CLI tests cover defaults, all/project options, dry-run planning,
+  global/project writes, existing-target force behavior, missing project-dir
+  rejection, and symlink rejection.
 
 ### ✅ Task REL-007: Add Windows artifact only after a real smoke path
 
@@ -748,6 +783,35 @@ Status note:
   updates, temporary copy/symlink validation, and a local global symlink install
   at `/Users/nicolas/.codex/skills/aget`. Codex must be restarted before a
   running session sees a newly installed or replaced global skill.
+
+### ✅ Task REL-011: Add multi-harness agent integration installer
+
+Depends on: REL-008, AGENT-001.
+
+Acceptance criteria:
+
+- Add a checkout/release helper that can install the `aget` skill into major
+  skill-aware harness locations where the file format is compatible.
+- Document the helper in README as the easy path after installing the CLI.
+- Keep project-local integrations explicit for harnesses that use project
+  rules/tools rather than global skills.
+- Track a future `aget setup-skills --all` CLI command as a release-era
+  follow-up rather than implementing registry-dependent behavior now.
+- Verify the helper with temporary home/project directories and grep the docs
+  for the new command examples.
+
+Status note:
+
+- Completed with `scripts/install-agent-integrations.sh`, shared skill installs
+  for Codex, Claude Code, Gemini CLI, and Windsurf, and explicit
+  `--project-dir` adapters for OpenCode, Cursor, and GitHub Copilot. README
+  and the aget skill now document the easy setup commands, release packaging
+  includes the helper and adapter templates, and the future `aget setup-skills
+  --all` shape is tracked as release-era CLI work after `cargo install aget` is
+  supported. Validation: `bash -n` for shell helpers, temp-directory global and
+  project adapter install smokes, project-dir error-path smoke, symlink smoke,
+  release tarball content smoke, command-example grep, stale dependency-surface
+  grep, and `git diff --check` pass.
 
 ### 📋 Task REL-009: Publish Homebrew tap after multi-target macOS release
 

@@ -10,7 +10,8 @@ fn top_level_help_includes_global_flags() {
             .and(predicate::str::contains("--timeout"))
             .and(predicate::str::contains("get"))
             .and(predicate::str::contains("interact"))
-            .and(predicate::str::contains("search-page")),
+            .and(predicate::str::contains("search-page"))
+            .and(predicate::str::contains("setup-skills")),
     );
 }
 
@@ -60,6 +61,23 @@ fn doctor_help_is_available() {
             .and(predicate::str::contains("--quick"))
             .and(predicate::str::contains("--check")),
     );
+}
+
+#[test]
+fn setup_skills_help_is_available() {
+    let mut cmd = Command::cargo_bin("aget").unwrap();
+
+    cmd.args(["setup-skills", "--help"])
+        .assert()
+        .success()
+        .stdout(
+            predicate::str::contains("Usage: aget setup-skills")
+                .and(predicate::str::contains("--all"))
+                .and(predicate::str::contains("--project-dir"))
+                .and(predicate::str::contains("--codex-home"))
+                .and(predicate::str::contains("--dry-run"))
+                .and(predicate::str::contains("--force")),
+        );
 }
 
 #[test]

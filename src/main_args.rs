@@ -34,6 +34,10 @@ pub(crate) fn command_name_from_args(args: &[OsString]) -> &'static str {
         return "doctor";
     }
 
+    if tokens.contains(&"setup-skills") {
+        return "setup-skills";
+    }
+
     if let Some(index) = tokens.iter().position(|token| *token == "artifacts") {
         return match tokens.get(index + 1).copied() {
             Some("list") => "artifacts.list",

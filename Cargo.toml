@@ -6,7 +6,8 @@ description = "Local-first auth-aware agent web context CLI"
 license = "MIT"
 repository = "https://github.com/nicolaslara/aget"
 readme = "README.md"
-publish = false
+keywords = ["agent", "web", "cli", "markdown", "local-first"]
+categories = ["command-line-utilities", "web-programming"]
 include = [
     "/Cargo.toml",
     "/Cargo.lock",
@@ -15,6 +16,13 @@ include = [
     "/CHANGELOG.md",
     "/src/**",
     "/tests/**",
+    "/skills/aget/SKILL.md",
+    "/integrations/cursor/aget.mdc",
+    "/integrations/copilot/aget.instructions.md",
+    "/.opencode/tools/aget.ts",
+    "/.opencode/lib/aget_args.ts",
+    "/scripts/install-agent-integrations.sh",
+    "/scripts/install-codex-skill.sh",
 ]
 
 [dependencies]

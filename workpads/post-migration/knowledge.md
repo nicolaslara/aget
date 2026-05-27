@@ -190,10 +190,24 @@ the CLI envelope in a thin host-specific tool.
   than relying only on copy/paste blocks. `scripts/install-codex-skill.sh`
   defaults to copying the skill, supports `--symlink` for local development,
   and is the preferred local checkout install path.
+- Agent integration setup should be script-backed before it becomes a CLI
+  command. `scripts/install-agent-integrations.sh` installs the shared
+  `skills/aget/SKILL.md` into global skill directories for Codex, Claude Code,
+  Gemini CLI, and Windsurf, while requiring `--project-dir` for project-local
+  OpenCode, Cursor, and Copilot adapters.
+- `aget setup-skills --all` is the installed-binary integration setup path. It
+  embeds the same skill/adapters as the helper script, copies templates from
+  the binary, and rejects `--symlink`; symlink mode remains a checkout-script
+  feature.
 - REL-003 source install needs an explicit package argument:
   `cargo install --git https://github.com/nicolaslara/aget --tag v0.1.0 --locked aget`.
   The repository contains another binary package, so omitting `aget` causes
   Cargo to reject the install.
+- REL-010 crates.io publication is now feasible to prepare because the binary
+  embeds its setup-skills templates and the package include list contains the
+  required skill/adapter files. Keep the actual `cargo publish --locked`
+  command behind a final explicit approval because crates.io publication is an
+  irreversible external release action.
 - AGENT-001 keeps OpenCode integration as thin CLI/envelope wrappers. The
   wrappers build command arguments for `batch`, `map`, `crawl`,
   `artifacts list/inspect`, and `doctor`; tests cover generated args rather

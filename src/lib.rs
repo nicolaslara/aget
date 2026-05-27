@@ -26,7 +26,7 @@ pub use cli::{
     InspectArtifactCommand, InspectSessionCommand, InteractCommand, LoginCancelCommand,
     LoginFinishCommand, LoginSessionCommand, LoginSessionSubcommand, LoginStartCommand, MapCommand,
     MapOutput, OutputFormat, PruneArtifactsCommand, SearchPageCommand, SearchPageOutput,
-    SessionCommand, SessionSubcommand,
+    SessionCommand, SessionSubcommand, SetupSkillsCommand,
 };
 pub use error::{AgetError, ErrorCode, ErrorResponse, ENVELOPE_SCHEMA_VERSION};
 pub use extraction::{
